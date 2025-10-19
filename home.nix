@@ -18,4 +18,15 @@
       init.defaultBranch = "main";
     };
   };
+  programs.ssh = {
+    enable = true;
+    extraConfig = ''
+      Host *
+        IdentityAgent ~/.1password/agent.sock
+    '';
+  };
+  home.packages = with pkgs; [
+    _1password-gui
+    _1password-cli
+  ];
 }

@@ -18,10 +18,6 @@
 
   i18n = {
     defaultLocale = "en_US.UTF-8";
-    extraLocaleSettings = {
-      LC_ALL = "de_DE.UTF-8";
-      LC_MESSAGES = "en_US.UTF-8";
-    };
   };
 
   services.xserver.enable = true;
