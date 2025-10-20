@@ -4,12 +4,6 @@
   home.username = "frank";
   home.homeDirectory = "/home/frank";
   home.stateVersion = "25.05";
-  programs.bash = {
-    enable = true;
-    shellAliases = {
-      rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#$(hostname)";
-    };
-  };
   programs.git = {
     enable = true;
     userName = "Frank Hermann";
@@ -27,6 +21,9 @@
   };
   programs.zsh = {
     enable = true;
+    shellAliases = {
+      rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#$(hostname)";
+    };
   };
   programs.starship = {
     enable = true;
