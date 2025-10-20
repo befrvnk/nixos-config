@@ -7,7 +7,7 @@
   programs.bash = {
     enable = true;
     shellAliases = {
-      btw = "echo i use nixos, btw";
+      rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#$(hostname)";
     };
   };
   programs.git = {
