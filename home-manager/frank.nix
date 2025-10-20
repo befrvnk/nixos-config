@@ -25,6 +25,12 @@
         IdentityAgent ~/.1password/agent.sock
     '';
   };
+  programs.zsh = {
+    enable = true;
+  };
+  programs.starship = {
+    enable = true;
+  };
   home.packages = with pkgs; [
     _1password-cli
     _1password-gui
@@ -34,5 +40,6 @@
     helix
     lf
     neofetch
+    starship
   ];
 }

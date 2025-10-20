@@ -10,13 +10,14 @@ Packages
 - [ ] gh
 - [ ] htop
 - [ ] tree
+- [ ] zsh
 
 Fonts
 - [ ] Nerd Font
 - [ ] Jetbrains Mono
 
 Nix Setup
-- [ ] Move packages to home-manager
+- [x] Move packages to home-manager
 - [x] Structure hardware config
 
 Programs
@@ -28,6 +29,7 @@ Programs
 - [ ] Zen Browser
 - [ ] Signal
 - [ ] WhatsApp
+- [ ] Spotify
 
 System
 - [ ] Replace GNOME with Niri
