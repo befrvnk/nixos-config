@@ -3,14 +3,14 @@ This repository contains my NixOS system configurations.
 
 # TODO
 Packages
-- [ ] starship
-- [ ] eza
-- [ ] fd
-- [ ] fzf
-- [ ] gh
-- [ ] htop
-- [ ] tree
-- [ ] zsh
+- [x] starship
+- [x] eza
+- [x] fd
+- [x] fzf
+- [x] gh
+- [x] htop
+- [x] tree
+- [x] zsh
 
 Fonts
 - [ ] Nerd Font

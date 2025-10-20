@@ -36,10 +36,16 @@
     _1password-gui
     anytype
     bat
+    eza
+    fd
+    fzf
     gemini-cli
+    gh
     helix
+    htop
     lf
     neofetch
     starship
+    tree
   ];
 }
