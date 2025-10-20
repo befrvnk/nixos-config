@@ -14,13 +14,13 @@
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       modules = [
-        ./configuration.nix
+        ./hosts/nixos/default.nix
         home-manager.nixosModules.home-manager
         {
           home-manager = {
             useGlobalPkgs = true;
             useUserPackages = true;
-            users.frank = import ./home.nix;
+            users.frank = import ./home-manager/frank.nix;
             backupFileExtension = "backup";
           };
         }
