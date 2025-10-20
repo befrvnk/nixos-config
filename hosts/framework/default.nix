@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
 {
   imports =
@@ -9,5 +9,6 @@
       ../../modules/pipewire.nix
       ../../modules/packages.nix
       ../../modules/users.nix
+      inputs.nixos-hardware.nixosModules.framework-amd-ai-300-series
     ];
 }

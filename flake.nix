@@ -10,11 +10,12 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, ... }: {
-    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, ... }@inputs: {
+    nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
+      specialArgs = { inherit inputs; };
       modules = [
-        ./hosts/nixos/default.nix
+        ./hosts/framework/default.nix
         home-manager.nixosModules.home-manager
         {
           home-manager = {
@@ -24,7 +25,6 @@
             backupFileExtension = "backup";
           };
         }
-        nixos-hardware.nixosModules.framework-16-amd-ai-300-series
       ];
     };
   };

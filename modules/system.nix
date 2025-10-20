@@ -6,7 +6,7 @@
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  networking.hostName = "nixos";
+  networking.hostName = "framework";
   networking.networkmanager.enable = true;
 
   time.timeZone = "Europe/Berlin";
