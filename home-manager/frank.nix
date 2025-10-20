@@ -26,8 +26,13 @@
     '';
   };
   home.packages = with pkgs; [
-    _1password-gui
     _1password-cli
+    _1password-gui
+    anytype
+    bat
     gemini-cli
+    helix
+    lf
+    neofetch
   ];
 }
