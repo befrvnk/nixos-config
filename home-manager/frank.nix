@@ -44,6 +44,7 @@
     fzf
     gemini-cli
     gh
+    ghostty
     helix
     htop
     lf

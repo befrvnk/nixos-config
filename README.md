@@ -8,12 +8,10 @@ Fonts
 - [ ] Jetbrains Mono
 
 Programs
-- [ ] Ghostty
 - [ ] Android Studio
 - [ ] Jetbrains IDEA
 - [ ] Discord
 - [ ] Slack
-- [ ] Zen Browser
 - [ ] Signal
 - [ ] WhatsApp
 - [ ] Spotify
