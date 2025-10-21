@@ -9,4 +9,12 @@
     ];
 
   networking.hostName = "framework";
+  environment.etc = {
+    "1password/custom_allowed_browsers" = {
+      text = ''
+        .zen-wrapped
+      '';
+      mode = "0755";
+    };
+  };
 }

@@ -1,6 +1,10 @@
-{ config, pkgs, ... }:
+{ config, pkgs, zen-browser, ... }:
 
 {
+  imports = [
+    zen-browser.homeModules.beta
+  ];
+  
   home.username = "frank";
   home.homeDirectory = "/home/frank";
   home.stateVersion = "25.05";
@@ -29,6 +33,7 @@
   programs.starship = {
     enable = true;
   };
+  programs.zen-browser.enable = true;
   home.packages = with pkgs; [
     _1password-cli
     _1password-gui
