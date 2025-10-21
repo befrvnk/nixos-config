@@ -4,6 +4,9 @@
   home.username = "frank";
   home.homeDirectory = "/home/frank";
   home.stateVersion = "25.05";
+
+  home.file.".config/zsh/rebuild.zsh".source = ./zsh/rebuild.zsh;
+
   programs.git = {
     enable = true;
     userName = "Frank Hermann";
@@ -21,9 +24,7 @@
   };
   programs.zsh = {
     enable = true;
-    shellAliases = {
-      rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#$(hostname)";
-    };
+    initContent = "source ${config.home.homeDirectory}/.config/zsh/rebuild.zsh";
   };
   programs.starship = {
     enable = true;
