@@ -39,6 +39,7 @@
     _1password-gui
     anytype
     bat
+    discord
     eza
     fd
     fzf
@@ -49,6 +50,9 @@
     htop
     lf
     neofetch
+    signal-desktop
+    slack
+    spotify
     starship
     tree
   ];
