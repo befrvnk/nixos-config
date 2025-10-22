@@ -10,11 +10,7 @@ Fonts
 Programs
 - Android Studio
 - Jetbrains IDEA
-- Discord
-- Slack
-- Signal
 - WhatsApp
-- Spotify
 
 System
 - Replace GNOME with Niri
