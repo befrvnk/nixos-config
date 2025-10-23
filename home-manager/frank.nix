@@ -4,7 +4,7 @@
   imports = [
     zen-browser.homeModules.beta
   ];
-  
+
   home.username = "frank";
   home.homeDirectory = "/home/frank";
   home.stateVersion = "25.05";
@@ -33,7 +33,10 @@
   programs.starship = {
     enable = true;
   };
-  programs.zed-editor.enable = true;
+  programs.zed-editor = {
+    enable = true;
+    extensions = [ "nix" ];
+  };
   programs.zen-browser.enable = true;
   home.packages = with pkgs; [
     _1password-cli
