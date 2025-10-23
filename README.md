@@ -10,7 +10,6 @@ Fonts
 Programs
 - Android Studio
 - Jetbrains IDEA
-- WhatsApp
 
 System
 - Replace GNOME with Niri

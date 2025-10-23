@@ -46,6 +46,7 @@
     pkgs-unstable.signal-desktop
     pkgs-unstable.slack
     pkgs-unstable.spotify
+    pkgs-unstable.zapzap
     bat
     eza
     fd
