@@ -3,6 +3,7 @@
 {
   imports = [
     zen-browser.homeModules.beta
+    (import ./zed.nix { inherit pkgs pkgs-unstable; })
   ];
 
   home.username = "frank";
@@ -32,11 +33,6 @@
   };
   programs.starship = {
     enable = true;
-  };
-  programs.zed-editor = {
-    enable = true;
-    package = pkgs-unstable.zed-editor;
-    extensions = [ "nix" ];
   };
   programs.zen-browser.enable = true;
   home.packages = with pkgs; [
