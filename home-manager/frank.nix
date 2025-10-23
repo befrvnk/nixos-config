@@ -1,4 +1,4 @@
-{ config, pkgs, zen-browser, ... }:
+{ config, pkgs, pkgs-unstable, zen-browser, inputs, ... }:
 
 {
   imports = [
@@ -35,28 +35,29 @@
   };
   programs.zed-editor = {
     enable = true;
+    package = pkgs-unstable.zed-editor;
     extensions = [ "nix" ];
   };
   programs.zen-browser.enable = true;
   home.packages = with pkgs; [
-    _1password-cli
-    _1password-gui
-    anytype
+    pkgs-unstable._1password-cli
+    pkgs-unstable._1password-gui
+    pkgs-unstable.anytype
+    pkgs-unstable.discord
+    pkgs-unstable.gemini-cli
+    pkgs-unstable.ghostty
+    pkgs-unstable.helix
+    pkgs-unstable.signal-desktop
+    pkgs-unstable.slack
+    pkgs-unstable.spotify
     bat
-    discord
     eza
     fd
     fzf
-    gemini-cli
     gh
-    ghostty
-    helix
     htop
     lf
     neofetch
-    signal-desktop
-    slack
-    spotify
     starship
     tree
   ];
