@@ -3,12 +3,7 @@ This repository contains my NixOS system configurations.
 
 ## TODO
 
-Fonts
-- Nerd Font
-- Jetbrains Mono
-
 Programs
-- Android Studio
 - Jetbrains IDEA
 
 System
