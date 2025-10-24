@@ -38,6 +38,7 @@
   home.packages = with pkgs; [
     pkgs-unstable._1password-cli
     pkgs-unstable._1password-gui
+    pkgs-unstable.androidStudioPackages.canary
     pkgs-unstable.anytype
     pkgs-unstable.discord
     pkgs-unstable.gemini-cli
