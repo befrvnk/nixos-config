@@ -4,13 +4,16 @@
   imports = [
     zen-browser.homeModules.beta
     (import ./zed.nix { inherit pkgs pkgs-unstable; })
+    (import ./android.nix { inherit pkgs pkgs-unstable; })
   ];
 
   home.username = "frank";
   home.homeDirectory = "/home/frank";
   home.stateVersion = "25.05";
 
+
   home.file.".config/zsh/rebuild.zsh".source = ./zsh/rebuild.zsh;
+
 
   programs.git = {
     enable = true;
@@ -38,7 +41,8 @@
   home.packages = with pkgs; [
     pkgs-unstable._1password-cli
     pkgs-unstable._1password-gui
-    pkgs-unstable.androidStudioPackages.canary
+
+
     pkgs-unstable.anytype
     pkgs-unstable.discord
     pkgs-unstable.gemini-cli
