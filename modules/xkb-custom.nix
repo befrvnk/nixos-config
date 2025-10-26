@@ -7,7 +7,7 @@ in
   # Changes to this seem to only apply after a gnome reboot
   services.xserver.xkb.extraLayouts.${layoutName} =
   {
-    description = "US layout with German Umlauts on AltGr";
+    description = "US layout with German Umlauts on left and right Alt";
     languages = [ "eng" ];
     symbolsFile = pkgs.writeText "us-umlauts"
     ''
@@ -28,7 +28,7 @@ in
 
   # Set the keyboard layout and options
   services.xserver.layout = layoutName;
-  services.xserver.xkbOptions = "lv3:ralt_switch"; # Use right alt for special characters
+  services.xserver.xkbOptions = "lv3:alt_switch"; # Use left and right alt for special characters
 
   # The following is for GNOME/GDM. It will override the layout set by services.xserver.layout.
   # It is not strictly necessary if you don't use GNOME, but it's good to have for consistency.
