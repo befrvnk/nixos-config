@@ -20,35 +20,38 @@
     };
   };
 
-  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, ... }@inputs: {
-    nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
+  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, ... }:
+    let
       system = "x86_64-linux";
-      specialArgs = { inherit nixos-hardware; };
-      modules = [
-        {
-          nixpkgs.overlays = [
-            inputs.android-nixpkgs.overlays.default
-          ];
-        }
-        ./hosts/framework/default.nix
-        home-manager.nixosModules.home-manager
-        {
-          home-manager = {
-            useGlobalPkgs = true;
-            useUserPackages = true;
-            users.frank = import ./home-manager/frank.nix;
-            backupFileExtension = "backup";
-            extraSpecialArgs = {
-              inherit zen-browser;
-              inherit android-nixpkgs;
-              pkgs-unstable = import nixpkgs-unstable {
-                system = "x86_64-linux";
-                config.allowUnfree = true;
+    in {
+      nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit nixos-hardware; };
+        modules = [
+          {
+            nixpkgs.overlays = [
+              android-nixpkgs.overlays.default
+            ];
+          }
+          ./hosts/framework/default.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              users.frank = import ./home-manager/frank.nix;
+              backupFileExtension = "backup";
+              extraSpecialArgs = {
+                inherit zen-browser;
+                inherit android-nixpkgs;
+                pkgs-unstable = import nixpkgs-unstable {
+                  inherit system;
+                  config.allowUnfree = true;
+                };
               };
             };
-          };
-        }
-      ];
+          }
+        ];
+      };
     };
-  };
 }
