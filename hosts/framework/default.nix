@@ -15,6 +15,11 @@
     enable = true;
   };
 
+  hardware.framework.laptop13.audioEnhancement = {
+    enable = true;
+    hideRawDevice = false;
+  };
+
   environment.etc = {
     "1password/custom_allowed_browsers" = {
       text = ''
