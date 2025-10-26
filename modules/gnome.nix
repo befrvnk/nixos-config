@@ -14,9 +14,15 @@
     # Ensure Mutter is available to provide the GSettings schema
     extraGSettingsOverridePackages = [ pkgs.mutter ];
   };
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
+
+  services.xserver.xkb.extraLayouts.custom = {
+    description = "US with AltGr international";
+    languages = [ "eng" ];
+    symbolsFile = pkgs.writeText "custom" ''
+      xkb_symbols {
+        include "us(altgr-intl)"
+      };
+    '';
   };
 
   services.printing.enable = true;
