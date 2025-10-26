@@ -24,6 +24,8 @@
     enable = true;
   };
 
+  services.hardware.bolt.enable = false;
+
   hardware.framework.laptop13.audioEnhancement = {
     enable = true;
     hideRawDevice = false;
