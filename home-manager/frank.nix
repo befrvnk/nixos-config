@@ -1,10 +1,10 @@
-{ config, pkgs, pkgs-unstable, zen-browser, inputs, ... }:
+{ config, pkgs, pkgs-unstable, zen-browser, inputs, android-nixpkgs, ... }:
 
 {
   imports = [
     zen-browser.homeModules.beta
     (import ./zed.nix { inherit pkgs pkgs-unstable; })
-    (import ./android.nix { inherit pkgs pkgs-unstable; })
+    (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
   ];
 
   home.username = "frank";
