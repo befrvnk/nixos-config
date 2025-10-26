@@ -17,6 +17,9 @@
 
   networking.hostName = "framework";
 
+  systemd.services."getty@tty1".enable = false;
+  systemd.services."autovt@tty1".enable = false;
+
   services.fwupd = {
     enable = true;
   };
