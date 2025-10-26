@@ -10,6 +10,11 @@
     ];
 
   networking.hostName = "framework";
+
+  services.fwupd = {
+    enable = true;
+  };
+
   environment.etc = {
     "1password/custom_allowed_browsers" = {
       text = ''
