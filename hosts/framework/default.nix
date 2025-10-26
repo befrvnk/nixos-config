@@ -1,12 +1,11 @@
-{ pkgs, inputs, ... }:
+{ nixos-hardware, ... }:
 
 {
   imports =
     [
       ./hardware-configuration.nix
-    ../../modules/xkb-custom.nix
       ../../modules
-      inputs.nixos-hardware.nixosModules.framework-amd-ai-300-series
+      nixos-hardware.nixosModules.framework-amd-ai-300-series
     ];
 
   networking.hostName = "framework";

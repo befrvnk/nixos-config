@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ pkgs, ... }:
 
 let
   layoutName = "us-umlauts";
@@ -27,8 +27,8 @@ in
   };
 
   # Set the keyboard layout and options
-  services.xserver.layout = layoutName;
-  services.xserver.xkbOptions = "lv3:alt_switch"; # Use left and right alt for special characters
+  services.xserver.xkb.layout = layoutName;
+  services.xserver.xkb.options = "lv3:alt_switch"; # Use left and right alt for special characters
 
   # The following is for GNOME/GDM. It will override the layout set by services.xserver.layout.
   # It is not strictly necessary if you don't use GNOME, but it's good to have for consistency.
@@ -36,6 +36,4 @@ in
     [org/gnome/desktop/input-sources]
     sources=[('xkb', '${layoutName}')]
   '';
-
-
 }

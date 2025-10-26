@@ -19,14 +19,16 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, ... }@inputs: {
+  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, ... }@inputs: {
     nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
-      specialArgs = { inherit inputs; };
+      specialArgs = { inherit nixos-hardware; };
       modules = [
-        ({ pkgs, ... }: {
-          nixpkgs.overlays = [ inputs.android-nixpkgs.overlays.default ];
-        })
+        {
+          nixpkgs.overlays = [
+            inputs.android-nixpkgs.overlays.default
+          ];
+        }
         ./hosts/framework/default.nix
         home-manager.nixosModules.home-manager
         {
@@ -38,7 +40,7 @@
             extraSpecialArgs = {
               inherit zen-browser;
               inherit android-nixpkgs;
-              pkgs-unstable = import inputs.nixpkgs-unstable {
+              pkgs-unstable = import nixpkgs-unstable {
                 system = "x86_64-linux";
                 config.allowUnfree = true;
               };

@@ -1,4 +1,4 @@
-{ config, pkgs, pkgs-unstable, zen-browser, inputs, android-nixpkgs, ... }:
+{ config, pkgs, pkgs-unstable, zen-browser, android-nixpkgs, ... }:
 
 {
   imports = [

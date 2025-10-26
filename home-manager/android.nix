@@ -1,10 +1,10 @@
-{ pkgs, pkgs-unstable, android-nixpkgs, ... }:
+{ pkgs-unstable, android-nixpkgs, ... }:
 
 {
   # Import the android-nixpkgs Home Manager module to make the options available
   imports = [ android-nixpkgs.hmModule ];
 
-  home.packages = with pkgs; [
+  home.packages = [
     pkgs-unstable.androidStudioPackages.canary
   ];
 
