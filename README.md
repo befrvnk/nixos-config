@@ -3,9 +3,6 @@ This repository contains my NixOS system configurations.
 
 ## TODO
 
-Apps
-- Add ticktick
-
 System
 - Get storage encryption pw from BIOS
 - Fix login manager
