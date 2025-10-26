@@ -4,7 +4,6 @@ This repository contains my NixOS system configurations.
 ## TODO
 
 System
-- Get storage encryption pw from BIOS
 - Fix login manager
 - Add Niri WM
 - Add waybar
@@ -19,6 +18,7 @@ Settings
 - Bluetooth
 
 Documentation
+- [Secure Boot with TPM](./docs/secure-boot.md)
 - List all packages and apps
 - Add readme for `rebuild switch`
 - Write documentation about updating flakes

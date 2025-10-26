@@ -18,15 +18,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v0.4.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, ... }:
+  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, lanzaboote, ... }:
     let
       system = "x86_64-linux";
     in {
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit nixos-hardware; };
+        specialArgs = { inherit nixos-hardware lanzaboote; };
         modules = [
           {
             nixpkgs.overlays = [
