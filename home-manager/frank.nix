@@ -41,13 +41,12 @@
   home.packages = with pkgs; [
     pkgs-unstable._1password-cli
     pkgs-unstable._1password-gui
-
-
     pkgs-unstable.anytype
     pkgs-unstable.discord
     pkgs-unstable.gemini-cli
     pkgs-unstable.ghostty
     pkgs-unstable.helix
+    pkgs-unstable.jetbrains.idea-community-bin
     pkgs-unstable.signal-desktop
     pkgs-unstable.slack
     pkgs-unstable.spotify

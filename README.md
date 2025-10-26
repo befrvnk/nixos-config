@@ -3,9 +3,6 @@ This repository contains my NixOS system configurations.
 
 ## TODO
 
-Programs
-- Jetbrains IDEA
-
 System
 - Replace GNOME with Niri
 - Configure fingerprint sensor
