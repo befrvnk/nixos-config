@@ -1,10 +1,14 @@
-{ config, pkgs, pkgs-unstable, zen-browser, android-nixpkgs, ... }:
+{ config, osConfig, pkgs, pkgs-unstable, zen-browser, android-nixpkgs, nix-colors, ... }:
 
 {
   imports = [
     zen-browser.homeModules.beta
     (import ./zed.nix { inherit pkgs pkgs-unstable; })
     (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
+    ./stylix.nix
+    (import ./niri/default.nix { inherit osConfig pkgs nix-colors; })
+    ./hyprlock.nix
+    ./vicinae.nix
   ];
 
   home.username = "frank";
@@ -17,18 +21,20 @@
 
   programs.git = {
     enable = true;
-    userName = "Frank Hermann";
-    userEmail = "hermann.frank@gmail.com";
-    extraConfig = {
+    settings = {
+      user = {
+        name = "Frank Hermann";
+        email = "hermann.frank@gmail.com";
+      };
       init.defaultBranch = "main";
     };
   };
   programs.ssh = {
     enable = true;
-    extraConfig = ''
-      Host *
-        IdentityAgent ~/.1password/agent.sock
-    '';
+    enableDefaultConfig = false;
+    matchBlocks."*" = {
+      identityAgent = "~/.1password/agent.sock";
+    };
   };
   programs.zsh = {
     enable = true;
@@ -42,6 +48,7 @@
     pkgs-unstable._1password-cli
     pkgs-unstable._1password-gui
     pkgs-unstable.anytype
+    pkgs-unstable.claude-code
     pkgs-unstable.discord
     pkgs-unstable.gemini-cli
     pkgs-unstable.ghostty

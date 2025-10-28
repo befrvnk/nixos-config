@@ -1,10 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   boot.initrd.systemd.enable = true;
   security.tpm2.enable = true;
 
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Let the Framework hardware module handle kernel selection
+  # boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
   networking.networkmanager.enable = true;
 

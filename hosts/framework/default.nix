@@ -26,6 +26,9 @@
 
   services.hardware.bolt.enable = false;
 
+  # Disable kmod to avoid infinite recursion with kernel packages
+  hardware.framework.enableKmod = false;
+
   hardware.framework.laptop13.audioEnhancement = {
     enable = true;
     hideRawDevice = false;

@@ -2,8 +2,8 @@
 
 {
   services.xserver.enable = true;
-  services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome = {
+  services.displayManager.gdm.enable = true;
+  services.desktopManager.gnome = {
     enable = true;
     # This section enables the fractional scaling options (125%, 150%, etc.)
     # in the GNOME Settings -> Displays menu.

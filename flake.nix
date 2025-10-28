@@ -2,10 +2,10 @@
   description = "NixOS from Scratch";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.05";
+    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     android-nixpkgs = {
@@ -22,32 +22,55 @@
       url = "github:nix-community/lanzaboote/v0.4.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    astal-shell = {
+      url = "github:knoopx/astal-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    vicinae = {
+      url = "github:vicinaehq/vicinae";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-colors = {
+      url = "github:misterio77/nix-colors";
+    };
   };
 
-  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, lanzaboote, ... }:
+  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, lanzaboote, stylix, astal-shell, vicinae, nix-colors, ... } @ inputs:
     let
       system = "x86_64-linux";
     in {
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit nixos-hardware lanzaboote; };
+        specialArgs = { inherit nixos-hardware lanzaboote; inherit inputs; };
         modules = [
           {
             nixpkgs.overlays = [
               android-nixpkgs.overlays.default
+              astal-shell.overlays.default
+              (import ./overlays/niri.nix)
             ];
           }
           ./hosts/framework/default.nix
           home-manager.nixosModules.home-manager
+          stylix.nixosModules.stylix
           {
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
               users.frank = import ./home-manager/frank.nix;
               backupFileExtension = "backup";
+              sharedModules = [
+                astal-shell.homeManagerModules.default
+                vicinae.homeManagerModules.default
+              ];
               extraSpecialArgs = {
                 inherit zen-browser;
                 inherit android-nixpkgs;
+                inherit nix-colors;
                 pkgs-unstable = import nixpkgs-unstable {
                   inherit system;
                   config.allowUnfree = true;
