@@ -42,6 +42,7 @@
     pkgs-unstable._1password-cli
     pkgs-unstable._1password-gui
     pkgs-unstable.anytype
+    pkgs-unstable.claude-code
     pkgs-unstable.discord
     pkgs-unstable.gemini-cli
     pkgs-unstable.ghostty
