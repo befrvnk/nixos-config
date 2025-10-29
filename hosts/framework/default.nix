@@ -32,6 +32,7 @@
   hardware.framework.laptop13.audioEnhancement = {
     enable = true;
     hideRawDevice = false;
+    rawDeviceName = "alsa_output.pci-0000_c1_00.6.HiFi__Speaker__sink";
   };
 
   environment.etc = {
