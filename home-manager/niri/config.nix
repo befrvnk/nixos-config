@@ -1,14 +1,21 @@
 {
   pkgs,
   ...
-}: {
-  home.packages = [pkgs.niri pkgs.playerctl pkgs.wireplumber];
+}:
+{
+  home.packages = [
+    pkgs.niri
+    pkgs.playerctl
+    pkgs.wireplumber
+    pkgs.xwayland-satellite
+    pkgs.brightnessctl
+  ];
   services.gnome-keyring.enable = true;
 
   xdg.portal = {
     enable = true;
-    extraPortals = [pkgs.xdg-desktop-portal-gnome];
-    configPackages = [pkgs.niri];
+    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+    configPackages = [ pkgs.niri ];
   };
 
   # https://github.com/YaLTeR/niri/blob/main/resources/default-config.kdl
@@ -77,15 +84,15 @@
 
         Print { screenshot; }
         Shift+Print { screenshot-window; }
-        XF86AudioLowerVolume { spawn "volume-control" "down"; }
-        XF86AudioMute { spawn "volume-control" "mute"; }
-        XF86AudioNext { spawn "media-control" "next"; }
-        XF86AudioPlay { spawn "media-control" "play-pause"; }
-        XF86AudioPrev { spawn "media-control" "previous"; }
-        XF86AudioRaiseVolume { spawn "volume-control" "up"; }
-        XF86AudioStop { spawn "media-control" "stop"; }
-        XF86MonBrightnessDown { spawn "brightness-control" "down"; }
-        XF86MonBrightnessUp { spawn "brightness-control" "up"; }
+        XF86AudioLowerVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+        XF86AudioMute { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+        XF86AudioNext { spawn "playerctl" "next"; }
+        XF86AudioPlay { spawn "playerctl" "play-pause"; }
+        XF86AudioPrev { spawn "playerctl" "previous"; }
+        XF86AudioRaiseVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+        XF86AudioStop { spawn "playerctl" "stop"; }
+        XF86MonBrightnessDown { spawn "brightnessctl" "set" "5%-"; }
+        XF86MonBrightnessUp { spawn "brightnessctl" "set" "5%+"; }
     }
   '';
 }
