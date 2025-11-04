@@ -1,4 +1,4 @@
-{ config, osConfig, pkgs, pkgs-unstable, zen-browser, android-nixpkgs, nix-colors, ... }:
+{ config, osConfig, pkgs, pkgs-unstable, zen-browser, android-nixpkgs, nix-colors, astal-shell, ... }:
 
 {
   imports = [
@@ -7,10 +7,30 @@
     (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
     ./stylix.nix
     (import ./niri/default.nix { inherit osConfig pkgs nix-colors; lib = pkgs.lib; })
-    (import ./waybar/default.nix { inherit pkgs osConfig nix-colors; })
+    # (import ./waybar/default.nix { inherit pkgs osConfig nix-colors; })  # Replaced with astal-shell
     ./hyprlock.nix
     ./vicinae.nix
   ];
+
+  # Create systemd service to run astal-shell
+  systemd.user.services.astal-shell = {
+    Unit = {
+      Description = "Astal Shell - Desktop shell for Wayland";
+      PartOf = ["graphical-session.target"];
+      After = ["graphical-session.target"];
+    };
+
+    Service = {
+      Type = "simple";
+      ExecStart = "${astal-shell.packages.${pkgs.system}.default}/bin/astal-shell";
+      Restart = "on-failure";
+      RestartSec = "3s";
+    };
+
+    Install = {
+      WantedBy = ["graphical-session.target"];
+    };
+  };
 
   home.username = "frank";
   home.homeDirectory = "/home/frank";
@@ -45,7 +65,7 @@
     enable = true;
   };
   programs.zen-browser.enable = true;
-  home.packages = with pkgs; [
+  home.packages = (with pkgs; [
     pkgs-unstable._1password-cli
     pkgs-unstable._1password-gui
     pkgs-unstable.anytype
@@ -70,6 +90,14 @@
     neofetch
     starship
     tree
+    # AGS/Astal dependencies
+    radeontop      # AMD GPU monitoring
+    brightnessctl  # Brightness control
+    mako           # Notification daemon for Wayland
+    libnotify      # Notification library
+  ]) ++ [
+    # Astal-shell from flake input
+    astal-shell.packages.${pkgs.system}.default
   ];
 
   dconf.settings = {

@@ -1,0 +1,6 @@
+{
+  "name": "ags-config",
+  "version": "1.0.0",
+  "description": "Custom AGS v1 configuration for Niri with GNOME-like UI",
+  "type": "module"
+}

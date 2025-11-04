@@ -30,6 +30,10 @@
       url = "github:knoopx/astal-shell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    astal = {
+      url = "github:aylur/astal";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     vicinae = {
       url = "github:vicinaehq/vicinae";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -39,7 +43,7 @@
     };
   };
 
-  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, lanzaboote, stylix, astal-shell, vicinae, nix-colors, ... } @ inputs:
+  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, lanzaboote, stylix, astal-shell, astal, vicinae, nix-colors, ... } @ inputs:
     let
       system = "x86_64-linux";
     in {
@@ -71,6 +75,7 @@
                 inherit zen-browser;
                 inherit android-nixpkgs;
                 inherit nix-colors;
+                inherit astal-shell;
                 pkgs-unstable = import nixpkgs-unstable {
                   inherit system;
                   config.allowUnfree = true;

@@ -2,7 +2,7 @@
   "nodes": {
     "ags": {
       "inputs": {
-        "astal": "astal",
+        "astal": "astal_2",
         "nixpkgs": [
           "astal-shell",
           "nixpkgs"
@@ -48,17 +48,15 @@
     "astal": {
       "inputs": {
         "nixpkgs": [
-          "astal-shell",
-          "ags",
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1761075011,
-        "narHash": "sha256-gQFgsJz2RQUMFdaHrbqRPYackAZYF3chcsZp8rUctVU=",
+        "lastModified": 1762152348,
+        "narHash": "sha256-aPoaaiZ8VCJhmeeuxrkrfNEWk9Ued7qPYjZFpmnRT3k=",
         "owner": "aylur",
         "repo": "astal",
-        "rev": "c8df34d0e5fc4f3a36f72bae7dfc5ecf0000e1c8",
+        "rev": "6976faba892be4c79d2b8b42710203b319278d7f",
         "type": "github"
       },
       "original": {
@@ -85,6 +83,28 @@
       "original": {
         "owner": "knoopx",
         "repo": "astal-shell",
+        "type": "github"
+      }
+    },
+    "astal_2": {
+      "inputs": {
+        "nixpkgs": [
+          "astal-shell",
+          "ags",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1761075011,
+        "narHash": "sha256-gQFgsJz2RQUMFdaHrbqRPYackAZYF3chcsZp8rUctVU=",
+        "owner": "aylur",
+        "repo": "astal",
+        "rev": "c8df34d0e5fc4f3a36f72bae7dfc5ecf0000e1c8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aylur",
+        "repo": "astal",
         "type": "github"
       }
     },
@@ -570,6 +590,7 @@
     "root": {
       "inputs": {
         "android-nixpkgs": "android-nixpkgs",
+        "astal": "astal",
         "astal-shell": "astal-shell",
         "home-manager": "home-manager",
         "lanzaboote": "lanzaboote",
