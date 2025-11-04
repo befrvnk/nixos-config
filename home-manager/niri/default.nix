@@ -8,7 +8,13 @@
 
 {
   imports = [
-    (import ./astal-shell.nix { inherit osConfig nix-colors; })
-    (import ./config.nix { inherit pkgs osConfig nix-colors lib; })
+    (import ./config.nix {
+      inherit
+        pkgs
+        osConfig
+        nix-colors
+        lib
+        ;
+    })
   ];
 }

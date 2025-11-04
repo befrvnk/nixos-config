@@ -7,6 +7,7 @@
     (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
     ./stylix.nix
     (import ./niri/default.nix { inherit osConfig pkgs nix-colors; lib = pkgs.lib; })
+    (import ./waybar/default.nix { inherit pkgs osConfig nix-colors; })
     ./hyprlock.nix
     ./vicinae.nix
   ];

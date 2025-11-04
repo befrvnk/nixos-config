@@ -122,7 +122,6 @@
               ) osConfig.defaults.display.columnWidthPercentPresets}
           }
           center-focused-column "on-overflow"
-          always-center-single-column
       }
 
       xwayland-satellite {
@@ -173,6 +172,7 @@
           Mod+Shift+K { move-window-to-workspace-up; }
           Mod+Shift+J { move-window-to-workspace-down; }
 
+          Mod+C { center-column; }
           Print { screenshot; }
           Shift+Print { screenshot-window; }
           XF86AudioLowerVolume { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
