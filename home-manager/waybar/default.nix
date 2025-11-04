@@ -1,34 +1,15 @@
 {
   pkgs,
-  osConfig,
-  nix-colors,
   ...
-}: let
-  # Use color palette from NixOS config defaults
-  palette = osConfig.defaults.colorScheme.palette;
-
-  # Read base CSS file
-  baseStyle = builtins.readFile ./style.css;
-
-  # Generate CSS with color variables replaced
-  styleWithColors = builtins.replaceStrings
-    [
-      "@base00" "@base01" "@base02" "@base03" "@base04" "@base05" "@base06" "@base07"
-      "@base08" "@base09" "@base0A" "@base0B" "@base0C" "@base0D" "@base0E" "@base0F"
-    ]
-    [
-      "#${palette.base00}" "#${palette.base01}" "#${palette.base02}" "#${palette.base03}"
-      "#${palette.base04}" "#${palette.base05}" "#${palette.base06}" "#${palette.base07}"
-      "#${palette.base08}" "#${palette.base09}" "#${palette.base0A}" "#${palette.base0B}"
-      "#${palette.base0C}" "#${palette.base0D}" "#${palette.base0E}" "#${palette.base0F}"
-    ]
-    baseStyle;
+}:
+let
 
   # Path to the toggle script
   toggleScript = pkgs.writeShellScript "waybar-toggle" ''
     exec ${pkgs.python3}/bin/python3 ${./toggle-waybar.py}
   '';
-in {
+in
+{
   # Enable waybar
   programs.waybar = {
     enable = true;
@@ -42,9 +23,17 @@ in {
         spacing = 8;
 
         # Module layout
-        modules-left = ["niri/workspaces" "niri/window"];
-        modules-center = ["clock"];
-        modules-right = ["cpu" "memory" "network" "battery"];
+        modules-left = [
+          "niri/workspaces"
+          "niri/window"
+        ];
+        modules-center = [ "clock" ];
+        modules-right = [
+          "cpu"
+          "memory"
+          "network"
+          "battery"
+        ];
 
         # Niri workspaces module
         "niri/workspaces" = {
@@ -111,12 +100,17 @@ in {
           format = "{icon} {capacity}%";
           format-charging = " {capacity}%";
           format-plugged = " {capacity}%";
-          format-icons = ["" "" "" "" ""];
+          format-icons = [
+            ""
+            ""
+            ""
+            ""
+            ""
+          ];
           tooltip-format = "{timeTo}, {capacity}%";
         };
       };
     };
-    style = styleWithColors;
   };
 
   # Systemd service for waybar toggle script
@@ -124,8 +118,8 @@ in {
   systemd.user.services.waybar = {
     Unit = {
       Description = "Waybar with niri overview-only mode";
-      PartOf = ["graphical-session.target"];
-      After = ["graphical-session.target"];
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
       ConditionEnvironment = "WAYLAND_DISPLAY";
     };
 
@@ -137,7 +131,7 @@ in {
     };
 
     Install = {
-      WantedBy = ["graphical-session.target"];
+      WantedBy = [ "graphical-session.target" ];
     };
   };
 }

@@ -122,12 +122,11 @@ sudo nixos-rebuild switch
 
 ### Modifying Waybar Styling
 
-Edit `home-manager/waybar/style.css`:
-- Colors use `@base00` through `@base0F` variables
-- These are replaced with your system color scheme automatically
-- Standard CSS syntax
+Waybar's styling is managed by `stylix`. The base style is located in `home-manager/waybar/style.css`, but the colors are injected by `stylix` automatically.
 
-After editing:
+To change the theme, edit `modules/stylix.nix`.
+
+After editing `style.css` or `modules/stylix.nix`:
 ```bash
 sudo nixos-rebuild switch
 ```
@@ -194,16 +193,8 @@ kill -SIGUSR1 <pid>
 
 ## Color Scheme Integration
 
-Colors are automatically sourced from:
-```nix
-osConfig.defaults.colorScheme.palette
-```
-
-Available color variables in CSS:
-- `@base00` through `@base07`: Background/foreground shades
-- `@base08` through `@base0F`: Accent colors
-
-To change colors, modify your system color scheme in `modules/defaults/colors.nix`.
+Colors are automatically managed by `stylix`. The theme is set in `modules/stylix.nix`.
+`stylix` generates the stylesheet for `waybar` automatically.
 
 ## Modules Currently Configured
 

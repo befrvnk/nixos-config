@@ -38,18 +38,33 @@
       url = "github:vicinaehq/vicinae";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nix-colors = {
-      url = "github:misterio77/nix-colors";
-    };
   };
 
-  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, lanzaboote, stylix, astal-shell, astal, vicinae, nix-colors, ... } @ inputs:
+  outputs =
+    {
+      nixpkgs,
+      nixpkgs-unstable,
+      home-manager,
+      nixos-hardware,
+      zen-browser,
+      android-nixpkgs,
+      lanzaboote,
+      stylix,
+      astal-shell,
+      astal,
+      vicinae,
+      ...
+    }@inputs:
     let
       system = "x86_64-linux";
-    in {
+    in
+    {
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit nixos-hardware lanzaboote; inherit inputs; };
+        specialArgs = {
+          inherit nixos-hardware lanzaboote;
+          inherit inputs;
+        };
         modules = [
           {
             nixpkgs.overlays = [
@@ -74,7 +89,6 @@
               extraSpecialArgs = {
                 inherit zen-browser;
                 inherit android-nixpkgs;
-                inherit nix-colors;
                 inherit astal-shell;
                 pkgs-unstable = import nixpkgs-unstable {
                   inherit system;

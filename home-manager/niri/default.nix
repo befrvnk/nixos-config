@@ -1,7 +1,6 @@
 {
   osConfig,
   pkgs,
-  nix-colors,
   lib,
   ...
 }:
@@ -12,7 +11,6 @@
       inherit
         pkgs
         osConfig
-        nix-colors
         lib
         ;
     })

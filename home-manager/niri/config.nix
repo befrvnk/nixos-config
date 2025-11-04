@@ -1,10 +1,14 @@
 {
   pkgs,
   osConfig,
-  nix-colors,
   lib,
   ...
 }:
+let
+  # Reference colors from Stylix - the single source of truth
+  # Stylix processes the base16 scheme and provides colors
+  colors = osConfig.lib.stylix.colors;
+in
 {
   home.packages = [
     pkgs.niri
@@ -28,13 +32,13 @@
   xdg.configFile."niri/config.kdl".text = ''
     output "eDP-1" {
         scale 1.25
-        background-color "#${osConfig.defaults.colorScheme.palette.base02}"
+        background-color "#${colors.base02}"
     }
 
     output "DP-3" {
         scale 1.25
         variable-refresh-rate on-demand=true
-        background-color "#${osConfig.defaults.colorScheme.palette.base02}"
+        background-color "#${colors.base02}"
     }
 
     input {
@@ -60,7 +64,7 @@
     prefer-no-csd
 
     overview {
-        backdrop-color "#${osConfig.defaults.colorScheme.palette.base02}"
+        backdrop-color "#${colors.base02}"
         zoom 0.75
     }
 
@@ -75,14 +79,14 @@
         }
         focus-ring {
             width 3
-            active-color "#${osConfig.defaults.colorScheme.palette.base0D}"
+            active-color "#${colors.base0D}"
         }
         border {
             width 3
-            active-color "#${osConfig.defaults.colorScheme.palette.base03}"
-            inactive-color "#${osConfig.defaults.colorScheme.palette.base03}"
+            active-color "#${colors.base03}"
+            inactive-color "#${colors.base03}"
         }
-        insert-hint { color "rgb(${nix-colors.lib-core.conversions.hexToRGBString " " osConfig.defaults.colorScheme.palette.base0D} / 50%)"; }
+        insert-hint { color "#${colors.base0D}"; }
 
         default-column-width { proportion ${toString osConfig.defaults.display.defaultColumnWidthPercent}; }
         preset-column-widths {

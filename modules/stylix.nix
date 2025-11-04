@@ -2,12 +2,13 @@
   pkgs,
   config,
   ...
-}: {
+}:
+{
   stylix = {
     enable = true;
     autoEnable = false;
     polarity = "dark";
-    base16Scheme = config.defaults.colorScheme;
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
     fonts = {
       serif = {
         package = pkgs.noto-fonts;
