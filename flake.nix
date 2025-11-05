@@ -19,7 +19,7 @@
       inputs.home-manager.follows = "home-manager";
     };
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.4.2";
+      url = "github:nix-community/lanzaboote";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     stylix = {
@@ -83,6 +83,7 @@
               users.frank = import ./home-manager/frank.nix;
               backupFileExtension = "backup";
               sharedModules = [
+                stylix.homeModules.stylix
                 astal-shell.homeManagerModules.default
                 vicinae.homeManagerModules.default
               ];

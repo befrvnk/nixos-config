@@ -1,41 +1,21 @@
+{ pkgs, ... }:
+
 {
-  pkgs,
-  config,
-  ...
-}:
-{
+  # Minimal system-level stylix configuration
+  # The actual theming is handled by home-manager specialisations
   stylix = {
     enable = true;
-    autoEnable = false;
-    polarity = "dark";
+    autoEnable = true;
     base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-    fonts = {
-      serif = {
-        package = pkgs.noto-fonts;
-        name = "Noto Serif";
-      };
-      sansSerif = {
-        package = pkgs.noto-fonts;
-        name = "Noto Sans";
-      };
-      monospace = {
-        package = pkgs.nerdfonts.override { fonts = [ "FiraCode" ]; };
-        name = "FiraCode Nerd Font";
-      };
-      emoji = {
-        package = pkgs.noto-fonts-emoji;
-        name = "Noto Color Emoji";
-      };
-      sizes = {
-        applications = 11;
-        terminal = 11;
-        desktop = 11;
-      };
+    image = pkgs.fetchurl {
+      url = "https://raw.githubusercontent.com/catppuccin/wallpapers/main/minimalistic/catppuccin_triangle.png";
+      hash = "sha256-/Az/W0X/DRbLW96Hev0MmOECOZ0KKFGj5MzXkALWRXk=";
     };
-    cursor = {
-      package = pkgs.quintom-cursor-theme;
-      name = "Quintom_Snow";
-      size = 24;
+
+    # Disable automatic home-manager integration since we're manually importing it
+    homeManagerIntegration = {
+      autoImport = false;
+      followSystem = false;
     };
   };
 }

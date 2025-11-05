@@ -10,11 +10,121 @@
 }:
 
 {
+  # Base stylix configuration (default to dark theme)
+  stylix = {
+    enable = true;
+    autoEnable = true;
+    polarity = "dark";
+    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    image = ./wallpapers/catppuccin-mocha.jpg;
+
+    fonts = {
+      serif = {
+        package = pkgs.noto-fonts;
+        name = "Noto Serif";
+      };
+      sansSerif = {
+        package = pkgs.noto-fonts;
+        name = "Noto Sans";
+      };
+      monospace = {
+        package = pkgs.nerd-fonts.fira-code;
+        name = "FiraCode Nerd Font";
+      };
+      emoji = {
+        package = pkgs.noto-fonts-color-emoji;
+        name = "Noto Color Emoji";
+      };
+      sizes = {
+        applications = 11;
+        terminal = 11;
+        desktop = 11;
+      };
+    };
+    cursor = {
+      package = pkgs.quintom-cursor-theme;
+      name = "Quintom_Snow";
+      size = 24;
+    };
+  };
+
+  specialisation =
+    let
+      astalTheme = colors: builtins.toJSON {
+        # Base16 colors from Stylix
+        background = "#${colors.base00}";
+        surface0 = "#${colors.base01}";
+        surface1 = "#${colors.base02}";
+        surface2 = "#${colors.base03}";
+        overlay0 = "#${colors.base03}";
+        overlay1 = "#${colors.base04}";
+        overlay2 = "#${colors.base04}";
+        text = "#${colors.base05}";
+        subtext0 = "#${colors.base04}";
+        subtext1 = "#${colors.base05}";
+
+        # Accent colors from base16
+        blue = "#${colors.base0D}";
+        lavender = "#${colors.base07}";
+        sapphire = "#${colors.base0C}";
+        sky = "#${colors.base0C}";
+        teal = "#${colors.base0C}";
+        green = "#${colors.base0B}";
+        yellow = "#${colors.base0A}";
+        peach = "#${colors.base09}";
+        maroon = "#${colors.base08}";
+        red = "#${colors.base08}";
+        mauve = "#${colors.base0E}";
+        pink = "#${colors.base0E}";
+        flamingo = "#${colors.base0F}";
+        rosewater = "#${colors.base06}";
+
+        # UI specific colors
+        primary = "#${colors.base0D}";
+        error = "#${colors.base08}";
+        success = "#${colors.base0B}";
+        warning = "#${colors.base0A}";
+
+        # Opacity
+        opacity = 0.95;
+
+        # Typography
+        font = {
+          family = "Inter";
+          size = 13;
+          weight = 400;
+        };
+
+        # Spacing
+        spacing = 8;
+
+        # Border radius
+        radius = 12;
+      };
+    in
+    {
+      dark.configuration = {
+        stylix = {
+          polarity = pkgs.lib.mkForce "dark";
+          base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+          image = pkgs.lib.mkForce ./wallpapers/catppuccin-mocha.jpg;
+        };
+        home.file.".config/astal-shell/theme.json".text = astalTheme config.lib.stylix.colors;
+      };
+      light.configuration = {
+        stylix = {
+          polarity = pkgs.lib.mkForce "light";
+          base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+          image = pkgs.lib.mkForce ./wallpapers/catppuccin-mocha.jpg;
+        };
+        home.file.".config/astal-shell/theme.json".text = astalTheme config.lib.stylix.colors;
+      };
+    };
+
   imports = [
     zen-browser.homeModules.beta
     (import ./zed.nix { inherit pkgs pkgs-unstable; })
     (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
-    ./stylix.nix
     (import ./niri/default.nix {
       inherit osConfig pkgs;
       lib = pkgs.lib;
@@ -34,7 +144,7 @@
 
     Service = {
       Type = "simple";
-      ExecStart = "${astal-shell.packages.${pkgs.system}.default}/bin/astal-shell";
+      ExecStart = "${astal-shell.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/astal-shell";
       Restart = "on-failure";
       RestartSec = "3s";
     };
@@ -49,63 +159,6 @@
   home.stateVersion = "25.05";
 
   home.file.".config/zsh/rebuild.zsh".source = ./zsh/rebuild.zsh;
-
-  # Configure astal-shell with Stylix colors
-  home.file.".config/astal-shell/theme.json".text =
-    let
-      colors = config.lib.stylix.colors;
-    in
-    builtins.toJSON {
-      # Base16 colors from Stylix
-      background = "#${colors.base00}";
-      surface0 = "#${colors.base01}";
-      surface1 = "#${colors.base02}";
-      surface2 = "#${colors.base03}";
-      overlay0 = "#${colors.base03}";
-      overlay1 = "#${colors.base04}";
-      overlay2 = "#${colors.base04}";
-      text = "#${colors.base05}";
-      subtext0 = "#${colors.base04}";
-      subtext1 = "#${colors.base05}";
-
-      # Accent colors from base16
-      blue = "#${colors.base0D}";
-      lavender = "#${colors.base07}";
-      sapphire = "#${colors.base0C}";
-      sky = "#${colors.base0C}";
-      teal = "#${colors.base0C}";
-      green = "#${colors.base0B}";
-      yellow = "#${colors.base0A}";
-      peach = "#${colors.base09}";
-      maroon = "#${colors.base08}";
-      red = "#${colors.base08}";
-      mauve = "#${colors.base0E}";
-      pink = "#${colors.base0E}";
-      flamingo = "#${colors.base0F}";
-      rosewater = "#${colors.base06}";
-
-      # UI specific colors
-      primary = "#${colors.base0D}";
-      error = "#${colors.base08}";
-      success = "#${colors.base0B}";
-      warning = "#${colors.base0A}";
-
-      # Opacity
-      opacity = 0.95;
-
-      # Typography
-      font = {
-        family = "Inter";
-        size = 13;
-        weight = 400;
-      };
-
-      # Spacing
-      spacing = 8;
-
-      # Border radius
-      radius = 12;
-    };
 
   programs.git = {
     enable = true;
@@ -153,6 +206,7 @@
       fd
       fzf
       gh
+      home-manager
       htop
       lf
       neofetch
@@ -166,7 +220,7 @@
     ])
     ++ [
       # Astal-shell from flake input
-      astal-shell.packages.${pkgs.system}.default
+      astal-shell.packages.${pkgs.stdenv.hostPlatform.system}.default
     ];
 
   dconf.settings = {
@@ -179,4 +233,56 @@
       ];
     };
   };
+
+  # Darkman configuration
+  home.file.".config/darkman/config.yaml".text = ''
+    lat: 48.13743
+    lng: 11.57549
+  '';
+
+  # Darkman scripts for theme switching
+  # Note: darkman looks for scripts in XDG_DATA_HOME/light-mode.d and XDG_DATA_HOME/dark-mode.d
+  # NOT in a darkman subdirectory!
+  home.file.".local/share/light-mode.d/stylix.sh" = {
+    text = ''
+      #!/run/current-system/sw/bin/bash
+      # Find the home-manager generation with specialisations from the current system
+      HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
+        if [ -d "$gen/specialisation" ]; then
+          echo "$gen"
+          break
+        fi
+      done)
+
+      if [ -z "$HM_GEN" ]; then
+        echo "Error: Could not find home-manager generation with specialisations" >&2
+        exit 1
+      fi
+
+      "$HM_GEN/specialisation/light/activate"
+    '';
+    executable = true;
+  };
+
+  home.file.".local/share/dark-mode.d/stylix.sh" = {
+    text = ''
+      #!/run/current-system/sw/bin/bash
+      # Find the home-manager generation with specialisations from the current system
+      HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
+        if [ -d "$gen/specialisation" ]; then
+          echo "$gen"
+          break
+        fi
+      done)
+
+      if [ -z "$HM_GEN" ]; then
+        echo "Error: Could not find home-manager generation with specialisations" >&2
+        exit 1
+      fi
+
+      "$HM_GEN/specialisation/dark/activate"
+    '';
+    executable = true;
+  };
+
 }
