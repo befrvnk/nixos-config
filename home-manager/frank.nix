@@ -185,6 +185,12 @@
     enable = true;
   };
   programs.zen-browser.enable = true;
+
+  programs.ghostty = {
+    enable = true;
+    package = pkgs-unstable.ghostty;
+  };
+
   home.packages =
     (with pkgs; [
       pkgs-unstable._1password-cli
@@ -193,7 +199,6 @@
       pkgs-unstable.claude-code
       pkgs-unstable.discord
       pkgs-unstable.gemini-cli
-      pkgs-unstable.ghostty
       pkgs-unstable.helix
       pkgs-unstable.jetbrains.idea-community-bin
       pkgs-unstable.signal-desktop
