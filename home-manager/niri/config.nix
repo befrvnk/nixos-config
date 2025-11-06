@@ -71,7 +71,7 @@ in
 
     overview {
         backdrop-color "#${colors.base02}"
-        zoom 0.75
+        zoom 0.5
     }
 
     layout {
@@ -120,7 +120,7 @@ in
 
     window-rule {
         match is-active=false
-        opacity 0.9
+        opacity 0.99
     }
 
     layer-rule {

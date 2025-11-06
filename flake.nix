@@ -26,12 +26,8 @@
       url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    astal-shell = {
-      url = "github:knoopx/astal-shell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    astal = {
-      url = "github:aylur/astal";
+    dankMaterialShell = {
+      url = "github:AvengeMedia/DankMaterialShell";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     vicinae = {
@@ -50,8 +46,7 @@
       android-nixpkgs,
       lanzaboote,
       stylix,
-      astal-shell,
-      astal,
+      dankMaterialShell,
       vicinae,
       ...
     }@inputs:
@@ -69,7 +64,6 @@
           {
             nixpkgs.overlays = [
               android-nixpkgs.overlays.default
-              astal-shell.overlays.default
               (import ./overlays/niri.nix)
             ];
           }
@@ -84,13 +78,12 @@
               backupFileExtension = "backup";
               sharedModules = [
                 stylix.homeModules.stylix
-                astal-shell.homeManagerModules.default
+                dankMaterialShell.homeModules.dankMaterialShell.default
                 vicinae.homeManagerModules.default
               ];
               extraSpecialArgs = {
                 inherit zen-browser;
                 inherit android-nixpkgs;
-                inherit astal-shell;
                 pkgs-unstable = import nixpkgs-unstable {
                   inherit system;
                   config.allowUnfree = true;

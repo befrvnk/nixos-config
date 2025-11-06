@@ -5,7 +5,6 @@
   pkgs-unstable,
   zen-browser,
   android-nixpkgs,
-  astal-shell,
   ...
 }:
 
@@ -16,7 +15,7 @@
     autoEnable = true;
     polarity = "dark";
     base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-    image = ./wallpapers/catppuccin-mocha.jpg;
+    image = ./wallpapers/mountain.jpg;
 
     fonts = {
       serif = {
@@ -52,58 +51,6 @@
     let
       # Import shared theme definitions
       themes = import ./themes.nix { inherit pkgs; };
-
-      astalTheme = colors: builtins.toJSON {
-        # Base16 colors from Stylix
-        background = "#${colors.base00}";
-        surface0 = "#${colors.base01}";
-        surface1 = "#${colors.base02}";
-        surface2 = "#${colors.base03}";
-        overlay0 = "#${colors.base03}";
-        overlay1 = "#${colors.base04}";
-        overlay2 = "#${colors.base04}";
-        text = "#${colors.base05}";
-        subtext0 = "#${colors.base04}";
-        subtext1 = "#${colors.base05}";
-
-        # Accent colors from base16
-        blue = "#${colors.base0D}";
-        lavender = "#${colors.base07}";
-        sapphire = "#${colors.base0C}";
-        sky = "#${colors.base0C}";
-        teal = "#${colors.base0C}";
-        green = "#${colors.base0B}";
-        yellow = "#${colors.base0A}";
-        peach = "#${colors.base09}";
-        maroon = "#${colors.base08}";
-        red = "#${colors.base08}";
-        mauve = "#${colors.base0E}";
-        pink = "#${colors.base0E}";
-        flamingo = "#${colors.base0F}";
-        rosewater = "#${colors.base06}";
-
-        # UI specific colors
-        primary = "#${colors.base0D}";
-        error = "#${colors.base08}";
-        success = "#${colors.base0B}";
-        warning = "#${colors.base0A}";
-
-        # Opacity
-        opacity = 0.95;
-
-        # Typography
-        font = {
-          family = "Inter";
-          size = 13;
-          weight = 400;
-        };
-
-        # Spacing
-        spacing = 8;
-
-        # Border radius
-        radius = 12;
-      };
     in
     {
       dark.configuration = {
@@ -112,7 +59,6 @@
           base16Scheme = pkgs.lib.mkForce themes.dark.scheme;
           image = pkgs.lib.mkForce themes.dark.wallpaper;
         };
-        home.file.".config/astal-shell/theme.json".text = astalTheme config.lib.stylix.colors;
       };
       light.configuration = {
         stylix = {
@@ -120,43 +66,25 @@
           base16Scheme = pkgs.lib.mkForce themes.light.scheme;
           image = pkgs.lib.mkForce themes.light.wallpaper;
         };
-        home.file.".config/astal-shell/theme.json".text = astalTheme config.lib.stylix.colors;
       };
     };
 
   imports = [
     zen-browser.homeModules.beta
     (import ./zed.nix { inherit pkgs pkgs-unstable; })
-    (import ./ghostty.nix { inherit config pkgs pkgs-unstable; lib = pkgs.lib; })
+    (import ./ghostty.nix {
+      inherit config pkgs pkgs-unstable;
+      lib = pkgs.lib;
+    })
     (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
     (import ./niri/default.nix {
       inherit osConfig pkgs;
       lib = pkgs.lib;
     })
-    # (import ./waybar/default.nix { inherit pkgs osConfig nix-colors; })  # Replaced with astal-shell
+    (import ./dms.nix { inherit pkgs; })
     ./hyprlock.nix
     ./vicinae.nix
   ];
-
-  # Create systemd service to run astal-shell
-  systemd.user.services.astal-shell = {
-    Unit = {
-      Description = "Astal Shell - Desktop shell for Wayland";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-    };
-
-    Service = {
-      Type = "simple";
-      ExecStart = "${astal-shell.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/astal-shell";
-      Restart = "on-failure";
-      RestartSec = "3s";
-    };
-
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
-  };
 
   home.username = "frank";
   home.homeDirectory = "/home/frank";
@@ -190,8 +118,9 @@
   };
   programs.zen-browser.enable = true;
 
-  home.packages =
-    (with pkgs; [
+  home.packages = (
+    with pkgs;
+    [
       pkgs-unstable._1password-cli
       pkgs-unstable._1password-gui
       pkgs-unstable.anytype
@@ -216,16 +145,8 @@
       neofetch
       starship
       tree
-      # AGS/Astal dependencies
-      radeontop # AMD GPU monitoring
-      brightnessctl # Brightness control
-      mako # Notification daemon for Wayland
-      libnotify # Notification library
-    ])
-    ++ [
-      # Astal-shell from flake input
-      astal-shell.packages.${pkgs.stdenv.hostPlatform.system}.default
-    ];
+    ]
+  );
 
   dconf.settings = {
     "org/gnome/desktop/input-sources" = {
@@ -246,7 +167,7 @@
 
   # Restart darkman after home-manager activation to re-evaluate current theme
   # Only restart if we're not already being run by darkman (avoid infinite loop)
-  home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
+  home.activation.restartDarkman = config.lib.dag.entryAfter [ "writeBoundary" ] ''
     # Check if DARKMAN_RUNNING environment variable is set
     # Use parameter expansion with default to avoid "unbound variable" error
     if [ -z "''${DARKMAN_RUNNING:-}" ]; then

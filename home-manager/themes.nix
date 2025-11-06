@@ -7,7 +7,7 @@
   light = {
     # Stylix uses this scheme file
     scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
-    wallpaper = ./wallpapers/catppuccin-mocha.jpg;
+    wallpaper = ./wallpapers/mountain.jpg;
 
     # Base16 colors for Ghostty (Catppuccin Latte)
     # These must match the scheme file above
@@ -34,7 +34,7 @@
   dark = {
     # Stylix uses this scheme file
     scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-    wallpaper = ./wallpapers/catppuccin-mocha.jpg;
+    wallpaper = ./wallpapers/mountain.jpg;
 
     # Base16 colors for Ghostty (Catppuccin Mocha)
     # These must match the scheme file above
