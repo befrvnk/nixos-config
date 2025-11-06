@@ -50,4 +50,7 @@ in
   home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme themes.light.colors;
 
   home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme themes.dark.colors;
+
+  # Force overwrite the config file to prevent conflicts
+  xdg.configFile."ghostty/config".force = true;
 }
