@@ -88,6 +88,17 @@ Systemd user service that:
 - Runs on login
 - Monitors sunrise/sunset times for Munich (48.13743°N, 11.57549°E)
 - Executes scripts in `~/.local/share/light-mode.d/` and `~/.local/share/dark-mode.d/`
+- **Automatically restarts after `nixos-rebuild switch`** to re-evaluate current theme
+
+**Why restart on rebuild?**
+When rebuilding, the base home-manager configuration (dark theme) is activated. Restarting darkman makes it check the current time and switch to the appropriate theme (light during day, dark at night).
+
+### Niri Integration
+
+When switching themes, scripts also trigger Niri's screen transition effect:
+- Finds Niri socket dynamically
+- Calls `niri msg action do-screen-transition` for smooth visual fade
+- Gracefully skips if Niri isn't running
 
 ## Configuration Details
 
@@ -128,11 +139,17 @@ Scripts are placed in `~/.local/share/light-mode.d/` and `~/.local/share/dark-mo
 - Scripts must be executable
 
 **Script Logic:**
-1. Find home-manager generation with specialisations from current system
-2. Execute the appropriate specialisation's activation script
+1. Set desktop environment color scheme preference (for Ghostty and other apps)
+2. Find home-manager generation with specialisations from current system
+3. Execute the appropriate specialisation's activation script
+4. Trigger Niri screen transition effect for smooth visual feedback
 
 ```bash
 #!/run/current-system/sw/bin/bash
+# Set color scheme preference for light mode
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
+
 HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | \
   /run/current-system/sw/bin/grep home-manager-generation | \
   while read gen; do
@@ -143,19 +160,102 @@ HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | \
   done)
 
 "$HM_GEN/specialisation/light/activate"
+
+# Trigger Niri screen transition effect
+NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
+if [ -n "$NIRI_SOCKET" ]; then
+  NIRI_SOCKET="$NIRI_SOCKET" /nix/store/.../bin/niri msg action do-screen-transition
+fi
 ```
 
-#### 3. Application-Specific Configuration
+**Desktop Environment Integration:**
+The `dconf write` command sets `org.gnome.desktop.interface.color-scheme` in dconf. The `xdg-desktop-portal-gtk` backend reads this setting and exposes it via the freedesktop portal as `org.freedesktop.appearance.color-scheme`. Applications like Ghostty read from the portal to detect the system color scheme preference.
 
-**Ghostty:**
-Must be enabled via `programs.ghostty.enable = true` (not just as a package):
+**Requirements:**
+- `xdg-desktop-portal-gtk` must be configured as a portal backend (not `xdg-desktop-portal-gnome`)
+- The portal reads from dconf's `org.gnome.desktop.interface.color-scheme`
+- This works on any desktop environment, not just GNOME
+
+#### 3. Darkman Auto-Restart on Rebuild
+
+Home-manager activation script that restarts darkman after each rebuild:
 
 ```nix
-programs.ghostty = {
-  enable = true;
-  package = pkgs-unstable.ghostty;
-};
+home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
+  $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user restart darkman.service || true
+'';
 ```
+
+**Why this is needed:**
+- After `nixos-rebuild switch`, the base home-manager configuration (dark theme) is activated
+- Without restart, darkman wouldn't re-evaluate the time until next scheduled check
+- Restarting forces immediate re-evaluation, switching to light theme if currently daytime
+
+**Technical details:**
+- `entryAfter ["writeBoundary"]` ensures it runs after config files are written
+- `$DRY_RUN_CMD` respects home-manager's dry-run mode
+- `|| true` prevents activation failure if darkman isn't running
+
+#### 4. Centralized Theme Configuration
+
+**Theme Definitions** (`home-manager/themes.nix`):
+
+All theme choices are centralized in a single file:
+
+```nix
+{
+  light = {
+    scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+    wallpaper = ./wallpapers/catppuccin-mocha.jpg;
+    colors = {
+      base00 = "eff1f5";  # background
+      base05 = "4c4f69";  # text
+      # ... all 16 base16 colors
+    };
+  };
+  dark = {
+    scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    wallpaper = ./wallpapers/catppuccin-mocha.jpg;
+    colors = {
+      base00 = "1e1e2e";  # background
+      base05 = "cdd6f4";  # text
+      # ... all 16 base16 colors
+    };
+  };
+}
+```
+
+**To change themes:**
+1. Update the `scheme` path (for Stylix/Zed/etc)
+2. Update the `colors` attrset to match (for Ghostty)
+3. Rebuild - all applications use the new themes
+
+**Note:** Colors must be kept in sync with scheme files manually. This trade-off avoids YAML parsing at build time.
+
+#### 5. Application-Specific Configuration
+
+**Ghostty** (`home-manager/ghostty.nix`):
+
+Ghostty uses its native light/dark theme switching:
+
+```nix
+programs.ghostty.settings.theme = "light:stylix-light,dark:stylix-dark";
+
+# Generate BOTH theme files in every configuration
+home.file.".config/ghostty/themes/stylix-light".text =
+  mkGhosttyTheme themes.light.scheme;
+home.file.".config/ghostty/themes/stylix-dark".text =
+  mkGhosttyTheme themes.dark.scheme;
+```
+
+**How it works:**
+- Both theme files are always generated (prevents config reload loops - see pitfall #10)
+- Darkman scripts set `org.gnome.desktop.interface.color-scheme`
+- Portal backend (`xdg-desktop-portal-gtk`) exposes this as `org.freedesktop.appearance.color-scheme`
+- Ghostty reads from the portal and switches themes automatically
+- Themes defined once in `themes.nix` - no duplication
+
+**Important:** Requires `xdg-desktop-portal-gtk` (see pitfall #11 below).
 
 **Zed:**
 Automatically themed when `stylix.autoEnable = true`
@@ -312,22 +412,124 @@ specialisation.light.configuration = {
 
 **Solution:** Set `stylix.autoEnable = true` to theme all supported applications automatically.
 
-### 8. Ghostty Not Themed
+### 8. Ghostty Theme Switching Not Working
 
-**Problem:** Ghostty doesn't switch themes even though Zed works.
+**Problem:** Ghostty doesn't switch themes when darkman changes modes.
 
-**Cause:** Ghostty was installed as a package, not via `programs.ghostty` module.
+**Root Cause:** Stylix generates a single theme file that gets overwritten by each specialisation, but Ghostty doesn't detect the file change. Switching between specialisations updates config symlinks but doesn't trigger Ghostty to reload.
 
-**Solution:** Enable Ghostty via home-manager module:
+**Solution:** Use Ghostty's native light/dark theme support:
+
+1. **Extract configuration** to `home-manager/ghostty.nix` for clarity
+2. **Generate both theme files** - each specialisation creates its polarity-specific theme:
+   ```nix
+   home.file.".config/ghostty/themes/stylix-${config.stylix.polarity}".text =
+     mkGhosttyTheme config.lib.stylix.colors;
+   ```
+3. **Configure Ghostty** to use both themes:
+   ```nix
+   programs.ghostty.settings.theme = "light:stylix-light,dark:stylix-dark";
+   ```
+4. **Set desktop environment preference** in darkman scripts:
+   ```bash
+   dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
+   ```
+
+This way:
+- Light specialisation builds `stylix-light` theme with light colors
+- Dark specialisation builds `stylix-dark` theme with dark colors
+- Darkman scripts set dconf `org.gnome.desktop.interface.color-scheme`
+- Portal backend (`xdg-desktop-portal-gtk`) exposes this as `org.freedesktop.appearance.color-scheme`
+- Ghostty reads from the portal and switches themes automatically
+- Colors come from stylix dynamically - no hardcoding needed
+
+**Important:** Requires `xdg-desktop-portal-gtk` (see pitfall #10 below).
+
+### 9. Theme Reverts to Dark After Rebuild / Infinite Restart Loop
+
+**Problem:** After `nixos-rebuild switch`, theme stays dark even during daytime. Or darkman keeps restarting indefinitely, and Zed doesn't update properly.
+
+**Cause:** The base home-manager configuration defaults to dark theme. Also, if the restart activation runs during specialisation activation (triggered by darkman), it creates an infinite loop: darkman runs specialisation → specialisation restarts darkman → darkman runs specialisation → ...
+
+**Solution:** Use environment variable to signal when running from darkman:
+
+1. Set `DARKMAN_RUNNING=1` at start of darkman scripts:
+```bash
+#!/run/current-system/sw/bin/bash
+export DARKMAN_RUNNING=1
+# ... rest of script
+"$HM_GEN/specialisation/light/activate"
+```
+
+2. Check environment variable in activation script:
 ```nix
-programs.ghostty = {
+home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
+  # Check if DARKMAN_RUNNING environment variable is set
+  # Use parameter expansion with default to avoid "unbound variable" error
+  if [ -z "''${DARKMAN_RUNNING:-}" ]; then
+    $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user restart darkman.service || true
+  fi
+'';
+```
+
+**Note:** The `''${DARKMAN_RUNNING:-}` syntax provides an empty default value when the variable is unset, preventing bash "unbound variable" errors.
+
+This forces darkman to check the current time after manual rebuilds, but the environment variable prevents the infinite restart loop when darkman runs the scripts.
+
+### 10. Ghostty Continuously Reloading Configuration
+
+**Problem:** Ghostty shows permanent "Reloaded the configuration" popup and becomes unresponsive.
+
+**Cause:** Each specialisation only generated its own theme file (light or dark). When switching specialisations, home-manager deleted the "orphan" theme file from the other specialisation, triggering Ghostty to reload. Since Ghostty is configured with `theme = "light:stylix-light,dark:stylix-dark"`, it expects both files to exist.
+
+**Solution:** Generate **both** theme files in every configuration using centralized theme definitions:
+
+```nix
+# home-manager/themes.nix - Define themes once
+{
+  light.scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+  dark.scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+}
+
+# home-manager/ghostty.nix - Generate both files always
+home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme themes.light.scheme;
+home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme themes.dark.scheme;
+```
+
+This ensures both files always exist, preventing deletion/recreation cycles.
+
+### 11. Ghostty Theme Not Switching Based on Color Scheme
+
+**Problem:** Setting dconf `org.gnome.desktop.interface.color-scheme` but Ghostty doesn't respond to the change.
+
+**Cause:** Using `xdg-desktop-portal-gnome` which doesn't properly expose the color-scheme setting via the freedesktop portal API. Ghostty reads from `org.freedesktop.appearance.color-scheme` via the portal, not directly from dconf.
+
+**Diagnosis:** Test the portal:
+```bash
+dbus-send --session --print-reply=literal --reply-timeout=1000 \
+  --dest=org.freedesktop.portal.Desktop \
+  /org/freedesktop/portal/desktop \
+  org.freedesktop.portal.Settings.Read \
+  string:'org.freedesktop.appearance' string:'color-scheme'
+```
+
+Should return:
+- `uint32 1` for dark mode
+- `uint32 2` for light mode
+- `uint32 0` means portal isn't reading dconf correctly
+
+**Solution:** Use `xdg-desktop-portal-gtk` instead:
+```nix
+xdg.portal = {
   enable = true;
-  package = pkgs-unstable.ghostty;
+  extraPortals = [ pkgs.xdg-desktop-portal-gtk ];  # Not xdg-desktop-portal-gnome
+  configPackages = [ pkgs.niri ];
 };
 ```
-Remove from `home.packages`.
 
-### 9. Home-Manager Profile Not Updated
+After rebuilding and restarting portals, the test should return the correct value.
+
+### 12. Home-Manager Profile Not Updated
 
 **Problem:** Running specialisation activate script but `~/.local/state/nix/profiles/home-manager` still points to old generation.
 
@@ -486,7 +688,7 @@ systemctl --user restart darkman
    ```
 
 2. **Application-Specific Reload Hooks:**
-   Some apps support live reload without restart (Firefox, kitty, Waybar). Could add specific reload commands to scripts.
+   Some apps support live reload without restart (Firefox, kitty, Waybar). Could add specific reload commands to scripts. ✅ Already implemented for Niri via screen transition effect.
 
 3. **Notification on Theme Switch:**
    Add desktop notification when theme switches:
@@ -510,4 +712,6 @@ systemctl --user restart darkman
 - `modules/stylix.nix` - System-level stylix configuration
 - `modules/darkman.nix` - Darkman systemd service
 - `home-manager/frank.nix` - Home-manager config with specialisations
+- `home-manager/themes.nix` - **Centralized theme definitions** (change themes here!)
+- `home-manager/ghostty.nix` - Ghostty configuration with native light/dark theme support
 - `flake.nix` - Stylix module imports

@@ -50,6 +50,9 @@
 
   specialisation =
     let
+      # Import shared theme definitions
+      themes = import ./themes.nix { inherit pkgs; };
+
       astalTheme = colors: builtins.toJSON {
         # Base16 colors from Stylix
         background = "#${colors.base00}";
@@ -106,16 +109,16 @@
       dark.configuration = {
         stylix = {
           polarity = pkgs.lib.mkForce "dark";
-          base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-          image = pkgs.lib.mkForce ./wallpapers/catppuccin-mocha.jpg;
+          base16Scheme = pkgs.lib.mkForce themes.dark.scheme;
+          image = pkgs.lib.mkForce themes.dark.wallpaper;
         };
         home.file.".config/astal-shell/theme.json".text = astalTheme config.lib.stylix.colors;
       };
       light.configuration = {
         stylix = {
           polarity = pkgs.lib.mkForce "light";
-          base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
-          image = pkgs.lib.mkForce ./wallpapers/catppuccin-mocha.jpg;
+          base16Scheme = pkgs.lib.mkForce themes.light.scheme;
+          image = pkgs.lib.mkForce themes.light.wallpaper;
         };
         home.file.".config/astal-shell/theme.json".text = astalTheme config.lib.stylix.colors;
       };
@@ -124,6 +127,7 @@
   imports = [
     zen-browser.homeModules.beta
     (import ./zed.nix { inherit pkgs pkgs-unstable; })
+    (import ./ghostty.nix { inherit config pkgs pkgs-unstable; lib = pkgs.lib; })
     (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
     (import ./niri/default.nix {
       inherit osConfig pkgs;
@@ -186,11 +190,6 @@
   };
   programs.zen-browser.enable = true;
 
-  programs.ghostty = {
-    enable = true;
-    package = pkgs-unstable.ghostty;
-  };
-
   home.packages =
     (with pkgs; [
       pkgs-unstable._1password-cli
@@ -245,12 +244,30 @@
     lng: 11.57549
   '';
 
+  # Restart darkman after home-manager activation to re-evaluate current theme
+  # Only restart if we're not already being run by darkman (avoid infinite loop)
+  home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
+    # Check if DARKMAN_RUNNING environment variable is set
+    # Use parameter expansion with default to avoid "unbound variable" error
+    if [ -z "''${DARKMAN_RUNNING:-}" ]; then
+      $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user restart darkman.service || true
+    fi
+  '';
+
   # Darkman scripts for theme switching
   # Note: darkman looks for scripts in XDG_DATA_HOME/light-mode.d and XDG_DATA_HOME/dark-mode.d
   # NOT in a darkman subdirectory!
   home.file.".local/share/light-mode.d/stylix.sh" = {
     text = ''
       #!/run/current-system/sw/bin/bash
+      # Set environment variable to prevent infinite restart loop
+      export DARKMAN_RUNNING=1
+
+      # Set desktop environment color scheme preference for light mode
+      # This tells applications like Ghostty to use their light theme
+      export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(${pkgs.coreutils}/bin/id -u)/bus"
+      ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
+
       # Find the home-manager generation with specialisations from the current system
       HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
         if [ -d "$gen/specialisation" ]; then
@@ -265,6 +282,12 @@
       fi
 
       "$HM_GEN/specialisation/light/activate"
+
+      # Trigger Niri screen transition effect
+      NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
+      if [ -n "$NIRI_SOCKET" ]; then
+        NIRI_SOCKET="$NIRI_SOCKET" ${pkgs.niri}/bin/niri msg action do-screen-transition
+      fi
     '';
     executable = true;
   };
@@ -272,6 +295,14 @@
   home.file.".local/share/dark-mode.d/stylix.sh" = {
     text = ''
       #!/run/current-system/sw/bin/bash
+      # Set environment variable to prevent infinite restart loop
+      export DARKMAN_RUNNING=1
+
+      # Set desktop environment color scheme preference for dark mode
+      # This tells applications like Ghostty to use their dark theme
+      export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(${pkgs.coreutils}/bin/id -u)/bus"
+      ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"
+
       # Find the home-manager generation with specialisations from the current system
       HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
         if [ -d "$gen/specialisation" ]; then
@@ -286,6 +317,12 @@
       fi
 
       "$HM_GEN/specialisation/dark/activate"
+
+      # Trigger Niri screen transition effect
+      NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
+      if [ -n "$NIRI_SOCKET" ]; then
+        NIRI_SOCKET="$NIRI_SOCKET" ${pkgs.niri}/bin/niri msg action do-screen-transition
+      fi
     '';
     executable = true;
   };

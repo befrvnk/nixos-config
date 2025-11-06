@@ -23,8 +23,14 @@ in
 
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
-    configPackages = [ pkgs.niri ];
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    config = {
+      # Use GTK portal for all interfaces on Niri
+      niri = {
+        default = "gtk";
+        "org.freedesktop.impl.portal.Settings" = "gtk";
+      };
+    };
   };
 
   # https://github.com/YaLTeR/niri/blob/main/resources/default-config.kdl
