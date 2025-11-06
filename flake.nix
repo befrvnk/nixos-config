@@ -2,6 +2,8 @@
   description = "NixOS from Scratch";
 
   inputs = {
+    # Using nixpkgs-unstable as the main channel for latest packages
+    # All system and user packages use this channel
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
