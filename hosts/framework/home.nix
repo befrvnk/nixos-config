@@ -5,7 +5,6 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     users.frank = import ../../home-manager/frank.nix;
-    backupFileExtension = "backup";
     sharedModules = [
       stylix.homeModules.stylix
       dankMaterialShell.homeModules.dankMaterialShell.default
