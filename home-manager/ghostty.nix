@@ -1,4 +1,4 @@
-{ config, pkgs, pkgs-unstable, lib, ... }:
+{ pkgs, ... }:
 
 let
   # Import shared theme definitions
@@ -35,7 +35,7 @@ in
 
   programs.ghostty = {
     enable = true;
-    package = pkgs-unstable.ghostty;
+    package = pkgs.ghostty;
 
     # Use Ghostty's native light/dark theme switching
     # Ghostty will automatically switch based on desktop environment appearance
@@ -47,9 +47,7 @@ in
   # Generate BOTH theme files in every configuration
   # This prevents home-manager from deleting one when switching specialisations
   # Themes are defined in themes.nix - change colors there to switch themes
-  home.file.".config/ghostty/themes/stylix-light".text =
-    mkGhosttyTheme themes.light.colors;
+  home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme themes.light.colors;
 
-  home.file.".config/ghostty/themes/stylix-dark".text =
-    mkGhosttyTheme themes.dark.colors;
+  home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme themes.dark.colors;
 }

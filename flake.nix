@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixpkgs-unstable";
-    nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -43,7 +42,6 @@
   outputs =
     {
       nixpkgs,
-      nixpkgs-unstable,
       home-manager,
       nixos-hardware,
       zen-browser,
@@ -89,10 +87,6 @@
               extraSpecialArgs = {
                 inherit zen-browser;
                 inherit android-nixpkgs;
-                pkgs-unstable = import nixpkgs-unstable {
-                  inherit system;
-                  config.allowUnfree = true;
-                };
               };
             };
           }

@@ -2,7 +2,6 @@
   config,
   osConfig,
   pkgs,
-  pkgs-unstable,
   zen-browser,
   android-nixpkgs,
   ...
@@ -20,12 +19,12 @@
     ./zen-browser.nix
     ./packages.nix
     ./dconf.nix
-    (import ./zed.nix { inherit pkgs pkgs-unstable; })
+    (import ./zed.nix { inherit pkgs; })
     (import ./ghostty.nix {
-      inherit config pkgs pkgs-unstable;
+      inherit config pkgs;
       lib = pkgs.lib;
     })
-    (import ./android.nix { inherit pkgs pkgs-unstable android-nixpkgs; })
+    (import ./android.nix { inherit pkgs android-nixpkgs; })
     (import ./niri/default.nix {
       inherit osConfig pkgs;
       lib = pkgs.lib;
