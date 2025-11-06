@@ -1,11 +1,4 @@
-{
-  config,
-  osConfig,
-  pkgs,
-  zen-browser,
-  android-nixpkgs,
-  ...
-}:
+{ zen-browser, ... }:
 
 {
   imports = [
@@ -19,17 +12,11 @@
     ./zen-browser.nix
     ./packages.nix
     ./dconf.nix
-    (import ./zed.nix { inherit pkgs; })
-    (import ./ghostty.nix {
-      inherit config pkgs;
-      lib = pkgs.lib;
-    })
-    (import ./android.nix { inherit pkgs android-nixpkgs; })
-    (import ./niri/default.nix {
-      inherit osConfig pkgs;
-      lib = pkgs.lib;
-    })
-    (import ./dms.nix { inherit pkgs; })
+    ./zed.nix
+    ./ghostty.nix
+    ./android.nix
+    ./niri
+    ./dms.nix
     ./hyprlock.nix
     ./vicinae.nix
   ];
