@@ -1,16 +1,24 @@
 {
-  imports =
-    [
-      ./defaults/display.nix
-      ./gnome.nix
-      ./keyd.nix
-      ./packages.nix
-      ./pipewire.nix
-      ./system.nix
-      ./users.nix
-      ./xkb-custom.nix
-      ./niri.nix
-      ./darkman.nix
-      ./stylix.nix
-    ];
+  imports = [
+    # Core configuration
+    ./users.nix
+    ./system/core.nix
+
+    # System packages and configuration
+    ./system/packages.nix
+    ./system/xkb-custom.nix
+
+    # Desktop environment
+    ./desktop/display.nix
+    ./desktop/gnome.nix
+    ./desktop/niri.nix
+
+    # Services
+    ./services/darkman.nix
+    ./services/keyd.nix
+    ./services/pipewire.nix
+
+    # Theming
+    ./theming/stylix.nix
+  ];
 }
