@@ -444,6 +444,27 @@
         "type": "github"
       }
     },
+    "niri": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay_2"
+      },
+      "locked": {
+        "lastModified": 1762146685,
+        "narHash": "sha256-anRlNG6t7esBbF1+ALDeathVBSclA0PEL52Vo0WnN5g=",
+        "owner": "YaLTeR",
+        "repo": "niri",
+        "rev": "a2ca2b3c866bc781b12c334a9f949b3db6d7c943",
+        "type": "github"
+      },
+      "original": {
+        "owner": "YaLTeR",
+        "repo": "niri",
+        "type": "github"
+      }
+    },
     "nixos-hardware": {
       "locked": {
         "lastModified": 1762267440,
@@ -547,6 +568,7 @@
         "dankMaterialShell": "dankMaterialShell",
         "home-manager": "home-manager",
         "lanzaboote": "lanzaboote",
+        "niri": "niri",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
@@ -568,6 +590,27 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "rev": "59c45eb69d9222a4362673141e00ff77842cd219",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "rust-overlay_2": {
+      "inputs": {
+        "nixpkgs": [
+          "niri",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1757989933,
+        "narHash": "sha256-9cpKYWWPCFhgwQTww8S94rTXgg8Q8ydFv9fXM6I8xQM=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "8249aa3442fb9b45e615a35f39eca2fe5510d7c3",
         "type": "github"
       },
       "original": {

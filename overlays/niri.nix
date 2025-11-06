@@ -1,4 +1,5 @@
-final: prev: {
-  niri =
-    prev.niri.overrideAttrs {doCheck = false;};
+{niri}: final: prev: {
+  niri = niri.packages.${prev.system}.niri.overrideAttrs {
+    doCheck = false;
+  };
 }

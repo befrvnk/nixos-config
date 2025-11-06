@@ -34,6 +34,10 @@
       url = "github:vicinaehq/vicinae";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    niri = {
+      url = "github:YaLTeR/niri";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -48,6 +52,7 @@
       stylix,
       dankMaterialShell,
       vicinae,
+      niri,
       ...
     }@inputs:
     let
@@ -64,7 +69,7 @@
           {
             nixpkgs.overlays = [
               android-nixpkgs.overlays.default
-              (import ./overlays/niri.nix)
+              (import ./overlays/niri.nix { inherit niri; })
             ];
           }
           ./hosts/framework/default.nix
