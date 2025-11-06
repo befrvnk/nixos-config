@@ -62,36 +62,15 @@
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit nixos-hardware lanzaboote;
-          inherit inputs;
+          inherit nixos-hardware lanzaboote inputs;
+          inherit stylix dankMaterialShell vicinae zen-browser android-nixpkgs niri;
         };
         modules = [
-          {
-            nixpkgs.overlays = [
-              android-nixpkgs.overlays.default
-              (import ./overlays/niri.nix { inherit niri; })
-            ];
-          }
-          ./hosts/framework/default.nix
+          ./hosts/framework
+          ./hosts/framework/overlays.nix
+          ./hosts/framework/home.nix
           home-manager.nixosModules.home-manager
           stylix.nixosModules.stylix
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              users.frank = import ./home-manager/frank.nix;
-              backupFileExtension = "backup";
-              sharedModules = [
-                stylix.homeModules.stylix
-                dankMaterialShell.homeModules.dankMaterialShell.default
-                vicinae.homeManagerModules.default
-              ];
-              extraSpecialArgs = {
-                inherit zen-browser;
-                inherit android-nixpkgs;
-              };
-            };
-          }
         ];
       };
     };
