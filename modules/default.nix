@@ -10,7 +10,6 @@
       ./users.nix
       ./xkb-custom.nix
       ./niri.nix
-      ./wm-packages.nix
       ./darkman.nix
       ./stylix.nix
     ];

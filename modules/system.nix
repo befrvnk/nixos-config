@@ -15,12 +15,6 @@
     defaultLocale = "en_US.UTF-8";
   };
 
-  environment.systemPackages = with pkgs; [
-    zsh
-    tpm2-tss
-    sbctl
-  ];
-
   programs.zsh.enable = true;
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
