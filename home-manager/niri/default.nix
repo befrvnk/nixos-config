@@ -63,18 +63,18 @@ in
         warp-mouse-to-focus = true;
         workspace-auto-back-and-forth = true;
       };
+
+      cursor = {
+        xcursor-theme = "default";
+        xcursor-size = 24;
+        hide-when-typing = true;
+      };
+
+      prefer-no-csd = true;
     };
 
     # Remaining KDL configuration (to be migrated)
     config = ''
-      cursor {
-          xcursor-theme "default"
-          xcursor-size 24
-          hide-when-typing
-      }
-
-      prefer-no-csd
-
       overview {
           backdrop-color "#${colors.base02}"
           zoom 0.5
