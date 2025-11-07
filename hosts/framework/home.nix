@@ -1,4 +1,4 @@
-{ stylix, dankMaterialShell, vicinae, zen-browser, android-nixpkgs, ... }:
+{ stylix, dankMaterialShell, vicinae, zen-browser, android-nixpkgs, niri, ... }:
 
 {
   home-manager = {
@@ -9,6 +9,7 @@
       stylix.homeModules.stylix
       dankMaterialShell.homeModules.dankMaterialShell.default
       vicinae.homeManagerModules.default
+      niri.homeModules.niri
     ];
     extraSpecialArgs = {
       inherit zen-browser;
