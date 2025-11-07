@@ -26,9 +26,13 @@
 
   services.hardware.bolt.enable = false;
 
+  # Disable kmod to avoid infinite recursion with kernel packages
+  hardware.framework.enableKmod = false;
+
   hardware.framework.laptop13.audioEnhancement = {
     enable = true;
-    hideRawDevice = false;
+    hideRawDevice = true;
+    rawDeviceName = "alsa_output.pci-0000_c1_00.6.HiFi__Speaker__sink";
   };
 
   environment.etc = {

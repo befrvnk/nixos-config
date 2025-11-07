@@ -2,10 +2,11 @@
   description = "NixOS from Scratch";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.05";
-    nixpkgs-unstable.url = "nixpkgs/nixos-unstable";
+    # Using nixpkgs-unstable as the main channel for latest packages
+    # All system and user packages use this channel
+    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     android-nixpkgs = {
@@ -19,42 +20,57 @@
       inputs.home-manager.follows = "home-manager";
     };
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.4.2";
+      url = "github:nix-community/lanzaboote";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    dankMaterialShell = {
+      url = "github:AvengeMedia/DankMaterialShell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    vicinae = {
+      url = "github:vicinaehq/vicinae";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    niri = {
+      url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, zen-browser, android-nixpkgs, lanzaboote, ... }:
+  outputs =
+    {
+      nixpkgs,
+      home-manager,
+      nixos-hardware,
+      zen-browser,
+      android-nixpkgs,
+      lanzaboote,
+      stylix,
+      dankMaterialShell,
+      vicinae,
+      niri,
+      ...
+    }@inputs:
     let
       system = "x86_64-linux";
-    in {
+    in
+    {
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit nixos-hardware lanzaboote; };
+        specialArgs = {
+          inherit nixos-hardware lanzaboote inputs;
+          inherit stylix dankMaterialShell vicinae zen-browser android-nixpkgs niri;
+        };
         modules = [
-          {
-            nixpkgs.overlays = [
-              android-nixpkgs.overlays.default
-            ];
-          }
-          ./hosts/framework/default.nix
+          ./hosts/framework
+          ./hosts/framework/overlays.nix
+          ./hosts/framework/home.nix
           home-manager.nixosModules.home-manager
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              users.frank = import ./home-manager/frank.nix;
-              backupFileExtension = "backup";
-              extraSpecialArgs = {
-                inherit zen-browser;
-                inherit android-nixpkgs;
-                pkgs-unstable = import nixpkgs-unstable {
-                  inherit system;
-                  config.allowUnfree = true;
-                };
-              };
-            };
-          }
+          stylix.nixosModules.stylix
         ];
       };
     };

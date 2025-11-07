@@ -1,30 +1,46 @@
 # NixOS System Configurations
 This repository contains my NixOS system configurations.
 
-## TODO
+## Documentation
+
+- [Repository Structure](./docs/structure.md) - Overview of the configuration organization
+- [Adding Packages](./docs/adding-packages.md) - Guide for adding system and user packages
+- [Adding a New Host](./docs/new-host.md) - How to configure additional machines
+- [Secure Boot with TPM](./docs/secure-boot.md) - Secure boot setup guide
+- [Stylix & Darkman Setup](./docs/stylix-darkman-setup.md) - Theme switching configuration
+
+## TODOs
 
 System
 - Fix login manager
-- Add Niri WM
-- Add waybar
-- Add vicinae
 - Configure fingerprint sensor
+- Remove GNOME
 
-Settings
-- Display
-- Sound
-- Power
-- Wifi
-- Bluetooth
+DMS
+- Manage Niri theme with DMS
+- Automatic dark/light mode
+- Check out DankGreeter
+
+Software
+- Install Chromium and run Nuphy IO with it
+
+Hardware
+- Fix Nuphy function keys
+- Fix wakeup from closed screen
+
+Android
+- Switch to flake setup
+
+Zed
+- Disable tabs
 
 Documentation
-- [Secure Boot with TPM](./docs/secure-boot.md)
 - List all packages and apps
 - Add readme for `rebuild switch`
 - Write documentation about updating flakes
 - Language documentation
-- Structure documentation
 - App and WM shortcuts
 
-GitHub
+Repository
 - Update bot for flakes
+- Auto format code

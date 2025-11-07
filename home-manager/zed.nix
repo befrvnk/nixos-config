@@ -1,11 +1,14 @@
-{ pkgs, pkgs-unstable, ... }:
+{ pkgs, ... }:
 
 {
-  home.packages = with pkgs; [ nil nixd ];
+  home.packages = with pkgs; [
+    nil
+    nixd
+  ];
 
   programs.zed-editor = {
     enable = true;
-    package = pkgs-unstable.zed-editor;
+    package = pkgs.zed-editor;
     extensions = [ "nix" ];
   };
 }
