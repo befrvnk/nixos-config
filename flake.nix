@@ -81,6 +81,8 @@
       };
 
       devShells.${system}.default = pkgs.mkShell {
+        packages = [ pkgs.nixfmt-rfc-style ];
+
         inherit (pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
