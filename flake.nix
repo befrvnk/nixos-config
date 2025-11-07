@@ -57,6 +57,11 @@
     }@inputs:
     let
       system = "x86_64-linux";
+
+      # Common overlays applied to all hosts
+      commonOverlays = [
+        (import ./overlays/gemini-cli.nix)
+      ];
     in
     {
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
@@ -66,6 +71,8 @@
           inherit stylix dankMaterialShell vicinae zen-browser android-nixpkgs niri;
         };
         modules = [
+          # Apply common overlays to all hosts
+          { nixpkgs.overlays = commonOverlays; }
           ./hosts/framework
           ./hosts/framework/overlays.nix
           ./hosts/framework/home.nix
