@@ -65,8 +65,8 @@ in
       };
 
       cursor = {
-        xcursor-theme = "default";
-        xcursor-size = 24;
+        theme = "default";
+        size = 24;
         hide-when-typing = true;
       };
 
@@ -75,6 +75,31 @@ in
       overview = {
         backdrop-color = "#${colors.base02}";
         zoom = 0.5;
+      };
+
+      layout = {
+        gaps = 12;
+        struts = {
+          left = 0;
+          right = 0;
+          top = 0;
+          bottom = 0;
+        };
+        focus-ring = {
+          enable = true;
+          width = 3;
+          active.color = "#${colors.base0D}";
+        };
+        border = {
+          enable = true;
+          width = 3;
+          active.color = "#${colors.base03}";
+          inactive.color = "#${colors.base03}";
+        };
+        default-column-width = {
+          proportion = osConfig.defaults.display.defaultColumnWidthPercent;
+        };
+        preset-column-widths = map (width: { proportion = width; }) osConfig.defaults.display.columnWidthPercentPresets;
       };
 
       spawn-at-startup = [
@@ -110,7 +135,7 @@ in
       layer-rules = [
         {
           matches = [{ namespace = "notifications"; }];
-          block-out-from = ["screen-capture"];
+          block-out-from = "screen-capture";
         }
       ];
 
@@ -286,32 +311,6 @@ in
         "XF86MonBrightnessUp".action.spawn = ["brightnessctl" "set" "5%+"];
       };
     };
-
-    # Layout configuration remains in KDL - complex nested options not fully supported in Nix settings yet
-    config = ''
-      layout {
-          gaps 12
-          struts {
-              left 0
-              right 0
-              top 0
-              bottom 0
-          }
-          focus-ring {
-              width 3
-              active-color "#${colors.base0D}"
-          }
-          border {
-              width 3
-              active-color "#${colors.base03}"
-              inactive-color "#${colors.base03}"
-          }
-          default-column-width { proportion ${toString osConfig.defaults.display.defaultColumnWidthPercent}; }
-          preset-column-widths {
-              ${lib.concatMapStringsSep "\n              " (width: "proportion ${toString width}") osConfig.defaults.display.columnWidthPercentPresets}
-          }
-      }
-    '';
   };
 
 }
