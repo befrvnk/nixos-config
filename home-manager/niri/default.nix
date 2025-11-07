@@ -35,19 +35,24 @@ in
   # https://github.com/YaLTeR/niri/blob/main/resources/default-config.kdl
   programs.niri = {
     enable = true;
-    # Use config with raw KDL text for now - the settings API structure is not well documented
+
+    # Migrating configuration from KDL to Nix syntax incrementally
+    settings = {
+      outputs = {
+        "eDP-1" = {
+          scale = 1.25;
+          background-color = "#${colors.base02}";
+        };
+        "DP-3" = {
+          scale = 1.25;
+          variable-refresh-rate = "on-demand";
+          background-color = "#${colors.base02}";
+        };
+      };
+    };
+
+    # Remaining KDL configuration (to be migrated)
     config = ''
-      output "eDP-1" {
-          scale 1.25
-          background-color "#${colors.base02}"
-      }
-
-      output "DP-3" {
-          scale 1.25
-          variable-refresh-rate on-demand=true
-          background-color "#${colors.base02}"
-      }
-
       input {
           touchpad {
               tap
