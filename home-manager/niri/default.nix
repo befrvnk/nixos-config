@@ -106,7 +106,6 @@ in
         path "${pkgs.xwayland-satellite}/bin/xwayland-satellite"
     }
 
-
     window-rule {
         draw-border-with-background false
         geometry-corner-radius 8.0 8.0 8.0 8.0
