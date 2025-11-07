@@ -49,24 +49,24 @@ in
           background-color = "#${colors.base02}";
         };
       };
+
+      input = {
+        touchpad = {
+          tap = true;
+          natural-scroll = true;
+          dwt = true;
+          click-method = "clickfinger";
+        };
+        mouse = {
+          natural-scroll = true;
+        };
+        warp-mouse-to-focus = true;
+        workspace-auto-back-and-forth = true;
+      };
     };
 
     # Remaining KDL configuration (to be migrated)
     config = ''
-      input {
-          touchpad {
-              tap
-              natural-scroll
-              dwt
-              click-method "clickfinger"
-          }
-          mouse {
-              natural-scroll
-          }
-          warp-mouse-to-focus
-          workspace-auto-back-and-forth
-      }
-
       cursor {
           xcursor-theme "default"
           xcursor-size 24
