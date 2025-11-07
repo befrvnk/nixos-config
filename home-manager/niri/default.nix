@@ -71,15 +71,15 @@ in
       };
 
       prefer-no-csd = true;
+
+      overview = {
+        backdrop-color = "#${colors.base02}";
+        zoom = 0.5;
+      };
     };
 
     # Remaining KDL configuration (to be migrated)
     config = ''
-      overview {
-          backdrop-color "#${colors.base02}"
-          zoom 0.5
-      }
-
       layout {
           gaps 12
           struts {
