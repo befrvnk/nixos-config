@@ -17,11 +17,9 @@ System
 - Remove GNOME
 
 DMS
-- Fix brightness controls
-- Fix volume controls
 - Manage Niri theme with DMS
 - Automatic dark/light mode
-- Check out DankeGreeter
+- Check out DankGreeter
 
 Software
 - Install Chromium and run Nuphy IO with it
