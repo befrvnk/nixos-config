@@ -99,35 +99,47 @@ in
         };
         preset-column-widths = map (width: { proportion = width; }) osConfig.defaults.display.columnWidthPercentPresets;
       };
+
+      spawn-at-startup = [
+        { command = ["${pkgs.xwayland-satellite}/bin/xwayland-satellite"]; }
+      ];
+
+      window-rules = [
+        {
+          draw-border-with-background = false;
+          geometry-corner-radius = {
+            top-left = 8.0;
+            top-right = 8.0;
+            bottom-left = 8.0;
+            bottom-right = 8.0;
+          };
+          clip-to-geometry = true;
+        }
+        {
+          matches = [{ is-floating = true; }];
+          geometry-corner-radius = {
+            top-left = 16.0;
+            top-right = 16.0;
+            bottom-left = 16.0;
+            bottom-right = 16.0;
+          };
+        }
+        {
+          matches = [{ is-active = false; }];
+          opacity = 0.99;
+        }
+      ];
+
+      layer-rules = [
+        {
+          matches = [{ namespace = "notifications"; }];
+          block-out-from = ["screen-capture"];
+        }
+      ];
     };
 
     # Remaining KDL configuration (to be migrated)
     config = ''
-      xwayland-satellite {
-          path "${pkgs.xwayland-satellite}/bin/xwayland-satellite"
-      }
-
-      window-rule {
-          draw-border-with-background false
-          geometry-corner-radius 8.0 8.0 8.0 8.0
-          clip-to-geometry true
-      }
-
-      window-rule {
-          match is-floating=true
-          geometry-corner-radius 16.0 16.0 16.0 16.0
-      }
-
-      window-rule {
-          match is-active=false
-          opacity 0.99
-      }
-
-      layer-rule {
-          match namespace="notifications"
-          block-out-from "screen-capture"
-      }
-
       binds {
           Mod+Shift+Slash { show-hotkey-overlay; }
 
