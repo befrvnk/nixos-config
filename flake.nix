@@ -39,6 +39,10 @@
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -53,10 +57,12 @@
       dankMaterialShell,
       vicinae,
       niri,
+      pre-commit-hooks,
       ...
     }@inputs:
     let
       system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
     in
     {
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
@@ -72,6 +78,23 @@
           home-manager.nixosModules.home-manager
           stylix.nixosModules.stylix
         ];
+      };
+
+      devShells.${system}.default = pkgs.mkShell {
+        inherit (pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            nixfmt-rfc-style = {
+              enable = true;
+              name = "nixfmt";
+              description = "Format Nix code with nixfmt";
+              files = "\\.nix$";
+              entry = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
+            };
+          };
+        })
+          shellHook
+          ;
       };
     };
 }
