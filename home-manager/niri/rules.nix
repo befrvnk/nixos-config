@@ -31,10 +31,5 @@
       matches = [{ namespace = "notifications"; }];
       block-out-from = "screen-capture";
     }
-    # Place DMS wallpaper on backdrop layer (visible in overview mode)
-    {
-      matches = [{ namespace = "quickshell"; }];
-      place-within-backdrop = true;
-    }
   ];
 }
