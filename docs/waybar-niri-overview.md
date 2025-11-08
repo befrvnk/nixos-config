@@ -603,9 +603,30 @@ rm -f result
 sudo nixos-rebuild switch --flake .#
 ```
 
+## Known Limitations
+
+### Visual Artifacts on Empty Workspaces
+
+**Issue**: When switching to an empty workspace from overview mode, waybar's area may show black/gray artifacts with widgets flickering through as they update.
+
+**Behavior**:
+- Only occurs on workspaces with no windows
+- Opening any window immediately resolves the issue
+- Waybar surface remains in compositor even when "hidden" (`niri msg layers` shows it present)
+
+**Root Cause**: When waybar receives SIGUSR2 (hide), it doesn't remove its layer-shell surface - it just makes it invisible. On empty workspaces, Niri doesn't properly handle the hidden surface, leaving visible rendering artifacts.
+
+**Workarounds**:
+1. Open a window on the workspace (fixes immediately)
+2. Switch to a workspace with windows before exiting overview
+3. Accept as minor visual glitch that doesn't affect functionality
+
+**Status**: This appears to be a Niri compositor issue with hidden layer-shell surfaces on empty workspaces. Consider reporting to [Niri upstream](https://github.com/YaLTeR/niri/issues) if it becomes problematic.
+
 ## Related Documentation
 
 - [Stylix & Darkman Theme Switching Setup](./stylix-darkman-setup.md) - Understanding our theming system
 - [Niri IPC Documentation](https://github.com/YaLTeR/niri/wiki/IPC) - Niri's event system
 - [Waybar Wiki](https://github.com/Alexays/Waybar/wiki) - Waybar module configuration
 - [Unix Signals](https://en.wikipedia.org/wiki/Signal_(IPC)) - Understanding SIGUSR1/SIGUSR2
+- [Niri Issues](https://github.com/YaLTeR/niri/issues) - Report bugs or feature requests
