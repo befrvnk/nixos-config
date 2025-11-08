@@ -34,11 +34,16 @@ in {
     settings = {
       mainBar = {
         # Bar configuration
-        layer = "overlay";
+        layer = "top";
         position = "top";
         exclusive = false;
         height = 60;
         spacing = 8;
+
+        # Start hidden, use explicit show/hide signals
+        start_hidden = true;
+        on-sigusr1 = "show";
+        on-sigusr2 = "hide";
 
         # Module layout
         modules-left = ["niri/workspaces" "niri/window"];
