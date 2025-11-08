@@ -31,5 +31,10 @@
       matches = [{ namespace = "notifications"; }];
       block-out-from = "screen-capture";
     }
+    # Place swaybg wallpaper on backdrop layer (visible in overview mode)
+    {
+      matches = [{ namespace = "^swaybg$"; }];
+      place-within-backdrop = true;
+    }
   ];
 }
