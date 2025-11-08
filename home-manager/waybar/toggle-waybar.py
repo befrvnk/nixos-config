@@ -8,9 +8,8 @@ Uses SIGUSR1 (show) and SIGUSR2 (hide) for explicit state control.
 from json import loads
 from os import environ
 from signal import SIGUSR1, SIGUSR2
-from subprocess import Popen, PIPE
+from subprocess import Popen
 from socket import AF_UNIX, socket as Socket, SHUT_WR
-from time import time
 from typing import TextIO
 import sys
 
@@ -38,12 +37,20 @@ def main() -> None:
 
     # Start waybar process
     print("Starting waybar (starts hidden)...", flush=True)
-    waybar_proc: Popen[str] = Popen(
+    waybar_proc: Popen = Popen(
         ["waybar"],
-        stdout=PIPE,
-        stderr=PIPE,
-        text=True
+        stdout=sys.stdout,
+        stderr=sys.stderr
     )
+
+    # Give waybar a moment to start
+    import time
+    time.sleep(0.5)
+
+    # Check if waybar crashed immediately
+    if waybar_proc.poll() is not None:
+        print(f"ERROR: Waybar exited immediately with code {waybar_proc.returncode}", file=sys.stderr, flush=True)
+        sys.exit(1)
 
     def show_waybar() -> None:
         """Send SIGUSR1 to waybar to show it."""
@@ -61,9 +68,8 @@ def main() -> None:
         except Exception as e:
             print(f"Error hiding waybar: {e}", file=sys.stderr, flush=True)
 
-    # Debounce rapid events
-    last_event_time: float = time()
-    debounce_seconds: float = 0.2
+    # Track last state to avoid sending duplicate signals
+    last_visible_state: bool | None = None
 
     print("Listening for niri overview events...", flush=True)
     try:
@@ -71,15 +77,12 @@ def main() -> None:
             event = loads(line)
             overview_event = event.get("OverviewOpenedOrClosed")
             if overview_event is not None:
-                current_time = time()
-                time_since_last = current_time - last_event_time
+                is_open = overview_event.get("is_open", False)
 
-                # Debounce: only process if enough time passed
-                if time_since_last >= debounce_seconds:
-                    last_event_time = current_time
-
-                    is_open = overview_event.get("is_open", False)
+                # Only send signal if state actually changed
+                if is_open != last_visible_state:
                     print(f"Overview {'opened' if is_open else 'closed'}", flush=True)
+                    last_visible_state = is_open
 
                     # Explicit show or hide based on overview state
                     if is_open:
@@ -87,7 +90,7 @@ def main() -> None:
                     else:
                         hide_waybar()
                 else:
-                    print(f"Debouncing (waiting {debounce_seconds - time_since_last:.2f}s more)", flush=True)
+                    print(f"Ignoring duplicate {'open' if is_open else 'close'} event", flush=True)
     except KeyboardInterrupt:
         print("\nShutting down waybar toggle script...", flush=True)
         waybar_proc.terminate()

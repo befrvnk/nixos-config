@@ -27,6 +27,12 @@
   toggleScript = pkgs.writeShellScript "waybar-toggle" ''
     exec ${pkgs.python3}/bin/python3 ${./toggle-waybar.py}
   '';
+
+  # Notification count script that outputs JSON
+  notificationScript = pkgs.writeShellScript "dunst-count" ''
+    count=$(${pkgs.dunst}/bin/dunstctl count | grep "Waiting" | awk '{print $2}')
+    echo "{\"text\":\"$count\",\"tooltip\":\"$count notification(s)\"}"
+  '';
 in {
   # Enable waybar
   programs.waybar = {
@@ -92,7 +98,7 @@ in {
 
         # Custom notifications module
         "custom/notifications" = {
-          exec = "${pkgs.dunst}/bin/dunstctl count";
+          exec = "${notificationScript}";
           return-type = "json";
           format = "  {}";
           on-click = "${pkgs.dunst}/bin/dunstctl history-pop";

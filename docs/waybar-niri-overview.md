@@ -234,34 +234,38 @@ These functions send Unix signals to the waybar process. Waybar interprets:
 - **SIGUSR1** as an explicit "show" command
 - **SIGUSR2** as an explicit "hide" command
 
-#### Event Processing with Debouncing
+#### Event Processing with State Tracking
 
 ```python
-# Debounce rapid events
-last_event_time: float = time()
-debounce_seconds: float = 0.2
+# Track last state to avoid sending duplicate signals
+last_visible_state: bool | None = None
 
 for line in file:
     event = loads(line)
     overview_event = event.get("OverviewOpenedOrClosed")
     if overview_event is not None:
-        current_time = time()
-        time_since_last = current_time - last_event_time
+        is_open = overview_event.get("is_open", False)
 
-        # Debounce: only process if enough time passed
-        if time_since_last >= debounce_seconds:
-            last_event_time = current_time
-
-            is_open = overview_event.get("is_open", False)
+        # Only send signal if state actually changed
+        if is_open != last_visible_state:
+            print(f"Overview {'opened' if is_open else 'closed'}", flush=True)
+            last_visible_state = is_open
 
             # Explicit show or hide based on overview state
             if is_open:
                 show_waybar()
             else:
                 hide_waybar()
+        else:
+            print(f"Ignoring duplicate {'open' if is_open else 'close'} event", flush=True)
 ```
 
-Debouncing prevents rapid toggling if the user quickly enters/exits overview mode.
+State tracking ensures:
+- **No duplicate signals**: Multiple "open" events only send one show signal
+- **Correct final state**: Even with rapid toggling, always reaches the correct final state
+- **Processes every transition**: Detects every open→close and close→open state change
+
+This approach is superior to time-based debouncing because debouncing can drop events within a time window, potentially leaving waybar in the wrong state if the final event is ignored.
 
 ### Backdrop Wallpaper
 
@@ -363,21 +367,61 @@ This solution was [suggested by a Reddit user](https://www.reddit.com/r/NixOS/co
 
 **Solution**: Explicit show/hide signals completely eliminated the artifacts by ensuring clean state transitions.
 
-### Problem 3: Rapid Toggle Events
+### Problem 3: Sync Issues with Rapid Toggling
 
-**Issue**: Quickly entering/exiting overview caused multiple rapid events.
+**Issue**: When rapidly switching between overview and desktop mode, waybar would get out of sync and appear in the wrong mode (e.g., visible on desktop when it should be hidden).
 
-**Solution**: 200ms debouncing:
+**Initial Attempt**: Time-based debouncing (200ms) to ignore rapid events
+**Problem with debouncing**: If events arrive too quickly, the final state event could be dropped, leaving waybar in the wrong state.
+
+**Solution**: State-based event filtering:
 ```python
-debounce_seconds: float = 0.2
+last_visible_state: bool | None = None
 
-if time_since_last >= debounce_seconds:
-    # Process event
-else:
-    # Ignore event
+if is_open != last_visible_state:
+    last_visible_state = is_open
+    # Send appropriate signal
 ```
 
-### Problem 4: Missing Backdrop Wallpaper
+This ensures:
+- Every state **transition** is processed (open→close, close→open)
+- Duplicate events in the same state are ignored
+- Always reaches the correct final state, regardless of event timing
+
+### Problem 4: Dunst Notification Module JSON Error
+
+**Issue**: Waybar crashed on startup with error:
+```
+[error] custom/notifications: Error parsing JSON: Syntax error: value, object or array expected.
+```
+
+**Root Cause**: `dunstctl count` outputs plain text, not JSON:
+```
+Waiting: 0
+  Currently displayed: 0
+              History: 20
+```
+
+But waybar was configured with `return-type = "json"`.
+
+**Solution**: Create a wrapper script that parses the text and outputs proper JSON:
+```nix
+notificationScript = pkgs.writeShellScript "dunst-count" ''
+  count=$(${pkgs.dunst}/bin/dunstctl count | grep "Waiting" | awk '{print $2}')
+  echo "{\"text\":\"$count\",\"tooltip\":\"$count notification(s)\"}"
+'';
+```
+
+Then use this script in the waybar module:
+```nix
+"custom/notifications" = {
+  exec = "${notificationScript}";
+  return-type = "json";
+  # ...
+};
+```
+
+### Problem 5: Missing Backdrop Wallpaper
 
 **Issue**: swaybg was configured but wallpaper didn't appear on backdrop.
 
