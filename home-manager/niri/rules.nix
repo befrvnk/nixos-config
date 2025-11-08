@@ -33,7 +33,7 @@
     }
     # Place swaybg wallpaper on backdrop layer (visible in overview mode)
     {
-      matches = [{ namespace = "^swaybg$"; }];
+      matches = [{ namespace = "wallpaper"; }];
       place-within-backdrop = true;
     }
   ];
