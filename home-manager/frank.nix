@@ -17,6 +17,7 @@
     ./android.nix
     ./niri
     ./waybar
+    ./dunst.nix
     ./hyprlock.nix
     ./vicinae.nix
   ];
