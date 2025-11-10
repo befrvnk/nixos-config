@@ -70,7 +70,6 @@ with lib;
         appWidths = { };
         floatingApps = [
           "^floating."
-          "org.gnome.NautilusPreviewer"
           "re.sonny.Commit"
         ];
       };

@@ -15,8 +15,6 @@
     sbctl
 
     # Desktop environment packages
-    gnome-control-center
-    gnome-bluetooth
     networkmanager
   ];
 }

@@ -4,7 +4,10 @@ let
   layoutName = "us-umlauts";
 in
 {
-  # Changes to this seem to only apply after a gnome reboot
+  # Enable X server module just for XKB layout generation
+  # We're not actually running X server, but this is needed to generate custom layouts
+  services.xserver.enable = true;
+
   services.xserver.xkb.extraLayouts.${layoutName} = {
     description = "US layout with German Umlauts on left and right Alt";
     languages = [ "eng" ];
@@ -27,11 +30,4 @@ in
   # Set the keyboard layout and options
   services.xserver.xkb.layout = layoutName;
   services.xserver.xkb.options = "lv3:any_alt"; # Use left and right alt for special characters
-
-  # The following is for GNOME/GDM. It will override the layout set by services.xserver.layout.
-  # It is not strictly necessary if you don't use GNOME, but it's good to have for consistency.
-  environment.etc."gdm/greeter.dconf-defaults".text = ''
-    [org/gnome/desktop/input-sources]
-    sources=[('xkb', '${layoutName}')]
-  '';
 }

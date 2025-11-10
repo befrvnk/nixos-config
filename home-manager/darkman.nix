@@ -26,8 +26,9 @@
       # Set environment variable to prevent infinite restart loop
       export DARKMAN_RUNNING=1
 
-      # Set desktop environment color scheme preference for light mode
-      # This tells applications like Ghostty to use their light theme
+      # Set freedesktop portal color scheme preference for light mode
+      # This is a standard freedesktop setting used by xdg-desktop-portal
+      # Applications like Ghostty use this to determine light/dark theme
       export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(${pkgs.coreutils}/bin/id -u)/bus"
       ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
 
@@ -61,8 +62,9 @@
       # Set environment variable to prevent infinite restart loop
       export DARKMAN_RUNNING=1
 
-      # Set desktop environment color scheme preference for dark mode
-      # This tells applications like Ghostty to use their dark theme
+      # Set freedesktop portal color scheme preference for dark mode
+      # This is a standard freedesktop setting used by xdg-desktop-portal
+      # Applications like Ghostty use this to determine light/dark theme
       export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(${pkgs.coreutils}/bin/id -u)/bus"
       ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"
 

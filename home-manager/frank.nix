@@ -12,14 +12,13 @@
     ./starship.nix
     ./zen-browser.nix
     ./packages.nix
-    ./dconf.nix
     ./zed.nix
     ./ghostty.nix
     ./android.nix
     ./niri
     ./waybar
     ./dunst.nix
-    ./hyprlock.nix
+    ./swaylock-on-suspend.nix
     ./vicinae.nix
   ];
 

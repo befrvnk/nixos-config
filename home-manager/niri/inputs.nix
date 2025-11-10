@@ -1,6 +1,14 @@
 { ... }:
 {
   input = {
+    keyboard = {
+      xkb = {
+        # Use the custom us-umlauts layout defined in modules/system/xkb-custom.nix
+        layout = "us-umlauts";
+        # Use left and right alt for special characters (level 3 shift)
+        options = "lv3:any_alt";
+      };
+    };
     touchpad = {
       tap = true;
       natural-scroll = true;

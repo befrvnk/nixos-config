@@ -29,7 +29,6 @@ This repository contains my personal NixOS system configurations for a Framework
 ### System Configuration
 
 - **Configure fingerprint sensor support** - Set up fingerprint authentication for the Framework 13 laptop using fprintd and PAM integration
-- **Remove GNOME packages and services** - GNOME is being replaced by Niri window manager. Ensure the login manager configuration is updated to use the appropriate display manager for Niri
 
 ### Hardware Issues
 

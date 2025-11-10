@@ -13,7 +13,7 @@
 
     # Desktop environment
     ./desktop/display.nix
-    ./desktop/gnome.nix
+    ./desktop/greetd.nix
     ./desktop/niri.nix
 
     # Services
