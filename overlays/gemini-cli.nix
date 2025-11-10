@@ -5,7 +5,7 @@ final: prev: {
 
     src = prev.fetchurl {
       url = "https://github.com/google-gemini/gemini-cli/releases/download/v${version}/gemini.js";
-      hash = "sha256-zBHUFdkybMxOdJrtbS2PEqKOU9ABk49rTPLEeiQi2tA=";
+      hash = "sha256-ZkDCLq/GdzA1QPhQ3lLefM0NzNCHCfbgUfjK5Vq8dSk=";
     };
 
     dontUnpack = true;
