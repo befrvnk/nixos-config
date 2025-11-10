@@ -26,6 +26,7 @@
       home-manager
       htop
       lf
+      navi
       neofetch
       starship
       tree

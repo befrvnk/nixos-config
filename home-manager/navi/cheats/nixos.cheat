@@ -1,0 +1,40 @@
+% nixos, system
+
+# Rebuild NixOS system configuration
+sudo nixos-rebuild switch --flake .#<hostname>
+
+# Update flake inputs
+nix flake update
+
+# Format all Nix files in repository
+nix develop -c nixfmt **/*.nix flake.nix
+
+# Show flake outputs
+nix flake show
+
+# Check flake for errors
+nix flake check
+
+# Build NixOS configuration without switching
+sudo nixos-rebuild build --flake .#<hostname>
+
+# Test NixOS configuration (temporary until reboot)
+sudo nixos-rebuild test --flake .#<hostname>
+
+# Boot into new configuration on next reboot
+sudo nixos-rebuild boot --flake .#<hostname>
+
+# View NixOS generation history
+sudo nix-env --list-generations --profile /nix/var/nix/profiles/system
+
+# Rollback to previous generation
+sudo nixos-rebuild switch --rollback
+
+# Garbage collect old generations
+sudo nix-collect-garbage --delete-old
+
+# Garbage collect generations older than specified days
+sudo nix-collect-garbage --delete-older-than <days>d
+
+$ hostname: echo "framework"
+$ days: echo -e "7\n14\n30"

@@ -16,6 +16,7 @@
     ./ghostty.nix
     ./android.nix
     ./niri
+    ./navi
     ./waybar
     ./dunst.nix
     ./swaylock-on-suspend.nix
