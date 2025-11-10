@@ -9,6 +9,13 @@ This repository contains my NixOS system configurations.
 - [Secure Boot with TPM](./docs/secure-boot.md) - Secure boot setup guide
 - [Stylix & Darkman Setup](./docs/stylix-darkman-setup.md) - Theme switching configuration
 
+## Hardware
+
+*   **Laptop:** Framework 13, Ryzen AI 9 HX 370, US (ANSI) keyboard layout, 2x32GB DDR5-5600, 1TB WD_BLACK SN850X NVMe - M.2 2280
+*   **Keyboard:** Nuphy Air75 V3
+*   **Mouse:** Logitech G403
+*   **Monitor:** Dough Spectrum 4k 144Hz 27 inch
+
 ## TODOs
 
 System
