@@ -1,13 +1,17 @@
-{ nixos-hardware, lanzaboote, lib, ... }:
+{
+  nixos-hardware,
+  lanzaboote,
+  lib,
+  ...
+}:
 
 {
-  imports =
-    [
-      ./hardware-configuration.nix
-      ../../modules
-      nixos-hardware.nixosModules.framework-amd-ai-300-series
-      lanzaboote.nixosModules.lanzaboote
-    ];
+  imports = [
+    ./hardware-configuration.nix
+    ../../modules
+    nixos-hardware.nixosModules.framework-amd-ai-300-series
+    lanzaboote.nixosModules.lanzaboote
+  ];
 
   boot.loader.systemd-boot.enable = lib.mkForce false;
   boot.lanzaboote = {

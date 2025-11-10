@@ -12,7 +12,7 @@
       clip-to-geometry = true;
     }
     {
-      matches = [{ is-floating = true; }];
+      matches = [ { is-floating = true; } ];
       geometry-corner-radius = {
         top-left = 16.0;
         top-right = 16.0;
@@ -21,19 +21,19 @@
       };
     }
     {
-      matches = [{ is-active = false; }];
+      matches = [ { is-active = false; } ];
       opacity = 0.99;
     }
   ];
 
   layer-rules = [
     {
-      matches = [{ namespace = "notifications"; }];
+      matches = [ { namespace = "notifications"; } ];
       block-out-from = "screen-capture";
     }
     # Place swaybg wallpaper on backdrop layer (visible in overview mode)
     {
-      matches = [{ namespace = "wallpaper"; }];
+      matches = [ { namespace = "wallpaper"; } ];
       place-within-backdrop = true;
     }
   ];

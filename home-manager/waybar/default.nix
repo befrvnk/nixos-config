@@ -2,7 +2,8 @@
   pkgs,
   osConfig,
   ...
-}: let
+}:
+let
   # Use color palette from Stylix
   colors = osConfig.lib.stylix.colors;
 
@@ -10,18 +11,45 @@
   baseStyle = builtins.readFile ./style.css;
 
   # Generate CSS with color variables replaced
-  styleWithColors = builtins.replaceStrings
-    [
-      "@base00" "@base01" "@base02" "@base03" "@base04" "@base05" "@base06" "@base07"
-      "@base08" "@base09" "@base0A" "@base0B" "@base0C" "@base0D" "@base0E" "@base0F"
-    ]
-    [
-      "#${colors.base00}" "#${colors.base01}" "#${colors.base02}" "#${colors.base03}"
-      "#${colors.base04}" "#${colors.base05}" "#${colors.base06}" "#${colors.base07}"
-      "#${colors.base08}" "#${colors.base09}" "#${colors.base0A}" "#${colors.base0B}"
-      "#${colors.base0C}" "#${colors.base0D}" "#${colors.base0E}" "#${colors.base0F}"
-    ]
-    baseStyle;
+  styleWithColors =
+    builtins.replaceStrings
+      [
+        "@base00"
+        "@base01"
+        "@base02"
+        "@base03"
+        "@base04"
+        "@base05"
+        "@base06"
+        "@base07"
+        "@base08"
+        "@base09"
+        "@base0A"
+        "@base0B"
+        "@base0C"
+        "@base0D"
+        "@base0E"
+        "@base0F"
+      ]
+      [
+        "#${colors.base00}"
+        "#${colors.base01}"
+        "#${colors.base02}"
+        "#${colors.base03}"
+        "#${colors.base04}"
+        "#${colors.base05}"
+        "#${colors.base06}"
+        "#${colors.base07}"
+        "#${colors.base08}"
+        "#${colors.base09}"
+        "#${colors.base0A}"
+        "#${colors.base0B}"
+        "#${colors.base0C}"
+        "#${colors.base0D}"
+        "#${colors.base0E}"
+        "#${colors.base0F}"
+      ]
+      baseStyle;
 
   # Path to the toggle script
   toggleScript = pkgs.writeShellScript "waybar-toggle" ''
@@ -33,7 +61,8 @@
     count=$(${pkgs.dunst}/bin/dunstctl count | grep "Waiting" | awk '{print $2}')
     echo "{\"text\":\"$count\",\"tooltip\":\"$count notification(s)\"}"
   '';
-in {
+in
+{
   # Enable waybar
   programs.waybar = {
     enable = true;
@@ -52,9 +81,20 @@ in {
         on-sigusr2 = "hide";
 
         # Module layout
-        modules-left = ["niri/workspaces" "niri/window"];
-        modules-center = ["clock"];
-        modules-right = ["cpu" "memory" "custom/notifications" "battery" "network" "bluetooth" "pulseaudio"];
+        modules-left = [
+          "niri/workspaces"
+          "niri/window"
+        ];
+        modules-center = [ "clock" ];
+        modules-right = [
+          "cpu"
+          "memory"
+          "custom/notifications"
+          "battery"
+          "network"
+          "bluetooth"
+          "pulseaudio"
+        ];
 
         # Niri workspaces module
         "niri/workspaces" = {
@@ -136,7 +176,13 @@ in {
           format = "{icon} {capacity}%";
           format-charging = " {capacity}%";
           format-plugged = " {capacity}%";
-          format-icons = ["" "" "" "" ""];
+          format-icons = [
+            ""
+            ""
+            ""
+            ""
+            ""
+          ];
           tooltip-format = "{timeTo}, {capacity}%";
         };
 
@@ -145,7 +191,11 @@ in {
           format = "{icon} {volume}%";
           format-muted = " {volume}%";
           format-icons = {
-            default = ["" "" ""];
+            default = [
+              ""
+              ""
+              ""
+            ];
           };
           on-click = "${pkgs.pavucontrol}/bin/pavucontrol";
           tooltip-format = "{desc}\nVolume: {volume}%";
@@ -160,8 +210,8 @@ in {
   systemd.user.services.waybar = {
     Unit = {
       Description = "Waybar with niri overview-only mode";
-      PartOf = ["graphical-session.target"];
-      After = ["graphical-session.target"];
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
       ConditionEnvironment = "WAYLAND_DISPLAY";
     };
 
@@ -173,7 +223,7 @@ in {
     };
 
     Install = {
-      WantedBy = ["graphical-session.target"];
+      WantedBy = [ "graphical-session.target" ];
     };
   };
 }

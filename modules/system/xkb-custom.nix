@@ -5,12 +5,10 @@ let
 in
 {
   # Changes to this seem to only apply after a gnome reboot
-  services.xserver.xkb.extraLayouts.${layoutName} =
-  {
+  services.xserver.xkb.extraLayouts.${layoutName} = {
     description = "US layout with German Umlauts on left and right Alt";
     languages = [ "eng" ];
-    symbolsFile = pkgs.writeText "us-umlauts"
-    ''
+    symbolsFile = pkgs.writeText "us-umlauts" ''
       default partial alphanumeric_keys
       xkb_symbols "basic" {
         include "us(basic)"

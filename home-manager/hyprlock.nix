@@ -1,7 +1,8 @@
 {
   lib,
   ...
-}: let
+}:
+let
   # Custom purple/pink color palette
   palette = {
     base00 = "191033";
@@ -9,7 +10,8 @@
     base08 = "ff628c";
     base0D = "fad000";
   };
-in {
+in
+{
   programs.hyprlock = {
     enable = true;
     settings = {
@@ -50,7 +52,7 @@ in {
         {
           monitor = "";
           text = "$TIME";
-          font_size = 66;  # 11 * 6
+          font_size = 66; # 11 * 6
           font_family = "Noto Sans 11";
           color = "rgba(${palette.base05}ff)";
           position = "0, 16";
@@ -61,7 +63,7 @@ in {
           monitor = "";
           text = "$USER";
           color = "rgba(${palette.base05}ff)";
-          font_size = 22;  # 11 * 2
+          font_size = 22; # 11 * 2
           font_family = "Noto Sans 11";
           position = "0, 100";
           halign = "center";

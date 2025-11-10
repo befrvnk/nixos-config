@@ -1,4 +1,5 @@
-{...}: {
+{ ... }:
+{
   services.vicinae = {
     enable = true;
     # Disable layer shell mode - it causes Wayland protocol errors with niri

@@ -30,5 +30,5 @@
 
   # Create the plugdev group
   # Note: Users must be explicitly added to this group to gain access
-  users.groups.plugdev = {};
+  users.groups.plugdev = { };
 }

@@ -6,6 +6,7 @@ This repository contains my personal NixOS system configurations for a Framework
 
 - **Rebuild system:** `sudo nixos-rebuild switch --flake .#hostname`
 - **Update flakes:** `nix flake update`
+- **Format Nix files:** `nix develop -c nixfmt **/*.nix flake.nix`
 
 ## Documentation
 
@@ -54,7 +55,6 @@ This repository contains my personal NixOS system configurations for a Framework
 ### Repository Automation
 
 - **Set up Renovate bot** - Configure Renovate to automatically create pull requests for updates to packages in the `flake.lock` file
-- **Add nixfmt pre-commit hook** - Configure a git pre-commit hook to automatically format Nix files using nixfmt before commits
 
 ## Proposed Documentation Structure
 

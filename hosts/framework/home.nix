@@ -1,4 +1,12 @@
-{ stylix, dankMaterialShell, vicinae, zen-browser, android-nixpkgs, niri, ... }:
+{
+  stylix,
+  dankMaterialShell,
+  vicinae,
+  zen-browser,
+  android-nixpkgs,
+  niri,
+  ...
+}:
 
 {
   home-manager = {

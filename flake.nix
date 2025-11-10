@@ -80,7 +80,14 @@
         inherit system;
         specialArgs = {
           inherit nixos-hardware lanzaboote inputs;
-          inherit stylix dankMaterialShell vicinae zen-browser android-nixpkgs niri;
+          inherit
+            stylix
+            dankMaterialShell
+            vicinae
+            zen-browser
+            android-nixpkgs
+            niri
+            ;
         };
         modules = [
           # Apply common overlays to all hosts
@@ -96,18 +103,19 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = [ pkgs.nixfmt-rfc-style ];
 
-        inherit (pre-commit-hooks.lib.${system}.run {
-          src = ./.;
-          hooks = {
-            nixfmt-rfc-style = {
-              enable = true;
-              name = "nixfmt";
-              description = "Format Nix code with nixfmt";
-              files = "\\.nix$";
-              entry = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
+        inherit
+          (pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              nixfmt-rfc-style = {
+                enable = true;
+                name = "nixfmt";
+                description = "Format Nix code with nixfmt";
+                files = "\\.nix$";
+                entry = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
+              };
             };
-          };
-        })
+          })
           shellHook
           ;
       };
