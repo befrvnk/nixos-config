@@ -21,8 +21,8 @@ final: prev: {
 
     installPhase = ''
       mkdir -p $out/bin
-      # The zip extracts to a directory named 'opencode' containing the binary
-      cp opencode/opencode $out/bin/opencode
+      # The zip extracts to a single file named 'opencode'
+      cp opencode $out/bin/opencode
       chmod +x $out/bin/opencode
     '';
 

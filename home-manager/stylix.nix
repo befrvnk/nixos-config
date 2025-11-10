@@ -40,7 +40,11 @@
 
     # Target configurations
     # autoEnable handles most apps; explicitly disable only what's needed
-    targets.anki.enable = false;
+    targets = {
+      anki.enable = false;
+      # Uncomment once tabs are saved
+      # zen-browser.profileNames = [ "default" ];
+    };
   };
 
   specialisation = {

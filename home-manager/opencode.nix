@@ -1,7 +1,7 @@
 { pkgs, config, ... }:
 
 {
-  # Install OpenCode from our custom overlay
+  # Install OpenCode from nixpkgs
   home.packages = with pkgs; [
     opencode
   ];
@@ -65,14 +65,14 @@
 
   # API Keys loaded dynamically from 1Password CLI at shell startup
   # This ensures keys are retrieved at runtime, not build time
-  programs.zsh.initExtra = ''
+  programs.zsh.initContent = ''
     # Load API keys from 1Password for OpenCode
     # To set up: Create items in 1Password with these names:
     # - "Anthropic API Key" with a field named "credential"
     # - "Gemini API Key" with a field named "credential"
     if command -v op &> /dev/null; then
-      export ANTHROPIC_API_KEY="$(op read 'op://Private/Anthropic API Key/credential' 2>/dev/null || echo "")"
-      export GEMINI_API_KEY="$(op read 'op://Private/Gemini API Key/credential' 2>/dev/null || echo "")"
+      export ANTHROPIC_API_KEY="$(op read 'op://NixOS/Anthropic API Key/credential' 2>/dev/null || echo "")"
+      export GEMINI_API_KEY="$(op read 'op://NixOS/Gemini API Key/credential' 2>/dev/null || echo "")"
     fi
   '';
 

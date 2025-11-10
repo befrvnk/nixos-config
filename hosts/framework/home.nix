@@ -5,6 +5,7 @@
   zen-browser,
   android-nixpkgs,
   niri,
+  opencode-flake,
   ...
 }:
 
