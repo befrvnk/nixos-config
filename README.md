@@ -23,14 +23,6 @@ System
 - Configure fingerprint sensor
 - Remove GNOME
 
-DMS
-- Manage Niri theme with DMS
-- Automatic dark/light mode
-- Check out DankGreeter
-
-Software
-- Install Chromium and run Nuphy IO with it
-
 Hardware
 - Fix Nuphy function keys
 - Fix wakeup from closed screen
@@ -44,10 +36,17 @@ Zed
 Documentation
 - List all packages and apps
 - Add readme for `rebuild switch`
-- Write documentation about updating flakes
 - Language documentation
 - App and WM shortcuts
 
 Repository
 - Update bot for flakes
 - Auto format code
+
+## Updating Flakes
+
+To update all flakes and their dependencies, run the following command:
+
+```bash
+nix flake update
+```
