@@ -52,6 +52,12 @@
       if [ -n "$NIRI_SOCKET" ]; then
         NIRI_SOCKET="$NIRI_SOCKET" ${pkgs.niri}/bin/niri msg action do-screen-transition
       fi
+
+      # Restart Zen Browser to pick up new theme from portal
+      # Zen Browser needs restart to detect portal color-scheme changes
+      if ${pkgs.procps}/bin/pgrep -x "zen-bin" > /dev/null; then
+        ${pkgs.procps}/bin/pkill zen-bin
+      fi
     '';
     executable = true;
   };
@@ -87,6 +93,12 @@
       NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
       if [ -n "$NIRI_SOCKET" ]; then
         NIRI_SOCKET="$NIRI_SOCKET" ${pkgs.niri}/bin/niri msg action do-screen-transition
+      fi
+
+      # Restart Zen Browser to pick up new theme from portal
+      # Zen Browser needs restart to detect portal color-scheme changes
+      if ${pkgs.procps}/bin/pgrep -x "zen-bin" > /dev/null; then
+        ${pkgs.procps}/bin/pkill zen-bin
       fi
     '';
     executable = true;
