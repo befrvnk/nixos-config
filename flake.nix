@@ -100,6 +100,8 @@
         ];
       };
 
+      formatter.${system} = pkgs.nixfmt-rfc-style;
+
       devShells.${system}.default = pkgs.mkShell {
         packages = [ pkgs.nixfmt-rfc-style ];
 
