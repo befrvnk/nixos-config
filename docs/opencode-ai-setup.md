@@ -4,10 +4,12 @@ This guide explains how OpenCode AI is configured in your NixOS system and how t
 
 ## What is OpenCode AI?
 
-OpenCode is a powerful AI coding agent built for the terminal. It's model-agnostic and supports multiple AI providers including:
+OpenCode is a powerful AI coding agent built for the terminal, actively maintained by [SST](https://sst.dev/). It's model-agnostic and supports multiple AI providers including:
 - Anthropic Claude (Sonnet 4.5, 3.7 Sonnet, 3.5 Haiku)
 - Google Gemini (2.0 Flash, 1.5 Pro)
 - OpenAI, AWS Bedrock, Groq, Azure OpenAI, and more
+
+The project has 32.3k+ stars on GitHub and is actively developed with frequent releases.
 
 ## Configuration Overview
 
@@ -172,11 +174,12 @@ If OpenCode fails to run with library errors:
 
 To update to a new version:
 
-1. Check the latest release: https://github.com/opencode-ai/opencode/releases
-2. Note: The repository was archived on September 18, 2025, so v0.0.55 may be the final version
+1. Check the latest release: https://github.com/sst/opencode/releases
+2. OpenCode is actively maintained with frequent updates
 3. Update `/overlays/opencode.nix`:
-   - Change `version = "0.0.55"` to the new version
-   - Update the hash (see flake.nix comments for instructions)
+   - Change `version = "1.0.55"` to the new version
+   - Get the new SHA256 hash from the release
+   - Convert to base64 format (see flake.nix comments for instructions)
 4. Rebuild your configuration
 
 ## Environment Variables
@@ -192,13 +195,16 @@ OPENCODE_CONFIG_DIR # Points to ~/.config/opencode
 
 ## Additional Resources
 
-- OpenCode GitHub: https://github.com/opencode-ai/opencode
+- OpenCode GitHub: https://github.com/sst/opencode
+- OpenCode Documentation: https://opencode.sh/
+- SST (maintainer): https://sst.dev/
 - Claude Documentation: https://docs.anthropic.com/
 - Gemini Documentation: https://ai.google.dev/
 - 1Password CLI: https://developer.1password.com/docs/cli/
 
 ## Notes
 
-- The OpenCode repository was archived in September 2025 and is read-only
-- Version 0.0.55 (released June 27, 2025) is the latest available version
+- OpenCode is actively maintained by SST with frequent updates
+- Current version: v1.0.55 (released November 10, 2025)
+- The project has 32.3k+ stars on GitHub and is under active development
 - The tool is model-agnostic and can work with your existing Claude Code Pro/Max or GitHub Copilot subscriptions

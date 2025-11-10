@@ -75,13 +75,12 @@
         (import ./overlays/gemini-cli.nix)
 
         # To update opencode to a new version:
-        # 1. Check latest release: https://github.com/opencode-ai/opencode/releases
-        # 2. Download checksums.txt from the release
+        # 1. Check latest release: https://github.com/sst/opencode/releases
+        # 2. Get SHA256 hash from release API or download page
         # 3. Update 'version' in overlays/opencode.nix
-        # 4. Get SHA256 for opencode-linux-x86_64.tar.gz from checksums.txt
-        # 5. Convert to base64:
+        # 4. Convert SHA256 to base64:
         #    python3 -c "import base64; print('sha256-' + base64.b64encode(bytes.fromhex('<HEX_HASH>')).decode())"
-        # 6. Update 'hash' in overlays/opencode.nix
+        # 5. Update 'hash' in overlays/opencode.nix
         (import ./overlays/opencode.nix)
       ];
     in
