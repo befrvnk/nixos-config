@@ -39,6 +39,13 @@
     rawDeviceName = "alsa_output.pci-0000_c1_00.6.HiFi__Speaker__sink";
   };
 
+  # 1Password - Use NixOS modules for proper CLI/GUI integration
+  programs._1password.enable = true;
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = [ "frank" ];
+  };
+
   environment.etc = {
     "1password/custom_allowed_browsers" = {
       text = ''

@@ -4,8 +4,7 @@
   home.packages = (
     with pkgs;
     [
-      _1password-cli
-      _1password-gui
+      # _1password-cli and _1password-gui now managed by system-level programs
       anytype
       chromium
       claude-code
