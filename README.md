@@ -59,10 +59,6 @@ This repository contains my personal NixOS system configurations for a Framework
 - **Add Nix language primer** - Document key Nix language concepts and patterns used in this repository to make it accessible for beginners
 - **Document keyboard shortcuts** - Create a comprehensive guide for configured keyboard shortcuts across applications and the Niri window manager
 
-### Repository Automation
-
-- **Set up Renovate bot** - Configure Renovate to automatically create pull requests for updates to packages in the `flake.lock` file
-
 ## Proposed Documentation Structure
 
 The following is a proposed structure for comprehensive usage documentation to be created in the future:
