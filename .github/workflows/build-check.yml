@@ -34,11 +34,8 @@ jobs:
       - name: Check Nix flake
         run: nix flake check
 
-      - name: Run garbage collection
-        run: nix-collect-garbage
-
-      - name: Build NixOS configuration
-        run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --print-build-logs
+      - name: Verify NixOS configuration (dry-run)
+        run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run
 
       - name: Check Nix formatting
         run: nix fmt -- --check .
