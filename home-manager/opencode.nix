@@ -71,8 +71,8 @@
     # - "Anthropic API Key" with a field named "credential"
     # - "Gemini API Key" with a field named "credential"
     if command -v op &> /dev/null; then
-      export ANTHROPIC_API_KEY="$(op read 'op://Private/Anthropic API Key/credential' 2>/dev/null || echo '')"
-      export GEMINI_API_KEY="$(op read 'op://Private/Gemini API Key/credential' 2>/dev/null || echo '')"
+      export ANTHROPIC_API_KEY="$(op read 'op://Private/Anthropic API Key/credential' 2>/dev/null || echo "")"
+      export GEMINI_API_KEY="$(op read 'op://Private/Gemini API Key/credential' 2>/dev/null || echo "")"
     fi
   '';
 
