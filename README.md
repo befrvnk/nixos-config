@@ -10,20 +10,19 @@ This repository contains my NixOS system configurations.
 - [Stylix & Darkman Setup](./docs/stylix-darkman-setup.md) - Theme switching configuration
 - [Development Environment](./docs/development-environment.md) - Automatic formatting and dev shell setup
 
+## Hardware
+
+*   **Laptop:** Framework 13, Ryzen AI 9 HX 370, US (ANSI) keyboard layout, 2x32GB DDR5-5600, 1TB WD_BLACK SN850X NVMe - M.2 2280
+*   **Keyboard:** Nuphy Air75 V3
+*   **Mouse:** Logitech G403
+*   **Monitor:** Dough Spectrum 4k 144Hz 27 inch
+
 ## TODOs
 
 System
 - Fix login manager
 - Configure fingerprint sensor
 - Remove GNOME
-
-DMS
-- Manage Niri theme with DMS
-- Automatic dark/light mode
-- Check out DankGreeter
-
-Software
-- Install Chromium and run Nuphy IO with it
 
 Hardware
 - Fix Nuphy function keys
@@ -38,9 +37,16 @@ Zed
 Documentation
 - List all packages and apps
 - Add readme for `rebuild switch`
-- Write documentation about updating flakes
 - Language documentation
 - App and WM shortcuts
 
 Repository
 - Update bot for flakes
+
+## Updating Flakes
+
+To update all flakes and their dependencies, run the following command:
+
+```bash
+nix flake update
+```

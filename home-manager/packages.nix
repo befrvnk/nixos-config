@@ -7,6 +7,7 @@
       _1password-cli
       _1password-gui
       anytype
+      chromium
       claude-code
       discord
       gemini-cli

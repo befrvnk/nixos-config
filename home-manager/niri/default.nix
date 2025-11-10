@@ -17,6 +17,7 @@ in
     pkgs.brightnessctl
     pkgs.pavucontrol
     pkgs.swaylock
+    pkgs.swaybg
   ];
   services.gnome-keyring.enable = true;
 
@@ -43,7 +44,7 @@ in
       (import ./layout.nix { inherit colors osConfig; })
       (import ./rules.nix { })
       (import ./binds.nix { })
-      (import ./startup.nix { inherit pkgs; })
+      (import ./startup.nix { inherit pkgs osConfig; })
     ];
   };
 

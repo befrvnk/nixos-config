@@ -8,6 +8,9 @@
     ./system/packages.nix
     ./system/xkb-custom.nix
 
+    # Hardware
+    ./hardware/nuphy.nix
+
     # Desktop environment
     ./desktop/display.nix
     ./desktop/gnome.nix

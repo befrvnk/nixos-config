@@ -17,7 +17,8 @@
     ./ghostty.nix
     ./android.nix
     ./niri
-    ./dms.nix
+    ./waybar
+    ./dunst.nix
     ./hyprlock.nix
     ./vicinae.nix
   ];

@@ -31,9 +31,9 @@
       matches = [{ namespace = "notifications"; }];
       block-out-from = "screen-capture";
     }
-    # Place DMS wallpaper on backdrop layer (visible in overview mode)
+    # Place swaybg wallpaper on backdrop layer (visible in overview mode)
     {
-      matches = [{ namespace = "quickshell"; }];
+      matches = [{ namespace = "wallpaper"; }];
       place-within-backdrop = true;
     }
   ];
