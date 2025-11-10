@@ -39,6 +39,10 @@
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    pre-commit-hooks = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -53,11 +57,11 @@
       dankMaterialShell,
       vicinae,
       niri,
+      pre-commit-hooks,
       ...
     }@inputs:
     let
       system = "x86_64-linux";
-
       # Common overlays applied to all hosts
       commonOverlays = [
         # To update gemini-cli to a new version:
@@ -86,6 +90,25 @@
           home-manager.nixosModules.home-manager
           stylix.nixosModules.stylix
         ];
+      };
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = [ pkgs.nixfmt-rfc-style ];
+
+        inherit (pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            nixfmt-rfc-style = {
+              enable = true;
+              name = "nixfmt";
+              description = "Format Nix code with nixfmt";
+              files = "\\.nix$";
+              entry = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
+            };
+          };
+        })
+          shellHook
+          ;
       };
     };
 }

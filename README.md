@@ -8,6 +8,7 @@ This repository contains my NixOS system configurations.
 - [Adding a New Host](./docs/new-host.md) - How to configure additional machines
 - [Secure Boot with TPM](./docs/secure-boot.md) - Secure boot setup guide
 - [Stylix & Darkman Setup](./docs/stylix-darkman-setup.md) - Theme switching configuration
+- [Development Environment](./docs/development-environment.md) - Automatic formatting and dev shell setup
 
 ## Hardware
 
@@ -41,7 +42,6 @@ Documentation
 
 Repository
 - Update bot for flakes
-- Auto format code
 
 ## Updating Flakes
 
