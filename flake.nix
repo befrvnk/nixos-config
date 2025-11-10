@@ -57,6 +57,18 @@
     }@inputs:
     let
       system = "x86_64-linux";
+
+      # Common overlays applied to all hosts
+      commonOverlays = [
+        # To update gemini-cli to a new version:
+        # 1. Check latest release: https://github.com/google-gemini/gemini-cli/releases
+        # 2. Update 'version' in overlays/gemini-cli.nix
+        # 3. Get new hash with:
+        #    curl -sL https://github.com/google-gemini/gemini-cli/releases/download/v<VERSION>/gemini.js | sha256sum
+        #    python3 -c "import base64; print('sha256-' + base64.b64encode(bytes.fromhex('<HEX_HASH>')).decode())"
+        # 4. Update 'hash' in overlays/gemini-cli.nix with the output
+        (import ./overlays/gemini-cli.nix)
+      ];
     in
     {
       nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
@@ -66,6 +78,8 @@
           inherit stylix dankMaterialShell vicinae zen-browser android-nixpkgs niri;
         };
         modules = [
+          # Apply common overlays to all hosts
+          { nixpkgs.overlays = commonOverlays; }
           ./hosts/framework
           ./hosts/framework/overlays.nix
           ./hosts/framework/home.nix
