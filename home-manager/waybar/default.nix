@@ -1,56 +1,9 @@
 {
   pkgs,
-  osConfig,
+  lib,
   ...
 }:
 let
-  # Use color palette from Stylix
-  colors = osConfig.lib.stylix.colors;
-
-  # Read base CSS file
-  baseStyle = builtins.readFile ./style.css;
-
-  # Generate CSS with color variables replaced
-  styleWithColors =
-    builtins.replaceStrings
-      [
-        "@base00"
-        "@base01"
-        "@base02"
-        "@base03"
-        "@base04"
-        "@base05"
-        "@base06"
-        "@base07"
-        "@base08"
-        "@base09"
-        "@base0A"
-        "@base0B"
-        "@base0C"
-        "@base0D"
-        "@base0E"
-        "@base0F"
-      ]
-      [
-        "#${colors.base00}"
-        "#${colors.base01}"
-        "#${colors.base02}"
-        "#${colors.base03}"
-        "#${colors.base04}"
-        "#${colors.base05}"
-        "#${colors.base06}"
-        "#${colors.base07}"
-        "#${colors.base08}"
-        "#${colors.base09}"
-        "#${colors.base0A}"
-        "#${colors.base0B}"
-        "#${colors.base0C}"
-        "#${colors.base0D}"
-        "#${colors.base0E}"
-        "#${colors.base0F}"
-      ]
-      baseStyle;
-
   # Path to the toggle script
   toggleScript = pkgs.writeShellScript "waybar-toggle" ''
     exec ${pkgs.python3}/bin/python3 ${./toggle-waybar.py}
@@ -72,13 +25,16 @@ in
         layer = "top";
         position = "top";
         exclusive = false;
-        height = 60;
+        height = 40;
         spacing = 8;
 
         # Start hidden, use explicit show/hide signals
         start_hidden = true;
         on-sigusr1 = "show";
         on-sigusr2 = "hide";
+
+        # Automatically reload style when CSS file changes
+        reload_style_on_change = true;
 
         # Module layout
         modules-left = [
@@ -202,7 +158,9 @@ in
         };
       };
     };
-    style = styleWithColors;
+    # Append custom styles on top of Stylix's generated CSS
+    # This allows Stylix to handle colors while we keep custom layout/styling
+    style = lib.mkAfter (builtins.readFile ./style.css);
   };
 
   # Systemd service for waybar toggle script

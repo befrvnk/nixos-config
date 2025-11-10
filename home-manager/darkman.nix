@@ -46,6 +46,10 @@
       # This ensures Stylix doesn't override it
       ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
 
+      # Restart Waybar to pick up new theme CSS
+      # (waybar also has reload_style_on_change enabled, but restart ensures it picks up changes)
+      ${pkgs.systemd}/bin/systemctl --user restart waybar.service || true
+
       # Trigger Niri screen transition effect
       NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
       if [ -n "$NIRI_SOCKET" ]; then
@@ -80,6 +84,10 @@
       # Set freedesktop portal color scheme preference AFTER specialization activation
       # This ensures Stylix doesn't override it
       ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"
+
+      # Restart Waybar to pick up new theme CSS
+      # (waybar also has reload_style_on_change enabled, but restart ensures it picks up changes)
+      ${pkgs.systemd}/bin/systemctl --user restart waybar.service || true
 
       # Trigger Niri screen transition effect
       NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
