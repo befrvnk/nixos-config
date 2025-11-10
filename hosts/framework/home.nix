@@ -12,7 +12,7 @@
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.frank = import ../../home-manager/frank.nix;
+    users.frank = ../../home-manager/frank.nix;
     sharedModules = [
       stylix.homeModules.stylix
       dankMaterialShell.homeModules.dankMaterialShell.default

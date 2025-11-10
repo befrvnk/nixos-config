@@ -63,10 +63,13 @@ home-manager/
 ├── git.nix            # Git configuration
 ├── ssh.nix            # SSH configuration
 ├── zsh.nix            # Shell configuration
-├── stylix.nix         # User-level theming
+├── stylix.nix         # Centralized theming (includes specializations and theme paths)
 ├── darkman.nix        # Dark/light mode scripts
+├── ghostty.nix        # Ghostty terminal with dual-theme support
+├── dunst.nix          # Notification daemon (Stylix auto-themed)
 ├── niri/              # Niri-specific home configuration
-├── themes.nix         # Theme definitions
+│   ├── default.nix    # Main niri config
+│   └── layout.nix     # Layout settings (uses Stylix colors)
 └── ...                # Other application configs
 ```
 
@@ -97,3 +100,13 @@ providing access to the latest versions while accepting slightly less stability.
 - **Home-manager modules** (in `home-manager/`) configure user-specific settings
 - **Overlays** modify or replace packages from nixpkgs
 - **Specialisations** (via stylix) enable theme switching without rebuilds
+- **Stylix auto-theming** (`autoEnable = true`) automatically themes all supported applications
+
+## Recent Organizational Changes
+
+### Theming Consolidation (2025-11-10)
+
+- **Removed `home-manager/themes.nix`**: Theme definitions are now inlined directly in `stylix.nix`
+- **Created `home-manager/ghostty.nix`**: Dedicated configuration for Ghostty terminal with dual-theme support
+- **Simplified `home-manager/dunst.nix`**: Removed manual styling, now fully managed by Stylix
+- **Centralized theming**: All theme configuration lives in `home-manager/stylix.nix` with specializations

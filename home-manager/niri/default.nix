@@ -39,7 +39,7 @@ in
 
     # Configuration organized into logical modules for better readability
     settings = lib.mkMerge [
-      (import ./outputs.nix { inherit colors; })
+      (import ./outputs.nix { })
       (import ./inputs.nix { })
       (import ./layout.nix { inherit colors osConfig; })
       (import ./rules.nix { })

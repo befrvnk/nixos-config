@@ -12,6 +12,36 @@ This document explains our stylix configuration with automatic light/dark theme 
 - [Usage](#usage)
 - [Troubleshooting](#troubleshooting)
 
+## Recent Changes (2025-11-10)
+
+### Stylix System-Wide Theming Enabled
+
+We recently migrated to using Stylix's auto-theming capabilities across the entire system:
+
+**Key Changes:**
+- **Enabled `stylix.autoEnable = true`**: All supported applications now automatically themed
+- **Font update**: Switched to JetBrains Mono for monospace font
+- **Simplified configuration**: Removed `themes.nix`, inlined theme definitions into `stylix.nix`
+- **Fixed Ghostty theme switching**: Implemented hardcoded dual-theme approach with portal integration
+- **Fixed darkman script ordering**: dconf write now happens AFTER specialization activation
+- **Removed manual theming**: Cleaned up dunst.nix to prevent conflicts with Stylix
+
+**Files Modified:**
+- `home-manager/stylix.nix` - Central theming config, now includes inline theme paths
+- `home-manager/ghostty.nix` - New file with hardcoded Catppuccin colors for dual themes
+- `home-manager/dunst.nix` - Removed manual font/color settings
+- `home-manager/darkman.nix` - Fixed script execution order (specialization → dconf)
+- `hosts/framework/home.nix` - Fixed import method for specializations
+- `home-manager/themes.nix` - **DELETED** (no longer needed)
+
+**Important Lessons Learned:**
+1. Stylix activation can overwrite dconf values - set portal preference AFTER specialization
+2. Ghostty reads portal color-scheme on startup, not dynamically - may need restart after theme change
+3. Using explicit `import` in home-manager config prevents specializations from building
+4. When enabling `autoEnable`, backup existing config files (e.g., GTK CSS) to avoid conflicts
+
+See "Pitfalls & Solutions" below for detailed explanations of issues encountered.
+
 ## Overview
 
 ### What is Stylix?
@@ -139,16 +169,15 @@ Scripts are placed in `~/.local/share/light-mode.d/` and `~/.local/share/dark-mo
 - Scripts must be executable
 
 **Script Logic:**
-1. Set desktop environment color scheme preference (for Ghostty and other apps)
-2. Find home-manager generation with specialisations from current system
-3. Execute the appropriate specialisation's activation script
+1. Find home-manager generation with specialisations from current system
+2. Execute the appropriate specialisation's activation script
+3. Set desktop environment color scheme preference AFTER specialization (for Ghostty and other apps)
 4. Trigger Niri screen transition effect for smooth visual feedback
 
 ```bash
 #!/run/current-system/sw/bin/bash
-# Set color scheme preference for light mode
 export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
-dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
+export DARKMAN_RUNNING=1  # Prevent infinite restart loop
 
 HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | \
   /run/current-system/sw/bin/grep home-manager-generation | \
@@ -159,7 +188,12 @@ HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | \
     fi
   done)
 
+# Activate specialization FIRST
 "$HM_GEN/specialisation/light/activate"
+
+# Set color scheme preference AFTER (critical order!)
+# This ensures Stylix doesn't overwrite it during activation
+/run/current-system/sw/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
 
 # Trigger Niri screen transition effect
 NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
@@ -171,10 +205,14 @@ fi
 **Desktop Environment Integration:**
 The `dconf write` command sets `org.gnome.desktop.interface.color-scheme` in dconf. The `xdg-desktop-portal-gtk` backend reads this setting and exposes it via the freedesktop portal as `org.freedesktop.appearance.color-scheme`. Applications like Ghostty read from the portal to detect the system color scheme preference.
 
+**Critical Ordering:**
+The dconf write MUST happen AFTER specialization activation. During specialization activation, Stylix may set the color-scheme to 'default', overwriting any previously set value. By setting it after, we ensure the correct preference is exposed via the portal.
+
 **Requirements:**
 - `xdg-desktop-portal-gtk` must be configured as a portal backend (not `xdg-desktop-portal-gnome`)
 - The portal reads from dconf's `org.gnome.desktop.interface.color-scheme`
 - This works on any desktop environment, not just GNOME
+- Some applications (like Ghostty) may only read portal on startup, requiring a restart to see theme changes
 
 #### 3. Darkman Auto-Restart on Rebuild
 
@@ -198,70 +236,69 @@ home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
 
 #### 4. Centralized Theme Configuration
 
-**Theme Definitions** (`home-manager/themes.nix`):
+**Theme Definitions** (`home-manager/stylix.nix`):
 
-All theme choices are centralized in a single file:
+All theme choices are centralized in the stylix configuration with specializations:
 
 ```nix
-{
-  light = {
-    scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
-    wallpaper = ./wallpapers/catppuccin-mocha.jpg;
-    colors = {
-      base00 = "eff1f5";  # background
-      base05 = "4c4f69";  # text
-      # ... all 16 base16 colors
+stylix = {
+  enable = true;
+  autoEnable = true;  # Automatically theme all supported applications
+  polarity = "dark";
+  base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+  image = ./wallpapers/mountain.jpg;
+  # ... fonts, cursor, etc
+};
+
+specialisation = {
+  dark.configuration = {
+    stylix = {
+      polarity = pkgs.lib.mkForce "dark";
+      base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+      image = pkgs.lib.mkForce ./wallpapers/mountain.jpg;
     };
   };
-  dark = {
-    scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-    wallpaper = ./wallpapers/catppuccin-mocha.jpg;
-    colors = {
-      base00 = "1e1e2e";  # background
-      base05 = "cdd6f4";  # text
-      # ... all 16 base16 colors
+  light.configuration = {
+    stylix = {
+      polarity = pkgs.lib.mkForce "light";
+      base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+      image = pkgs.lib.mkForce ./wallpapers/mountain.jpg;
     };
   };
-}
+};
 ```
 
 **To change themes:**
-1. Update the `scheme` path (for Stylix/Zed/etc)
-2. Update the `colors` attrset to match (for Ghostty)
-3. Rebuild - all applications use the new themes
+1. Update the `base16Scheme` paths in the specializations
+2. Rebuild - all applications use the new themes automatically
 
-**Note:** Colors must be kept in sync with scheme files manually. This trade-off avoids YAML parsing at build time.
+**Benefits:**
+- Single source of truth: Stylix reads base16 scheme files and applies colors everywhere
+- No manual color duplication
+- All supported applications themed automatically
 
 #### 5. Application-Specific Configuration
 
-**Ghostty** (`home-manager/ghostty.nix`):
+**Stylix autoEnable:**
 
-Ghostty uses its native light/dark theme switching:
+With `stylix.autoEnable = true`, Stylix automatically themes:
+- GTK applications
+- Ghostty (terminal)
+- Swaylock (screen locker)
+- Dunst (notifications)
+- Waybar (status bar)
+- And many more: https://stylix.danth.me/targets.html
+
+**Niri (compositor):**
+
+Manually configured to use Stylix colors via `osConfig.lib.stylix.colors`:
 
 ```nix
-programs.ghostty.settings.theme = "light:stylix-light,dark:stylix-dark";
-
-# Generate BOTH theme files in every configuration
-home.file.".config/ghostty/themes/stylix-light".text =
-  mkGhosttyTheme themes.light.scheme;
-home.file.".config/ghostty/themes/stylix-dark".text =
-  mkGhosttyTheme themes.dark.scheme;
+focus-ring.active.color = "#${colors.base0D}";
+border.active.color = "#${colors.base03}";
 ```
 
-**How it works:**
-- Both theme files are always generated (prevents config reload loops - see pitfall #10)
-- Darkman scripts set `org.gnome.desktop.interface.color-scheme`
-- Portal backend (`xdg-desktop-portal-gtk`) exposes this as `org.freedesktop.appearance.color-scheme`
-- Ghostty reads from the portal and switches themes automatically
-- Themes defined once in `themes.nix` - no duplication
-
-**Important:** Requires `xdg-desktop-portal-gtk` (see pitfall #11 below).
-
-**Zed:**
-Automatically themed when `stylix.autoEnable = true`
-
-**Other Applications:**
-Stylix supports many applications out of the box. See: https://stylix.danth.me/targets.html
+**Important:** Requires `xdg-desktop-portal-gtk` for proper color scheme detection (see pitfall #11 below).
 
 ## How It Works
 
@@ -418,32 +455,64 @@ specialisation.light.configuration = {
 
 **Root Cause:** Stylix generates a single theme file that gets overwritten by each specialisation, but Ghostty doesn't detect the file change. Switching between specialisations updates config symlinks but doesn't trigger Ghostty to reload.
 
-**Solution:** Use Ghostty's native light/dark theme support:
+**Solution:** Use Ghostty's native light/dark theme support with hardcoded colors:
 
 1. **Extract configuration** to `home-manager/ghostty.nix` for clarity
-2. **Generate both theme files** - each specialisation creates its polarity-specific theme:
+2. **Hardcode Catppuccin colors** to match Stylix themes:
    ```nix
-   home.file.".config/ghostty/themes/stylix-${config.stylix.polarity}".text =
-     mkGhosttyTheme config.lib.stylix.colors;
+   let
+     # These must exactly match the Stylix theme colors
+     darkColors = {
+       base00 = "1e1e2e"; base01 = "181825"; # ... Catppuccin Mocha
+     };
+     lightColors = {
+       base00 = "eff1f5"; base01 = "e6e9ef"; # ... Catppuccin Latte
+     };
+   in
    ```
-3. **Configure Ghostty** to use both themes:
+3. **Generate both theme files**:
+   ```nix
+   home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme lightColors;
+   home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme darkColors;
+   ```
+4. **Configure Ghostty** to use both themes:
    ```nix
    programs.ghostty.settings.theme = "light:stylix-light,dark:stylix-dark";
    ```
-4. **Set desktop environment preference** in darkman scripts:
+5. **Disable Stylix auto-theming** for Ghostty:
+   ```nix
+   stylix.targets.ghostty.enable = false;
+   ```
+6. **Set desktop environment preference AFTER specialization** in darkman scripts:
    ```bash
-   dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
+   # First activate the specialization
+   "$HM_GEN/specialisation/dark/activate"
+
+   # THEN set dconf (after Stylix runs)
+   dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"
    ```
 
-This way:
-- Light specialisation builds `stylix-light` theme with light colors
-- Dark specialisation builds `stylix-dark` theme with dark colors
+**Why hardcode colors?**
+- Initially tried using `config.lib.stylix.colors` to dynamically generate themes
+- Encountered issues with YAML parsing and accessing colors during specialization builds
+- Hardcoding ensures both theme files are always present with correct colors
+- Trade-off: Must manually update colors if changing from Catppuccin themes
+
+**Why set dconf AFTER specialization?**
+- Stylix activation can reset dconf values to 'default'
+- Setting dconf after ensures the correct preference is exposed via portal
+- Order matters: specialization first, then dconf write
+
+**How it works:**
+- Both theme files exist in `~/.config/ghostty/themes/`
 - Darkman scripts set dconf `org.gnome.desktop.interface.color-scheme`
 - Portal backend (`xdg-desktop-portal-gtk`) exposes this as `org.freedesktop.appearance.color-scheme`
-- Ghostty reads from the portal and switches themes automatically
-- Colors come from stylix dynamically - no hardcoding needed
+- Ghostty reads from portal and selects the matching theme
 
-**Important:** Requires `xdg-desktop-portal-gtk` (see pitfall #10 below).
+**Important:**
+- Requires `xdg-desktop-portal-gtk` (see pitfall #11 below)
+- **Ghostty may only check portal on startup**, not dynamically
+- If theme doesn't switch, restart Ghostty: `killall ghostty && ghostty`
 
 ### 9. Theme Reverts to Dark After Rebuild / Infinite Restart Loop
 
@@ -476,27 +545,32 @@ home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
 
 This forces darkman to check the current time after manual rebuilds, but the environment variable prevents the infinite restart loop when darkman runs the scripts.
 
-### 10. Ghostty Continuously Reloading Configuration
+### 10. Application Theme Conflicts with Stylix
 
-**Problem:** Ghostty shows permanent "Reloaded the configuration" popup and becomes unresponsive.
+**Problem:** Applications may have conflicting configuration when enabling `stylix.autoEnable = true`.
 
-**Cause:** Each specialisation only generated its own theme file (light or dark). When switching specialisations, home-manager deleted the "orphan" theme file from the other specialisation, triggering Ghostty to reload. Since Ghostty is configured with `theme = "light:stylix-light,dark:stylix-dark"`, it expects both files to exist.
+**Cause:** Manual theming configurations (fonts, colors, etc.) conflict with Stylix's automatic theming.
 
-**Solution:** Generate **both** theme files in every configuration using centralized theme definitions:
+**Solution:** Remove manual styling and let Stylix handle it:
 
 ```nix
-# home-manager/themes.nix - Define themes once
-{
-  light.scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
-  dark.scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-}
+# Before (causes conflicts):
+services.dunst.settings.global = {
+  font = "monospace 10";
+  separator_color = "frame";
+  frame_width = 2;
+};
 
-# home-manager/ghostty.nix - Generate both files always
-home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme themes.light.scheme;
-home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme themes.dark.scheme;
+# After (Stylix managed):
+services.dunst.settings.global = {
+  # Font, colors, frame styling managed by Stylix
+  # Keep only behavioral/layout settings
+  separator_height = 2;
+  padding = 8;
+};
 ```
 
-This ensures both files always exist, preventing deletion/recreation cycles.
+When switching to `autoEnable = true`, you may need to backup/remove existing config files that Stylix wants to manage (e.g., `~/.config/gtk-{3.0,4.0}/gtk.css`).
 
 ### 11. Ghostty Theme Not Switching Based on Color Scheme
 
@@ -506,17 +580,16 @@ This ensures both files always exist, preventing deletion/recreation cycles.
 
 **Diagnosis:** Test the portal:
 ```bash
-dbus-send --session --print-reply=literal --reply-timeout=1000 \
-  --dest=org.freedesktop.portal.Desktop \
+busctl --user call org.freedesktop.portal.Desktop \
   /org/freedesktop/portal/desktop \
-  org.freedesktop.portal.Settings.Read \
-  string:'org.freedesktop.appearance' string:'color-scheme'
+  org.freedesktop.portal.Settings Read ss \
+  org.freedesktop.appearance color-scheme
 ```
 
 Should return:
-- `uint32 1` for dark mode
-- `uint32 2` for light mode
-- `uint32 0` means portal isn't reading dconf correctly
+- `v v u 1` for dark mode (`prefer-dark`)
+- `v v u 2` for light mode (`prefer-light`)
+- `v v u 0` means no preference or portal isn't reading dconf correctly
 
 **Solution:** Use `xdg-desktop-portal-gtk` instead:
 ```nix
@@ -529,6 +602,8 @@ xdg.portal = {
 
 After rebuilding and restarting portals, the test should return the correct value.
 
+**Additional Note:** Even with portal working correctly, Ghostty may only read the color-scheme preference on startup. Running instances might not detect changes. If theme doesn't switch after `darkman set dark/light`, restart Ghostty.
+
 ### 12. Home-Manager Profile Not Updated
 
 **Problem:** Running specialisation activate script but `~/.local/state/nix/profiles/home-manager` still points to old generation.
@@ -536,6 +611,52 @@ After rebuilding and restarting portals, the test should return the correct valu
 **Cause:** This is expected! The activation script creates a new generation but the symlink update happens separately.
 
 **Solution:** This is actually fine - the configs in `~/.config/` are updated correctly. The profile link will update on next full home-manager activation.
+
+### 13. Stylix Overwrites dconf Color Scheme Setting
+
+**Problem:** Setting `dconf write /org/gnome/desktop/interface/color-scheme` in darkman scripts, but it gets overwritten or doesn't persist correctly.
+
+**Cause:** When the darkman script runs the specialization activation, Stylix may set the dconf value to 'default' as part of its theming setup, overwriting the value set earlier in the script.
+
+**Solution:** Set the dconf value AFTER specialization activation:
+```bash
+#!/run/current-system/sw/bin/bash
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
+export DARKMAN_RUNNING=1
+
+# Find and activate specialization FIRST
+HM_GEN=$(...)
+"$HM_GEN/specialisation/dark/activate"
+
+# Set dconf AFTER specialization (this is critical!)
+dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"
+
+# Then trigger visual effects
+NIRI_SOCKET=$(...)
+```
+
+**Why this works:**
+- Specialization activation runs Stylix which may modify dconf
+- Setting dconf after ensures your preference takes precedence
+- Portal then correctly exposes the preference to applications
+
+### 14. Home-Manager Import Method Prevents Specializations
+
+**Problem:** Home-manager specializations directory not being created in the system closure, even though they're defined in configuration.
+
+**Cause:** Using explicit `import` function in the host configuration prevents proper module evaluation:
+```nix
+# This breaks specializations:
+users.frank = import ../../home-manager/frank.nix;
+```
+
+**Solution:** Use path-only reference without `import`:
+```nix
+# This works correctly:
+users.frank = ../../home-manager/frank.nix;
+```
+
+Home-manager needs to evaluate the module itself to properly handle specializations. The explicit `import` evaluates the file too early in the process.
 
 ## Usage
 
@@ -712,6 +833,6 @@ systemctl --user restart darkman
 - `modules/stylix.nix` - System-level stylix configuration
 - `modules/darkman.nix` - Darkman systemd service
 - `home-manager/frank.nix` - Home-manager config with specialisations
-- `home-manager/themes.nix` - **Centralized theme definitions** (change themes here!)
-- `home-manager/ghostty.nix` - Ghostty configuration with native light/dark theme support
+- `home-manager/stylix.nix` - **Centralized theme definitions with specializations** (change themes here!)
+- `home-manager/ghostty.nix` - Ghostty configuration (automatically themed by Stylix)
 - `flake.nix` - Stylix module imports

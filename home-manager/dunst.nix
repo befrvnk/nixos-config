@@ -24,17 +24,15 @@
         progress_bar_max_width = 300;
 
         # Appearance
-        transparency = 10;
+        # Colors, transparency, and frame styling managed by Stylix
         separator_height = 2;
         padding = 8;
         horizontal_padding = 8;
         text_icon_padding = 0;
-        frame_width = 2;
-        separator_color = "frame";
         sort = true;
 
         # Text
-        font = "monospace 10";
+        # Font managed by Stylix
         line_height = 0;
         markup = "full";
         format = "<b>%s</b>\\n%b";

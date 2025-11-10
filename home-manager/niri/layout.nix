@@ -33,8 +33,8 @@
     border = {
       enable = true;
       width = 3;
-      active.color = "#${colors.base03}";
-      inactive.color = "#${colors.base03}";
+      active.color = "transparent";
+      inactive.color = "transparent";
     };
     default-column-width = {
       proportion = osConfig.defaults.display.defaultColumnWidthPercent;

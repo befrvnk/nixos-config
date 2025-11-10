@@ -1,10 +1,47 @@
 { pkgs, ... }:
 
 let
-  # Import shared theme definitions
-  themes = import ./themes.nix { inherit pkgs; };
+  # Catppuccin Mocha colors (must match stylix dark theme)
+  darkColors = {
+    base00 = "1e1e2e";
+    base01 = "181825";
+    base02 = "313244";
+    base03 = "45475a";
+    base04 = "585b70";
+    base05 = "cdd6f4";
+    base06 = "f5e0dc";
+    base07 = "b4befe";
+    base08 = "f38ba8";
+    base09 = "fab387";
+    base0A = "f9e2af";
+    base0B = "a6e3a1";
+    base0C = "94e2d5";
+    base0D = "89b4fa";
+    base0E = "cba6f7";
+    base0F = "f2cdcd";
+  };
 
-  # Helper function to generate Ghostty theme from base16 colors
+  # Catppuccin Latte colors (must match stylix light theme)
+  lightColors = {
+    base00 = "eff1f5";
+    base01 = "e6e9ef";
+    base02 = "ccd0da";
+    base03 = "bcc0cc";
+    base04 = "acb0be";
+    base05 = "4c4f69";
+    base06 = "dc8a78";
+    base07 = "7287fd";
+    base08 = "d20f39";
+    base09 = "fe640b";
+    base0A = "df8e1d";
+    base0B = "40a02b";
+    base0C = "179299";
+    base0D = "1e66f5";
+    base0E = "8839ef";
+    base0F = "dd7878";
+  };
+
+  # Helper to convert base16 colors to Ghostty theme format
   mkGhosttyTheme = colors: ''
     background = ${colors.base00}
     cursor-color = ${colors.base05}
@@ -30,26 +67,22 @@ let
   '';
 in
 {
-  # Disable stylix's automatic Ghostty theming since we handle it manually
+  # Disable Stylix's automatic Ghostty theming
   stylix.targets.ghostty.enable = false;
 
   programs.ghostty = {
     enable = true;
     package = pkgs.ghostty;
 
-    # Use Ghostty's native light/dark theme switching
-    # Ghostty will automatically switch based on desktop environment appearance
+    # Use Ghostty's automatic theme switching based on system appearance
     settings = {
       theme = "light:stylix-light,dark:stylix-dark";
     };
   };
 
   # Generate BOTH theme files in every configuration
-  # This prevents home-manager from deleting one when switching specialisations
-  # Themes are defined in themes.nix - change colors there to switch themes
-  home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme themes.light.colors;
-
-  home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme themes.dark.colors;
+  home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme lightColors;
+  home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme darkColors;
 
   # Force overwrite the config file to prevent conflicts
   xdg.configFile."ghostty/config".force = true;

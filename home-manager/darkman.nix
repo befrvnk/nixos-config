@@ -25,12 +25,7 @@
       #!/run/current-system/sw/bin/bash
       # Set environment variable to prevent infinite restart loop
       export DARKMAN_RUNNING=1
-
-      # Set freedesktop portal color scheme preference for light mode
-      # This is a standard freedesktop setting used by xdg-desktop-portal
-      # Applications like Ghostty use this to determine light/dark theme
       export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(${pkgs.coreutils}/bin/id -u)/bus"
-      ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
 
       # Find the home-manager generation with specialisations from the current system
       HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
@@ -47,6 +42,10 @@
 
       "$HM_GEN/specialisation/light/activate"
 
+      # Set freedesktop portal color scheme preference AFTER specialization activation
+      # This ensures Stylix doesn't override it
+      ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-light'"
+
       # Trigger Niri screen transition effect
       NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
       if [ -n "$NIRI_SOCKET" ]; then
@@ -61,12 +60,7 @@
       #!/run/current-system/sw/bin/bash
       # Set environment variable to prevent infinite restart loop
       export DARKMAN_RUNNING=1
-
-      # Set freedesktop portal color scheme preference for dark mode
-      # This is a standard freedesktop setting used by xdg-desktop-portal
-      # Applications like Ghostty use this to determine light/dark theme
       export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(${pkgs.coreutils}/bin/id -u)/bus"
-      ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"
 
       # Find the home-manager generation with specialisations from the current system
       HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
@@ -82,6 +76,10 @@
       fi
 
       "$HM_GEN/specialisation/dark/activate"
+
+      # Set freedesktop portal color scheme preference AFTER specialization activation
+      # This ensures Stylix doesn't override it
+      ${pkgs.dconf}/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"
 
       # Trigger Niri screen transition effect
       NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
