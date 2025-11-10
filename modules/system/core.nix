@@ -21,5 +21,17 @@
     "nix-command"
     "flakes"
   ];
+
+  # Configure systemd-logind for proper lid handling
+  services.logind = {
+    lidSwitch = "suspend";
+    lidSwitchDocked = "ignore";
+    lidSwitchExternalPower = "suspend";
+    extraConfig = ''
+      HandleLidSwitchDocked=ignore
+      IdleAction=ignore
+    '';
+  };
+
   system.stateVersion = "25.05";
 }
