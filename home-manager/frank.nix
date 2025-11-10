@@ -5,6 +5,7 @@
     zen-browser.homeModules.beta
     ./stylix.nix
     ./darkman.nix
+    ./direnv.nix
     ./git.nix
     ./ssh.nix
     ./zsh.nix
