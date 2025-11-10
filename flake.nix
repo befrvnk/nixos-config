@@ -62,6 +62,7 @@
     }@inputs:
     let
       system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
       # Common overlays applied to all hosts
       commonOverlays = [
         # To update gemini-cli to a new version:
