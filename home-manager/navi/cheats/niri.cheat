@@ -1,0 +1,231 @@
+% niri, window-manager
+
+# Show hotkey overlay
+Mod+Shift+/
+
+# Open terminal (ghostty)
+Mod+G
+
+# Close window
+Mod+Q
+
+# Toggle overview
+Mod+O
+
+# Quit niri (with confirmation skip)
+Mod+Shift+Ctrl+Q
+
+# Open launcher (vicinae)
+Mod+Space
+
+# Open audio control (pavucontrol)
+Mod+A
+
+# Lock screen
+Super+Alt+L
+
+## Navigation - Focus Windows/Columns
+
+# Focus column left (arrow/vim)
+Mod+Left / Mod+H
+
+# Focus window down (arrow/vim)
+Mod+Down / Mod+J
+
+# Focus window up (arrow/vim)
+Mod+Up / Mod+K
+
+# Focus column right (arrow/vim)
+Mod+Right / Mod+L
+
+# Focus first column
+Mod+Home
+
+# Focus last column
+Mod+End
+
+## Navigation - Move Windows/Columns
+
+# Move column left (arrow/vim)
+Mod+Ctrl+Left / Mod+Ctrl+H
+
+# Move window down (arrow/vim)
+Mod+Ctrl+Down / Mod+Ctrl+J
+
+# Move window up (arrow/vim)
+Mod+Ctrl+Up / Mod+Ctrl+K
+
+# Move column right (arrow/vim)
+Mod+Ctrl+Right / Mod+Ctrl+L
+
+# Move column to first position
+Mod+Ctrl+Home
+
+# Move column to last position
+Mod+Ctrl+End
+
+## Navigation - Monitor Focus
+
+# Focus monitor left (arrow/vim)
+Mod+Shift+Left / Mod+Shift+H
+
+# Focus monitor down (arrow/vim)
+Mod+Shift+Down / Mod+Shift+J
+
+# Focus monitor up (arrow/vim)
+Mod+Shift+Up / Mod+Shift+K
+
+# Focus monitor right (arrow/vim)
+Mod+Shift+Right / Mod+Shift+L
+
+## Navigation - Move to Monitor
+
+# Move column to monitor left (arrow/vim)
+Mod+Shift+Ctrl+Left / Mod+Shift+Ctrl+H
+
+# Move column to monitor down (arrow/vim)
+Mod+Shift+Ctrl+Down / Mod+Shift+Ctrl+J
+
+# Move column to monitor up (arrow/vim)
+Mod+Shift+Ctrl+Up / Mod+Shift+Ctrl+K
+
+# Move column to monitor right (arrow/vim)
+Mod+Shift+Ctrl+Right / Mod+Shift+Ctrl+L
+
+## Workspace Navigation
+
+# Focus workspace down (Page/vim)
+Mod+Page_Down / Mod+U
+
+# Focus workspace up (Page/vim)
+Mod+Page_Up / Mod+I
+
+# Focus workspace by number (1-9)
+Mod+1 through Mod+9
+
+# Focus previous workspace
+Mod+Tab
+
+# Move workspace down
+Mod+Shift+Page_Down / Mod+Shift+U
+
+# Move workspace up
+Mod+Shift+Page_Up / Mod+Shift+I
+
+## Workspace - Move Windows
+
+# Move column to workspace down (Page/vim)
+Mod+Ctrl+Page_Down / Mod+Ctrl+U
+
+# Move column to workspace up (Page/vim)
+Mod+Ctrl+Page_Up / Mod+Ctrl+I
+
+# Move column to workspace by number (1-9)
+Mod+Ctrl+1 through Mod+Ctrl+9
+
+## Window Layout
+
+# Consume or expel window left
+Mod+BracketLeft
+
+# Consume or expel window right
+Mod+BracketRight
+
+# Consume window into column
+Mod+Comma
+
+# Expel window from column
+Mod+Period
+
+# Switch preset column width
+Mod+R
+
+# Switch preset window height
+Mod+Shift+R
+
+# Reset window height
+Mod+Ctrl+R
+
+# Maximize column
+Mod+F
+
+# Fullscreen window
+Mod+Shift+F
+
+# Expand column to available width
+Mod+Ctrl+F
+
+# Center column
+Mod+C
+
+# Center visible columns
+Mod+Ctrl+C
+
+# Decrease column width by 10%
+Mod+Minus
+
+# Increase column width by 10%
+Mod+Equal
+
+# Decrease window height by 10%
+Mod+Shift+Minus
+
+# Increase window height by 10%
+Mod+Shift+Equal
+
+# Toggle window floating
+Mod+V
+
+# Switch focus between floating and tiling windows
+Mod+Shift+V
+
+# Toggle column tabbed display
+Mod+W
+
+## Screenshots
+
+# Screenshot selection
+Print
+
+# Screenshot entire screen
+Ctrl+Print
+
+# Screenshot active window
+Alt+Print
+
+## System
+
+# Quit niri (with confirmation)
+Mod+Shift+E / Ctrl+Alt+Delete
+
+# Power off monitors
+Mod+Shift+P
+
+## Media Keys
+
+# Lower volume
+XF86AudioLowerVolume
+
+# Mute audio
+XF86AudioMute
+
+# Raise volume
+XF86AudioRaiseVolume
+
+# Next track
+XF86AudioNext
+
+# Play/pause
+XF86AudioPlay
+
+# Previous track
+XF86AudioPrev
+
+# Stop playback
+XF86AudioStop
+
+# Decrease brightness
+XF86MonBrightnessDown
+
+# Increase brightness
+XF86MonBrightnessUp
