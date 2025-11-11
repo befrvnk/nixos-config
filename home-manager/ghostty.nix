@@ -80,7 +80,12 @@ in
 
       # Fix Shift+Enter for Claude Code
       # https://github.com/anthropics/claude-code/issues/1282
-      keybind = "shift+enter=text:\\x1b\\r";
+      # Fix Ctrl+Left/Right for word jumping
+      keybind = [
+        "shift+enter=text:\\x1b\\r"
+        "ctrl+left=esc:b"
+        "ctrl+right=esc:f"
+      ];
     };
   };
 
