@@ -11,7 +11,7 @@
     # Agent configurations
     agents = {
       coder = {
-        model = "claude-sonnet-4-5";
+        model = "gemini-2.5-pro";
         maxTokens = 8000;
         temperature = 0.7;
       };
