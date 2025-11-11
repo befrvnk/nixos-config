@@ -22,6 +22,19 @@ The structured approach:
 - **Tracks progress** visibly with todo lists
 - **Handles complexity** systematically
 - **Builds confidence** through clear communication
+- **Leverages web knowledge** to find best practices and current solutions
+
+### Web Research Integration
+
+During the research phase, the agent can search the web to:
+- **Understand new libraries**: Learn about frameworks you're integrating
+- **Find API documentation**: Get accurate usage patterns and examples
+- **Research best practices**: Discover current recommendations for your use case
+- **Security considerations**: Learn about common vulnerabilities and how to avoid them
+- **Performance tips**: Find optimization techniques for your stack
+- **Avoid pitfalls**: Learn from others' experiences with similar problems
+
+This combination of codebase understanding + web research leads to better-informed decisions.
 
 ## Quick Start
 
@@ -81,9 +94,14 @@ For complex tasks, the agent will:
 
 1. **Research Phase**
    ```
-   Let me explore the codebase to understand...
+   Let me explore the codebase and research this topic...
    [Reading files, searching code, analyzing structure]
+   [Searching web for best practices, API docs, security considerations]
    ```
+
+   The agent combines:
+   - **Codebase exploration**: Understanding your existing code and patterns
+   - **Web research**: Finding current best practices, API documentation, security considerations, and proven solutions
 
 2. **Present Plan**
    ```markdown
@@ -173,23 +191,32 @@ $ opencode
 
 You: Add a dark mode toggle to the application
 
-Agent: Let me explore the codebase to plan this feature.
-[Researches theme system, state management, component structure]
+Agent: Let me explore the codebase and research dark mode best practices...
+[Explores theme system, state management, component structure]
+[Searches web for React dark mode patterns, accessibility guidelines, system preference detection]
 
 ## Analysis
 Your app uses CSS modules and React Context for state.
 The theme system is partially implemented in src/theme/...
 
+Based on web research:
+- Best practice is to respect system preferences (prefers-color-scheme)
+- Should use CSS variables for themeable properties
+- localStorage should store user's explicit choice
+- Need to handle ARIA attributes for accessibility
+
 ## Proposed Approach
-1. **Create theme context**: Add dark mode state
-2. **Add toggle component**: Build UI switch
-3. **Update CSS variables**: Define dark theme colors
-4. **Persist preference**: Use localStorage
-5. **Apply theme**: Update all components
+1. **Create theme context**: Add dark mode state with system preference detection
+2. **Add toggle component**: Build accessible UI switch with ARIA labels
+3. **Update CSS variables**: Define dark theme colors following WCAG contrast guidelines
+4. **Persist preference**: Use localStorage with three states (light/dark/system)
+5. **Apply theme**: Update all components and handle transition animations
+6. **Add accessibility**: Ensure proper ARIA attributes and keyboard navigation
 
 ## Potential Issues
 - Some inline styles may not adapt
-- Need to handle system preference detection
+- Flash of wrong theme on page load (need SSR consideration)
+- Third-party components may not respect theme
 
 Does this approach look good to you?
 
