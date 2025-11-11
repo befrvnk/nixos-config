@@ -20,7 +20,7 @@
         maxTokens = 4000;
       };
       reviewer = {
-        model = "gemini-2.0-flash";
+        model = "gemini-2.5-flash";
         maxTokens = 4000;
       };
     };
@@ -40,15 +40,14 @@
         enabled = true;
         models = [
           "claude-sonnet-4-5"
-          "claude-3-7-sonnet"
-          "claude-3-5-haiku"
+          "claude-haiku-4-5"
         ];
       };
       google = {
         enabled = true;
         models = [
-          "gemini-2.0-flash"
-          "gemini-1.5-pro"
+          "gemini-2.5-flash"
+          "gemini-2.5-pro"
         ];
       };
     };
