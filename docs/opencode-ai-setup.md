@@ -2,8 +2,6 @@
 
 This guide explains how OpenCode AI is configured in your NixOS system and how to set up and use it with Claude and Gemini.
 
-> **📘 New**: Looking for the Claude Code workflow with Gemini? See [OpenCode Claude Workflow Guide](./opencode-claude-workflow.md) for detailed instructions on using OpenCode with a structured, methodical workflow similar to Claude Code.
-
 ## What is OpenCode AI?
 
 OpenCode is a powerful AI coding agent built for the terminal, actively maintained by [SST](https://sst.dev/). It's model-agnostic and supports multiple AI providers including:
@@ -212,9 +210,6 @@ Your OpenCode is configured to mimic Claude Code's structured workflow when usin
 - **Structured planning**: Research → Plan → Approval → Execute
 - **Markdown todo lists**: Track progress with checkboxes
 - **Systematic execution**: Work through tasks methodically
-
-For detailed usage instructions, examples, and best practices, see:
-**[OpenCode Claude Workflow Guide](./opencode-claude-workflow.md)**
 
 ### Quick Reference
 
