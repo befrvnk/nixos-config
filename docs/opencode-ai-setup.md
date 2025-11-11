@@ -2,6 +2,8 @@
 
 This guide explains how OpenCode AI is configured in your NixOS system and how to set up and use it with Claude and Gemini.
 
+> **📘 New**: Looking for the Claude Code workflow with Gemini? See [OpenCode Claude Workflow Guide](./opencode-claude-workflow.md) for detailed instructions on using OpenCode with a structured, methodical workflow similar to Claude Code.
+
 ## What is OpenCode AI?
 
 OpenCode is a powerful AI coding agent built for the terminal, actively maintained by [SST](https://sst.dev/). It's model-agnostic and supports multiple AI providers including:
@@ -202,9 +204,30 @@ OPENCODE_CONFIG_DIR # Points to ~/.config/opencode
 - Gemini Documentation: https://ai.google.dev/
 - 1Password CLI: https://developer.1password.com/docs/cli/
 
+## Using the Claude Code Workflow
+
+Your OpenCode is configured to mimic Claude Code's structured workflow when using the default agent. This includes:
+
+- **Automatic complexity detection**: Plans complex tasks, executes simple ones immediately
+- **Structured planning**: Research → Plan → Approval → Execute
+- **Markdown todo lists**: Track progress with checkboxes
+- **Systematic execution**: Work through tasks methodically
+
+For detailed usage instructions, examples, and best practices, see:
+**[OpenCode Claude Workflow Guide](./opencode-claude-workflow.md)**
+
+### Quick Reference
+
+Different agents for different needs:
+- `opencode` (default coder agent): General tasks with Claude Code workflow
+- `opencode --agent planner`: Deep architectural planning
+- `opencode --agent quick`: Fast execution for simple tasks
+- `opencode --agent reviewer`: Code review
+
 ## Notes
 
 - OpenCode is actively maintained by SST with frequent updates
 - Current version: v1.0.55 (released November 10, 2025)
 - The project has 32.3k+ stars on GitHub and is under active development
 - The tool is model-agnostic and can work with your existing Claude Code Pro/Max or GitHub Copilot subscriptions
+- Your setup uses Gemini models to provide a Claude Code alternative when quota is exhausted
