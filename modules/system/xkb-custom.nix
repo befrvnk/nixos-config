@@ -29,5 +29,5 @@ in
 
   # Set the keyboard layout and options
   services.xserver.xkb.layout = layoutName;
-  services.xserver.xkb.options = "lv3:any_alt"; # Use left and right alt for special characters
+  services.xserver.xkb.options = "lv3:alt_switch"; # Use left and right alt for special characters
 }
