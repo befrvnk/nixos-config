@@ -40,10 +40,6 @@ This repository contains my personal NixOS system configurations for a Framework
 
 - **Migrate to Android development flake** - Switch from using the nixos unstable channel for Android development tools to using a dedicated Android flake for better version control and reproducibility
 
-### Application Configuration
-
-- **Disable Zed tab bar UI** - Configure Zed editor to hide the tab bar interface completely
-
 ### UI/Styling
 
 - **Add icons to Waybar elements** - Configure Waybar to display icons for each module/element instead of text-only display
