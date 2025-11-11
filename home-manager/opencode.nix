@@ -7,7 +7,7 @@
 
   # OpenCode configuration file with Claude Code workflow
   xdg.configFile."opencode/.opencode.json".text = builtins.toJSON {
-    # Agent configurations - Full Gemini setup for Claude quota backup
+    # Agent configurations - Full Gemini setup
     agents = {
       # Main coding agent with Claude Code workflow behavior
       coder = {
