@@ -16,7 +16,6 @@ in
     pkgs.xwayland-satellite
     pkgs.brightnessctl
     pkgs.pavucontrol
-    pkgs.swaylock
     pkgs.swaybg
   ];
   services.gnome-keyring.enable = true;

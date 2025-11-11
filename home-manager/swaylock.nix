@@ -1,6 +1,19 @@
 { pkgs, ... }:
 
 {
+  # Enable swaylock with Stylix theming
+  # Stylix will automatically manage colors based on the current theme
+  programs.swaylock = {
+    enable = true;
+    settings = {
+      font-size = 24;
+      indicator-idle-visible = false;
+      indicator-radius = 100;
+      indicator-thickness = 7;
+      show-failed-attempts = true;
+    };
+  };
+
   # Use swayidle to automatically lock the screen before suspend/sleep
   # This ensures the lock screen is properly shown when opening the lid
   services.swayidle = {

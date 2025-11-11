@@ -20,7 +20,7 @@
     ./navi
     ./waybar
     ./dunst.nix
-    ./swaylock-on-suspend.nix
+    ./swaylock.nix
     ./vicinae.nix
   ];
 
