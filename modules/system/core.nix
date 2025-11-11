@@ -30,5 +30,11 @@
     IdleAction = "ignore";
   };
 
+  # Enable USB devices to wake the system from suspend
+  services.udev.extraRules = ''
+    # Enable wake-up for all USB devices including hubs
+    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
+  '';
+
   system.stateVersion = "25.05";
 }

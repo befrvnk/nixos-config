@@ -18,7 +18,10 @@
     ];
     "Mod+A".action.spawn = [ "pavucontrol" ];
 
-    "Mod+Shift+S".action.spawn = [ "swaylock" ];
+    "Mod+Shift+S".action.spawn = [
+      "systemctl"
+      "suspend"
+    ];
 
     # Navigation
     "Mod+Left".action.focus-column-left = { };
