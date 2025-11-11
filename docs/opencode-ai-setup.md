@@ -15,7 +15,9 @@ The project has 32.3k+ stars on GitHub and is actively developed with frequent r
 
 OpenCode is configured across multiple files:
 - `/overlays/opencode.nix` - Custom Nix package built from upstream releases
-- `/home-manager/opencode.nix` - Home-manager module for configuration and environment
+- `/home-manager/opencode/` - Home-manager module for configuration and environment
+  - `default.nix` - Main configuration file
+  - `agents/*.md` - Agent definitions with system prompts
 - `/flake.nix` - Overlay integration
 - `/home-manager/frank.nix` - Module import
 
@@ -103,16 +105,18 @@ The configuration is managed by home-manager and includes:
 
 ## Changing Default Models
 
-To change the default model or add more configurations, edit `/home-manager/opencode.nix`:
+To change the default model or other configurations, edit `/home-manager/opencode/default.nix`.
 
-```nix
-agents = {
-  coder = {
-    model = "gemini-2.0-flash";  # Change to Gemini
-    maxTokens = 8000;
-  };
-  # Add more agents as needed
-};
+To modify agent behavior, edit the markdown files in `/home-manager/opencode/agents/`:
+
+```markdown
+---
+description: Main coding agent
+model: gemini-2.0-flash
+temperature: 0.3
+maxTokens: 8000
+---
+Your system prompt here...
 ```
 
 Then rebuild:

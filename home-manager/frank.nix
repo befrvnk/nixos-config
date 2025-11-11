@@ -13,7 +13,7 @@
     ./zen-browser.nix
     ./packages.nix
     ./zed.nix
-    ./opencode.nix
+    ./opencode
     ./ghostty.nix
     ./android.nix
     ./niri
