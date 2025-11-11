@@ -1,10 +1,9 @@
-{ pkgs, config, ... }:
+{ config, ... }:
 
 {
-  # Install OpenCode from nixpkgs
-  home.packages = with pkgs; [
-    opencode
-  ];
+  programs.opencode = {
+    enable = true;
+  };
 
   # OpenCode configuration file
   xdg.configFile."opencode/.opencode.json".text = builtins.toJSON {
