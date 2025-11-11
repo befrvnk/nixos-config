@@ -18,10 +18,7 @@
     ];
     "Mod+A".action.spawn = [ "pavucontrol" ];
 
-    "Super+Alt+L" = {
-      action.spawn = [ "swaylock" ];
-      allow-when-locked = true;
-    };
+    "Mod+Shift+S".action.spawn = [ "swaylock" ];
 
     # Navigation
     "Mod+Left".action.focus-column-left = { };
@@ -158,10 +155,10 @@
 
     "Print".action.screenshot = { };
     "Ctrl+Print".action.screenshot-screen = { };
-    "Alt+Print".action.screenshot-window = { };
+    "Shift+Print".action.screenshot-window = { };
 
     "Mod+Shift+E".action.quit = { };
-    "Ctrl+Alt+Delete".action.quit = { };
+    "Ctrl+Shift+Delete".action.quit = { };
 
     "Mod+Shift+P".action.power-off-monitors = { };
 

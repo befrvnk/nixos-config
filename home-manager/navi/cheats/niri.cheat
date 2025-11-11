@@ -22,7 +22,7 @@ Mod+Space
 Mod+A
 
 # Lock screen
-Super+Alt+L
+Super+Shift+S
 
 ## Navigation - Focus Windows/Columns
 
@@ -191,12 +191,12 @@ Print
 Ctrl+Print
 
 # Screenshot active window
-Alt+Print
+Shift+Print
 
 ## System
 
 # Quit niri (with confirmation)
-Mod+Shift+E / Ctrl+Alt+Delete
+Mod+Shift+E / Ctrl+Shift+Delete
 
 # Power off monitors
 Mod+Shift+P
