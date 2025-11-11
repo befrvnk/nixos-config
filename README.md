@@ -33,7 +33,6 @@ This repository contains my personal NixOS system configurations for a Framework
 ### Hardware Issues
 
 - **Fix Nuphy Air75 V3 function keys** - Function keys (volume control, brightness adjustment) are not working. Investigate keyboard firmware settings and NixOS keyboard configuration
-- **Fix Shift+Enter terminal behavior** - Pressing Shift+Enter in terminals outputs `;2;13~` instead of creating a new line. This affects Claude CLI but not Gemini CLI. Investigate terminal keybinding configuration (likely in Ghostty config)
 - **Fix USB-C monitor wake-from-sleep** - When the Framework laptop is closed and connected to external monitor via USB-C, the system cannot wake up even though external monitor, keyboard, and mouse are connected. Investigate power management and display configuration settings
 
 ### Development Environment

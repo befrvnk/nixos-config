@@ -77,6 +77,10 @@ in
     # Use Ghostty's automatic theme switching based on system appearance
     settings = {
       theme = "light:stylix-light,dark:stylix-dark";
+
+      # Fix Shift+Enter for Claude Code
+      # https://github.com/anthropics/claude-code/issues/1282
+      keybind = "shift+enter=text:\\x1b\\r";
     };
   };
 
