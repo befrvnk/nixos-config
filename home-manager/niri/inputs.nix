@@ -6,7 +6,7 @@
         # Use the custom us-umlauts layout defined in modules/system/xkb-custom.nix
         layout = "us-umlauts";
         # Use left and right alt for special characters (level 3 shift)
-        options = "lv3:alt_switch";
+        options = "lv3:ralt_switch";
       };
     };
     touchpad = {
