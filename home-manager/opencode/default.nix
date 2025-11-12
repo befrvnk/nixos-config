@@ -41,6 +41,9 @@
   xdg.configFile."opencode/agent/quick.md".source = ./agents/quick.md;
   xdg.configFile."opencode/agent/reviewer.md".source = ./agents/reviewer.md;
 
+  # Deploy command files
+  xdg.configFile."opencode/command/commit.md".source = ./commands/commit.md;
+
   # Environment variables for configuration
   home.sessionVariables = {
     # Set Zed as the external editor for OpenCode
