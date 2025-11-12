@@ -30,10 +30,6 @@ This repository contains my personal NixOS system configurations for a Framework
 
 - **Configure fingerprint sensor support** - Set up fingerprint authentication for the Framework 13 laptop using fprintd and PAM integration
 
-### Hardware Issues
-
-- **Fix USB-C monitor wake-from-sleep** - When the Framework laptop is closed and connected to external monitor via USB-C, the system cannot wake up even though external monitor, keyboard, and mouse are connected. Investigate power management and display configuration settings
-
 ### Development Environment
 
 - **Migrate to Android development flake** - Switch from using the nixos unstable channel for Android development tools to using a dedicated Android flake for better version control and reproducibility
