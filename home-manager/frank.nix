@@ -4,7 +4,7 @@
   imports = [
     zen-browser.homeModules.beta
     ./stylix.nix
-    ./darkman.nix
+    ./darkman
     ./direnv.nix
     ./git.nix
     ./ssh.nix
