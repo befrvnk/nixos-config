@@ -34,11 +34,6 @@ This repository contains my personal NixOS system configurations for a Framework
 
 - **Migrate to Android development flake** - Switch from using the nixos unstable channel for Android development tools to using a dedicated Android flake for better version control and reproducibility
 
-### UI/Styling
-
-- **Enable Stylix theming for dunst notifications** - Configure dunst to use Stylix for consistent theming (currently not working)
-- **Remove custom colors from Niri configuration** - Configure Niri to use Stylix theming by removing hardcoded color values from the Niri configuration
-
 ### Documentation
 
 - **Add packages and applications list** - Create a comprehensive section in this README listing all installed system packages and applications
