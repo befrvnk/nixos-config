@@ -1,8 +1,8 @@
 # External Monitor Brightness Control
 
-## Issue
+## Overview
 
-The brightness control slider in DankMaterialShell (DMS) control panel does not work with external monitors. The slider only controls the Framework 13 laptop's built-in display, not the external 4K monitor connected via USB-C.
+External monitors connected via USB-C or DisplayPort do not support brightness control through the standard Linux backlight interface. They require DDC/CI (Display Data Channel Command Interface) protocol to adjust brightness and other settings.
 
 ## Investigation Summary
 
@@ -14,9 +14,7 @@ The brightness control slider in DankMaterialShell (DMS) control panel does not 
 - Configuration: `home-manager/niri/outputs.nix`
 
 **Brightness Control Setup:**
-- DMS brightness control enabled: `enableBrightnessControl = true` in `home-manager/dms.nix:9`
-- Brightness slider widget configured in DMS control center (lines 79-82)
-- Brightness control package: `brightnessctl` (installed in both `home-manager/dms.nix:315` and `home-manager/niri/default.nix:17`)
+- Brightness control package: `brightnessctl` (installed in `home-manager/niri/default.nix:17`)
 - Niri keyboard shortcuts: XF86MonBrightnessUp/Down mapped to `brightnessctl` commands (`home-manager/niri/binds.nix:171-172`)
 
 ### Root Cause
@@ -38,11 +36,6 @@ The issue has multiple layers:
    - Without it, no `/dev/i2c*` devices exist
    - Running `ddcutil detect` confirms: "No /dev/i2c devices exist. ddcutil requires module i2c-dev."
    - While `ddcutil` is already installed on the system, it cannot function without the kernel module
-
-4. **DMS Limitation**
-   - DankMaterialShell's brightness control widget currently only supports `brightnessctl`
-   - There is no built-in DDC/CI or `ddcutil` integration for external monitors
-   - The brightness slider widget will continue to only control the laptop screen
 
 ## Solution
 
@@ -145,10 +138,6 @@ This allows you to use:
 - **Brightness keys**: Control laptop screen (existing functionality)
 - **Mod + Brightness keys**: Control external monitor (new functionality)
 
-### Alternative: Use brightnessDevicePins in DMS
-
-The `brightnessDevicePins` setting in `home-manager/dms.nix:221` might allow pinning specific monitors to specific brightness control methods, but this feature is not well-documented. Further investigation into DMS source code or documentation would be needed.
-
 ## Technical Details
 
 ### How brightnessctl Works
@@ -175,26 +164,22 @@ However, `i2c-dev` (which exposes I2C devices to userspace as `/dev/i2c-*`) is n
 
 ## Limitations
 
-1. **DMS Control Panel**: The brightness slider in DMS control panel will continue to only control the laptop screen. It does not have DDC/CI integration.
+1. **ddcutil Performance**: DDC/CI commands can be relatively slow (100-200ms per command) compared to native backlight controls.
 
-2. **ddcutil Performance**: DDC/CI commands can be relatively slow (100-200ms per command) compared to native backlight controls.
+2. **Monitor Compatibility**: Not all monitors fully support DDC/CI. Some may have limited or non-functional implementations.
 
-3. **Monitor Compatibility**: Not all monitors fully support DDC/CI. Some may have limited or non-functional implementations.
-
-4. **USB-C Docks**: Some USB-C docks may not properly pass through DDC/CI commands. Direct USB-C connection to monitors typically works better.
+3. **USB-C Docks**: Some USB-C docks may not properly pass through DDC/CI commands. Direct USB-C connection to monitors typically works better.
 
 ## Future Improvements
 
 Potential enhancements for better external monitor control:
 
-1. **DMS Integration**: Request DDC/CI support in DankMaterialShell's brightness control
-2. **Automatic Monitor Detection**: Script to automatically detect and control the appropriate monitor
-3. **Unified Brightness Control**: Wrapper script that uses `brightnessctl` for internal displays and `ddcutil` for external monitors
-4. **GUI Application**: Use tools like `ddcui` (Qt-based GUI for ddcutil) for easier manual control
+1. **Automatic Monitor Detection**: Script to automatically detect and control the appropriate monitor
+2. **Unified Brightness Control**: Wrapper script that uses `brightnessctl` for internal displays and `ddcutil` for external monitors
+3. **GUI Application**: Use tools like `ddcui` (Qt-based GUI for ddcutil) for easier manual control
 
 ## Related Files
 
-- `home-manager/dms.nix`: DMS configuration, brightness control enabled
 - `home-manager/niri/binds.nix`: Keyboard shortcuts for brightness control
 - `home-manager/niri/outputs.nix`: Display output configuration
 - `modules/system/core.nix`: System-level configuration (add kernel modules here)
@@ -206,7 +191,6 @@ Potential enhancements for better external monitor control:
 - [ddcutil GitHub Repository](https://github.com/rockowitz/ddcutil)
 - [DDC/CI Protocol](https://en.wikipedia.org/wiki/Display_Data_Channel)
 - [VESA MCCS Standard](https://vesa.org/)
-- [DankMaterialShell GitHub](https://github.com/AvengeMedia/DankMaterialShell)
 
 ## Date
 

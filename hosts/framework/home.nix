@@ -1,11 +1,9 @@
 {
   stylix,
-  dankMaterialShell,
   vicinae,
   zen-browser,
   android-nixpkgs,
   niri,
-  opencode-flake,
   ...
 }:
 
@@ -16,7 +14,6 @@
     users.frank = ../../home-manager/frank.nix;
     sharedModules = [
       stylix.homeModules.stylix
-      dankMaterialShell.homeModules.dankMaterialShell.default
       vicinae.homeManagerModules.default
       niri.homeModules.niri
     ];

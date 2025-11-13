@@ -27,10 +27,6 @@
       url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    dankMaterialShell = {
-      url = "github:AvengeMedia/DankMaterialShell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     vicinae = {
       url = "github:vicinaehq/vicinae";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -54,7 +50,6 @@
       android-nixpkgs,
       lanzaboote,
       stylix,
-      dankMaterialShell,
       vicinae,
       niri,
       pre-commit-hooks,
@@ -82,7 +77,6 @@
           inherit nixos-hardware lanzaboote inputs;
           inherit
             stylix
-            dankMaterialShell
             vicinae
             zen-browser
             android-nixpkgs
