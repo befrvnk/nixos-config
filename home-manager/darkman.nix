@@ -49,6 +49,13 @@
       # Restart Ironbar to pick up new theme CSS
       ${pkgs.systemd}/bin/systemctl --user restart ironbar.service || true
 
+      # Update vicinae theme to light mode
+      if [ -f ~/.config/vicinae/vicinae.json ]; then
+        ${pkgs.jq}/bin/jq '.theme.name = "catppuccin-latte"' ~/.config/vicinae/vicinae.json > ~/.config/vicinae/vicinae.json.tmp && \
+        mv ~/.config/vicinae/vicinae.json.tmp ~/.config/vicinae/vicinae.json
+        ${pkgs.systemd}/bin/systemctl --user restart vicinae.service || true
+      fi
+
       # Trigger Niri screen transition effect
       NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
       if [ -n "$NIRI_SOCKET" ]; then
@@ -86,6 +93,13 @@
 
       # Restart Ironbar to pick up new theme CSS
       ${pkgs.systemd}/bin/systemctl --user restart ironbar.service || true
+
+      # Update vicinae theme to dark mode
+      if [ -f ~/.config/vicinae/vicinae.json ]; then
+        ${pkgs.jq}/bin/jq '.theme.name = "catppuccin-mocha"' ~/.config/vicinae/vicinae.json > ~/.config/vicinae/vicinae.json.tmp && \
+        mv ~/.config/vicinae/vicinae.json.tmp ~/.config/vicinae/vicinae.json
+        ${pkgs.systemd}/bin/systemctl --user restart vicinae.service || true
+      fi
 
       # Trigger Niri screen transition effect
       NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
