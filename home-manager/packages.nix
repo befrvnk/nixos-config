@@ -4,31 +4,28 @@
   home.packages = (
     with pkgs;
     [
-      # _1password-cli and _1password-gui now managed by system-level programs
       anytype
+      bat
       chromium
       claude-code
       discord
+      eza
+      fd
+      fzf
       gemini-cli
+      gh
       helix
+      htop
       jetbrains.idea-community-bin
+      lf
+      navi
+      neofetch
       signal-desktop
       slack
       spotify
       ticktick
-      zapzap
-      bat
-      eza
-      fd
-      fzf
-      gh
-      home-manager
-      htop
-      lf
-      navi
-      neofetch
-      starship
       tree
+      zapzap
       # Icon theme for ironbar
       papirus-icon-theme
     ]
