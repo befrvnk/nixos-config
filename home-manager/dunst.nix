@@ -14,7 +14,7 @@
         width = 300;
         height = 300;
         origin = "top-right";
-        offset = "10x50";
+        offset = "10x10";
 
         # Progress bar
         progress_bar = true;
@@ -27,8 +27,8 @@
         # Colors, transparency, and frame styling managed by Stylix
         separator_height = 2;
         padding = 8;
-        horizontal_padding = 8;
-        text_icon_padding = 0;
+        horizontal_padding = 16;
+        text_icon_padding = 16;
         sort = true;
 
         # Text
@@ -50,6 +50,9 @@
         icon_position = "left";
         min_icon_size = 32;
         max_icon_size = 64;
+        enable_recursive_icon_lookup = true;
+        icon_theme = "Papirus";
+        icon_path = "/home/frank/.nix-profile/share/icons/:/run/current-system/sw/share/icons/hicolor/:/run/current-system/sw/share/pixmaps/";
 
         # History
         sticky_history = true;
@@ -61,7 +64,7 @@
         always_run_script = true;
         title = "Dunst";
         class = "Dunst";
-        corner_radius = 8;
+        corner_radius = 12;
         ignore_dbusclose = false;
 
         # Mouse actions
