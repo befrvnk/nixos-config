@@ -23,6 +23,9 @@ in
     useLayerShell = false;
   };
 
+  # Force overwrite vicinae config - needed because darkman modifies this file
+  xdg.configFile."vicinae/vicinae.json".force = true;
+
   # GTK icon theme (which Qt/vicinae will respect)
   gtk = {
     iconTheme = {
