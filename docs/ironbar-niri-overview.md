@@ -369,4 +369,3 @@ sudo nixos-rebuild switch --flake .#
 - [Ironbar Wiki](https://github.com/JakeStanger/ironbar/wiki)
 - [Ironbar IPC Commands](https://github.com/JakeStanger/ironbar/wiki/controlling-ironbar)
 - [Niri IPC Documentation](https://github.com/YaLTeR/niri/wiki/IPC)
-- [Previous Waybar Setup](./waybar-niri-overview.md) - Our old waybar configuration (kept for reference)

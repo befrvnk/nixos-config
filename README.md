@@ -36,9 +36,6 @@ This repository contains my personal NixOS system configurations for a Framework
 
 ### UI/Styling
 
-- **Add icons to Waybar elements** - Configure Waybar to display icons for each module/element instead of text-only display
-- **Make Waybar height auto-calculate based on font size** - Remove hardcoded 60px height and configure Waybar to automatically calculate height based on the configured font size
-- **Reposition dunst notifications to account for Waybar** - Configure dunst notification positioning to appear below Waybar and prevent overlap
 - **Enable Stylix theming for dunst notifications** - Configure dunst to use Stylix for consistent theming (currently not working)
 - **Remove custom colors from Niri configuration** - Configure Niri to use Stylix theming by removing hardcoded color values from the Niri configuration
 
@@ -67,7 +64,7 @@ The following is a proposed structure for comprehensive usage documentation to b
   - Terminal configuration
 
 ### Window Manager (Niri)
-- Waybar (topbar) configuration
+- Ironbar (topbar) configuration
 - Vicinae setup
 - Niri configuration details
 - Keyboard shortcuts

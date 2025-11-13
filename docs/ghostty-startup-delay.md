@@ -4,7 +4,7 @@
 
 Ghostty experiences a 5-second startup delay due to `xdg-desktop-portal-gtk` service failing at boot and requiring D-Bus activation timeout.
 
-**Status:** Known issue, planned to be resolved when switching from DMS to waybar.
+**Status:** Known issue, planned to be resolved when switching from DMS to ironbar.
 
 ## The Problem
 
@@ -94,11 +94,11 @@ See: [`docs/stylix-darkman-setup.md`](./stylix-darkman-setup.md#8-ghostty-theme-
 
 ## Planned Solution
 
-**Timeline:** To be implemented when replacing DMS with waybar
+**Timeline:** To be implemented when replacing DMS with ironbar
 
 ### Approach
 
-1. **Replace DMS with waybar** for status bar functionality
+1. **Replace DMS with ironbar** for status bar functionality
 2. **Remove xdg-desktop-portal-gtk dependency** for theme switching
 3. **Rely fully on Stylix and darkman** for theme management:
    - Darkman scripts activate home-manager specialisations (already working)
@@ -113,11 +113,11 @@ Currently, we use the portal because Ghostty's native `theme = "light:...,dark:.
 - Option B: Keep both themes but trigger Ghostty reload differently
 - Option C: Use home-manager activation hooks to restart Ghostty instances
 
-This will be decided during the waybar migration.
+This will be decided during the ironbar migration.
 
 ## Temporary Workaround (Optional)
 
-If the 5-second delay becomes too annoying before the waybar migration, you can temporarily use a fixed theme:
+If the 5-second delay becomes too annoying before the ironbar migration, you can temporarily use a fixed theme:
 
 ### Option 1: Fixed Dark Theme
 
@@ -183,13 +183,13 @@ We could fix the portal startup order with systemd dependencies, but:
 
 1. **Temporary solution:** We're planning to remove the portal dependency anyway
 2. **Complexity:** Adding proper systemd ordering is complex and fragile
-3. **Better architecture:** The planned solution (waybar + darkman) is cleaner
+3. **Better architecture:** The planned solution (ironbar + darkman) is cleaner
 4. **No other issues:** The portal eventually starts and works fine after boot
 
 ## Related Documentation
 
 - [Stylix & Darkman Setup](./stylix-darkman-setup.md) - Complete theme switching documentation
-- [DMS Audio Issue](./dms-audio-issue.md) - DMS-related problems (to be replaced with waybar)
+- [DMS Audio Issue](./dms-audio-issue.md) - DMS-related problems (to be replaced with ironbar)
 
 ## Investigation Log
 
@@ -219,4 +219,4 @@ Nov 08 08:25:09 framework systemd[2285]: xdg-desktop-portal-gtk.service: Failed 
 
 **Date:** 2025-11-08
 **Investigated by:** Claude Code
-**Status:** Documented, awaiting waybar migration
+**Status:** Documented, awaiting ironbar migration

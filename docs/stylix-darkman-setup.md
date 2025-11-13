@@ -286,7 +286,7 @@ With `stylix.autoEnable = true`, Stylix automatically themes:
 - Ghostty (terminal)
 - Swaylock (screen locker)
 - Dunst (notifications)
-- Waybar (status bar)
+- Ironbar (status bar)
 - And many more: https://stylix.danth.me/targets.html
 
 **Niri (compositor):**
@@ -809,7 +809,7 @@ systemctl --user restart darkman
    ```
 
 2. **Application-Specific Reload Hooks:**
-   Some apps support live reload without restart (Firefox, kitty, Waybar). Could add specific reload commands to scripts. ✅ Already implemented for Niri via screen transition effect.
+   Some apps support live reload without restart (Firefox, kitty, Ironbar). Could add specific reload commands to scripts. ✅ Already implemented for Niri via screen transition effect.
 
 3. **Notification on Theme Switch:**
    Add desktop notification when theme switches:

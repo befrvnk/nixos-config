@@ -18,7 +18,6 @@
     ./android.nix
     ./niri
     ./navi
-    # ./waybar # Temporarily disabled for ironbar testing
     ./ironbar
     ./dunst.nix
     ./swaylock.nix
