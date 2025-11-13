@@ -1,0 +1,143 @@
+/*
+Ironbar styling with Stylix colors
+Colors are injected by Nix from the current Stylix theme
+Use @base00, @base01, etc. to reference colors (GTK syntax)
+
+Grayscale/Background Colors (base00-base07)
+
+These form a grayscale from dark to light (in dark themes) or light to dark (in light themes):
+
+- @base00 - Default background (darkest in dark mode, lightest in light mode)
+- @base01 - Lighter background (for panels, sidebars, elevated surfaces)
+- @base02 - Selection background, line highlighting
+- @base03 - Comments, subtle borders, disabled elements
+- @base04 - Dark text on light backgrounds (used less frequently)
+- @base05 - Default foreground/text color
+- @base06 - Light foreground (for emphasized text)
+- @base07 - Lightest foreground (highest contrast text)
+
+Accent Colors (base08-base0F)
+
+These provide semantic color accents:
+
+- @base08 - Red - Errors, deletions, warnings, important alerts
+- @base09 - Orange - Constants, numbers, special keywords
+- @base0A - Yellow - Warnings, search highlights, classes
+- @base0B - Green - Success states, additions, strings
+- @base0C - Cyan - Escape characters, regex, info messages
+- @base0D - Blue - Primary accent, functions, links, active states
+- @base0E - Magenta/Purple - Keywords, tags, special elements
+- @base0F - Brown - Deprecated, opening/closing tags
+*/
+
+@define-color transparent rgba(0, 0, 0, 0);
+
+* {
+    font-family: "JetBrainsMono Nerd Font";
+}
+
+.background {
+    background-color: @transparent;
+}
+
+#bar {
+    background-color: alpha(@base00, 0.6);
+    margin-top: 12px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 2px solid alpha(@base01, 0.1);
+}
+
+.widget {
+    background-color: @base01;
+    padding: 3px 8px;
+    margin: 0 4px;
+    border-radius: 8px;
+}
+
+.workspaces {
+    background-color: @transparent;
+    padding: 0;
+}
+
+/* Fix: Text styles don't apply */
+.workspaces .item {
+    background-color: @base01;
+    font-weight: normal;
+    padding: 4px 9px;
+    margin: 1px 2px;
+    border-radius: 8px;
+}
+
+.workspaces .item.focused {
+    color: @base06;
+    font-weight: bold;
+    background-color: @base02;
+}
+
+.clock {
+    font-weight: normal;
+    padding: 3px 9px;
+}
+
+.popup-clock {
+    background-color: @base01;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid alpha(@base01, 0.3);
+    box-shadow: none;
+    min-width: 300px;
+}
+
+.popup-clock .calendar-clock {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: @base05;
+    margin-bottom: 20px;
+}
+
+.sysinfo {
+    font-weight: normal;
+}
+
+.wifi {
+    font-weight: normal;
+}
+
+.bluetooth {
+    font-weight: normal;
+}
+
+.volume {
+    font-weight: normal;
+}
+
+.battery {
+    font-weight: normal;
+}
+
+/* Notification popup styling */
+.popup-notifications {
+    background-color: @base00;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid alpha(@base01, 0.3);
+}
+
+.popup-notifications label {
+    color: @base05;
+    padding: 5px 0;
+}
+
+.popup-notifications button {
+    background-color: @base01;
+    color: @base05;
+    padding: 8px 16px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+}
+
+.popup-notifications button:hover {
+    background-color: @base02;
+}

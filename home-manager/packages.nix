@@ -29,6 +29,8 @@
       neofetch
       starship
       tree
+      # Icon theme for ironbar
+      papirus-icon-theme
     ]
   );
 }

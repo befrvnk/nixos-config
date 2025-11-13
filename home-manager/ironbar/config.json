@@ -1,0 +1,92 @@
+{
+  "position": "top",
+  "icon_theme": "Papirus-Dark",
+  "anchor_to_edges": false,
+
+  "center": [
+    {
+      "type": "workspaces"
+    },
+    {
+      "type": "clock"
+    },
+    {
+      "format": [
+        " {cpu_percent}%",
+        " {memory_percent}%",
+        " {temp_c@k10temp Tctl}°C"
+      ],
+      "type": "sys_info"
+    },
+    {
+      "type": "custom",
+      "class": "wifi",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{5000:~/.config/ironbar/modules/wifi/wifi-status.sh}}"
+        }
+      ]
+    },
+    {
+      "type": "custom",
+      "class": "notifications",
+      "bar": [
+        {
+          "type": "button",
+          "label": "{{2000:~/.config/ironbar/modules/notifications/notification-count.sh}}",
+          "on_click": "popup:toggle"
+        }
+      ],
+      "popup": [
+        {
+          "type": "box",
+          "orientation": "vertical",
+          "widgets": [
+            {
+              "type": "label",
+              "label": "Notifications"
+            },
+            {
+              "type": "label",
+              "label": "{{2000:~/.config/ironbar/modules/notifications/notification-history.sh}}"
+            },
+            {
+              "type": "box",
+              "orientation": "horizontal",
+              "widgets": [
+                {
+                  "type": "button",
+                  "label": "Clear All",
+                  "on_click": "!dunstctl history-clear"
+                },
+                {
+                  "type": "button",
+                  "label": "Close",
+                  "on_click": "popup:close"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "bluetooth"
+    },
+    {
+      "type": "volume",
+      "max_volume": 100
+    },
+    {
+      "type": "custom",
+      "class": "battery",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{5000:~/.config/ironbar/modules/battery/battery-status.sh}}"
+        }
+      ]
+    }
+  ]
+}

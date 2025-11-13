@@ -20,6 +20,7 @@
     ./services/darkman.nix
     ./services/keyd.nix
     ./services/pipewire.nix
+    ./services/bluetooth.nix
 
     # Theming
     ./theming/stylix.nix
