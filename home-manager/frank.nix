@@ -22,6 +22,7 @@
     ./dunst.nix
     ./swaylock.nix
     ./vicinae.nix
+    ./media-suspend.nix
   ];
 
   home.username = "frank";

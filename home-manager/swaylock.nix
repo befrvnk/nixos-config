@@ -1,5 +1,21 @@
 { pkgs, ... }:
 
+let
+  # Smart lock script that checks if media is playing before locking
+  # Prevents interrupting videos/music with the lock screen
+  smartLock = pkgs.writeShellScript "smart-lock" ''
+    # Check if any media player is currently playing
+    status=$(${pkgs.playerctl}/bin/playerctl status 2>/dev/null || echo "Stopped")
+
+    if [ "$status" = "Playing" ]; then
+      # Media is playing - don't lock, just turn off the screen
+      ${pkgs.niri}/bin/niri msg action power-off-monitors
+    else
+      # No media playing - lock normally
+      ${pkgs.swaylock}/bin/swaylock -f
+    fi
+  '';
+in
 {
   # Enable swaylock with Stylix theming
   # Stylix will automatically manage colors based on the current theme
@@ -31,15 +47,23 @@
       }
     ];
     timeouts = [
-      # Optional: Lock screen after 10 minutes of inactivity
-      # Uncomment the following lines if you want automatic locking on idle:
-      # {
-      #   timeout = 600;
-      #   command = "${pkgs.swaylock}/bin/swaylock -f";
-      # }
-      # Turn off displays after 5 minutes (keeping existing behavior)
+      # Smart lock after 5 minutes of inactivity
+      # If media is playing: only turns off screen (no lock)
+      # If no media: locks normally
       {
         timeout = 300;
+        command = "${smartLock}";
+      }
+      # Suspend 5 seconds after timeout (unless media is playing)
+      # The inhibit-suspend-while-playing service will prevent this if audio is active
+      {
+        timeout = 305;
+        command = "${pkgs.systemd}/bin/systemctl suspend";
+      }
+      # Turn off displays if suspend was inhibited (media still playing)
+      # This is a fallback in case the screen wasn't turned off by smartLock
+      {
+        timeout = 310;
         command = "${pkgs.niri}/bin/niri msg action power-off-monitors";
       }
     ];
