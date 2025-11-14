@@ -24,6 +24,10 @@
       default-window-height.fixed = 600;
     }
     {
+      matches = [ { app-id = "^1password$"; } ];
+      open-floating = true;
+    }
+    {
       matches = [
         {
           app-id = "^zen-beta$";
