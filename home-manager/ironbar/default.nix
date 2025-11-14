@@ -37,9 +37,13 @@ let
 in
 {
   # Install ironbar from nixpkgs (includes all features by default)
+  # Note: We do NOT use ironbar's built-in volume module due to a critical crash bug
+  # (https://github.com/JakeStanger/ironbar/issues/875). Instead, we use a custom
+  # volume script that queries WirePlumber via wpctl.
   home.packages = [
     pkgs.ironbar
     pkgs.jq # For parsing dunst notification history JSON
+    pkgs.wireplumber # For wpctl command used by custom volume module (avoids PulseAudio crash)
   ];
 
   # Create config directory and files
@@ -61,6 +65,14 @@ in
   };
   xdg.configFile."ironbar/modules/notifications/notification-history.sh" = {
     source = ./modules/notifications/notification-history.sh;
+    executable = true;
+  };
+
+  # Custom volume module (replacement for built-in volume module)
+  # Uses wpctl to query WirePlumber instead of PulseAudio bindings
+  # See modules/volume/README.md for full documentation
+  xdg.configFile."ironbar/modules/volume/volume-status.sh" = {
+    source = ./modules/volume/volume-status.sh;
     executable = true;
   };
 

@@ -75,8 +75,14 @@
       "type": "bluetooth"
     },
     {
-      "type": "volume",
-      "max_volume": 100
+      "type": "custom",
+      "class": "volume",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{200:~/.config/ironbar/modules/volume/volume-status.sh}}"
+        }
+      ]
     },
     {
       "type": "custom",
