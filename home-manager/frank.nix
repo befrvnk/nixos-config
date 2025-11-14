@@ -12,6 +12,7 @@
     ./starship.nix
     ./zen-browser.nix
     ./packages.nix
+    ./signal.nix
     ./zed.nix
     ./opencode.nix
     ./ghostty.nix

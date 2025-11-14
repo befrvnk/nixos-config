@@ -20,7 +20,6 @@
       lf
       navi
       neofetch
-      signal-desktop
       slack
       spotify
       ticktick
