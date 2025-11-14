@@ -12,6 +12,27 @@
       clip-to-geometry = true;
     }
     {
+      matches = [ { app-id = "^signal$"; } ];
+      open-floating = true;
+      default-column-width.fixed = 800;
+      default-window-height.fixed = 600;
+    }
+    {
+      matches = [ { app-id = "^ZapZap$"; } ];
+      open-floating = true;
+      default-column-width.fixed = 800;
+      default-window-height.fixed = 600;
+    }
+    {
+      matches = [
+        {
+          app-id = "^zen-beta$";
+          title = "^Picture-in-Picture$";
+        }
+      ];
+      open-floating = true;
+    }
+    {
       matches = [ { is-floating = true; } ];
       geometry-corner-radius = {
         top-left = 16.0;
