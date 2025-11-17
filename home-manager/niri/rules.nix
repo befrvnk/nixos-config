@@ -37,6 +37,16 @@
       open-floating = true;
     }
     {
+      matches = [
+        {
+          app-id = "org.gnome.NautilusPreviewer";
+        }
+      ];
+      open-floating = true;
+      default-column-width.proportion = 0.8;
+      default-window-height.proportion = 0.8;
+    }
+    {
       matches = [ { is-floating = true; } ];
       geometry-corner-radius = {
         top-left = 16.0;

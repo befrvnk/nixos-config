@@ -18,12 +18,16 @@
       imagemagick
       jetbrains.idea-community-bin
       lf
+      nautilus
       navi
       neofetch
       slack
       spotify
+      superfile
+      sushi # nautilus preview
       ticktick
       tree
+      yazi
       zapzap
       # Icon theme for ironbar
       papirus-icon-theme
