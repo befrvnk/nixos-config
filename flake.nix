@@ -68,6 +68,9 @@
         #    python3 -c "import base64; print('sha256-' + base64.b64encode(bytes.fromhex('<HEX_HASH>')).decode())"
         # 4. Update 'hash' in overlays/gemini-cli.nix with the output
         (import ./overlays/gemini-cli.nix)
+        android-nixpkgs.overlays.default
+        niri.overlays.niri
+        (import ./overlays/niri.nix)
       ];
     in
     {
@@ -87,7 +90,6 @@
           # Apply common overlays to all hosts
           { nixpkgs.overlays = commonOverlays; }
           ./hosts/framework
-          ./hosts/framework/overlays.nix
           ./hosts/framework/home.nix
           home-manager.nixosModules.home-manager
           stylix.nixosModules.stylix

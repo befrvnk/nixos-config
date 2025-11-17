@@ -21,6 +21,13 @@ in
     # Layer shell is designed for panels/docks but isn't fully compatible with niri
     # Using regular window mode (useLayerShell = false) works correctly
     useLayerShell = false;
+
+    # Base settings - darkman script will modify the theme at runtime
+    settings = {
+      theme = {
+        name = "catppuccin-mocha"; # Default dark theme
+      };
+    };
   };
 
   # Force overwrite vicinae config - needed because darkman modifies this file
