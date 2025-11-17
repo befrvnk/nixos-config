@@ -4,11 +4,6 @@
   lib,
   ...
 }:
-let
-  # Reference colors from Stylix - the single source of truth
-  # Stylix processes the base16 scheme and provides colors
-  colors = osConfig.lib.stylix.colors;
-in
 {
   home.packages = [
     pkgs.playerctl
@@ -40,11 +35,10 @@ in
     settings = lib.mkMerge [
       (import ./outputs.nix { })
       (import ./inputs.nix { })
-      (import ./layout.nix { inherit colors osConfig; })
+      (import ./layout.nix { inherit osConfig; })
       (import ./rules.nix { })
       (import ./binds.nix { })
       (import ./startup.nix { inherit pkgs osConfig; })
     ];
   };
-
 }

@@ -1,4 +1,7 @@
-{ colors, osConfig, ... }:
+{ osConfig, ... }:
+let
+  inherit (osConfig.lib.stylix.colors.withHashtag) base0D base03 base08;
+in
 {
   cursor = {
     theme = "default";
@@ -28,11 +31,13 @@
     focus-ring = {
       enable = true;
       width = 3;
-      active.color = "#${colors.base0D}";
+      active.color = base0D;
+      inactive.color = base03;
+      urgent.color = base08;
     };
     border = {
       enable = true;
-      width = 3;
+      width = 2;
       active.color = "transparent";
       inactive.color = "transparent";
     };
