@@ -13,7 +13,6 @@
     ./hardware/fprintd.nix
 
     # Desktop environment
-    ./desktop/display.nix
     ./desktop/greetd.nix
     ./desktop/niri.nix
 

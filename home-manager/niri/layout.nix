@@ -42,10 +42,17 @@ in
       inactive.color = "transparent";
     };
     default-column-width = {
-      proportion = osConfig.defaults.display.defaultColumnWidthPercent;
+      proportion = 0.75;
     };
-    preset-column-widths = map (width: {
-      proportion = width;
-    }) osConfig.defaults.display.columnWidthPercentPresets;
+    preset-column-widths =
+      map
+        (width: {
+          proportion = width;
+        })
+        [
+          0.75
+          0.5
+          0.25
+        ];
   };
 }

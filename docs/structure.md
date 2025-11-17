@@ -37,7 +37,6 @@ modules/
 ├── default.nix        # Imports all modules
 ├── users.nix          # User account definitions
 ├── desktop/           # Desktop environment configuration
-│   ├── display.nix    # Display settings
 │   ├── gnome.nix      # GNOME components
 │   └── niri.nix       # Niri window manager
 ├── system/            # Core system configuration
