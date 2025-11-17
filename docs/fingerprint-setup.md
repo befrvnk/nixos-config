@@ -7,9 +7,17 @@ This guide covers the setup and usage of the fingerprint sensor on the Framework
 The fingerprint sensor is configured using `fprintd` with the Goodix TOD driver for optimal Framework laptop compatibility. Fingerprint authentication is enabled for:
 
 - **swaylock** - Unlock your screen with your fingerprint
-- **1Password** - Authenticate 1Password with your fingerprint (via polkit)
 - **sudo** - Execute sudo commands with your fingerprint
 - **login** - Login to your system with your fingerprint
+- **Polkit authorization** - System authorization dialogs (including some 1Password operations)
+
+### 1Password Limitations
+
+**Important**: 1Password on Linux does **not** support biometric authentication for unlocking the vault. You must use your master password to unlock 1Password. This is a limitation of 1Password on Linux, not this configuration.
+
+Fingerprint authentication will work for:
+- ✓ Polkit authorization prompts (e.g., browser extension integration)
+- ✗ Unlocking the 1Password vault (requires master password)
 
 ## Configuration
 
@@ -58,9 +66,11 @@ Fingerprints for user frank on Goodix MOC Fingerprint Sensor (press):
 
 Try using your fingerprint:
 
-- Lock your screen (Mod+Shift+Escape or after idle timeout) and unlock with your fingerprint
-- Run a sudo command and use your fingerprint when prompted
-- Open 1Password and try authenticating with your fingerprint
+- **Screen lock**: Lock your screen (Mod+Shift+Escape or after idle timeout) and unlock with your fingerprint
+- **sudo**: Run a sudo command and use your fingerprint when prompted
+- **System login**: Login to your system with your fingerprint
+
+Note: You cannot use fingerprint to unlock the 1Password vault on Linux.
 
 ## Managing Fingerprints
 
@@ -128,6 +138,17 @@ Check fprintd logs:
 ```bash
 journalctl -u fprintd -f
 ```
+
+## What Works and What Doesn't
+
+### Works ✓
+- **swaylock** - Screen unlock
+- **sudo** - Command authorization
+- **login** - System login
+- **Polkit dialogs** - System authorization requests (e.g., 1Password browser extension integration)
+
+### Doesn't Work ✗
+- **1Password vault unlock** - Requires master password (1Password Linux limitation, not a configuration issue)
 
 ## Tips
 
