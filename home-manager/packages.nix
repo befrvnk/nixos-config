@@ -1,9 +1,8 @@
 { pkgs, ... }:
 
 {
-  home.packages = (
-    with pkgs;
-    [
+  home.packages =
+    (with pkgs; [
       anytype
       bat
       chromium
@@ -16,6 +15,7 @@
       gh
       helix
       htop
+      imagemagick
       jetbrains.idea-community-bin
       lf
       navi
@@ -27,6 +27,8 @@
       zapzap
       # Icon theme for ironbar
       papirus-icon-theme
-    ]
-  );
+    ])
+    ++ [
+      (import ./upscayl.nix { inherit pkgs; })
+    ];
 }

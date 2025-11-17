@@ -1,5 +1,8 @@
 { pkgs, ... }:
 
+let
+  wallpapers = import ./wallpapers;
+in
 {
   # Base stylix configuration (default to dark theme)
   stylix = {
@@ -7,7 +10,7 @@
     autoEnable = true;
     polarity = "dark";
     base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-    image = ./wallpapers/mountain.jpg;
+    image = wallpapers.dark;
 
     fonts = {
       serif = {
@@ -51,14 +54,14 @@
       stylix = {
         polarity = pkgs.lib.mkForce "dark";
         base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-        image = pkgs.lib.mkForce ./wallpapers/mountain.jpg;
+        image = pkgs.lib.mkForce wallpapers.dark;
       };
     };
     light.configuration = {
       stylix = {
         polarity = pkgs.lib.mkForce "light";
         base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
-        image = pkgs.lib.mkForce ./wallpapers/mountain.jpg;
+        image = pkgs.lib.mkForce wallpapers.light;
       };
     };
   };

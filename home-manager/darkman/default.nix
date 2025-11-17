@@ -1,5 +1,8 @@
 { config, pkgs, ... }:
 
+let
+  wallpapers = import ../wallpapers;
+in
 {
   # Darkman configuration
   home.file.".config/darkman/config.yaml".text = ''
@@ -29,6 +32,9 @@
       jq = "${pkgs.jq}";
       niri = "${pkgs.niri}";
       coreutils = "${pkgs.coreutils}";
+      swaybg = "${pkgs.swaybg}";
+      wallpaper_light = "${wallpapers.light}";
+      wallpaper_dark = "${wallpapers.dark}";
     };
     executable = true;
   };

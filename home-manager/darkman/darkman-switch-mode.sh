@@ -53,3 +53,14 @@ NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'nir
 if [ -n "$NIRI_SOCKET" ]; then
   NIRI_SOCKET="$NIRI_SOCKET" @niri@/bin/niri msg action do-screen-transition
 fi
+
+# Switch wallpaper by restarting swaybg
+if [ "$MODE" = "light" ]; then
+  WALLPAPER="@wallpaper_light@"
+else
+  WALLPAPER="@wallpaper_dark@"
+fi
+
+# Kill existing swaybg and start with new wallpaper
+/run/current-system/sw/bin/pkill swaybg
+@swaybg@/bin/swaybg -i "$WALLPAPER" -m fill &
