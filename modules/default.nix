@@ -10,6 +10,7 @@
 
     # Hardware
     ./hardware/nuphy.nix
+    ./hardware/fprintd.nix
 
     # Desktop environment
     ./desktop/display.nix

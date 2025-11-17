@@ -14,6 +14,7 @@ This repository contains my personal NixOS system configurations for a Framework
 - [Adding Packages](./docs/adding-packages.md) - Guide for adding system and user packages
 - [Adding a New Host](./docs/new-host.md) - How to configure additional machines
 - [Secure Boot with TPM](./docs/secure-boot.md) - Secure boot setup guide
+- [Fingerprint Sensor Setup](./docs/fingerprint-setup.md) - Fingerprint authentication configuration and enrollment
 - [Stylix & Darkman Setup](./docs/stylix-darkman-setup.md) - Theme switching configuration
 - [Development Environment](./docs/development-environment.md) - Automatic formatting and dev shell setup
 
@@ -25,10 +26,6 @@ This repository contains my personal NixOS system configurations for a Framework
 - **Monitor:** Dough Spectrum 4k 144Hz 27 inch
 
 ## TODOs
-
-### System Configuration
-
-- **Configure fingerprint sensor support** - Set up fingerprint authentication for the Framework 13 laptop using fprintd and PAM integration
 
 ### Development Environment
 
