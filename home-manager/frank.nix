@@ -24,6 +24,7 @@
     ./swaylock.nix
     ./vicinae.nix
     ./media-suspend.nix
+    ./battery-notifications
   ];
 
   home.username = "frank";
