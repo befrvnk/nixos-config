@@ -19,9 +19,4 @@ else
     ICON="󰂚"  # Bell icon (has notifications)
 fi
 
-# Show count if there are notifications, otherwise just icon
-if [[ $TOTAL -gt 0 ]]; then
-    echo "${ICON} ${TOTAL}"
-else
-    echo "${ICON}"
-fi
+echo "${ICON} ${TOTAL}"

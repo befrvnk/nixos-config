@@ -33,7 +33,7 @@
       "class": "notifications",
       "bar": [
         {
-          "type": "button",
+          "type": "label",
           "label": "{{2000:~/.config/ironbar/modules/notifications/notification-count.sh}}",
           "on_click": "popup:toggle"
         }
