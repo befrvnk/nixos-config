@@ -14,7 +14,7 @@
     ./packages.nix
     ./signal.nix
     ./zed.nix
-    ./opencode.nix
+    ./opencode
     ./ghostty.nix
     ./android.nix
     ./niri

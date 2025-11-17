@@ -15,7 +15,9 @@ The project has 32.3k+ stars on GitHub and is actively developed with frequent r
 
 OpenCode is configured across multiple files:
 - `/overlays/opencode.nix` - Custom Nix package built from upstream releases
-- `/home-manager/opencode.nix` - Home-manager module for configuration and environment
+- `/home-manager/opencode/` - Home-manager module for configuration and environment
+  - `default.nix` - Main configuration file
+  - `agents/*.md` - Agent definitions with system prompts
 - `/flake.nix` - Overlay integration
 - `/home-manager/frank.nix` - Module import
 
@@ -103,16 +105,18 @@ The configuration is managed by home-manager and includes:
 
 ## Changing Default Models
 
-To change the default model or add more configurations, edit `/home-manager/opencode.nix`:
+To change the default model or other configurations, edit `/home-manager/opencode/default.nix`.
 
-```nix
-agents = {
-  coder = {
-    model = "gemini-2.0-flash";  # Change to Gemini
-    maxTokens = 8000;
-  };
-  # Add more agents as needed
-};
+To modify agent behavior, edit the markdown files in `/home-manager/opencode/agents/`:
+
+```markdown
+---
+description: Main coding agent
+model: gemini-2.0-flash
+temperature: 0.3
+maxTokens: 8000
+---
+Your system prompt here...
 ```
 
 Then rebuild:
@@ -202,9 +206,19 @@ OPENCODE_CONFIG_DIR # Points to ~/.config/opencode
 - Gemini Documentation: https://ai.google.dev/
 - 1Password CLI: https://developer.1password.com/docs/cli/
 
-## Notes
+## Using the Claude Code Workflow
 
-- OpenCode is actively maintained by SST with frequent updates
-- Current version: v1.0.55 (released November 10, 2025)
-- The project has 32.3k+ stars on GitHub and is under active development
-- The tool is model-agnostic and can work with your existing Claude Code Pro/Max or GitHub Copilot subscriptions
+Your OpenCode is configured to mimic Claude Code's structured workflow when using the default agent. This includes:
+
+- **Automatic complexity detection**: Plans complex tasks, executes simple ones immediately
+- **Structured planning**: Research → Plan → Approval → Execute
+- **Markdown todo lists**: Track progress with checkboxes
+- **Systematic execution**: Work through tasks methodically
+
+### Quick Reference
+
+Different agents for different needs:
+- `opencode` (default coder agent): General tasks with Claude Code workflow
+- `opencode --agent planner`: Deep architectural planning
+- `opencode --agent quick`: Fast execution for simple tasks
+- `opencode --agent reviewer`: Code review

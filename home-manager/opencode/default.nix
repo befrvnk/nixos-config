@@ -5,27 +5,10 @@
     enable = true;
   };
 
-  # OpenCode configuration file
+  # OpenCode configuration file with Claude Code workflow
   xdg.configFile."opencode/.opencode.json".text = builtins.toJSON {
-    # Agent configurations
-    agents = {
-      coder = {
-        model = "gemini-2.5-pro";
-        maxTokens = 8000;
-        temperature = 0.7;
-      };
-      architect = {
-        model = "claude-sonnet-4-5";
-        maxTokens = 4000;
-      };
-      reviewer = {
-        model = "gemini-2.5-flash";
-        maxTokens = 4000;
-      };
-    };
-
-    # Default model preferences
-    defaultModel = "claude-sonnet-4-5";
+    # Default model preferences - use Gemini Pro for general tasks
+    defaultModel = "gemini-2.5-pro";
 
     # UI preferences
     ui = {
@@ -51,6 +34,15 @@
       };
     };
   };
+
+  # Deploy agent markdown files
+  xdg.configFile."opencode/agent/coder.md".source = ./agents/coder.md;
+  xdg.configFile."opencode/agent/planner.md".source = ./agents/planner.md;
+  xdg.configFile."opencode/agent/quick.md".source = ./agents/quick.md;
+  xdg.configFile."opencode/agent/reviewer.md".source = ./agents/reviewer.md;
+
+  # Deploy command files
+  xdg.configFile."opencode/command/commit.md".source = ./commands/commit.md;
 
   # Environment variables for configuration
   home.sessionVariables = {
