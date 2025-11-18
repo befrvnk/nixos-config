@@ -107,6 +107,10 @@
       USB_EXCLUDE_PHONE = 1; # Keep phones/tablets active
       USB_EXCLUDE_WWAN = 1; # Keep WWAN modems active
 
+      # Exclude USB HID devices (mice, keyboards) from autosuspend
+      # This is critical to prevent input lag and recognition delays
+      USB_DENYLIST = "usbhid";
+
       # NVMe power management
       # ALPM: Aggressive Link Power Management
       # Helps NVMe SSDs enter deeper power states
