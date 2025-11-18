@@ -10,7 +10,8 @@
 
     # Hardware
     ./hardware/nuphy.nix
-    ./hardware/fprintd.nix
+    ./hardware/fprintd
+    ./hardware/fprintd/lid-management.nix
 
     # Desktop environment
     ./desktop/greetd.nix

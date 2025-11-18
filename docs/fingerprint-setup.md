@@ -4,7 +4,7 @@ This guide covers the setup and usage of the fingerprint sensor on the Framework
 
 ## Overview
 
-The fingerprint sensor is configured using `fprintd` with the Goodix TOD driver for optimal Framework laptop compatibility. Fingerprint authentication is enabled for:
+The fingerprint sensor is configured using `fprintd` (version 1.94.5). Modern Framework laptops work with regular fprintd without needing TOD drivers. Fingerprint authentication is enabled for:
 
 - **swaylock** - Unlock your screen with your fingerprint
 - **sudo** - Execute sudo commands with your fingerprint
@@ -150,12 +150,34 @@ journalctl -u fprintd -f
 ### Doesn't Work ✗
 - **1Password vault unlock** - Requires master password (1Password Linux limitation, not a configuration issue)
 
+## Fallback to Password Authentication
+
+The fingerprint authentication is configured to automatically fall back to password if fingerprint fails or times out.
+
+### Quick Fallback Options
+
+1. **Wait for timeout**: After 10 seconds, it will automatically fall back to password (recommended)
+2. **Press Ctrl+C**: Cancel fingerprint authentication (requires fprintd 1.92+, now supported with regular fprintd)
+3. **Start typing password**: Some PAM implementations may accept this (not always reliable)
+
+**Note**: The previous TOD (Touch OEM Drivers) variant didn't support Ctrl+C. The configuration has been updated to use regular fprintd 1.94.5 which includes this feature.
+
+### Using Laptop with Lid Closed
+
+When using your laptop with the lid closed and external monitor:
+- The system automatically stops fprintd when lid is closed (fingerprint unavailable)
+- When lid is opened, fprintd automatically starts again
+- This prevents unnecessary fingerprint timeout delays when using external monitor
+
+To disable this automatic lid management, remove `./hardware/fprintd-lid-management.nix` from `modules/default.nix`.
+
 ## Tips
 
 - **Enroll multiple fingers**: Enroll both index fingers for convenience
 - **Quality matters**: Ensure your finger is clean and dry during enrollment
 - **Multiple scans**: The enrollment process requires multiple scans to capture different parts of your fingerprint
-- **Fallback**: You can always use your password if fingerprint authentication fails
+- **Fallback always available**: You can always use your password if fingerprint authentication fails
+- **Timeout configured**: Fingerprint timeout is set to 10 seconds for faster fallback
 
 ## Security Notes
 
