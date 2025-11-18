@@ -23,7 +23,7 @@
     ./dunst.nix
     ./swaylock.nix
     ./vicinae.nix
-    ./media-suspend.nix
+    ./media-suspend
     ./battery-notifications
   ];
 
