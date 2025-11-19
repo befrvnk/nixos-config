@@ -1,6 +1,6 @@
-{ osConfig, ... }:
+{ config, ... }:
 let
-  inherit (osConfig.lib.stylix.colors.withHashtag) base0D base03 base08;
+  inherit (config.lib.stylix.colors.withHashtag) base0D;
 in
 {
   cursor = {
@@ -29,20 +29,16 @@ in
       bottom = 0;
     };
     focus-ring = {
-      enable = true;
-      width = 3;
-      active.color = base0D;
-      inactive.color = base03;
-      urgent.color = base08;
+      enable = false;
     };
     border = {
       enable = true;
-      width = 2;
-      active.color = "transparent";
+      width = 4;
+      active.color = base0D;
       inactive.color = "transparent";
     };
     default-column-width = {
-      proportion = 0.75;
+      proportion = 0.5;
     };
     preset-column-widths =
       map

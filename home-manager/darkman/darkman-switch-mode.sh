@@ -28,6 +28,9 @@ fi
 
 "$HM_GEN/specialisation/$MODE/activate"
 
+# Reload Niri configuration to pick up new theme colors
+@niri@/bin/niri msg reload || true
+
 # Set freedesktop portal color scheme preference AFTER specialization activation
 # This ensures Stylix doesn't override it
 @dconf@/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-$MODE'"

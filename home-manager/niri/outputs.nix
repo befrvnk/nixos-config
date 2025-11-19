@@ -2,7 +2,7 @@
 {
   outputs = {
     "eDP-1" = {
-      scale = 1.25;
+      scale = 1.40;
     };
     "DP-3" = {
       scale = 1.25;

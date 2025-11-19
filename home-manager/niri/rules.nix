@@ -4,23 +4,23 @@
     {
       draw-border-with-background = false;
       geometry-corner-radius = {
-        top-left = 12.0;
-        top-right = 12.0;
-        bottom-left = 12.0;
-        bottom-right = 12.0;
+        top-left = 16.0;
+        top-right = 16.0;
+        bottom-left = 16.0;
+        bottom-right = 16.0;
       };
       clip-to-geometry = true;
     }
     {
       matches = [ { app-id = "^signal$"; } ];
       open-floating = true;
-      default-column-width.fixed = 800;
+      default-column-width.fixed = 1000;
       default-window-height.fixed = 600;
     }
     {
       matches = [ { app-id = "^ZapZap$"; } ];
       open-floating = true;
-      default-column-width.fixed = 800;
+      default-column-width.fixed = 1000;
       default-window-height.fixed = 600;
     }
     {
@@ -43,8 +43,8 @@
         }
       ];
       open-floating = true;
-      default-column-width.proportion = 0.8;
-      default-window-height.proportion = 0.8;
+      default-column-width.proportion = 0.5;
+      default-window-height.proportion = 0.5;
     }
     {
       matches = [ { is-floating = true; } ];

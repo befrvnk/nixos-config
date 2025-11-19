@@ -1,6 +1,6 @@
 {
   pkgs,
-  osConfig,
+  config,
   lib,
   ...
 }:
@@ -35,10 +35,10 @@
     settings = lib.mkMerge [
       (import ./outputs.nix { })
       (import ./inputs.nix { })
-      (import ./layout.nix { inherit osConfig; })
+      (import ./layout.nix { inherit config; })
       (import ./rules.nix { })
       (import ./binds.nix { })
-      (import ./startup.nix { inherit pkgs osConfig; })
+      (import ./startup.nix { inherit pkgs config; })
     ];
   };
 }

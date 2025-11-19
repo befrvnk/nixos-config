@@ -1,4 +1,4 @@
-{ pkgs, osConfig, ... }:
+{ pkgs, config, ... }:
 {
   spawn-at-startup = [
     { command = [ "${pkgs.xwayland-satellite}/bin/xwayland-satellite" ]; }
@@ -7,7 +7,7 @@
       command = [
         "${pkgs.swaybg}/bin/swaybg"
         "-i"
-        "${osConfig.stylix.image}"
+        "${config.stylix.image}"
         "-m"
         "fill"
       ];
