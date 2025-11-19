@@ -208,6 +208,7 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **navi** - Interactive cheatsheet
 - **neofetch** - System info display
 - **starship** - Cross-shell prompt
+- **powertop** - Monitor system power usage
 
 #### File Management
 - **nautilus** - GNOME file manager

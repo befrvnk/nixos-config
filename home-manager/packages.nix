@@ -22,6 +22,7 @@
       navi
       neofetch
       nh
+      powertop
       slack
       spotify
       superfile
