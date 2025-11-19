@@ -1,7 +1,7 @@
 % nixos, system
 
-# Rebuild NixOS system configuration
-sudo nixos-rebuild switch --flake .#<hostname>
+# Rebuild NixOS system configuration (using nh)
+nh os switch ~/nixos-config
 
 # Update flake inputs
 nix flake update
@@ -15,14 +15,14 @@ nix flake show
 # Check flake for errors
 nix flake check
 
-# Build NixOS configuration without switching
-sudo nixos-rebuild build --flake .#<hostname>
+# Build NixOS configuration without switching (using nh)
+nh os build ~/nixos-config
 
-# Test NixOS configuration (temporary until reboot)
-sudo nixos-rebuild test --flake .#<hostname>
+# Test NixOS configuration (temporary until reboot, using nh)
+nh os test ~/nixos-config
 
-# Boot into new configuration on next reboot
-sudo nixos-rebuild boot --flake .#<hostname>
+# Boot into new configuration on next reboot (using nh)
+nh os boot ~/nixos-config
 
 # View NixOS generation history
 sudo nix-env --list-generations --profile /nix/var/nix/profiles/system
@@ -36,5 +36,4 @@ sudo nix-collect-garbage --delete-old
 # Garbage collect generations older than specified days
 sudo nix-collect-garbage --delete-older-than <days>d
 
-$ hostname: echo "framework"
 $ days: echo -e "7\n14\n30"

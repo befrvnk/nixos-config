@@ -1,7 +1,7 @@
 # NixOS Configuration Agent Guidelines
 
 ## Build & Test Commands
-- **Build system:** `sudo nixos-rebuild switch --flake .#hostname`
+- **Build system:** `nh os switch ~/nixos-config` (uses [nh](https://github.com/nix-community/nh) for better output)
 - **Test configuration:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run`
 - **Check flake:** `nix flake check`
 - **Format code:** `nix fmt -- --check .` (auto-formatted on commit via pre-commit hooks)

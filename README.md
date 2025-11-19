@@ -6,7 +6,7 @@ Personal NixOS configuration for a Framework 13 laptop with the Niri window mana
 
 ```bash
 # Rebuild system configuration
-sudo nixos-rebuild switch --flake .#framework
+nh os switch ~/nixos-config
 
 # Update all flake inputs
 nix flake update
@@ -14,6 +14,8 @@ nix flake update
 # Format Nix files
 nix develop -c nixfmt **/*.nix flake.nix
 ```
+
+> **Note:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild` for better progress output, faster builds, and visual diffs of package changes. It automatically detects the hostname from the flake configuration.
 
 ## Desktop Environment
 
@@ -365,21 +367,21 @@ This configuration uses Nix flakes for reproducible builds. The `flake.nix` file
 
 Everything is defined in `.nix` files. To change your system:
 1. Edit the relevant `.nix` file
-2. Run `sudo nixos-rebuild switch --flake .#framework`
+2. Run `nh os switch ~/nixos-config`
 3. Changes take effect immediately (some require logout/reboot)
 
 ### Common Tasks
 
 ```bash
 # Rebuild after editing configuration
-sudo nixos-rebuild switch --flake .#framework
+nh os switch ~/nixos-config
 
 # Test configuration without making it default
-sudo nixos-rebuild test --flake .#framework
+nh os test ~/nixos-config
 
 # Update all packages
 nix flake update
-sudo nixos-rebuild switch --flake .#framework
+nh os switch ~/nixos-config
 
 # Roll back to previous generation
 sudo nixos-rebuild switch --rollback

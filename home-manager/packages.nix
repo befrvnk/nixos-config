@@ -21,6 +21,7 @@
       nautilus
       navi
       neofetch
+      nh
       slack
       spotify
       superfile
