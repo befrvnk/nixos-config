@@ -20,18 +20,34 @@
 #   default audio output (works with sinks, filters, or any audio endpoint)
 # - Polling interval: 200ms (5 updates/sec) for responsive UI feedback
 # - Performance: <0.1% CPU usage, wpctl is very fast (2-5ms execution time)
+# - Handles audio codec power-save mode: When the audio codec is suspended due to
+#   power management (snd_hda_intel power_save=1), wpctl may report incorrect
+#   volume. We use wpctl inspect to get the stored state.default-volume property
+#   which is preserved even when the hardware is in power-save mode.
 
-# Get volume info using default audio sink
-# @DEFAULT_AUDIO_SINK@ automatically resolves to the configured default
-volume_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null)
+# Get the default sink ID
+sink_id=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -oP 'id \K\d+' | head -1)
 
-if [ -z "$volume_info" ]; then
+if [ -z "$sink_id" ]; then
     echo "󰖁 N/A"
     exit 0
 fi
 
-# Parse volume percentage
-volume=$(echo "$volume_info" | awk '{print int($2 * 100)}')
+# Get volume info using wpctl get-volume (for mute state)
+volume_info=$(wpctl get-volume "$sink_id" 2>/dev/null)
+
+# Get the stored default volume from WirePlumber's state
+# This is reliable even when audio codec is in power-save mode
+stored_volume=$(wpctl inspect "$sink_id" 2>/dev/null | grep 'state.default-volume' | grep -oP '"\K[0-9.]+')
+
+# If we have a stored volume, use it (more reliable during power-save)
+# Otherwise fall back to the reported volume
+if [ -n "$stored_volume" ]; then
+    volume=$(awk "BEGIN {print int($stored_volume * 100)}")
+else
+    # Parse volume percentage from wpctl get-volume output
+    volume=$(echo "$volume_info" | awk '{print int($2 * 100)}')
+fi
 
 # Select appropriate Nerd Font icon based on volume state
 # Icons used (from Nerd Fonts):
