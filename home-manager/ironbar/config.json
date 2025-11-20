@@ -2,6 +2,7 @@
   "position": "top",
   "icon_theme": "Papirus-Dark",
   "anchor_to_edges": false,
+  "start_hidden": true,
 
   "center": [
     {
