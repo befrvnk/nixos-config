@@ -1,11 +1,26 @@
 # NixOS Configuration Agent Guidelines
 
 ## Build & Test Commands
-- **Build system:** `nh os switch ~/nixos-config` (uses [nh](https://github.com/nix-community/nh) for better output)
-- **Test configuration:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run`
-- **Check flake:** `nix flake check`
-- **Format code:** `nix fmt -- --check .` (auto-formatted on commit via pre-commit hooks)
-- **Update flakes:** `nix flake update`
+
+**Important:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild`. Always prefer `nh` commands for better output, faster builds, and visual diffs.
+
+### Primary Commands (use these)
+- **Rebuild system:** `nh os switch ~/nixos-config` or `nh os switch` (auto-detects config)
+- **Test without activating:** `nh os test ~/nixos-config` (builds but doesn't set as boot default)
+- **Update and rebuild:** `nh os switch ~/nixos-config --update` (updates flake.lock and rebuilds)
+- **Clean old generations:** `nh clean all --keep 5` (keeps last 5 generations)
+- **Search packages:** `nh search <package-name>`
+
+### Additional Commands
+- **Check flake validity:** `nix flake check`
+- **Format code:** `nix fmt` (auto-formatted on commit via pre-commit hooks)
+- **Update flakes manually:** `nix flake update`
+- **Dry-run build:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run`
+
+### Legacy Commands (avoid these)
+- ❌ `nixos-rebuild switch` → Use `nh os switch` instead
+- ❌ `nixos-rebuild test` → Use `nh os test` instead
+- ❌ `nix-collect-garbage` → Use `nh clean all` instead
 
 ## Code Style Guidelines
 - **Formatting:** Uses `nixfmt-rfc-style` - automatically applied via pre-commit hooks
@@ -18,8 +33,28 @@
 ## Development Workflow
 - direnv automatically loads dev shell on directory entry
 - Pre-commit hooks ensure all committed code is formatted
-- Use `rebuild` function from zsh for convenient system rebuilding
-- Test changes with dry-run builds before applying
+- Use `nh os switch` or the `rebuild` alias from zsh for convenient system rebuilding
+- Test changes with `nh os test` before committing to ensure they work
+- Use `nh os switch --update` to update flakes and rebuild in one command
+- Clean old generations periodically with `nh clean all --keep 5`
+
+## Why nh (Nix Helper)?
+
+This project uses [nh](https://github.com/nix-community/nh) as a wrapper around NixOS/home-manager commands. Benefits:
+
+- **Better output:** Colored, structured progress output with build summaries
+- **Faster builds:** Automatic specialization detection and optimized rebuild paths
+- **Visual diffs:** Shows package changes before/after rebuild
+- **Simpler commands:** Auto-detects hostname and config location
+- **Safer garbage collection:** `nh clean` provides better control over generation cleanup
+- **Unified interface:** Single tool for OS, home-manager, and package management
+
+**When to use what:**
+- System rebuilds: `nh os switch` (not `nixos-rebuild`)
+- Home-manager: `nh home switch` (if using standalone home-manager)
+- Package search: `nh search` (alternative to `nix search`)
+- Cleanup: `nh clean all --keep N` (not `nix-collect-garbage`)
+- Flake operations: Still use `nix flake update`, `nix flake check`, `nix fmt`
 
 ## Project Structure
 
@@ -205,9 +240,10 @@ Imported in: `stylix.nix`, `darkman/default.nix`
 2. Import in `frank.nix`: `imports = [ ./new-app ];`
 
 ### Adding Packages
-- **System package:** Add to `modules/system/packages.nix`
-- **User package:** Add to `home-manager/packages.nix`
-- **Custom package:** Create overlay in `overlays/`
+- **System package:** Add to `modules/system/packages.nix`, then run `nh os switch`
+- **User package:** Add to `home-manager/packages.nix`, then run `nh os switch`
+- **Custom package:** Create overlay in `overlays/`, then run `nh os switch`
+- **Test first:** Use `nh os test` to verify the package builds before switching
 
 ### Creating User Services
 ```nix
@@ -227,6 +263,11 @@ systemd.user.services.my-service = {
   };
 };
 ```
+
+**After creating the service:**
+1. Test the configuration: `nh os test` (or `nh home test` for home-manager services)
+2. Apply the changes: `nh os switch`
+3. Check service status: `systemctl --user status my-service`
 
 ## Security Considerations
 
