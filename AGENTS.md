@@ -400,6 +400,168 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - **lib.mkIf** - Conditional configuration
 - **lib.mkBefore/mkAfter** - Order list items
 
+## Git Commit Conventions
+
+### Commit Message Format
+
+```
+<type>: <short summary in present tense>
+
+<optional detailed explanation of what and why>
+<include context, reasoning, and any quirks>
+
+<optional references to related issues, docs, or commits>
+```
+
+### Commit Types
+
+- **Add:** New feature, package, or module
+- **Update:** Changes to existing functionality
+- **Fix:** Bug fixes or corrections
+- **Refactor:** Code restructuring without behavior change
+- **Remove:** Deletion of features, packages, or code
+- **Document:** Documentation-only changes
+- **Style:** Formatting, whitespace (rare due to pre-commit hooks)
+
+### Examples
+
+**Good:**
+```
+Add battery monitoring service with event-driven alerts
+
+Implement battery-monitor.sh using upower --monitor-detail for
+event-driven notifications at 5%, 20%, and 100% battery levels.
+This replaces polling approach for better efficiency.
+
+Service defined in home-manager/battery-notifications/default.nix
+Script uses pkgs.writeShellScript pattern with dependency injection.
+```
+
+**Good:**
+```
+Fix Ironbar volume module crash with PulseAudio
+
+Replace built-in volume module with custom wpctl-based script.
+The built-in module causes crashes when PulseAudio is active.
+
+Workaround documented in Common Gotchas section of AGENTS.md.
+Script located at home-manager/ironbar/modules/volume/
+```
+
+**Too vague:**
+```
+Update config
+```
+
+**Too brief (missing context):**
+```
+Add battery service
+```
+
+### When to Commit
+
+- After each logical change that builds successfully
+- Before and after major refactoring
+- When documentation is updated alongside code
+- When a feature is complete and tested
+
+### Multi-file Commits
+
+**Good:** Related changes in a single commit
+```
+Add fingerprint authentication for screen lock
+
+- Configure PAM rules in modules/hardware/fprintd/default.nix
+- Update swaylock PAM service with fprintd support
+- Document timeout and retry settings
+- Update README.md with fingerprint auth details
+```
+
+**Bad:** Unrelated changes in one commit
+```
+Add package X, fix bug Y, update README for Z
+```
+
+## Pre-commit Hooks
+
+### Installed Hooks
+
+Configured via `flake.nix` and managed by `pre-commit-hooks.nix`:
+
+**nixfmt-rfc-style:**
+- Formats all `.nix` files
+- Runs automatically on `git commit`
+- Can also run manually: `nix fmt`
+
+### Running Hooks Manually
+
+```bash
+# Format all files
+nix fmt
+
+# Format specific files
+nix develop -c nixfmt file.nix
+
+# Check without changing
+nix fmt -- --check .
+```
+
+### Pre-commit Hook Workflow
+
+1. **On `git commit`:**
+   - Hook runs automatically
+   - Formats staged `.nix` files
+   - Updates staged files with formatting
+   - Commit proceeds with formatted files
+
+2. **If formatting changes files:**
+   - Review the changes: `git diff`
+   - If good, files are already staged
+   - Commit completes normally
+
+### Bypassing Hooks
+
+**Not recommended,** but if necessary:
+
+```bash
+# Skip hooks (only for emergencies)
+git commit --no-verify -m "message"
+```
+
+**When you might need this:**
+- Emergency fix needed immediately
+- Hook is broken (fix hook first!)
+- Never for normal development
+
+### Adding New Hooks
+
+In `flake.nix`, add to pre-commit-hooks:
+
+```nix
+hooks = {
+  nixfmt-rfc-style.enable = true;
+  # Add new hook:
+  new-hook = {
+    enable = true;
+    entry = "${pkgs.tool}/bin/tool args";
+    files = "\\.(nix|sh)$";
+  };
+};
+```
+
+### Troubleshooting Hooks
+
+**Hook fails on commit:**
+1. Read error message
+2. Fix the file manually
+3. Stage the fix
+4. Commit again
+
+**Hook not running:**
+1. Ensure direnv is active: `direnv allow`
+2. Re-enter directory to reload
+3. Check `.git/hooks/pre-commit` exists
+
 ## Documentation Practices
 
 ### Always Keep Documentation Updated
