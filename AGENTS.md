@@ -62,6 +62,27 @@ Agents CAN safely run these commands without sudo:
 - Use `nh os switch --update` to update flakes and rebuild in one command
 - Clean old generations periodically with `nh clean all --keep 5`
 
+### Standard Development Process
+1. **Check existing documentation** - Review README.md and docs/ for related content
+2. **Make changes** to configuration files
+3. **Test** with `nh os test` to verify it builds
+4. **Update documentation** (README.md and/or docs/) if needed
+5. **Apply changes** with `nh os switch`
+6. **Verify** the system behaves as expected
+7. **Commit** with descriptive message explaining what and why
+8. **Push** to remote repository
+
+**Important:** Always update documentation BEFORE committing. This ensures documentation stays in sync with code changes.
+
+### Documentation Checklist for Commits
+
+Before committing, ask yourself:
+- [ ] Does README.md need updating? (packages, features, shortcuts, etc.)
+- [ ] Do existing docs/ files need updating?
+- [ ] Should I create new documentation for this change?
+- [ ] Are there quirks or workarounds that should be documented?
+- [ ] Did I remove outdated information from documentation?
+
 ## Why nh (Nix Helper)?
 
 This project uses [nh](https://github.com/nix-community/nh) as a wrapper around NixOS/home-manager commands. Benefits:
@@ -379,8 +400,44 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - **lib.mkIf** - Conditional configuration
 - **lib.mkBefore/mkAfter** - Order list items
 
-## Documentation
-Detailed guides in `docs/`:
+## Documentation Practices
+
+### Always Keep Documentation Updated
+
+**Critical Rule:** README.md must always be current with the latest system state.
+
+When making changes, update documentation in this order:
+1. **README.md** - Update if user-facing features, packages, or workflows change
+2. **Relevant docs/** - Update existing documentation that covers the changed area
+3. **Create new docs/** - Document complex changes, quirks, or workarounds
+
+### When to Create Documentation
+
+Create a new file in `docs/` when:
+- **Complex changes:** Multi-step processes that future developers need to understand
+- **Quirks and workarounds:** Non-obvious solutions to specific problems
+- **System integration:** How different components work together (e.g., ironbar-niri-overview.md)
+- **Setup procedures:** Multi-step configuration that needs to be reproducible
+
+### When to Update Existing Documentation
+
+Update existing docs when:
+- **Package lists change:** Update README.md software sections
+- **Workflow changes:** Update development commands or processes
+- **Configuration patterns change:** Update relevant docs/ files
+- **Features are added/removed:** Update README.md and related docs/
+- **Known issues are fixed:** Remove from gotchas, add to docs/ if solution is complex
+
+### Documentation Structure
+
+**README.md** - User-facing documentation:
+- Quick start commands
+- Installed software and features
+- Keyboard shortcuts
+- Hardware information
+- References to detailed guides in docs/
+
+**docs/** - Detailed technical guides:
 - `structure.md` - Repository organization
 - `adding-packages.md` - Package management
 - `new-host.md` - Adding machines
@@ -388,3 +445,42 @@ Detailed guides in `docs/`:
 - `fingerprint-setup.md` - Fingerprint authentication
 - `stylix-darkman-setup.md` - Theming deep dive
 - `ironbar-niri-overview.md` - Status bar integration
+
+**AGENTS.md** - AI agent guidelines (this file):
+- Development workflow
+- Configuration patterns
+- Code style
+- Common gotchas
+
+### Example Documentation Scenarios
+
+**Scenario 1: Adding a new package**
+- Add to appropriate packages.nix file
+- Run `nh os switch`
+- Update README.md software list
+- If complex setup needed, create docs/package-name-setup.md
+
+**Scenario 2: Fixing a quirk**
+- Implement the fix
+- Document the quirk and solution in docs/
+- Add to Common Gotchas in AGENTS.md if relevant for future development
+- Update README.md if it affects user workflow
+
+**Scenario 3: Changing keyboard shortcuts**
+- Update niri/binds.nix
+- Update README.md keyboard shortcuts table
+- Run `nh os switch`
+
+**Scenario 4: Complex system integration**
+- Implement the integration
+- Create docs/integration-name.md explaining how it works
+- Add reference to README.md
+- Add patterns to AGENTS.md if it establishes new conventions
+
+### Documentation Best Practices
+
+- **Be specific:** Include file paths, line numbers, and exact commands
+- **Explain why:** Document the reasoning behind non-obvious decisions
+- **Keep it current:** Remove outdated information immediately
+- **Cross-reference:** Link related documentation
+- **Test commands:** Verify all commands in documentation actually work
