@@ -359,6 +359,86 @@ We use home-manager as a NixOS module, which means:
 - Standalone: `home-manager switch --specialisation light`
 - NixOS module: Direct activation script execution
 
+### 4. Wallpaper Management with awww
+
+**Overview:**
+
+We use [awww](https://codeberg.org/LGFae/awww) (renamed from swww) as the wallpaper daemon. It provides:
+- Continuous daemon that stays running (no restarts needed)
+- Smooth fade transitions between wallpapers (1 second)
+- Runtime wallpaper changes via `awww img` command
+- Integration with Niri's backdrop layer
+
+**Architecture:**
+
+1. **awww-daemon starts with Niri** (`home-manager/niri/startup.nix`):
+   ```nix
+   spawn-at-startup = [
+     {
+       command = [
+         "${inputs.awww.packages.${pkgs.system}.awww}/bin/awww-daemon"
+       ];
+     }
+   ];
+   ```
+
+2. **Layer rule places wallpaper on backdrop** (`home-manager/niri/rules.nix`):
+   ```nix
+   layer-rules = [
+     {
+       matches = [ { namespace = "awww-daemon"; } ];
+       place-within-backdrop = true;
+     }
+   ];
+   ```
+   - Important: awww uses namespace `"awww-daemon"`, not `"wallpaper"`
+   - `place-within-backdrop` makes wallpaper visible in overview mode
+   - Workspace background is transparent, so wallpaper shows through
+
+3. **Wallpaper paths** (`home-manager/wallpapers/default.nix`):
+   ```nix
+   {
+     light = ./mountain.jpg;
+     dark = ./mountain_dark.jpg;
+   }
+   ```
+
+4. **Theme switching changes wallpaper** (`home-manager/darkman/darkman-switch-mode.sh`):
+   ```bash
+   # Change wallpaper with fade transition (no daemon restart needed)
+   awww img "$WALLPAPER" --transition-type simple --transition-duration 1
+   ```
+
+**Transition Flow:**
+
+1. Darkman detects mode change (light ↔ dark)
+2. Activates home-manager specialization
+3. Sends `awww img` command with new wallpaper path
+4. awww smoothly fades to new wallpaper over 1 second
+5. No daemon restart, no gray flicker
+
+**Key Points:**
+
+- **awww is from a Codeberg flake** (`flake.nix`):
+  ```nix
+  inputs.awww = {
+    url = "git+https://codeberg.org/LGFae/awww";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  ```
+- **Daemon readiness check**: Home-manager activation waits for awww-daemon to be ready (up to 5 seconds) before applying initial wallpaper
+- **No double execution**: Only the home-manager `restartDarkman` hook applies wallpaper on boot
+- **Transition types**: awww supports multiple transitions (simple, center, wipe, outer, etc.). We use `simple` for fade effect
+
+**Previous Implementation (swaybg):**
+
+Earlier versions used swaybg, which required killing and restarting the process to change wallpapers. This caused:
+- Brief gray background flicker
+- Race conditions on startup
+- Multiple restarts causing topbar flickering
+
+awww solves these issues by staying running and accepting runtime commands.
+
 ## Pitfalls & Solutions
 
 ### 1. Home-Manager Specialisations Don't Build

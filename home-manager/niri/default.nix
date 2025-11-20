@@ -2,6 +2,7 @@
   pkgs,
   config,
   lib,
+  inputs,
   ...
 }:
 {
@@ -11,7 +12,7 @@
     pkgs.xwayland-satellite
     pkgs.brightnessctl
     pkgs.pavucontrol
-    pkgs.swaybg
+    inputs.awww.packages.${pkgs.system}.awww
   ];
   services.gnome-keyring.enable = true;
 
@@ -38,7 +39,7 @@
       (import ./layout.nix { inherit config; })
       (import ./rules.nix { })
       (import ./binds.nix { })
-      (import ./startup.nix { inherit pkgs config; })
+      (import ./startup.nix { inherit pkgs config inputs; })
     ];
   };
 }

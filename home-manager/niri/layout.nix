@@ -11,6 +11,10 @@ in
 
   prefer-no-csd = true;
 
+  hotkey-overlay = {
+    skip-at-startup = true;
+  };
+
   overview = {
     zoom = 0.5;
     workspace-shadow = {

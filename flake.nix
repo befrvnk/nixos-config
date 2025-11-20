@@ -39,6 +39,10 @@
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    awww = {
+      url = "git+https://codeberg.org/LGFae/awww";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -53,6 +57,7 @@
       vicinae,
       niri,
       pre-commit-hooks,
+      awww,
       ...
     }@inputs:
     let

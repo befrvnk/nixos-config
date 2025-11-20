@@ -226,7 +226,7 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **vicinae** - Application launcher
 - **dunst** - Notification daemon
 - **swaylock** - Screen locker
-- **swaybg** - Wallpaper manager
+- **awww** - Wallpaper daemon with fade transitions
 - **brightnessctl** - Brightness control
 
 #### Theming
@@ -301,6 +301,26 @@ This configuration separates concerns between system-level and user-level settin
 - Light/dark mode without rebuild using specializations
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif
 
+### Wallpaper Management
+
+- **awww** (animated wayland wallpaper daemon) runs continuously from Niri startup
+- Wallpapers change automatically with light/dark mode transitions
+- Smooth fade transitions (1 second) between wallpapers
+- Wallpaper placed on backdrop layer (visible in overview mode)
+- Light mode: `mountain.jpg`, Dark mode: `mountain_dark.jpg`
+
+**How it works:**
+1. `awww-daemon` starts with Niri and stays running
+2. Darkman detects time-based mode (light/dark) based on sunrise/sunset
+3. When mode changes, darkman sends `awww img` command with new wallpaper
+4. awww fades smoothly to the new wallpaper without daemon restart
+
+**Key configuration:**
+- Daemon started in `home-manager/niri/startup.nix`
+- Layer rule in `home-manager/niri/rules.nix` places awww on backdrop
+- Theme switching script in `home-manager/darkman/darkman-switch-mode.sh`
+- Wallpaper paths defined in `home-manager/wallpapers/default.nix`
+
 ### Security
 
 - **Secure Boot** with Lanzaboote
@@ -361,8 +381,15 @@ New to Nix? Here are the key concepts:
 ### Flakes
 
 This configuration uses Nix flakes for reproducible builds. The `flake.nix` file defines:
-- **inputs** - External dependencies (nixpkgs, home-manager, etc.)
+- **inputs** - External dependencies (nixpkgs, home-manager, stylix, niri, zen-browser, awww, etc.)
 - **outputs** - What this flake produces (NixOS configurations)
+
+**Key flake inputs:**
+- `nixpkgs` - Package repository (unstable channel)
+- `home-manager` - User environment management
+- `stylix` - System-wide theming
+- `niri` - Window manager
+- `awww` - Wallpaper daemon (from Codeberg)
 
 ### Declarative Configuration
 

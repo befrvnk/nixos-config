@@ -4,6 +4,7 @@
   zen-browser,
   android-nixpkgs,
   niri,
+  inputs,
   ...
 }:
 
@@ -18,8 +19,7 @@
       niri.homeModules.niri
     ];
     extraSpecialArgs = {
-      inherit zen-browser;
-      inherit android-nixpkgs;
+      inherit zen-browser android-nixpkgs inputs;
     };
   };
 }

@@ -28,9 +28,6 @@ fi
 
 "$HM_GEN/specialisation/$MODE/activate"
 
-# Reload Niri configuration to pick up new theme colors
-@niri@/bin/niri msg reload || true
-
 # Set freedesktop portal color scheme preference AFTER specialization activation
 # This ensures Stylix doesn't override it
 @dconf@/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-$MODE'"
@@ -57,13 +54,12 @@ if [ -n "$NIRI_SOCKET" ]; then
   NIRI_SOCKET="$NIRI_SOCKET" @niri@/bin/niri msg action do-screen-transition
 fi
 
-# Switch wallpaper by restarting swaybg
+# Switch wallpaper using awww with fade transition
 if [ "$MODE" = "light" ]; then
   WALLPAPER="@wallpaper_light@"
 else
   WALLPAPER="@wallpaper_dark@"
 fi
 
-# Kill existing swaybg and start with new wallpaper
-/run/current-system/sw/bin/pkill swaybg
-@swaybg@/bin/swaybg -i "$WALLPAPER" -m fill &
+# Change wallpaper with fade transition (no daemon restart needed)
+@awww@/bin/awww img "$WALLPAPER" --transition-type simple --transition-duration 1

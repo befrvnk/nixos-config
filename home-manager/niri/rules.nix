@@ -66,9 +66,9 @@
       matches = [ { namespace = "notifications"; } ];
       block-out-from = "screen-capture";
     }
-    # Place swaybg wallpaper on backdrop layer (visible in overview mode)
+    # Place awww wallpaper on backdrop layer (visible in overview mode)
     {
-      matches = [ { namespace = "wallpaper"; } ];
+      matches = [ { namespace = "awww-daemon"; } ];
       place-within-backdrop = true;
     }
   ];

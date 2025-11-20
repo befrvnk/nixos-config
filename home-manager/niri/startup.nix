@@ -1,15 +1,16 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  config,
+  inputs,
+  ...
+}:
 {
   spawn-at-startup = [
     { command = [ "${pkgs.xwayland-satellite}/bin/xwayland-satellite" ]; }
-    # Start swaybg to show Stylix wallpaper on backdrop layer
+    # Start awww daemon for wallpaper management with fade transitions
     {
       command = [
-        "${pkgs.swaybg}/bin/swaybg"
-        "-i"
-        "${config.stylix.image}"
-        "-m"
-        "fill"
+        "${inputs.awww.packages.${pkgs.system}.awww}/bin/awww-daemon"
       ];
     }
   ];

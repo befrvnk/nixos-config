@@ -1,4 +1,9 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}:
 
 let
   wallpapers = import ../wallpapers;
@@ -17,6 +22,19 @@ in
     # Use parameter expansion with default to avoid "unbound variable" error
     if [ -z "''${DARKMAN_RUNNING:-}" ]; then
       $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user restart darkman.service || true
+
+      # After restart, wait for awww-daemon to be ready and apply initial wallpaper
+      # This ensures wallpaper is set on boot and after home-manager switches
+      if [ -z "$DRY_RUN_CMD" ]; then
+        for i in {1..10}; do
+          if ${inputs.awww.packages.${pkgs.system}.awww}/bin/awww query &>/dev/null; then
+            MODE=$(${pkgs.darkman}/bin/darkman get) || MODE="dark"
+            ~/.local/share/darkman-switch-mode.sh "$MODE" &>/dev/null || true
+            break
+          fi
+          sleep 0.5
+        done &
+      fi
     fi
   '';
 
@@ -32,7 +50,7 @@ in
       jq = "${pkgs.jq}";
       niri = "${pkgs.niri}";
       coreutils = "${pkgs.coreutils}";
-      swaybg = "${pkgs.swaybg}";
+      awww = "${inputs.awww.packages.${pkgs.system}.awww}";
       wallpaper_light = "${wallpapers.light}";
       wallpaper_dark = "${wallpapers.dark}";
     };
