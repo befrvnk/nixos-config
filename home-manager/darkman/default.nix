@@ -50,6 +50,8 @@ in
       jq = "${pkgs.jq}";
       niri = "${pkgs.niri}";
       coreutils = "${pkgs.coreutils}";
+      gnugrep = "${pkgs.gnugrep}";
+      gnused = "${pkgs.gnused}";
       awww = "${inputs.awww.packages.${pkgs.system}.awww}";
       wallpaper_light = "${wallpapers.light}";
       wallpaper_dark = "${wallpapers.dark}";

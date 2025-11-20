@@ -13,6 +13,15 @@ fi
 export DARKMAN_RUNNING=1
 export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(@coreutils@/bin/id -u)/bus"
 
+# Set WAYLAND_DISPLAY if not already set (needed for awww to find the correct socket)
+if [ -z "$WAYLAND_DISPLAY" ]; then
+  # Try to find the Wayland display from running processes
+  WAYLAND_DISPLAY=$(@coreutils@/bin/ls /run/user/$(@coreutils@/bin/id -u)/wayland-* 2>/dev/null | @gnugrep@/bin/grep -v 'lock\|awww' | @coreutils@/bin/head -n1 | @gnused@/bin/sed 's|.*/wayland-\([0-9]*\)|\1|')
+  if [ -n "$WAYLAND_DISPLAY" ]; then
+    export WAYLAND_DISPLAY="wayland-$WAYLAND_DISPLAY"
+  fi
+fi
+
 # Find the home-manager generation with specialisations from the current system
 HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
   if [ -d "$gen/specialisation" ]; then
