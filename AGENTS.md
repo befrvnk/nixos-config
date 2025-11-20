@@ -1,11 +1,50 @@
 # NixOS Configuration Agent Guidelines
 
 ## Build & Test Commands
-- **Build system:** `nh os switch ~/nixos-config` (uses [nh](https://github.com/nix-community/nh) for better output)
-- **Test configuration:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run`
-- **Check flake:** `nix flake check`
-- **Format code:** `nix fmt -- --check .` (auto-formatted on commit via pre-commit hooks)
-- **Update flakes:** `nix flake update`
+
+**Important:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild`. Always prefer `nh` commands for better output, faster builds, and visual diffs.
+
+**Note for AI Agents:** Do NOT run any commands requiring `sudo`. If a task requires sudo privileges, inform the user and ask them to run the command manually. The commands below are documented for reference only.
+
+### Primary Commands (use these)
+- **Rebuild system:** `nh os switch ~/nixos-config` or `nh os switch` (auto-detects config)
+- **Test without activating:** `nh os test ~/nixos-config` (builds but doesn't set as boot default)
+- **Update and rebuild:** `nh os switch ~/nixos-config --update` (updates flake.lock and rebuilds)
+- **Clean old generations:** `nh clean all --keep 5` (keeps last 5 generations)
+- **Search packages:** `nh search <package-name>`
+
+### Additional Commands
+- **Check flake validity:** `nix flake check`
+- **Format code:** `nix fmt` (auto-formatted on commit via pre-commit hooks)
+- **Update flakes manually:** `nix flake update`
+- **Dry-run build:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run`
+
+### Legacy Commands (avoid these)
+- ❌ `nixos-rebuild switch` → Use `nh os switch` instead
+- ❌ `nixos-rebuild test` → Use `nh os test` instead
+- ❌ `nix-collect-garbage` → Use `nh clean all` instead
+
+### Commands Requiring User Intervention (DO NOT RUN)
+
+**AI Agents must NOT execute these commands.** Document them in responses and ask the user to run them manually:
+
+- **Rollback to previous generation:** `sudo nixos-rebuild switch --rollback`
+- **List all generations:** `sudo nix-env --list-generations --profile /nix/var/nix/profiles/system`
+- **Boot into specific generation:** `sudo nixos-rebuild switch --rollback --generation <number>`
+- **Hardware scans:** `sudo nixos-generate-config --show-hardware-config`
+- **Systemd system services:** `sudo systemctl <start|stop|restart|status> <service>`
+- **Any command with sudo:** Inform the user and provide the command for them to run
+
+### Safe Commands for Agents
+
+Agents CAN safely run these commands without sudo:
+
+- **All nh commands:** `nh os switch`, `nh os test`, `nh clean all`, etc.
+- **Nix commands:** `nix flake check`, `nix flake update`, `nix fmt`, `nix build`
+- **Git operations:** `git add`, `git commit`, `git push`, `git status`, etc.
+- **User systemd services:** `systemctl --user status/start/stop/restart <service>`
+- **File operations:** Read, Edit, Write tools for configuration files
+- **Directory operations:** `ls`, `tree`, `fd`, file searches
 
 ## Code Style Guidelines
 - **Formatting:** Uses `nixfmt-rfc-style` - automatically applied via pre-commit hooks
@@ -18,5 +57,592 @@
 ## Development Workflow
 - direnv automatically loads dev shell on directory entry
 - Pre-commit hooks ensure all committed code is formatted
-- Use `rebuild` function from zsh for convenient system rebuilding
-- Test changes with dry-run builds before applying
+- Use `nh os switch` or the `rebuild` alias from zsh for convenient system rebuilding
+- Test changes with `nh os test` before committing to ensure they work
+- Use `nh os switch --update` to update flakes and rebuild in one command
+- Clean old generations periodically with `nh clean all --keep 5`
+
+### Standard Development Process
+1. **Check existing documentation** - Review README.md and docs/ for related content
+2. **Make changes** to configuration files
+3. **Test** with `nh os test` to verify it builds
+4. **Update documentation** (README.md and/or docs/) if needed
+5. **Apply changes** with `nh os switch`
+6. **Verify** the system behaves as expected
+7. **Commit** with descriptive message explaining what and why
+8. **Push** to remote repository
+
+**Important:** Always update documentation BEFORE committing. This ensures documentation stays in sync with code changes.
+
+### Documentation Checklist for Commits
+
+Before committing, ask yourself:
+- [ ] Does README.md need updating? (packages, features, shortcuts, etc.)
+- [ ] Do existing docs/ files need updating?
+- [ ] Should I create new documentation for this change?
+- [ ] Are there quirks or workarounds that should be documented?
+- [ ] Did I remove outdated information from documentation?
+
+## Why nh (Nix Helper)?
+
+This project uses [nh](https://github.com/nix-community/nh) as a wrapper around NixOS/home-manager commands. Benefits:
+
+- **Better output:** Colored, structured progress output with build summaries
+- **Faster builds:** Automatic specialization detection and optimized rebuild paths
+- **Visual diffs:** Shows package changes before/after rebuild
+- **Simpler commands:** Auto-detects hostname and config location
+- **Safer garbage collection:** `nh clean` provides better control over generation cleanup
+- **Unified interface:** Single tool for OS, home-manager, and package management
+
+**When to use what:**
+- System rebuilds: `nh os switch` (not `nixos-rebuild`)
+- Home-manager: `nh home switch` (if using standalone home-manager)
+- Package search: `nh search` (alternative to `nix search`)
+- Cleanup: `nh clean all --keep N` (not `nix-collect-garbage`)
+- Flake operations: Still use `nix flake update`, `nix flake check`, `nix fmt`
+
+## Project Structure
+
+### Directory Organization
+```
+nixos-config/
+├── flake.nix              # Entry point - inputs, outputs, overlays
+├── hosts/                 # Host-specific configurations
+│   └── framework/         # Framework laptop config
+│       ├── default.nix    # Host config
+│       ├── hardware-configuration.nix  # Auto-generated
+│       └── home.nix       # Home-manager integration
+├── modules/               # System-level NixOS modules
+│   ├── default.nix        # Central import file
+│   ├── users.nix          # User account definitions
+│   ├── desktop/           # Display manager, compositor
+│   ├── hardware/          # Hardware-specific (fprintd, power, keyboard)
+│   ├── services/          # System services (darkman, pipewire, bluetooth)
+│   ├── system/            # Core settings (boot, networking, packages)
+│   └── theming/           # System-level stylix config
+├── home-manager/          # User-level configurations
+│   ├── frank.nix          # Main user config (imports all)
+│   ├── packages.nix       # User application packages
+│   ├── stylix.nix         # Theming with specializations
+│   ├── niri/              # Window manager (split by concern)
+│   ├── ironbar/           # Status bar (modular scripts)
+│   └── */                 # Other app configs
+├── overlays/              # Package modifications
+└── docs/                  # Detailed documentation
+```
+
+### Module Import Patterns
+
+**System modules:** `modules/default.nix` acts as central import point
+- Each host imports this single file
+- Organized by category: core, users, system, hardware, desktop, services, theming
+
+**Home-Manager modules:** `home-manager/frank.nix` imports all user modules
+- Complex apps get directories (niri/, ironbar/, darkman/)
+- Simple configs are single files (git.nix, ssh.nix, zsh.nix)
+- Each module is self-contained
+
+## System vs Home-Manager Split
+
+**System Level** (`modules/`): Root-level, affects all users
+- Boot configuration (LUKS, TPM2, secure boot)
+- Hardware drivers and firmware
+- System services (greetd, darkman daemon, pipewire)
+- Network management, power management
+- Security (PAM, polkit, TPM)
+- System users and groups
+
+**Home-Manager Level** (`home-manager/`): User-specific customization
+- User applications and packages
+- Shell configuration (zsh, starship)
+- Application settings (git, ssh, editors)
+- Window manager keybindings and rules
+- Desktop environment (ironbar, vicinae, dunst)
+- User services (swayidle, battery notifications)
+- Theming specializations (dark/light modes)
+
+**Package Split:**
+- System packages: `modules/system/packages.nix` (git, vim, wget, core tools)
+- User packages: `home-manager/packages.nix` (GUI apps, dev tools, CLI tools)
+
+## Common Configuration Patterns
+
+### Script Embedding Pattern
+Scripts are embedded using `pkgs.writeShellScript`:
+```nix
+let
+  myScript = pkgs.writeShellScript "script-name" ''
+    export PATH="${pkgs.foo}/bin:${pkgs.bar}/bin:$PATH"
+    ${builtins.readFile ./script.sh}
+  '';
+in
+{
+  systemd.user.services.my-service = {
+    Service.ExecStart = "${myScript}";
+  };
+}
+```
+
+Or with variable replacement:
+```nix
+home.file.".local/share/script.sh" = {
+  source = pkgs.replaceVars ./script.sh {
+    tool = "${pkgs.tool}";
+    path = "${some.path}";
+  };
+  executable = true;
+};
+```
+
+### Stylix Color Injection Pattern
+Access Stylix colors via `config.lib.stylix.colors`:
+```nix
+{ config, ... }:
+let
+  colors = config.lib.stylix.colors;
+in
+{
+  # Example: Generate CSS with color variables
+  xdg.configFile."app/style.css".text = ''
+    @define-color base00 #${colors.base00};
+    @define-color base01 #${colors.base01};
+  '';
+}
+```
+
+Used in: `ironbar/default.nix`, `niri/layout.nix`
+
+### Modular Splitting by Concern
+Complex configurations split into multiple files:
+```nix
+# default.nix - Entry point
+{ lib, ... }:
+{
+  imports = [
+    ./binds.nix
+    ./layout.nix
+    ./rules.nix
+  ];
+
+  programs.app.settings = lib.mkMerge [
+    # Settings from imported modules merge here
+  ];
+}
+```
+
+Examples: `home-manager/niri/`, `home-manager/ironbar/`
+
+### Specialization Pattern (Theme Switching)
+Enable theme switching without full rebuilds:
+```nix
+{
+  stylix = { ... };  # Base configuration
+
+  specialisation = {
+    dark.configuration = {
+      stylix.polarity = lib.mkForce "dark";
+      stylix.base16Scheme = lib.mkForce "catppuccin-mocha";
+    };
+    light.configuration = {
+      stylix.polarity = lib.mkForce "light";
+      stylix.base16Scheme = lib.mkForce "catppuccin-latte";
+    };
+  };
+}
+```
+
+See: `home-manager/stylix.nix`
+
+### Shared Resource Pattern
+Define shared resources once, import everywhere:
+```nix
+# home-manager/wallpapers/default.nix
+{
+  light = ./mountain.jpg;
+  dark = ./mountain_dark.jpg;
+}
+```
+
+Imported in: `stylix.nix`, `darkman/default.nix`
+
+## Adding New Modules
+
+### Simple Module (single file)
+1. Create `home-manager/new-app.nix` or `modules/category/new-app.nix`
+2. Import in `frank.nix` or `modules/default.nix`:
+   ```nix
+   imports = [ ./new-app.nix ];
+   ```
+
+### Complex Module (directory)
+1. Create directory structure:
+   ```
+   home-manager/new-app/
+   ├── default.nix        # Entry point
+   ├── config.yaml        # Config files
+   └── script.sh          # Scripts
+   ```
+2. Import in `frank.nix`: `imports = [ ./new-app ];`
+
+### Adding Packages
+- **System package:** Add to `modules/system/packages.nix`, then run `nh os switch`
+- **User package:** Add to `home-manager/packages.nix`, then run `nh os switch`
+- **Custom package:** Create overlay in `overlays/`, then run `nh os switch`
+- **Test first:** Use `nh os test` to verify the package builds before switching
+
+### Creating User Services
+```nix
+systemd.user.services.my-service = {
+  Unit = {
+    Description = "My service";
+    After = [ "graphical-session.target" ];
+  };
+  Service = {
+    Type = "simple";
+    ExecStart = "${myScript}";
+    Restart = "always";
+    RestartSec = "10";
+  };
+  Install = {
+    WantedBy = [ "graphical-session.target" ];
+  };
+};
+```
+
+**After creating the service:**
+1. Test the configuration: `nh os test` (or `nh home test` for home-manager services)
+2. Apply the changes: `nh os switch`
+3. Check service status: `systemctl --user status my-service` (user services don't need sudo)
+
+## Security Considerations
+
+### PAM Configuration Pattern
+Fingerprint authentication uses structured PAM rules:
+```nix
+security.pam.services.sudo = {
+  rules.auth.fprintd = {
+    order = 11400;  # Before unix auth (12000)
+    control = "sufficient";
+    modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
+    args = ["timeout=10" "max-tries=3"];
+  };
+};
+```
+
+Applied to: sudo, login, greetd, swaylock, polkit-1
+
+See: `modules/hardware/fprintd/default.nix`
+
+### Keyring Management
+- gnome-keyring is managed by PAM in `modules/desktop/greetd.nix`
+- **Do NOT enable** `services.gnome-keyring.enable` in home-manager
+- Use `lib.mkForce false` to override defaults
+
+### Secure Boot & Encryption
+- Lanzaboote handles secure boot integration
+- LUKS with TPM2 auto-unlock configured in `hardware-configuration.nix`
+- 1Password integration via polkit
+
+## Theming System
+
+### Three-Layer Architecture
+1. **System-level Stylix** (`modules/theming/stylix.nix`): Minimal base config
+2. **Home-Manager Stylix** (`home-manager/stylix.nix`): Full theming with specializations
+3. **Darkman Integration**: Time-based light/dark switching
+
+### Wallpaper Management (awww)
+- awww-daemon runs continuously (started in `niri/startup.nix`)
+- Darkman sends `awww img` command on theme change
+- 1-second fade transitions between wallpapers
+- Placed on backdrop layer (visible in Niri overview mode)
+
+### Theme Switching
+Darkman script (`darkman-switch-mode.sh`) handles:
+- Systemd environment variables
+- Niri socket commands for appearance
+- awww wallpaper changes
+- dconf settings for GTK apps
+
+Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
+
+## Common Gotchas
+
+### Ironbar Volume Module
+- **Do NOT** use built-in volume module (crashes with PulseAudio)
+- Use custom wpctl-based script in `ironbar/modules/volume/`
+
+### Darkman Activation
+- Check `DARKMAN_RUNNING` to prevent infinite loops
+- Wait for awww-daemon to be ready before sending commands
+
+### USB Autosuspend
+- Exclude `usbhid` devices to prevent input lag
+- Configured in `modules/hardware/power-management.nix`
+
+### Hardware Configuration
+- `hardware-configuration.nix` is auto-generated - don't manually edit
+- Host-specific overrides go in `hosts/framework/default.nix`
+
+### State Versions
+- System: `25.05`, Home: `25.05`
+- **Never change** after initial setup
+
+## Path References
+- **Nix store paths:** `${pkgs.tool}/bin/tool`
+- **Relative imports:** `./file.nix` (within same directory)
+- **Cross-module imports:** `../../path/to/module`
+- **Home directory:** Use `~` in scripts, `$HOME`, or `config.home.homeDirectory`
+
+## Module System Usage
+- **lib.mkForce** - Override with highest priority
+- **lib.mkDefault** - Set with lowest priority
+- **lib.mkMerge** - Merge multiple attribute sets
+- **lib.mkIf** - Conditional configuration
+- **lib.mkBefore/mkAfter** - Order list items
+
+## Git Commit Conventions
+
+### Commit Message Format
+
+```
+<type>: <short summary in present tense>
+
+<optional detailed explanation of what and why>
+<include context, reasoning, and any quirks>
+
+<optional references to related issues, docs, or commits>
+```
+
+### Commit Types
+
+- **Add:** New feature, package, or module
+- **Update:** Changes to existing functionality
+- **Fix:** Bug fixes or corrections
+- **Refactor:** Code restructuring without behavior change
+- **Remove:** Deletion of features, packages, or code
+- **Document:** Documentation-only changes
+- **Style:** Formatting, whitespace (rare due to pre-commit hooks)
+
+### Examples
+
+**Good:**
+```
+Add battery monitoring service with event-driven alerts
+
+Implement battery-monitor.sh using upower --monitor-detail for
+event-driven notifications at 5%, 20%, and 100% battery levels.
+This replaces polling approach for better efficiency.
+
+Service defined in home-manager/battery-notifications/default.nix
+Script uses pkgs.writeShellScript pattern with dependency injection.
+```
+
+**Good:**
+```
+Fix Ironbar volume module crash with PulseAudio
+
+Replace built-in volume module with custom wpctl-based script.
+The built-in module causes crashes when PulseAudio is active.
+
+Workaround documented in Common Gotchas section of AGENTS.md.
+Script located at home-manager/ironbar/modules/volume/
+```
+
+**Too vague:**
+```
+Update config
+```
+
+**Too brief (missing context):**
+```
+Add battery service
+```
+
+### When to Commit
+
+- After each logical change that builds successfully
+- Before and after major refactoring
+- When documentation is updated alongside code
+- When a feature is complete and tested
+
+### Multi-file Commits
+
+**Good:** Related changes in a single commit
+```
+Add fingerprint authentication for screen lock
+
+- Configure PAM rules in modules/hardware/fprintd/default.nix
+- Update swaylock PAM service with fprintd support
+- Document timeout and retry settings
+- Update README.md with fingerprint auth details
+```
+
+**Bad:** Unrelated changes in one commit
+```
+Add package X, fix bug Y, update README for Z
+```
+
+## Pre-commit Hooks
+
+### Installed Hooks
+
+Configured via `flake.nix` and managed by `pre-commit-hooks.nix`:
+
+**nixfmt-rfc-style:**
+- Formats all `.nix` files
+- Runs automatically on `git commit`
+- Can also run manually: `nix fmt`
+
+### Running Hooks Manually
+
+```bash
+# Format all files
+nix fmt
+
+# Format specific files
+nix develop -c nixfmt file.nix
+
+# Check without changing
+nix fmt -- --check .
+```
+
+### Pre-commit Hook Workflow
+
+1. **On `git commit`:**
+   - Hook runs automatically
+   - Formats staged `.nix` files
+   - Updates staged files with formatting
+   - Commit proceeds with formatted files
+
+2. **If formatting changes files:**
+   - Review the changes: `git diff`
+   - If good, files are already staged
+   - Commit completes normally
+
+### Bypassing Hooks
+
+**Not recommended,** but if necessary:
+
+```bash
+# Skip hooks (only for emergencies)
+git commit --no-verify -m "message"
+```
+
+**When you might need this:**
+- Emergency fix needed immediately
+- Hook is broken (fix hook first!)
+- Never for normal development
+
+### Adding New Hooks
+
+In `flake.nix`, add to pre-commit-hooks:
+
+```nix
+hooks = {
+  nixfmt-rfc-style.enable = true;
+  # Add new hook:
+  new-hook = {
+    enable = true;
+    entry = "${pkgs.tool}/bin/tool args";
+    files = "\\.(nix|sh)$";
+  };
+};
+```
+
+### Troubleshooting Hooks
+
+**Hook fails on commit:**
+1. Read error message
+2. Fix the file manually
+3. Stage the fix
+4. Commit again
+
+**Hook not running:**
+1. Ensure direnv is active: `direnv allow`
+2. Re-enter directory to reload
+3. Check `.git/hooks/pre-commit` exists
+
+## Documentation Practices
+
+### Always Keep Documentation Updated
+
+**Critical Rule:** README.md must always be current with the latest system state.
+
+When making changes, update documentation in this order:
+1. **README.md** - Update if user-facing features, packages, or workflows change
+2. **Relevant docs/** - Update existing documentation that covers the changed area
+3. **Create new docs/** - Document complex changes, quirks, or workarounds
+
+### When to Create Documentation
+
+Create a new file in `docs/` when:
+- **Complex changes:** Multi-step processes that future developers need to understand
+- **Quirks and workarounds:** Non-obvious solutions to specific problems
+- **System integration:** How different components work together (e.g., ironbar-niri-overview.md)
+- **Setup procedures:** Multi-step configuration that needs to be reproducible
+
+### When to Update Existing Documentation
+
+Update existing docs when:
+- **Package lists change:** Update README.md software sections
+- **Workflow changes:** Update development commands or processes
+- **Configuration patterns change:** Update relevant docs/ files
+- **Features are added/removed:** Update README.md and related docs/
+- **Known issues are fixed:** Remove from gotchas, add to docs/ if solution is complex
+
+### Documentation Structure
+
+**README.md** - User-facing documentation:
+- Quick start commands
+- Installed software and features
+- Keyboard shortcuts
+- Hardware information
+- References to detailed guides in docs/
+
+**docs/** - Detailed technical guides:
+- `structure.md` - Repository organization
+- `adding-packages.md` - Package management
+- `new-host.md` - Adding machines
+- `secure-boot.md` - Secure boot setup
+- `fingerprint-setup.md` - Fingerprint authentication
+- `stylix-darkman-setup.md` - Theming deep dive
+- `ironbar-niri-overview.md` - Status bar integration
+
+**AGENTS.md** - AI agent guidelines (this file):
+- Development workflow
+- Configuration patterns
+- Code style
+- Common gotchas
+
+### Example Documentation Scenarios
+
+**Scenario 1: Adding a new package**
+- Add to appropriate packages.nix file
+- Run `nh os switch`
+- Update README.md software list
+- If complex setup needed, create docs/package-name-setup.md
+
+**Scenario 2: Fixing a quirk**
+- Implement the fix
+- Document the quirk and solution in docs/
+- Add to Common Gotchas in AGENTS.md if relevant for future development
+- Update README.md if it affects user workflow
+
+**Scenario 3: Changing keyboard shortcuts**
+- Update niri/binds.nix
+- Update README.md keyboard shortcuts table
+- Run `nh os switch`
+
+**Scenario 4: Complex system integration**
+- Implement the integration
+- Create docs/integration-name.md explaining how it works
+- Add reference to README.md
+- Add patterns to AGENTS.md if it establishes new conventions
+
+### Documentation Best Practices
+
+- **Be specific:** Include file paths, line numbers, and exact commands
+- **Explain why:** Document the reasoning behind non-obvious decisions
+- **Keep it current:** Remove outdated information immediately
+- **Cross-reference:** Link related documentation
+- **Test commands:** Verify all commands in documentation actually work
