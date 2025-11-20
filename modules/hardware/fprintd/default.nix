@@ -75,5 +75,19 @@
         ];
       };
     };
+
+    # Enable fingerprint for greetd with a shorter timeout
+    # This allows quick fallback to password for keyring unlock
+    greetd = {
+      rules.auth.fprintd = {
+        order = 11400; # Before unix auth
+        control = "sufficient";
+        modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
+        args = [
+          "timeout=5"
+          "max-tries=2"
+        ];
+      };
+    };
   };
 }

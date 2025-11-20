@@ -14,7 +14,10 @@
     pkgs.pavucontrol
     inputs.awww.packages.${pkgs.system}.awww
   ];
-  services.gnome-keyring.enable = true;
+  # Keyring is managed by PAM (see modules/desktop/greetd.nix)
+  # Don't start a separate daemon here as it conflicts with PAM
+  # Using mkForce to override niri-flake's default setting
+  services.gnome-keyring.enable = lib.mkForce false;
 
   xdg.portal = {
     enable = true;

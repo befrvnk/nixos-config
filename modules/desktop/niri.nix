@@ -22,6 +22,9 @@
   };
 
   security.polkit.enable = true;
+
+  # Enable gnome-keyring at system level for proper dbus integration
+  # PAM configuration in greetd.nix ensures it's unlocked on login
   services.gnome.gnome-keyring.enable = true;
 
   security.pam.services.swaylock = { };

@@ -18,4 +18,7 @@
     # Without this errors will spam on screen
     StandardError = "journal";
   };
+
+  # Auto-unlock gnome-keyring on login
+  security.pam.services.greetd.enableGnomeKeyring = true;
 }
