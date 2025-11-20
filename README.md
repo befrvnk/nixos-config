@@ -364,15 +364,25 @@ US layout with German umlauts via Right Alt:
 
 Detailed guides for specific topics:
 
+### Configuration & Setup
 - [Repository Structure](./docs/structure.md) - Detailed configuration organization
 - [Adding Packages](./docs/adding-packages.md) - How to add system and user packages
 - [Adding a New Host](./docs/new-host.md) - Configure additional machines
+- [Development Environment](./docs/development-environment.md) - Dev shell and formatting
+
+### Security & Authentication
 - [Secure Boot with TPM](./docs/secure-boot.md) - Secure boot setup
 - [Fingerprint Setup](./docs/fingerprint-setup.md) - Fingerprint authentication
-- [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Theme switching
-- [Development Environment](./docs/development-environment.md) - Dev shell and formatting
+
+### Theming & Desktop
+- [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Theme switching with light/dark modes
+- [Ironbar with Niri Overview](./docs/ironbar-niri-overview.md) - Status bar overview-mode integration
 - [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior
-- [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI control
+- [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control
+
+### Tools & Utilities
+- [OpenCode AI Setup](./docs/opencode-ai-setup.md) - AI coding assistant configuration
+- [Ghostty Startup Delay](./docs/ghostty-startup-delay.md) - Terminal startup issue troubleshooting
 
 ## Getting Started with Nix
 
