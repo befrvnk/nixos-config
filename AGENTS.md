@@ -4,6 +4,8 @@
 
 **Important:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild`. Always prefer `nh` commands for better output, faster builds, and visual diffs.
 
+**Note for AI Agents:** Do NOT run any commands requiring `sudo`. If a task requires sudo privileges, inform the user and ask them to run the command manually. The commands below are documented for reference only.
+
 ### Primary Commands (use these)
 - **Rebuild system:** `nh os switch ~/nixos-config` or `nh os switch` (auto-detects config)
 - **Test without activating:** `nh os test ~/nixos-config` (builds but doesn't set as boot default)
@@ -21,6 +23,28 @@
 - ❌ `nixos-rebuild switch` → Use `nh os switch` instead
 - ❌ `nixos-rebuild test` → Use `nh os test` instead
 - ❌ `nix-collect-garbage` → Use `nh clean all` instead
+
+### Commands Requiring User Intervention (DO NOT RUN)
+
+**AI Agents must NOT execute these commands.** Document them in responses and ask the user to run them manually:
+
+- **Rollback to previous generation:** `sudo nixos-rebuild switch --rollback`
+- **List all generations:** `sudo nix-env --list-generations --profile /nix/var/nix/profiles/system`
+- **Boot into specific generation:** `sudo nixos-rebuild switch --rollback --generation <number>`
+- **Hardware scans:** `sudo nixos-generate-config --show-hardware-config`
+- **Systemd system services:** `sudo systemctl <start|stop|restart|status> <service>`
+- **Any command with sudo:** Inform the user and provide the command for them to run
+
+### Safe Commands for Agents
+
+Agents CAN safely run these commands without sudo:
+
+- **All nh commands:** `nh os switch`, `nh os test`, `nh clean all`, etc.
+- **Nix commands:** `nix flake check`, `nix flake update`, `nix fmt`, `nix build`
+- **Git operations:** `git add`, `git commit`, `git push`, `git status`, etc.
+- **User systemd services:** `systemctl --user status/start/stop/restart <service>`
+- **File operations:** Read, Edit, Write tools for configuration files
+- **Directory operations:** `ls`, `tree`, `fd`, file searches
 
 ## Code Style Guidelines
 - **Formatting:** Uses `nixfmt-rfc-style` - automatically applied via pre-commit hooks
@@ -267,7 +291,7 @@ systemd.user.services.my-service = {
 **After creating the service:**
 1. Test the configuration: `nh os test` (or `nh home test` for home-manager services)
 2. Apply the changes: `nh os switch`
-3. Check service status: `systemctl --user status my-service`
+3. Check service status: `systemctl --user status my-service` (user services don't need sudo)
 
 ## Security Considerations
 
