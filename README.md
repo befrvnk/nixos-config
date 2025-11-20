@@ -2,6 +2,50 @@
 
 Personal NixOS configuration for a Framework 13 laptop with the Niri window manager.
 
+## Screenshots
+
+### Light Mode
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="./screenshots/desktop_light.png">
+        <img src="./screenshots/desktop_light_thumb.png" alt="Desktop Light" width="400"/>
+      </a>
+      <br/>
+      Desktop
+    </td>
+    <td align="center">
+      <a href="./screenshots/overview_light.png">
+        <img src="./screenshots/overview_light_thumb.png" alt="Overview Light" width="400"/>
+      </a>
+      <br/>
+      Overview
+    </td>
+  </tr>
+</table>
+
+### Dark Mode
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="./screenshots/desktop_dark.png">
+        <img src="./screenshots/desktop_dark_thumb.png" alt="Desktop Dark" width="400"/>
+      </a>
+      <br/>
+      Desktop
+    </td>
+    <td align="center">
+      <a href="./screenshots/overview_dark.png">
+        <img src="./screenshots/overview_dark_thumb.png" alt="Overview Dark" width="400"/>
+      </a>
+      <br/>
+      Overview
+    </td>
+  </tr>
+</table>
+
 ## Quick Start
 
 ```bash
