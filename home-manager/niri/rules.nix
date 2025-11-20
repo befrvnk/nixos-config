@@ -30,6 +30,14 @@
     {
       matches = [
         {
+          app-id = "zen-beta";
+        }
+      ];
+      default-column-width.proportion = 0.75;
+    }
+    {
+      matches = [
+        {
           app-id = "^zen-beta$";
           title = "^Picture-in-Picture$";
         }
