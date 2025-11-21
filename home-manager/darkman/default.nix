@@ -59,6 +59,20 @@ in
     executable = true;
   };
 
+  # Monitor hotplug handler script
+  home.file.".local/share/monitor-hotplug.sh" = {
+    source = pkgs.replaceVars ./monitor-hotplug.sh {
+      coreutils = "${pkgs.coreutils}";
+      gnugrep = "${pkgs.gnugrep}";
+      gnused = "${pkgs.gnused}";
+      awww = "${inputs.awww.packages.${pkgs.system}.awww}";
+      darkman = "${pkgs.darkman}";
+      wallpaper_light = "${wallpapers.light}";
+      wallpaper_dark = "${wallpapers.dark}";
+    };
+    executable = true;
+  };
+
   # Light mode wrapper
   home.file.".local/share/light-mode.d/stylix.sh" = {
     text = ''
@@ -75,5 +89,25 @@ in
       exec ~/.local/share/darkman-switch-mode.sh dark
     '';
     executable = true;
+  };
+
+  # Systemd service to monitor for display changes and refresh wallpaper
+  systemd.user.services.monitor-hotplug = {
+    Unit = {
+      Description = "Monitor hotplug wallpaper refresh";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.bash}/bin/bash -c 'while ${pkgs.inotify-tools}/bin/inotifywait -e create,delete -m /sys/class/drm/*/status 2>/dev/null; do ~/.local/share/monitor-hotplug.sh; done'";
+      Restart = "always";
+      RestartSec = "3";
+    };
+
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
   };
 }
