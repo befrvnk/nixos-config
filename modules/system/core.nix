@@ -27,7 +27,8 @@
     HandleLidSwitch = "suspend";
     HandleLidSwitchDocked = "ignore";
     HandleLidSwitchExternalPower = "suspend";
-    IdleAction = "ignore";
+    IdleAction = "suspend";
+    IdleActionSec = "5min";
   };
 
   # Enable USB devices to wake the system from suspend
