@@ -37,11 +37,13 @@
 
   # Audio codec power management
   # Enables power saving for Intel HDA audio (also works with AMD)
-  boot.extraModprobeConfig = ''
-    # Power save timeout in seconds (1 second)
-    # Audio device will enter power save mode after 1 second of inactivity
-    options snd_hda_intel power_save=1
-  '';
+  # Commented out because of high pipewire and wireplumber CPU usage due to this.
+  # There is a communication problem between the audio enhancement and the audio sink.
+  # boot.extraModprobeConfig = ''
+  #   # Power save timeout in seconds (1 second)
+  #   # Audio device will enter power save mode after 1 second of inactivity
+  #   options snd_hda_intel power_save=1
+  # '';
 
   # Enable runtime power management for PCI devices
   services.udev.extraRules = ''
