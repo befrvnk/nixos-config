@@ -6,7 +6,6 @@
       anytype
       bat
       chromium
-      claude-code
       discord
       eza
       fd

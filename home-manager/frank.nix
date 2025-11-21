@@ -5,6 +5,7 @@
     zen-browser.homeModules.beta
     ./android.nix
     ./battery-notifications
+    ./claude-code.nix
     ./darkman
     ./direnv.nix
     ./dunst.nix
