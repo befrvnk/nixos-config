@@ -1,5 +1,8 @@
 { ... }:
 {
+  programs.claude-code = {
+    enable = true;
+  };
   # Claude Code configuration
   # Manages global user-level context that applies to all projects
 
