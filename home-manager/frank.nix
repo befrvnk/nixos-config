@@ -3,28 +3,29 @@
 {
   imports = [
     zen-browser.homeModules.beta
-    ./stylix.nix
+    ./android.nix
+    ./battery-notifications
     ./darkman
     ./direnv.nix
+    ./dunst.nix
+    ./gemini-cli.nix
+    ./ghostty.nix
     ./git.nix
-    ./ssh.nix
-    ./zsh.nix
-    ./starship.nix
-    ./zen-browser.nix
+    ./ironbar
+    ./media-suspend
+    ./navi
+    ./niri
+    ./opencode
     ./packages.nix
     ./signal.nix
-    ./zed.nix
-    ./opencode
-    ./ghostty.nix
-    ./android.nix
-    ./niri
-    ./navi
-    ./ironbar
-    ./dunst.nix
+    ./ssh.nix
+    ./starship.nix
+    ./stylix.nix
     ./swaylock.nix
     ./vicinae.nix
-    ./media-suspend
-    ./battery-notifications
+    ./zed.nix
+    ./zen-browser.nix
+    ./zsh.nix
   ];
 
   home.username = "frank";

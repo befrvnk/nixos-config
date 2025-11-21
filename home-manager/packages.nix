@@ -11,7 +11,6 @@
       eza
       fd
       fzf
-      gemini-cli
       gh
       helix
       htop
