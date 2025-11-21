@@ -4,7 +4,6 @@
   home.packages =
     (with pkgs; [
       anytype
-      atuin
       bat
       chromium
       discord

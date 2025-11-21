@@ -4,6 +4,7 @@
   imports = [
     zen-browser.homeModules.beta
     ./android.nix
+    ./atuin.nix
     ./battery-notifications
     ./claude-code.nix
     ./darkman
