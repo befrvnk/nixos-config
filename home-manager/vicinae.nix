@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  inputs,
+  ...
+}:
 let
   # Read the Stylix-generated qtct config and add icon theme
   stylixQt5ctConf = builtins.readFile (
@@ -22,12 +27,18 @@ in
     # Using regular window mode (useLayerShell = false) works correctly
     useLayerShell = false;
 
-    # Base settings - darkman script will modify the theme at runtime
     settings = {
-      theme = {
-        name = "catppuccin-mocha"; # Default dark theme
+      window = {
+        csd = true;
       };
     };
+
+    extensions = with inputs.vicinae-extensions.packages.${pkgs.stdenv.hostPlatform.system}; [
+      bluetooth
+      nix
+      wifi-commander
+    ];
+
   };
 
   # Force overwrite vicinae config - needed because darkman modifies this file

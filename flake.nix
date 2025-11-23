@@ -31,6 +31,13 @@
       url = "github:vicinaehq/vicinae";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    vicinae-extensions = {
+      url = "github:vicinaehq/extensions";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        vicinae.follows = "vicinae";
+      };
+    };
     niri = {
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -55,6 +62,7 @@
       lanzaboote,
       stylix,
       vicinae,
+      vicinae-extensions,
       niri,
       pre-commit-hooks,
       awww,
@@ -86,6 +94,7 @@
           inherit
             stylix
             vicinae
+            vicinae-extensions
             zen-browser
             android-nixpkgs
             niri
