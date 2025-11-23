@@ -16,6 +16,7 @@
       imagemagick
       jetbrains.idea-community-bin
       lf
+      mission-center
       nautilus
       navi
       neofetch
