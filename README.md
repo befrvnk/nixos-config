@@ -484,3 +484,7 @@ sudo nix-collect-garbage -d
 - **Hardware config:** Create in `modules/hardware/`
 
 See [Adding Packages](./docs/adding-packages.md) for detailed instructions.
+
+## Known Issues
+
+- **Ironbar Volume Module:** The reported volume level from `volume-status.sh` only works once pavucontrol was opened or audio was played. Before that `volume-status.sh` returns 100% as volume level which isn't correct.
