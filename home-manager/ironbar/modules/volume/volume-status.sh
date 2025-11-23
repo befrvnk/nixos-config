@@ -36,18 +36,8 @@ fi
 # Get volume info using wpctl get-volume (for mute state)
 volume_info=$(wpctl get-volume "$sink_id" 2>/dev/null)
 
-# Get the stored default volume from WirePlumber's state
-# This is reliable even when audio codec is in power-save mode
-stored_volume=$(wpctl inspect "$sink_id" 2>/dev/null | grep 'state.default-volume' | grep -oP '"\K[0-9.]+')
-
-# If we have a stored volume, use it (more reliable during power-save)
-# Otherwise fall back to the reported volume
-if [ -n "$stored_volume" ]; then
-    volume=$(awk "BEGIN {print int($stored_volume * 100)}")
-else
-    # Parse volume percentage from wpctl get-volume output
-    volume=$(echo "$volume_info" | awk '{print int($2 * 100)}')
-fi
+# Parse volume percentage from wpctl get-volume output
+volume=$(echo "$volume_info" | awk '{print int($2 * 100)}')
 
 # Select appropriate Nerd Font icon based on volume state
 # Icons used (from Nerd Fonts):
