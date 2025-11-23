@@ -4,9 +4,6 @@
   # Power management optimizations based on PowerTOP recommendations
   # These settings help extend battery life on Framework laptops
 
-  # Enable basic power management
-  powerManagement.enable = true;
-
   # Disable power-profiles-daemon (conflicts with TLP)
   # power-profiles-daemon is often enabled by default in desktop environments
   # We use TLP instead for more comprehensive power management
@@ -35,28 +32,13 @@
     "vm.laptop_mode" = 5;
   };
 
-  # Audio codec power management
-  # Enables power saving for Intel HDA audio (also works with AMD)
-  # Commented out because of high pipewire and wireplumber CPU usage due to this.
-  # There is a communication problem between the audio enhancement and the audio sink.
-  # boot.extraModprobeConfig = ''
-  #   # Power save timeout in seconds (1 second)
-  #   # Audio device will enter power save mode after 1 second of inactivity
-  #   options snd_hda_intel power_save=1
-  # '';
-
-  # Enable runtime power management for PCI devices
-  services.udev.extraRules = ''
-    # Enable ASPM (Active State Power Management) for all PCI devices
-    # This allows PCIe devices to enter low-power states
-    ACTION=="add", SUBSYSTEM=="pci", ATTR{power/control}="auto"
-
-    # Enable runtime PM for USB devices
-    ACTION=="add", SUBSYSTEM=="usb", ATTR{power/control}="auto"
-
-    # Enable runtime PM for SCSI/SATA devices
-    ACTION=="add", SUBSYSTEM=="scsi_host", KERNEL=="host*", ATTR{link_power_management_policy}="med_power_with_dipm"
-  '';
+  # Runtime power management is handled by TLP (see below)
+  # Previously, we had aggressive udev rules here that enabled power management
+  # for all PCI/USB devices immediately on boot. This caused race conditions where
+  # devices (especially the mt7925e WiFi card) would be put into low-power states
+  # before their drivers fully initialized, leading to "driver own failed" errors.
+  # TLP's RUNTIME_PM_ON_AC/BAT settings handle this more safely by applying power
+  # management after the system has fully booted.
 
   # TLP - Advanced power management with AC/battery profiles
   # Automatically switches between performance and power-saving modes
@@ -118,6 +100,15 @@
       # Helps NVMe SSDs enter deeper power states
       AHCI_RUNTIME_PM_ON_AC = "auto";
       AHCI_RUNTIME_PM_ON_BAT = "auto";
+
+      # Audio power management
+      # Disable audio power saving to prevent:
+      # 1. High pipewire/wireplumber CPU usage (communication issues with audio processing)
+      # 2. Incorrect volume reporting (wpctl returns 1.0 when suspended instead of actual volume)
+      # 3. Volume changes not being visible in UI until audio is played
+      # Setting to 0 keeps audio codec always active, preventing these issues
+      SOUND_POWER_SAVE_ON_AC = 0;
+      SOUND_POWER_SAVE_ON_BAT = 0;
     };
   };
 }
