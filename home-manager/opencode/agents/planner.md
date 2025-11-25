@@ -1,6 +1,6 @@
 ---
 description: Planning and architecture specialist for research and comprehensive planning
-model: gemini-2.5-pro
+model: google/gemini-2.5-pro
 temperature: 0.2
 maxTokens: 8000
 ---

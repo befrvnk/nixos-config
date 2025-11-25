@@ -1,6 +1,6 @@
 ---
 description: Code review specialist for quality and security checks
-model: gemini-2.5-flash
+model: google/gemini-2.5-flash
 temperature: 0.1
 maxTokens: 4000
 ---

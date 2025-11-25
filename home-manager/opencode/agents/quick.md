@@ -1,6 +1,6 @@
 ---
 description: Quick-response coding assistant for simple, straightforward tasks
-model: gemini-2.5-flash
+model: google/gemini-2.5-flash
 temperature: 0.3
 maxTokens: 4000
 ---

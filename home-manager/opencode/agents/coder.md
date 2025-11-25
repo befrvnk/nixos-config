@@ -1,6 +1,6 @@
 ---
 description: Main coding agent with Claude Code workflow behavior
-model: gemini-2.5-pro
+model: google/gemini-2.5-pro
 temperature: 0.3
 maxTokens: 8000
 ---
