@@ -57,25 +57,10 @@
   };
 
   outputs =
-    {
-      nixpkgs,
-      home-manager,
-      nixos-hardware,
-      zen-browser,
-      android-nixpkgs,
-      lanzaboote,
-      stylix,
-      vicinae,
-      vicinae-extensions,
-      niri,
-      pre-commit-hooks,
-      awww,
-      claude-code,
-      ...
-    }@inputs:
+    inputs:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = inputs.nixpkgs.legacyPackages.${system};
       # Common overlays applied to all hosts
       commonOverlays = [
         # To update gemini-cli to a new version:
@@ -86,33 +71,25 @@
         #    python3 -c "import base64; print('sha256-' + base64.b64encode(bytes.fromhex('<HEX_HASH>')).decode())"
         # 4. Update 'hash' in overlays/gemini-cli.nix with the output
         (import ./overlays/gemini-cli.nix)
-        android-nixpkgs.overlays.default
-        niri.overlays.niri
+        inputs.android-nixpkgs.overlays.default
+        inputs.niri.overlays.niri
         (import ./overlays/niri.nix)
-        claude-code.overlays.default
+        inputs.claude-code.overlays.default
       ];
     in
     {
-      nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.framework = inputs.nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit nixos-hardware lanzaboote inputs;
-          inherit
-            stylix
-            vicinae
-            vicinae-extensions
-            zen-browser
-            android-nixpkgs
-            niri
-            ;
+          inherit inputs;
         };
         modules = [
           # Apply common overlays to all hosts
           { nixpkgs.overlays = commonOverlays; }
           ./hosts/framework
           ./hosts/framework/home.nix
-          home-manager.nixosModules.home-manager
-          stylix.nixosModules.stylix
+          inputs.home-manager.nixosModules.home-manager
+          inputs.stylix.nixosModules.stylix
         ];
       };
 
@@ -122,7 +99,7 @@
         packages = [ pkgs.nixfmt-rfc-style ];
 
         inherit
-          (pre-commit-hooks.lib.${system}.run {
+          (inputs.pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
               nixfmt-rfc-style = {

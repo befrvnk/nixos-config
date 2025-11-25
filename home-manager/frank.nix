@@ -1,8 +1,8 @@
-{ zen-browser, ... }:
+{ inputs, ... }:
 
 {
   imports = [
-    zen-browser.homeModules.beta
+    inputs.zen-browser.homeModules.beta
     ./android.nix
     ./atuin.nix
     ./battery-notifications

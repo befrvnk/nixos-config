@@ -1,9 +1,4 @@
 {
-  stylix,
-  vicinae,
-  zen-browser,
-  android-nixpkgs,
-  niri,
   inputs,
   ...
 }:
@@ -14,12 +9,12 @@
     useUserPackages = true;
     users.frank = ../../home-manager/frank.nix;
     sharedModules = [
-      stylix.homeModules.stylix
-      vicinae.homeManagerModules.default
-      niri.homeModules.niri
+      inputs.stylix.homeModules.stylix
+      inputs.vicinae.homeManagerModules.default
+      inputs.niri.homeModules.niri
     ];
     extraSpecialArgs = {
-      inherit zen-browser android-nixpkgs inputs;
+      inherit inputs;
     };
   };
 }

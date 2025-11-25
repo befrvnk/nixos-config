@@ -1,8 +1,8 @@
-{ pkgs, android-nixpkgs, ... }:
+{ pkgs, inputs, ... }:
 
 {
   # Import the android-nixpkgs Home Manager module to make the options available
-  imports = [ android-nixpkgs.hmModule ];
+  imports = [ inputs.android-nixpkgs.hmModule ];
 
   home.packages = [
     pkgs.androidStudioPackages.canary

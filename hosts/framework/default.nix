@@ -1,6 +1,5 @@
 {
-  nixos-hardware,
-  lanzaboote,
+  inputs,
   lib,
   ...
 }:
@@ -9,8 +8,8 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules
-    nixos-hardware.nixosModules.framework-amd-ai-300-series
-    lanzaboote.nixosModules.lanzaboote
+    inputs.nixos-hardware.nixosModules.framework-amd-ai-300-series
+    inputs.lanzaboote.nixosModules.lanzaboote
   ];
 
   boot.loader.systemd-boot.enable = lib.mkForce false;
