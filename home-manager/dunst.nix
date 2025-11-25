@@ -64,7 +64,7 @@
         always_run_script = true;
         title = "Dunst";
         class = "Dunst";
-        corner_radius = 12;
+        corner_radius = 16;
         ignore_dbusclose = false;
 
         # Mouse actions
