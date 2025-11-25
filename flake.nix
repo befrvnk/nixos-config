@@ -50,6 +50,10 @@
       url = "git+https://codeberg.org/LGFae/awww";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    claude-code = {
+      url = "github:sadjow/claude-code-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -66,6 +70,7 @@
       niri,
       pre-commit-hooks,
       awww,
+      claude-code,
       ...
     }@inputs:
     let
@@ -84,6 +89,7 @@
         android-nixpkgs.overlays.default
         niri.overlays.niri
         (import ./overlays/niri.nix)
+        claude-code.overlays.default
       ];
     in
     {
