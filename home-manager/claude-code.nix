@@ -2,6 +2,13 @@
 {
   programs.claude-code = {
     enable = true;
+
+    mcpServers = {
+      context7 = {
+        type = "http";
+        url = "https://mcp.context7.com/mcp";
+      };
+    };
   };
   # Claude Code configuration
   # Manages global user-level context that applies to all projects
