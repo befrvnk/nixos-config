@@ -235,6 +235,7 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **nil**, **nixd** - Nix language servers
 
 #### AI Tools
+- **opencode** - AI coding agent with MCP server support (Context7, Anytype)
 - **claude-code** - Anthropic's AI coding assistant
 - **gemini-cli** - Google's Gemini AI
 
@@ -426,6 +427,7 @@ Detailed guides for specific topics:
 
 ### Tools & Utilities
 - [OpenCode AI Setup](./docs/opencode-ai-setup.md) - AI coding assistant configuration
+- [OpenCode MCP Setup](./docs/opencode-mcp-setup.md) - MCP server integration (Context7, Anytype)
 - [Ghostty Startup Delay](./docs/ghostty-startup-delay.md) - Terminal startup issue troubleshooting
 
 ## Getting Started with Nix

@@ -1,48 +1,40 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 
+let
+  anytype = import ../mcp/anytype.nix { inherit pkgs; };
+  opencode-wrapped = anytype.wrapWithAnytypeKey {
+    package = pkgs.opencode;
+    name = "opencode";
+  };
+in
 {
   programs.opencode = {
     enable = true;
-  };
+    package = opencode-wrapped;
 
-  # OpenCode configuration file with Claude Code workflow
-  xdg.configFile."opencode/.opencode.json".text = builtins.toJSON {
-    # Default model preferences - use Gemini Pro for general tasks
-    defaultModel = "gemini-2.5-pro";
+    settings = {
+      model = "google/gemini-2.5-pro";
 
-    # UI preferences
-    ui = {
-      theme = "dark";
-      editor = "zed";
-    };
-
-    # Provider configurations
-    providers = {
-      anthropic = {
-        enabled = true;
-        models = [
-          "claude-sonnet-4-5"
-          "claude-haiku-4-5"
-        ];
-      };
-      google = {
-        enabled = true;
-        models = [
-          "gemini-2.5-flash"
-          "gemini-2.5-pro"
-        ];
+      mcp = {
+        context7 = {
+          type = "remote";
+          url = "https://mcp.context7.com/mcp";
+        };
+        anytype = anytype.anytype-mcp-config anytype.anytype-mcp-wrapper;
       };
     };
+
+    agents = {
+      "coder.md" = ./agents/coder.md;
+      "planner.md" = ./agents/planner.md;
+      "quick.md" = ./agents/quick.md;
+      "reviewer.md" = ./agents/reviewer.md;
+    };
+
+    commands = {
+      "commit.md" = ./commands/commit.md;
+    };
   };
-
-  # Deploy agent markdown files
-  xdg.configFile."opencode/agent/coder.md".source = ./agents/coder.md;
-  xdg.configFile."opencode/agent/planner.md".source = ./agents/planner.md;
-  xdg.configFile."opencode/agent/quick.md".source = ./agents/quick.md;
-  xdg.configFile."opencode/agent/reviewer.md".source = ./agents/reviewer.md;
-
-  # Deploy command files
-  xdg.configFile."opencode/command/commit.md".source = ./commands/commit.md;
 
   # Environment variables for configuration
   home.sessionVariables = {
