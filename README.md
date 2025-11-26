@@ -423,6 +423,7 @@ Detailed guides for specific topics:
 - [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Theme switching with light/dark modes
 - [Ironbar with Niri Overview](./docs/ironbar-niri-overview.md) - Status bar overview-mode integration
 - [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior
+- [Systemd Inhibitor Locks](./docs/systemd-inhibitor-locks.md) - How inhibitor locks prevent suspend during media playback
 - [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control
 
 ### Tools & Utilities
