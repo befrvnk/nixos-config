@@ -6,7 +6,7 @@
     ./android.nix
     ./atuin.nix
     ./battery-notifications
-    ./claude-code.nix
+    ./claude-code
     ./darkman
     ./direnv.nix
     ./dunst.nix
