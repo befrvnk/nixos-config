@@ -198,7 +198,11 @@ This project uses specialized Claude Code subagents for efficient development. E
 - Analyzes git status, diff, and recent log
 - Presents commit message for approval
 - **Never commits without user approval**
-- NO Claude Code attribution in commit messages
+- **CRITICAL: NO attribution or footers in commit messages**
+  - Do NOT add "Generated with Claude Code" links
+  - Do NOT add "Co-Authored-By: Claude" or any co-author information
+  - Do NOT add any automated footers, signatures, or attribution
+  - Commit messages should contain ONLY: title, optional body, and relevant trailers (Fixes, Closes, etc.)
 - nixfmt runs automatically via pre-commit hook
 
 ### Token Optimization
