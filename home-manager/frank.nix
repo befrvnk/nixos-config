@@ -6,7 +6,8 @@
     ./android.nix
     ./atuin.nix
     ./battery-notifications
-    ./claude-code
+    ./camera-monitor
+    ./claude-code.nix
     ./darkman
     ./direnv.nix
     ./dunst.nix
@@ -41,4 +42,7 @@
   home.sessionVariables = {
     NIXOS_OZONE_WL = "1";
   };
+
+  # Enable Fujifilm X-T50 camera availability monitor
+  services.camera-monitor.enable = true;
 }
