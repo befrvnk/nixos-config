@@ -14,7 +14,7 @@
         width = 300;
         height = 300;
         origin = "top-right";
-        offset = "10x10";
+        offset = "12x12";
 
         # Progress bar
         progress_bar = true;
