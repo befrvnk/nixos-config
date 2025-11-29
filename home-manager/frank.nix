@@ -28,7 +28,7 @@
     ./vicinae.nix
     ./zed.nix
     ./zen-browser.nix
-    ./zsh.nix
+    ./zsh
   ];
 
   home.username = "frank";

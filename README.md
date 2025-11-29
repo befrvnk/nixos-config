@@ -48,18 +48,29 @@ Personal NixOS configuration for a Framework 13 laptop with the Niri window mana
 
 ## Quick Start
 
+The repository uses **devenv** with **direnv** for automatic environment activation. The development environment provides git hooks, Claude Code integration, and custom rebuild commands.
+
 ```bash
+# First time setup (install devenv and approve direnv)
+sudo nixos-rebuild switch --flake ~/nixos-config#framework
+cd ~/nixos-config
+direnv allow
+
+# Daily usage - environment activates automatically
+cd ~/nixos-config
+
 # Rebuild system configuration
-nh os switch ~/nixos-config
+rebuild switch    # Apply changes immediately
+rebuild           # Prepare for next boot (default)
 
 # Update all flake inputs
 nix flake update
 
-# Format Nix files
-nix develop -c nixfmt **/*.nix flake.nix
+# Format Nix files (happens automatically on commit)
+nixfmt **/*.nix
 ```
 
-> **Note:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild` for better progress output, faster builds, and visual diffs of package changes. It automatically detects the hostname from the flake configuration.
+> **Note:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild` for better progress output, faster builds, and visual diffs of package changes. The `rebuild` script is available when the devenv environment is active. See [Development Environment](./docs/development-environment.md) for details.
 
 ## Desktop Environment
 

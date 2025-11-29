@@ -6,6 +6,7 @@
       anytype
       bat
       chromium
+      devenv
       discord
       eza
       fd

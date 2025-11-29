@@ -42,10 +42,6 @@
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    pre-commit-hooks = {
-      url = "github:cachix/pre-commit-hooks.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     awww = {
       url = "git+https://codeberg.org/LGFae/awww";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -93,26 +89,7 @@
         ];
       };
 
+      # Formatter for `nix fmt` command
       formatter.${system} = pkgs.nixfmt-rfc-style;
-
-      devShells.${system}.default = pkgs.mkShell {
-        packages = [ pkgs.nixfmt-rfc-style ];
-
-        inherit
-          (inputs.pre-commit-hooks.lib.${system}.run {
-            src = ./.;
-            hooks = {
-              nixfmt-rfc-style = {
-                enable = true;
-                name = "nixfmt";
-                description = "Format Nix code with nixfmt";
-                files = "\\.nix$";
-                entry = "${pkgs.nixfmt-rfc-style}/bin/nixfmt";
-              };
-            };
-          })
-          shellHook
-          ;
-      };
     };
 }

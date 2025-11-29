@@ -7,11 +7,13 @@
 **Note for AI Agents:** Do NOT run any commands requiring `sudo`. If a task requires sudo privileges, inform the user and ask them to run the command manually. The commands below are documented for reference only.
 
 ### Primary Commands (use these)
-- **Rebuild system:** `nh os switch ~/nixos-config` or `nh os switch` (auto-detects config)
+- **Rebuild system:** `rebuild switch` (when in devenv) or `nh os switch ~/nixos-config`
 - **Test without activating:** `nh os test ~/nixos-config` (builds but doesn't set as boot default)
-- **Update and rebuild:** `nh os switch ~/nixos-config --update` (updates flake.lock and rebuilds)
+- **Update and rebuild:** `nix flake update && rebuild switch` (updates flake.lock and rebuilds)
 - **Clean old generations:** `nh clean all --keep 5` (keeps last 5 generations)
 - **Search packages:** `nh search <package-name>`
+
+**Note:** The `rebuild` script is available when the devenv environment is active (automatic via direnv).
 
 ### Additional Commands
 - **Check flake validity:** `nix flake check`
@@ -39,10 +41,12 @@
 
 Agents CAN safely run these commands without sudo:
 
-- **All nh commands:** `nh os switch`, `nh os test`, `nh clean all`, etc.
+- **All nh commands:** `nh os switch ~/nixos-config`, `nh os test ~/nixos-config`, `nh clean all`, etc.
+- **devenv scripts:** `rebuild switch`, `rebuild`, `sysinfo`, `generations` (when in devenv)
 - **Nix commands:** `nix flake check`, `nix flake update`, `nix fmt`, `nix build`
 - **Git operations:** `git add`, `git commit`, `git push`, `git status`, etc.
 - **User systemd services:** `systemctl --user status/start/stop/restart <service>`
+- **Development tools:** `nixfmt`, `statix`, `deadnix` (when in devenv environment)
 - **File operations:** Read, Edit, Write tools for configuration files
 - **Directory operations:** `ls`, `tree`, `fd`, file searches
 
@@ -55,19 +59,19 @@ Agents CAN safely run these commands without sudo:
 - **Error handling:** Use proper Nix attribute set validation and default values
 
 ## Development Workflow
-- direnv automatically loads dev shell on directory entry
-- Pre-commit hooks ensure all committed code is formatted
-- Use `nh os switch` or the `rebuild` alias from zsh for convenient system rebuilding
-- Test changes with `nh os test` before committing to ensure they work
-- Use `nh os switch --update` to update flakes and rebuild in one command
+- direnv automatically loads devenv environment on directory entry
+- Pre-commit hooks (via devenv) ensure all committed code is formatted
+- Use `rebuild switch` (from devenv) for convenient system rebuilding
+- Test changes with `nh os test ~/nixos-config` before committing to ensure they work
+- Use `nix flake update && rebuild switch` to update flakes and rebuild in one command
 - Clean old generations periodically with `nh clean all --keep 5`
 
 ### Standard Development Process
 1. **Check existing documentation** - Review README.md and docs/ for related content
 2. **Make changes** to configuration files
-3. **Test** with `nh os test` to verify it builds
+3. **Test** with `nh os test ~/nixos-config` to verify it builds
 4. **Update documentation** (README.md and/or docs/) if needed
-5. **Apply changes** with `nh os switch`
+5. **Apply changes** with `rebuild switch`
 6. **Verify** the system behaves as expected
 7. **Commit** with descriptive message explaining what and why
 8. **Push** to remote repository
@@ -324,8 +328,8 @@ This project uses [nh](https://github.com/nix-community/nh) as a wrapper around 
 - **Unified interface:** Single tool for OS, home-manager, and package management
 
 **When to use what:**
-- System rebuilds: `nh os switch` (not `nixos-rebuild`)
-- Home-manager: `nh home switch` (if using standalone home-manager)
+- System rebuilds: `rebuild switch` (in devenv) or `nh os switch ~/nixos-config` (not `nixos-rebuild`)
+- Home-manager: Integrated with system rebuild (no separate command needed)
 - Package search: `nh search` (alternative to `nix search`)
 - Cleanup: `nh clean all --keep N` (not `nix-collect-garbage`)
 - Flake operations: Still use `nix flake update`, `nix flake check`, `nix fmt`
@@ -514,10 +518,10 @@ Imported in: `stylix.nix`, `darkman/default.nix`
 2. Import in `frank.nix`: `imports = [ ./new-app ];`
 
 ### Adding Packages
-- **System package:** Add to `modules/system/packages.nix`, then run `nh os switch`
-- **User package:** Add to `home-manager/packages.nix`, then run `nh os switch`
-- **Custom package:** Create overlay in `overlays/`, then run `nh os switch`
-- **Test first:** Use `nh os test` to verify the package builds before switching
+- **System package:** Add to `modules/system/packages.nix`, then run `rebuild switch`
+- **User package:** Add to `home-manager/packages.nix`, then run `rebuild switch`
+- **Custom package:** Create overlay in `overlays/`, then run `rebuild switch`
+- **Test first:** Use `nh os test ~/nixos-config` to verify the package builds before switching
 
 ### Creating User Services
 ```nix
@@ -539,8 +543,8 @@ systemd.user.services.my-service = {
 ```
 
 **After creating the service:**
-1. Test the configuration: `nh os test` (or `nh home test` for home-manager services)
-2. Apply the changes: `nh os switch`
+1. Test the configuration: `nh os test ~/nixos-config`
+2. Apply the changes: `rebuild switch`
 3. Check service status: `systemctl --user status my-service` (user services don't need sudo)
 
 ## Security Considerations
@@ -727,9 +731,11 @@ Configured via `flake.nix` and managed by `pre-commit-hooks.nix`:
 ```bash
 # Format all files
 nix fmt
+# or (when in devenv environment)
+nixfmt **/*.nix
 
 # Format specific files
-nix develop -c nixfmt file.nix
+nixfmt file.nix
 
 # Check without changing
 nix fmt -- --check .
@@ -847,7 +853,7 @@ Update existing docs when:
 
 **Scenario 1: Adding a new package**
 - Add to appropriate packages.nix file
-- Run `nh os switch`
+- Run `rebuild switch`
 - Update README.md software list
 - If complex setup needed, create docs/package-name-setup.md
 
@@ -860,7 +866,7 @@ Update existing docs when:
 **Scenario 3: Changing keyboard shortcuts**
 - Update niri/binds.nix
 - Update README.md keyboard shortcuts table
-- Run `nh os switch`
+- Run `rebuild switch`
 
 **Scenario 4: Complex system integration**
 - Implement the integration

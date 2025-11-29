@@ -1,0 +1,12 @@
+# devenv.yaml - Input configuration for the development environment
+# This file specifies the Nix inputs used by devenv
+#
+# To update dependencies: devenv update
+
+inputs:
+  # Use the same nixpkgs as the flake for consistency
+  nixpkgs:
+    url: github:NixOS/nixpkgs/nixpkgs-unstable
+
+# Allow unfree packages (e.g., some development tools)
+allowUnfree: true

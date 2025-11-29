@@ -17,10 +17,18 @@
 
   programs.zsh.enable = true;
 
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-  ];
+  nix.settings = {
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+
+    # Allow the user to configure binary caches (needed for devenv)
+    trusted-users = [
+      "root"
+      "frank"
+    ];
+  };
 
   # Configure systemd-logind for proper lid handling
   services.logind.settings.Login = {

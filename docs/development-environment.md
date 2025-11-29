@@ -1,142 +1,429 @@
-# Development Environment & Automatic Code Formatting
+# Development Environment with devenv
 
-This repository uses **direnv** and **pre-commit hooks** to automatically format Nix code with nixfmt. Everything is fully automated—no manual commands required.
+This repository uses **devenv** to provide a declarative, reproducible development environment with automatic shell activation, git hooks, and Claude Code integration.
+
+## Overview
+
+The development environment provides:
+- ✅ **Automatic shell activation** via direnv when entering the directory
+- ✅ **Automatic code formatting** with nixfmt on commit
+- ✅ **Claude Code integration** with custom commands and hooks
+- ✅ **Project-specific tools** (git, nixfmt, statix, deadnix, nh)
+- ✅ **MCP servers** (Context7, devenv)
+- ✅ **Custom scripts** (rebuild, sysinfo, generations)
+
+## Quick Start
+
+### First Time Setup
+
+1. **Rebuild your system** to install devenv:
+   ```bash
+   sudo nixos-rebuild switch --flake .#framework
+   ```
+
+2. **Approve the environment** (security measure):
+   ```bash
+   cd ~/nixos-config
+   direnv allow
+   ```
+
+3. **Done!** The environment will automatically activate whenever you enter the directory.
+
+### Daily Usage
+
+Just `cd` into the repository - everything else is automatic:
+
+```bash
+cd ~/nixos-config
+# Environment automatically loads with all tools and configurations
+
+# Edit files normally
+vim devenv.nix
+
+# Commit changes - formatting happens automatically
+git commit -m "feat: add new feature"
+
+# Use custom commands
+rebuild switch    # Rebuild NixOS
+sysinfo          # Show system information
+generations      # List NixOS generations
+```
 
 ## How It Works
 
-### Automatic Environment Loading with direnv
+### devenv + direnv Integration
 
-The repository includes a `.envrc` file that automatically loads the Nix development shell whenever you enter the directory:
+1. **devenv** (`devenv.nix`) defines the development environment:
+   - Packages available in the shell
+   - Git hooks configuration
+   - Claude Code integration
+   - Custom scripts and commands
+   - Environment variables
 
-1. **direnv** is configured in your home-manager configuration (`home-manager/direnv.nix`)
-2. When you `cd` into `nixos-config`, direnv automatically runs `nix develop`
-3. The development shell (`devShells.default` in `flake.nix`) loads nixfmt and installs git hooks
-4. When you leave the directory, the environment is automatically unloaded
+2. **direnv** (`.envrc`) automatically loads the environment:
+   - Watches `.envrc` and `devenv.nix` for changes
+   - Caches the environment for instant activation
+   - Loads/unloads when entering/leaving the directory
 
-**This works in all scenarios:**
-- Opening a terminal directly in the `nixos-config` directory
-- Using `cd` to navigate into the directory
-- Returning to the directory from a subdirectory
+3. **Result**: No manual `nix develop` or `devenv shell` commands needed!
 
-### Automatic Code Formatting with Git Hooks
+### Automatic Code Formatting
 
-A pre-commit hook automatically formats all Nix files before each commit:
+Pre-commit hooks automatically format Nix files:
 
 1. When you run `git commit`, the hook intercepts it
-2. It finds all staged `.nix` files
-3. Formats them with `nixfmt-rfc-style`
-4. Re-stages the formatted files
-5. Proceeds with the commit
+2. Formats all staged `.nix` files with `nixfmt-rfc-style`
+3. Re-stages the formatted files
+4. Proceeds with the commit
 
-**Result:** All committed Nix code is guaranteed to be consistently formatted.
+**Note**: You can also use the `/format` slash command in Claude Code to format files manually.
 
-## Setup (First Time Only)
+### Claude Code Integration
 
-After rebuilding your NixOS system with the direnv configuration, you need to approve the `.envrc` file once:
+The devenv configuration provides:
+
+**Custom Slash Commands** (in Claude Code):
+- `/rebuild` - Rebuild and switch NixOS configuration
+- `/boot` - Rebuild and activate on next boot
+- `/test` - Test configuration without persisting
+- `/update` - Update flake inputs
+- `/check` - Check flake for errors
+- `/format` - Format Nix files
+- `/lint` - Lint with statix
+- `/gc` - Run garbage collection
+
+**Workflow Hooks**:
+- **Protect secrets**: Blocks editing of `.env`, `.secret`, `.key`, `.pem` files
+- **Nix file notifications**: Shows reminder to rebuild after editing `.nix` files
+- **Auto-formatting**: Runs nixfmt after Claude Code edits files
+
+**MCP Servers**:
+- **Context7**: Documentation and code examples for libraries
+- **devenv**: Devenv-specific context and capabilities
+
+**Custom Agents**:
+- Agents are defined in `.claude/agents/*.md`
+- Available agents: Plan, Code, Code-Quick, Commit, Debug, Docs, Investigate, Test
+- Invoke with `@agent-name` (e.g., `@Plan`, `@Code`)
+
+## Configuration Files
+
+### devenv.yaml
+
+Defines Nix inputs for the environment:
+
+```yaml
+inputs:
+  nixpkgs:
+    url: github:NixOS/nixpkgs/nixpkgs-unstable
+
+allowUnfree: true
+```
+
+**To update inputs**: Run `devenv update`
+
+### devenv.nix
+
+Main configuration file defining the environment. Key sections:
+
+**Packages**:
+```nix
+packages = with pkgs; [
+  git
+  nixfmt-rfc-style
+  statix
+  deadnix
+  nh
+];
+```
+
+**Git Hooks**:
+```nix
+git-hooks.hooks = {
+  nixfmt = {
+    enable = true;
+    package = pkgs.nixfmt-rfc-style;
+  };
+};
+```
+
+**Scripts**:
+```nix
+scripts = {
+  rebuild.exec = ''...'';
+  sysinfo.exec = ''...'';
+  generations.exec = ''...'';
+};
+```
+
+**Claude Code**:
+```nix
+claude.code = {
+  enable = true;
+  commands = { ... };
+  hooks = { ... };
+  mcpServers = { ... };
+};
+```
+
+### .envrc
+
+Tells direnv to use devenv:
 
 ```bash
-cd ~/nixos-config  # or wherever you cloned the repository
-direnv allow
+#!/usr/bin/env bash
+eval "$(devenv direnvrc)"
+use devenv
 ```
 
-That's it! From now on, everything is automatic.
+**Note**: This file is gitignored if it contains local overrides. The default version is version-controlled.
 
-## What Happens Behind the Scenes
+## Available Tools & Commands
 
-### direnv Configuration (`home-manager/direnv.nix`)
+### Shell Commands
 
-The direnv configuration:
-- Enables direnv integration with bash and zsh
-- Enables nix-direnv for fast, cached shell loading
-- Automatically hooks into your shell on system rebuild
+When in the devenv environment, these commands are available:
 
-### Development Shell (`flake.nix`)
+```bash
+# NixOS rebuild helpers
+rebuild          # Boot mode (default)
+rebuild switch   # Switch immediately
 
-The development shell includes:
-- `nixfmt-rfc-style` package for code formatting
-- Pre-commit hook configuration that:
-  - Automatically installs hooks when the shell loads
-  - Runs nixfmt on all `.nix` files before commits
-  - Manages hook updates automatically
+# System info
+sysinfo          # Show system info and current generation
+generations      # List all NixOS generations
 
-### .envrc File
-
-Contains a single line:
-```
-use flake
+# Development tools
+nixfmt           # Format Nix code
+statix           # Lint Nix code
+deadnix          # Find dead Nix code
+nh               # Nix helper (better rebuild experience)
 ```
 
-This tells direnv to load the default development shell from the flake.
+### devenv CLI Commands
 
-## Daily Usage
+```bash
+# Environment management
+devenv shell          # Enter the environment manually
+devenv info          # Show environment information
+devenv update        # Update devenv.lock
 
-Once set up, you don't need to think about it:
+# Search and discovery
+devenv search <pkg>  # Search for packages
 
-1. **Navigate to the repository** - direnv loads automatically
-2. **Make changes to Nix files** - edit as normal
-3. **Commit changes** - formatting happens automatically
-4. **Leave the directory** - environment unloads automatically
+# Cleanup
+devenv gc            # Delete old shell generations
+```
 
-No manual `nix develop` commands, no manual formatting, no manual hook installation.
+### Claude Code Slash Commands
+
+See "Claude Code Integration" section above.
+
+## Workflow Integration
+
+### With VS Code / Editors
+
+The environment activates automatically when you `cd` into the directory from an integrated terminal. Your editor will have access to all tools.
+
+### With Claude Code
+
+1. **Automatic activation**: Claude Code runs commands in the devenv environment
+2. **Slash commands**: Use `/rebuild`, `/check`, etc. for common operations
+3. **Git hooks**: Formatting happens automatically on Claude's edits
+4. **Workflow protection**: Hooks prevent editing sensitive files
+
+### With Git
+
+All git operations work normally:
+- Pre-commit hooks run automatically
+- Formatted code is committed
+- No manual formatting needed
+
+## Customization
+
+### Adding Packages
+
+Edit `devenv.nix` and add to the `packages` list:
+
+```nix
+packages = with pkgs; [
+  git
+  nixfmt-rfc-style
+  your-package-here  # Add here
+];
+```
+
+Then reload: `cd .. && cd -` or wait for direnv to detect the change.
+
+### Adding Git Hooks
+
+Edit the `git-hooks.hooks` section in `devenv.nix`:
+
+```nix
+git-hooks.hooks = {
+  nixfmt = { enable = true; package = pkgs.nixfmt-rfc-style; };
+  statix.enable = true;     # Add linter
+  deadnix.enable = true;    # Add dead code detector
+};
+```
+
+### Adding Scripts
+
+Add to the `scripts` section in `devenv.nix`:
+
+```nix
+scripts = {
+  my-script.exec = ''
+    echo "Your bash script here"
+  '';
+};
+```
+
+Scripts become available as commands in the shell.
+
+### Adding Claude Code Commands
+
+Add to the `claude.code.commands` section in `devenv.nix`:
+
+```nix
+claude.code.commands = {
+  my-command = ''
+    Description of what this does
+
+    ```bash
+    command-to-run
+    ```
+  '';
+};
+```
 
 ## Troubleshooting
 
 ### "direnv: error .envrc is blocked"
 
-Run `direnv allow` in the repository directory. This is a security feature—you must explicitly approve .envrc files.
+Run `direnv allow` in the repository directory. This is a security feature.
+
+### Environment not activating
+
+1. Check direnv is installed: `type direnv`
+2. Check direnv is hooked into your shell (should be automatic after rebuild)
+3. Try manually: `direnv allow`
 
 ### Pre-commit hook not running
 
-Ensure you've entered the repository directory at least once after setting up direnv. The hook is installed automatically when the dev shell loads.
+Ensure you've entered the repository at least once after installing devenv. The hook installs automatically when the environment loads.
 
-### direnv not activating automatically
+### Changes to devenv.nix not applying
 
-Check that direnv is properly hooked into your shell. After a system rebuild, the hook should be automatically configured. You can verify with:
-
+Exit and re-enter the directory:
 ```bash
-type direnv
+cd .. && cd nixos-config
 ```
 
-You should see the direnv function definition.
+Or reload direnv manually:
+```bash
+direnv reload
+```
+
+### devenv.lock out of sync
+
+Update the lock file:
+```bash
+devenv update
+```
+
+## Comparison with Previous Setup
+
+### Before (Nix Flake devShell)
+
+```bash
+# Manual activation required
+nix develop
+
+# Or automatic with direnv
+# .envrc: use flake
+
+# Git hooks via pre-commit-hooks.nix in flake.nix
+# No Claude Code integration
+# No custom scripts
+```
+
+### After (devenv)
+
+```bash
+# Automatic activation via direnv
+# Just cd into directory
+
+# Same git hooks, better organized
+# Claude Code integration built-in
+# Custom scripts and commands
+# MCP server configuration
+# More declarative and composable
+```
+
+### Key Improvements
+
+1. **Better organization**: All dev environment config in `devenv.nix`
+2. **Claude Code integration**: Slash commands, hooks, MCP servers
+3. **Custom scripts**: Project-specific commands available in PATH
+4. **Cleaner flake.nix**: Removed dev shell and pre-commit-hooks input
+5. **Composability**: Easier to add new tools and configurations
 
 ## Benefits
 
-- **Zero manual setup** - Everything configured through NixOS/home-manager
-- **Consistent formatting** - All Nix code follows the same style
-- **Automatic operation** - Works transparently in the background
-- **Fast loading** - nix-direnv caches the shell for instant activation
-- **Project-specific** - Only affects this repository, not other git projects
-- **Reproducible** - Anyone cloning the repo gets the same setup
+- ✅ **Zero manual setup** - Everything configured declaratively
+- ✅ **Consistent environment** - Same tools for all contributors
+- ✅ **Automatic operation** - Works transparently in the background
+- ✅ **Fast loading** - Cached by direnv for instant activation
+- ✅ **Project-specific** - Only affects this repository
+- ✅ **Reproducible** - Same environment every time
+- ✅ **Claude Code ready** - Integrated AI coding assistance
 
 ## Technical Details
 
 ### File Locations
 
-- **direnv config**: `home-manager/direnv.nix`
-- **Dev shell**: `flake.nix` (devShells.${system}.default)
+- **devenv config**: `devenv.nix`, `devenv.yaml`
+- **direnv config**: `home-manager/direnv.nix` (system-level)
 - **direnv trigger**: `.envrc` (in repository root)
-- **Git hooks**: Installed to `.git/hooks/pre-commit` automatically
+- **Git hooks**: Installed to `.git/hooks/` automatically
+- **Generated files**: `.devenv/`, `devenv.lock`, `.mcp.json`
+- **Claude Code config**: `.claude/commands/`, `.claude/agents/`, `.claude/settings.json`
 
-### Hook Implementation
+### Generated Files
 
-The pre-commit hook uses `pre-commit-hooks.nix`, a Nix library that integrates with popular pre-commit frameworks. The hook:
+devenv generates these files (gitignored):
+- `.devenv/` - Built environment and shell
+- `devenv.lock` - Lock file for reproducible builds
+- `.mcp.json` - MCP server configuration for Claude Code
+- `.claude/commands/*.md` - Slash command definitions (symlinks to nix store)
+- `.claude/settings.json` - Claude Code settings (symlink to nix store)
 
-- Runs only on staged `.nix` files (not all files)
-- Automatically re-stages formatted files
-- Fails the commit if nixfmt encounters errors
-- Is managed by the development shell (updates automatically)
+### Integration with NixOS
 
-### Why This Approach?
+The devenv package is installed via `home-manager/packages.nix`, making it available system-wide. The project-specific configuration (`devenv.nix`) is only active when in this directory.
 
-1. **No manual installation** - Hooks install automatically via shellHook
-2. **Always up to date** - Hooks update when the dev shell updates
-3. **Reproducible** - Same setup for all contributors
-4. **Integrated with Nix** - Uses the same nixfmt version across tools
-5. **Automatic activation** - direnv removes the need to remember `nix develop`
+### Why devenv?
+
+1. **Claude Code integration**: Native support for custom commands, hooks, and MCP servers
+2. **Better DX**: More intuitive than raw Nix flakes for development environments
+3. **Composability**: Easy to add services, languages, tools
+4. **Project-focused**: Designed for development environments specifically
+5. **Active development**: Well-maintained with growing ecosystem
 
 ## Related Files
 
-- `flake.nix:83-100` - Development shell and pre-commit hook configuration
-- `home-manager/direnv.nix` - direnv home-manager configuration
-- `home-manager/frank.nix:8` - Import of direnv configuration
-- `.envrc` - direnv activation file
+- `devenv.nix` - Main development environment configuration
+- `devenv.yaml` - Input configuration (like flake inputs)
+- `.envrc` - direnv trigger file
+- `home-manager/direnv.nix` - System-level direnv configuration
+- `home-manager/packages.nix:9` - devenv package installation
+- `modules/system/core.nix:27-30` - Trusted users for cachix
+- `.claude/agents/*.md` - Claude Code agent definitions
+
+## Further Reading
+
+- [devenv Documentation](https://devenv.sh/)
+- [devenv Claude Code Integration](https://devenv.sh/integrations/claude-code/)
+- [direnv Documentation](https://direnv.net/)
+- [Nix Flakes](https://nixos.wiki/wiki/Flakes)

@@ -12,6 +12,9 @@ in
     base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
     image = wallpapers.dark;
 
+    # Disable version check warnings (we use nixpkgs-unstable for everything)
+    enableReleaseChecks = false;
+
     fonts = {
       serif = {
         package = pkgs.noto-fonts;
