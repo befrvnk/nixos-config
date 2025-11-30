@@ -27,7 +27,7 @@
     ./swaylock.nix
     ./vicinae.nix
     ./zed.nix
-    ./zen-browser.nix
+    ./zen-browser
     ./zsh
   ];
 

@@ -2,14 +2,15 @@
 
 let
   wallpapers = import ./wallpapers;
+  themes = import ./themes.nix { inherit pkgs; };
 in
 {
   # Base stylix configuration (default to dark theme)
   stylix = {
     enable = true;
     autoEnable = true;
-    polarity = "dark";
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    polarity = themes.dark.polarity;
+    base16Scheme = themes.dark.base16Scheme;
     image = wallpapers.dark;
 
     # Disable version check warnings (we use nixpkgs-unstable for everything)
@@ -48,22 +49,23 @@ in
     # autoEnable handles most apps; explicitly disable only what's needed
     targets = {
       anki.enable = false;
-      zen-browser.profileNames = [ "default" ];
+      # Disable Stylix auto-generation for Zen Browser - we manage manually with media queries
+      zen-browser.enable = false;
     };
   };
 
   specialisation = {
     dark.configuration = {
       stylix = {
-        polarity = pkgs.lib.mkForce "dark";
-        base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+        polarity = pkgs.lib.mkForce themes.dark.polarity;
+        base16Scheme = pkgs.lib.mkForce themes.dark.base16Scheme;
         image = pkgs.lib.mkForce wallpapers.dark;
       };
     };
     light.configuration = {
       stylix = {
-        polarity = pkgs.lib.mkForce "light";
-        base16Scheme = pkgs.lib.mkForce "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+        polarity = pkgs.lib.mkForce themes.light.polarity;
+        base16Scheme = pkgs.lib.mkForce themes.light.base16Scheme;
         image = pkgs.lib.mkForce wallpapers.light;
       };
     };

@@ -1,6 +1,24 @@
-{ ... }:
-
 {
+  pkgs,
+  ...
+}:
+
+let
+  # Import CSS generation modules
+  userChromeCSS = import ./userChrome.nix { inherit pkgs; };
+  userContentCSS = import ./userContent.nix { inherit pkgs; };
+in
+{
+  # Link generated userChrome.css with light/dark media queries
+  home.file.".zen/default/chrome/userChrome.css" = {
+    source = userChromeCSS;
+  };
+
+  # Link generated userContent.css for internal browser pages
+  home.file.".zen/default/chrome/userContent.css" = {
+    source = userContentCSS;
+  };
+
   programs.zen-browser = {
     enable = true;
 
