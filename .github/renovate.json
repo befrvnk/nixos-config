@@ -8,6 +8,8 @@
     "enabled": true,
     "schedule": ["before 6am on monday"]
   },
+  "automerge": true,
+  "platformAutomerge": true,
   "packageRules": [
     {
       "matchManagers": ["nix"],
@@ -16,15 +18,13 @@
       "semanticCommits": "enabled",
       "semanticCommitType": "chore",
       "semanticCommitScope": "nix",
-      "schedule": ["before 6am on monday"],
-      "automerge": true
+      "schedule": ["before 6am on monday"]
     },
     {
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "semanticCommits": "enabled",
-      "semanticCommitType": "ci",
-      "automerge": true
+      "semanticCommitType": "ci"
     }
   ],
   "prConcurrentLimit": 5,
@@ -37,7 +37,5 @@
   "commitMessageAction": "Update",
   "commitMessageTopic": "{{depName}}",
   "commitMessageExtra": "to {{newVersion}}",
-  "platformAutomerge": false,
-  "automerge": false,
   "semanticCommits": "enabled"
 }
