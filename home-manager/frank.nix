@@ -20,6 +20,7 @@
     ./niri
     ./opencode
     ./packages.nix
+    ./nil.nix
     ./signal.nix
     ./ssh.nix
     ./starship.nix

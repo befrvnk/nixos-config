@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   boot.initrd.systemd.enable = true;
@@ -16,6 +16,15 @@
   };
 
   programs.zsh.enable = true;
+
+  # Enable nix-ld for running dynamically linked executables
+  programs.nix-ld = {
+    enable = true;
+    libraries = with pkgs; [
+      # Common libraries needed by dynamically linked executables
+      # Add more as needed based on specific binary requirements
+    ];
+  };
 
   nix.settings = {
     experimental-features = [
