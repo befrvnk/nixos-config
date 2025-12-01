@@ -35,14 +35,17 @@
     HandleLidSwitch = "suspend";
     HandleLidSwitchDocked = "ignore";
     HandleLidSwitchExternalPower = "suspend";
-    IdleAction = "suspend";
-    IdleActionSec = "5min";
+    IdleAction = "ignore";
   };
 
-  # Enable USB devices to wake the system from suspend
+  # Enable USB wake only for keyboards
   services.udev.extraRules = ''
-    # Enable wake-up for all USB devices including hubs
-    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
+    # First, disable wake for all USB devices by default
+    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
+
+    # Then enable wake only for external keyboard
+    # NuPhy Air75 V3
+    ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="19f5", ATTRS{idProduct}=="1028", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
   '';
 
   system.stateVersion = "25.05";
