@@ -63,10 +63,6 @@
         bottom-right = 16.0;
       };
     }
-    {
-      matches = [ { is-active = false; } ];
-      opacity = 0.99;
-    }
   ];
 
   layer-rules = [

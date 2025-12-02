@@ -1,6 +1,6 @@
 { config, ... }:
 let
-  inherit (config.lib.stylix.colors.withHashtag) base0D;
+  inherit (config.lib.stylix.colors.withHashtag) base0D base03;
 in
 {
   cursor = {
@@ -39,7 +39,7 @@ in
       enable = true;
       width = 4;
       active.color = base0D;
-      inactive.color = "transparent";
+      inactive.color = base03; # Subtle gray for visual distinction
     };
     default-column-width = {
       proportion = 0.5;
