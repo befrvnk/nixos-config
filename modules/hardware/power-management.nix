@@ -17,9 +17,10 @@
     # Disable NMI watchdog (saves ~1W)
     # NMI watchdog is used for detecting hard lockups, but not needed for normal use
     "nmi_watchdog=0"
-    # Use AMD P-State passive mode for full governor support (schedutil, etc.)
-    # Passive mode allows scheduler-driven frequency scaling vs Active mode's limited options
-    "amd_pstate=passive"
+    # Use AMD P-State guided mode for collaborative frequency scaling
+    # Guided mode: kernel suggests frequencies, CPU adjusts based on internal sensors/constraints
+    # Provides scheduler integration (like passive) plus hardware intelligence (like active)
+    "amd_pstate=guided"
   ];
 
   # Runtime kernel settings
