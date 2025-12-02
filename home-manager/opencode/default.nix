@@ -1,4 +1,8 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 
 let
   anytype = import ../mcp/anytype.nix { inherit pkgs; };
@@ -24,12 +28,8 @@ in
       };
     };
 
-    agents = {
-      "coder.md" = ./agents/coder.md;
-      "planner.md" = ./agents/planner.md;
-      "quick.md" = ./agents/quick.md;
-      "reviewer.md" = ./agents/reviewer.md;
-    };
+    # No global agents configured - projects define their own in .opencode/agents/
+    # opencode's built-in agents serve as fallback when project doesn't have custom agents
 
     commands = {
       "commit.md" = ./commands/commit.md;

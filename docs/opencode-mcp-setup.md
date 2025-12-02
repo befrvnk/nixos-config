@@ -16,15 +16,68 @@ home-manager/
 │   └── anytype.nix              # Reusable Anytype MCP module
 ├── opencode/
 │   ├── default.nix              # Main OpenCode configuration
-│   ├── agents/                  # Agent definitions
-│   │   ├── coder.md
-│   │   ├── planner.md
-│   │   ├── quick.md
-│   │   └── reviewer.md
 │   └── commands/
 │       └── commit.md
 └── claude-code.nix              # Can reuse mcp/anytype.nix
+
+# Per-project agents (version-controlled)
+.opencode/
+└── agent/                       # Project-specific agents (singular!)
+    ├── coder.md
+    ├── quick.md
+    ├── planner.md
+    ├── tester.md
+    ├── docs.md
+    ├── debugger.md
+    ├── committer.md
+    └── investigator.md
 ```
+
+## Agent Configuration
+
+opencode now uses per-project agents instead of global definitions.
+
+### Per-Project Agents
+
+**Location:** `.opencode/agent/` (version-controlled with project, note: singular "agent"!)
+
+Project-specific agents are stored in the project repository and provide context-aware assistance tailored to the project's needs.
+
+**Format (opencode):**
+```markdown
+---
+description: Agent description
+model: anthropic/claude-sonnet-4 | anthropic/claude-haiku-3.5 | google/gemini-2.5-pro
+temperature: 0.3
+maxTokens: 8000
+---
+
+# Agent instructions...
+```
+
+**Available Agents (nixos-config project):**
+- `coder.md` - Main implementation agent (converted from Claude Code's `code.md`)
+- `quick.md` - Quick tasks helper (converted from `code-quick.md`)
+- `planner.md` - Planning and research (converted from `plan.md`)
+- `tester.md` - Testing specialist (converted from `test.md`)
+- `docs.md` - Documentation (converted from `docs.md`)
+- `debugger.md` - Bug investigation and fixes (converted from `debug.md`)
+- `committer.md` - Git commit helper (converted from `commit.md`)
+- `investigator.md` - System diagnostics (converted from `investigate.md`)
+
+### Default Agents (Fallback)
+
+When a project doesn't have its own agents in `.opencode/agent/`, opencode falls back to its [built-in agents](https://opencode.ai/docs/agents/) which provide general-purpose coding assistance.
+
+### Format Differences
+
+**opencode vs Claude Code:**
+- opencode uses `description:` field in frontmatter
+- Claude Code uses `name:` field
+- opencode doesn't use `tools:` section (removed during conversion)
+- Models are fully qualified (e.g., `anthropic/claude-sonnet-4` not just `sonnet`)
+
+This separation allows each tool to have optimized agent configurations while maintaining similar workflows.
 
 ## Context7 Setup
 
