@@ -8,6 +8,7 @@
     ./battery-notifications
     ./camera-monitor
     ./claude-code.nix
+    ./cpu-governor
     ./darkman
     ./direnv.nix
     ./dunst.nix

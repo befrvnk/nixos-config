@@ -76,6 +76,13 @@ in
     executable = true;
   };
 
+  # CPU governor status module
+  # Shows current CPU governor (powersave or schedutil)
+  xdg.configFile."ironbar/modules/cpu-governor/cpu-governor-status.sh" = {
+    source = ./modules/cpu-governor/cpu-governor-status.sh;
+    executable = true;
+  };
+
   # Systemd service for ironbar with niri overview-only mode
   # Note: This replaces the default ironbar.service since we manage ironbar startup ourselves
   systemd.user.services.ironbar = {

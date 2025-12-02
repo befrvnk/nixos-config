@@ -21,6 +21,16 @@
     },
     {
       "type": "custom",
+      "class": "cpu-governor",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{2000:~/.config/ironbar/modules/cpu-governor/cpu-governor-status.sh}}"
+        }
+      ]
+    },
+    {
+      "type": "custom",
       "class": "wifi",
       "bar": [
         {

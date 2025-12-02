@@ -215,6 +215,64 @@ To test (runtime, no reboot needed):
 echo ondemand | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 ```
 
+## Dynamic Governor Switching on Battery
+
+This system includes a custom CPU governor switching feature that allows you to dynamically switch between `powersave` and `schedutil` governors while on battery power, without requiring a reboot.
+
+### Features
+
+- **Keyboard shortcuts** for instant switching:
+  - `Super+Ctrl+P` → **Performance** mode (schedutil governor)
+  - `Super+Ctrl+E` → **Economy** mode (powersave governor)
+- **Command-line interface**: `switch-governor [schedutil|powersave]`
+- **Visual feedback**:
+  - Desktop notifications when switching
+  - Ironbar module showing current governor ("󰓅 Performance" or "󰾅 Battery")
+- **Battery-only operation**: Only works when on battery power (AC always uses schedutil)
+- **Automatic reset**: Resets to powersave (default) after reboot or suspend
+- **Passwordless**: No authentication required, configured via sudoers
+
+### Use Cases
+
+**When to use Performance mode (schedutil):**
+- Compiling code, building projects
+- Video editing or heavy media work
+- Running intensive applications (IDEs, browsers with many tabs)
+- When system feels sluggish and you need more responsiveness
+
+**When to use Economy mode (powersave):**
+- Reading, writing, light browsing
+- Watching videos (hardware-accelerated playback)
+- Maximum battery life needed
+- Default state (automatically set after reboot)
+
+### Implementation Details
+
+**Files:**
+- `home-manager/cpu-governor/` - Governor switching module
+  - `default.nix` - Module configuration
+  - `switch-governor.sh` - Main switching script
+  - `set-governor-helper.sh` - Helper script for sysfs writes
+- `home-manager/ironbar/modules/cpu-governor/` - Ironbar display module
+  - `cpu-governor-status.sh` - Status display script
+- `home-manager/niri/binds.nix` - Keyboard shortcut configuration
+- `modules/system/core.nix` - Sudoers configuration for passwordless switching
+
+**How it works:**
+1. User presses keybinding or runs command
+2. Script checks if on battery (exits if on AC)
+3. Script calls `set-governor-helper` with sudo (passwordless via sudoers)
+4. Helper writes governor to `/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`
+5. Desktop notification shows result
+6. Ironbar updates to show current governor
+
+**Security:**
+Passwordless sudo is limited to the specific `set-governor-helper` script only, which only writes to CPU governor sysfs files. This is safe because:
+- Limited scope (only CPU governor changes)
+- No arbitrary command execution
+- User already has physical access to the system
+- TLP resets to safe defaults on reboot/suspend
+
 ## References
 
 - [Arch Linux Wiki: CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)

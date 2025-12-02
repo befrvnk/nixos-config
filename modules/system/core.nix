@@ -4,6 +4,13 @@
   boot.initrd.systemd.enable = true;
   security.tpm2.enable = true;
 
+  # Allow passwordless sudo for CPU governor switching helper
+  # Allows frank user to run set-governor-helper without password
+  security.sudo.extraConfig = ''
+    frank ALL=(root) NOPASSWD: /home/frank/.nix-profile/bin/set-governor-helper*
+    frank ALL=(root) NOPASSWD: /nix/store/*/bin/set-governor-helper*
+  '';
+
   # Let the Framework hardware module handle kernel selection
   # boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
