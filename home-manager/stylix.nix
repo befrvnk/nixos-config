@@ -49,6 +49,8 @@ in
     # autoEnable handles most apps; explicitly disable only what's needed
     targets = {
       anki.enable = false;
+      # Disable Stylix auto-generation for btop - we manage manually via specializations
+      btop.enable = false;
       # Disable Stylix auto-generation for Zen Browser - we manage manually with media queries
       zen-browser.enable = false;
     };
@@ -61,6 +63,8 @@ in
         base16Scheme = pkgs.lib.mkForce themes.dark.base16Scheme;
         image = pkgs.lib.mkForce wallpapers.dark;
       };
+      # btop theme configuration
+      programs.btop.settings.color_theme = "catppuccin_mocha";
     };
     light.configuration = {
       stylix = {
@@ -68,6 +72,8 @@ in
         base16Scheme = pkgs.lib.mkForce themes.light.base16Scheme;
         image = pkgs.lib.mkForce wallpapers.light;
       };
+      # btop theme configuration
+      programs.btop.settings.color_theme = "catppuccin_latte";
     };
   };
 }

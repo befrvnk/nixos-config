@@ -5,7 +5,6 @@
     (with pkgs; [
       anytype
       bat
-      btop
       chromium
       devenv
       discord

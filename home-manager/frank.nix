@@ -6,6 +6,7 @@
     ./android.nix
     ./atuin.nix
     ./battery-notifications
+    ./btop.nix
     ./camera-monitor
     ./claude-code.nix
     ./cpu-governor
