@@ -3,7 +3,6 @@
 {
   imports = [
     inputs.zen-browser.homeModules.beta
-    ./android.nix
     ./atuin.nix
     ./battery-notifications
     ./btop.nix
