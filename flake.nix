@@ -71,6 +71,7 @@
         inputs.niri.overlays.niri
         (import ./overlays/niri.nix)
         inputs.claude-code.overlays.default
+        (import ./overlays/claude-code.nix)
       ];
     in
     {

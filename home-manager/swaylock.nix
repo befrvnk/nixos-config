@@ -34,18 +34,12 @@ in
   # This ensures the lock screen is properly shown when opening the lid
   services.swayidle = {
     enable = true;
-    events = [
+    events = {
       # Lock the screen before suspend/sleep
-      {
-        event = "before-sleep";
-        command = "${pkgs.swaylock}/bin/swaylock -f";
-      }
+      before-sleep = "${pkgs.swaylock}/bin/swaylock -f";
       # Lock the screen when lid is closed (if not already suspending)
-      {
-        event = "lock";
-        command = "${pkgs.swaylock}/bin/swaylock -f";
-      }
-    ];
+      lock = "${pkgs.swaylock}/bin/swaylock -f";
+    };
     timeouts = [
       # Smart lock after 5 minutes of inactivity
       # If media is playing: only turns off screen (no lock)
