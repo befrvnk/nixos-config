@@ -28,8 +28,7 @@
   programs.nix-ld = {
     enable = true;
     libraries = with pkgs; [
-      # Common libraries needed by dynamically linked executables
-      # Add more as needed based on specific binary requirements
+      # Add libraries as needed based on specific binary requirements
     ];
   };
 

@@ -104,6 +104,11 @@
           "label": "{{5000:~/.config/ironbar/modules/battery/battery-status.sh}}"
         }
       ]
+    },
+    {
+      "type": "tray",
+      "icon_size": 32,
+      "show_if": "poll:2000:~/.config/ironbar/modules/tray/has-tray-items.sh"
     }
   ]
 }

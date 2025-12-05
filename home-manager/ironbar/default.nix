@@ -83,6 +83,13 @@ in
     executable = true;
   };
 
+  # Tray visibility check
+  # Hides tray module when no StatusNotifierItems are registered
+  xdg.configFile."ironbar/modules/tray/has-tray-items.sh" = {
+    source = ./modules/tray/has-tray-items.sh;
+    executable = true;
+  };
+
   # Systemd service for ironbar with niri overview-only mode
   # Note: This replaces the default ironbar.service since we manage ironbar startup ourselves
   systemd.user.services.ironbar = {
