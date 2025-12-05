@@ -26,7 +26,6 @@
       spotify
       superfile
       sushi # nautilus preview
-      ticktick
       tree
       yazi
       zapzap
@@ -34,6 +33,7 @@
       papirus-icon-theme
     ])
     ++ [
+      (import ./ticktick.nix { inherit pkgs; })
       (import ./upscayl.nix { inherit pkgs; })
     ];
 }
