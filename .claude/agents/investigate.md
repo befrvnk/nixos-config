@@ -367,7 +367,7 @@ nix-store --verify --check-contents
 
 ## For This Project
 
-Based on `AGENTS.md`, be aware of:
+Based on `CLAUDE.md`, be aware of:
 
 **Services to commonly investigate:**
 - **niri**: Window manager (user service)

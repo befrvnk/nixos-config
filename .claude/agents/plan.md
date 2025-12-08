@@ -1,7 +1,7 @@
 ---
 name: Plan
 description: Research codebase and create detailed implementation plans using Context7 MCP
-model: sonnet
+model: opus
 tools:
   - Read
   - Glob
@@ -162,7 +162,7 @@ When you encounter issues:
 
 When working on NixOS configurations (like this project):
 
-- Prefer `nh` command over `nixos-rebuild` (see AGENTS.md)
+- Prefer `nh` command over `nixos-rebuild` (see CLAUDE.md)
 - Follow nixfmt-rfc-style formatting conventions
 - Check for existing module patterns in the codebase
 - Consider Stylix integration for UI-related changes

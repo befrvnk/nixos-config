@@ -133,7 +133,7 @@ This project uses specialized Claude Code subagents for efficient development. E
 
 7. @docs Agent (Haiku) - Optional
    ↓ Documents complex changes for future maintainers
-   ↓ Updates AGENTS.md or creates module-specific docs
+   ↓ Updates CLAUDE.md or creates module-specific docs
    ↓ Only for non-obvious implementations
 
 8. @commit Agent (Haiku)
@@ -192,7 +192,7 @@ This project uses specialized Claude Code subagents for efficient development. E
 #### @docs Agent (Haiku)
 - Documents complex changes and decisions
 - Focuses on "why" not "what"
-- Updates AGENTS.md for new patterns
+- Updates CLAUDE.md for new patterns
 - Creates module docs in docs/ for complex features
 - Adds inline comments for non-obvious logic
 - Only invoked for complex, non-obvious changes
@@ -677,7 +677,7 @@ Fix Ironbar volume module crash with PulseAudio
 Replace built-in volume module with custom wpctl-based script.
 The built-in module causes crashes when PulseAudio is active.
 
-Workaround documented in Common Gotchas section of AGENTS.md.
+Workaround documented in Common Gotchas section of CLAUDE.md.
 Script located at home-manager/ironbar/modules/volume/
 ```
 
@@ -843,7 +843,7 @@ Update existing docs when:
 - `stylix-darkman-setup.md` - Theming deep dive
 - `ironbar-niri-overview.md` - Status bar integration
 
-**AGENTS.md** - AI agent guidelines (this file):
+**CLAUDE.md** - AI agent guidelines (this file):
 - Development workflow
 - Configuration patterns
 - Code style
@@ -860,7 +860,7 @@ Update existing docs when:
 **Scenario 2: Fixing a quirk**
 - Implement the fix
 - Document the quirk and solution in docs/
-- Add to Common Gotchas in AGENTS.md if relevant for future development
+- Add to Common Gotchas in CLAUDE.md if relevant for future development
 - Update README.md if it affects user workflow
 
 **Scenario 3: Changing keyboard shortcuts**
@@ -872,7 +872,7 @@ Update existing docs when:
 - Implement the integration
 - Create docs/integration-name.md explaining how it works
 - Add reference to README.md
-- Add patterns to AGENTS.md if it establishes new conventions
+- Add patterns to CLAUDE.md if it establishes new conventions
 
 ### Documentation Best Practices
 

@@ -1,7 +1,7 @@
 ---
 name: Debug
 description: Investigate and fix bugs through systematic debugging and root cause analysis
-model: sonnet
+model: opus
 tools:
   - Read
   - Edit

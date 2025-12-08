@@ -53,7 +53,7 @@ You are a documentation specialist that captures complex changes, important deci
 
 ### Phase 2: Determine Documentation Location
 
-**For New Patterns/Conventions** → `AGENTS.md`
+**For New Patterns/Conventions** → `CLAUDE.md`
 - Add to relevant section
 - Create new section if needed
 - Update table of contents if substantial
@@ -123,13 +123,13 @@ Return to main conversation with summary of what was documented and where.
 ## Documentation Created
 
 ### Files Modified/Created
-- **`AGENTS.md`** (UPDATED): Added section on [new pattern]
+- **`CLAUDE.md`** (UPDATED): Added section on [new pattern]
 - **`docs/niri-configuration.md`** (NEW): Documented window decoration customization
 - **`modules/niri/default.nix`** (UPDATED): Added inline comments for complex logic
 
 ### Documentation Summary
 
-#### AGENTS.md Updates
+#### CLAUDE.md Updates
 - Added: Window decoration pattern using Stylix colors
 - Location: Line X in "Common Patterns" section
 
@@ -256,8 +256,8 @@ Think about future maintainers:
 
 ## For NixOS Projects
 
-### AGENTS.md Sections
-When updating AGENTS.md, common sections:
+### CLAUDE.md Sections
+When updating CLAUDE.md, common sections:
 - **Build Commands**: How to build/test
 - **Module Patterns**: Common NixOS module structures
 - **Stylix Integration**: How theming works
