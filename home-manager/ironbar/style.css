@@ -193,6 +193,52 @@ button.flat:hover {
     font-weight: normal;
 }
 
+/* Bluetooth popup styling */
+.popup-bluetooth {
+    background-color: @base01;
+    padding: 12px;
+    border-radius: 16px;
+}
+
+.popup-bluetooth .header {
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid @base02;
+}
+
+.popup-bluetooth .header .label {
+    color: @base05;
+    margin-right: 12px;
+}
+
+.popup-bluetooth .header .switch {
+    margin-right: 12px;
+}
+
+.popup-bluetooth .devices .box .device .icon-box {
+    margin-right: 10px;
+}
+
+.popup-bluetooth .devices .box .device {
+    padding: 8px;
+    margin: 4px 0;
+    border-radius: 8px;
+}
+
+.popup-bluetooth .devices .box .device:hover {
+    background-color: @base02;
+}
+
+.popup-bluetooth .devices .box .device .status .header-label {
+    color: @base05;
+    font-weight: bold;
+}
+
+.popup-bluetooth .devices .box .device .status .footer-label {
+    color: @base04;
+    font-size: 0.9rem;
+}
+
 .volume {
     font-weight: normal;
 }
