@@ -81,18 +81,90 @@ These provide semantic color accents:
 
 .popup-clock {
     background-color: @base01;
-    padding: 15px;
+    padding: 12px;
     border-radius: 16px;
-    border: 1px solid alpha(@base01, 0.3);
-    box-shadow: none;
-    min-width: 300px;
 }
 
 .popup-clock .calendar-clock {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: bold;
     color: @base05;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
+}
+
+/* GTK4 Calendar widget styling
+   Structure: calendar.view > header, grid > label(.day-name, .day-number, .today, .other-month) */
+.popup-clock .calendar,
+.popup-clock calendar {
+    background-color: @base01;
+    color: @base05;
+    border: none;
+    box-shadow: none;
+}
+
+.popup-clock calendar header {
+    background-color: @base01;
+    color: @base05;
+    padding: 4px 0;
+    border: none;
+    box-shadow: none;
+}
+
+.popup-clock calendar header button {
+    background-color: transparent;
+    color: @base05;
+    padding: 4px 8px;
+    border: none;
+    box-shadow: none;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+.popup-clock calendar header button:hover {
+    background-color: @base02;
+    border-radius: 8px;
+}
+
+.popup-clock calendar header stack,
+.popup-clock calendar header label {
+    color: @base05;
+    font-weight: bold;
+    border: none;
+    box-shadow: none;
+}
+
+.popup-clock calendar grid {
+    background-color: @base01;
+    padding: 4px;
+}
+
+.popup-clock calendar label.day-name {
+    color: @base04;
+    font-size: 0.85rem;
+    padding: 6px 8px;
+}
+
+.popup-clock calendar label.day-number {
+    color: @base05;
+    padding: 8px;
+    margin: 2px;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.popup-clock calendar label.day-number:selected {
+    background-color: @base0D;
+    color: @base00;
+    border-radius: 50%;
+}
+
+.popup-clock calendar label.today {
+    color: @base0D;
+    font-weight: bold;
+}
+
+.popup-clock calendar label.other-month {
+    color: @base03;
 }
 
 .sysinfo {
