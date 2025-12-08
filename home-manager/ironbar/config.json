@@ -1,43 +1,18 @@
 {
   "position": "top",
   "icon_theme": "Papirus-Dark",
-  "anchor_to_edges": false,
+  "anchor_to_edges": true,
   "start_hidden": true,
+
+  "start": [
+    {
+      "type": "workspaces"
+    }
+  ],
 
   "center": [
     {
-      "type": "workspaces"
-    },
-    {
       "type": "clock"
-    },
-    {
-      "format": [
-        " {cpu_percent}%",
-        " {memory_percent}%",
-        " {temp_c@k10temp Tctl}°C"
-      ],
-      "type": "sys_info"
-    },
-    {
-      "type": "custom",
-      "class": "cpu-governor",
-      "bar": [
-        {
-          "type": "label",
-          "label": "{{2000:~/.config/ironbar/modules/cpu-governor/cpu-governor-status.sh}}"
-        }
-      ]
-    },
-    {
-      "type": "custom",
-      "class": "wifi",
-      "bar": [
-        {
-          "type": "label",
-          "label": "{{5000:~/.config/ironbar/modules/wifi/wifi-status.sh}}"
-        }
-      ]
     },
     {
       "type": "custom",
@@ -81,9 +56,56 @@
           ]
         }
       ]
+    }
+  ],
+
+  "end": [
+    {
+      "type": "tray",
+      "icon_size": 32,
+      "show_if": "poll:2000:~/.config/ironbar/modules/tray/has-tray-items.sh"
+    },
+    {
+      "format": [
+        " {cpu_percent}%",
+        " {memory_percent}%",
+        " {temp_c@k10temp Tctl}°C"
+      ],
+      "type": "sys_info"
+    },
+    {
+      "type": "custom",
+      "class": "cpu-governor",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{2000:~/.config/ironbar/modules/cpu-governor/cpu-governor-status.sh}}"
+        }
+      ]
+    },
+    {
+      "type": "custom",
+      "class": "wifi",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{5000:~/.config/ironbar/modules/wifi/wifi-status.sh}}"
+        }
+      ]
     },
     {
       "type": "bluetooth"
+    },
+    {
+      "type": "custom",
+      "class": "mouse-battery",
+      "show_if": "poll:10000:~/.config/ironbar/modules/mouse-battery/has-mouse-connected.sh",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{30000:~/.config/ironbar/modules/mouse-battery/mouse-battery-status.sh}}"
+        }
+      ]
     },
     {
       "type": "custom",
@@ -104,22 +126,6 @@
           "label": "{{5000:~/.config/ironbar/modules/battery/battery-status.sh}}"
         }
       ]
-    },
-    {
-      "type": "custom",
-      "class": "mouse-battery",
-      "show_if": "poll:10000:~/.config/ironbar/modules/mouse-battery/has-mouse-connected.sh",
-      "bar": [
-        {
-          "type": "label",
-          "label": "{{30000:~/.config/ironbar/modules/mouse-battery/mouse-battery-status.sh}}"
-        }
-      ]
-    },
-    {
-      "type": "tray",
-      "icon_size": 32,
-      "show_if": "poll:2000:~/.config/ironbar/modules/tray/has-tray-items.sh"
     }
   ]
 }

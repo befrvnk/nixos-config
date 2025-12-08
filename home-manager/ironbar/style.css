@@ -41,18 +41,17 @@ These provide semantic color accents:
 }
 
 #bar {
-    background-color: alpha(@base00, 0.6);
+    background-color: @transparent;
     margin-top: 12px;
-    padding: 3px 8px;
-    border-radius: 12px;
-    border: 2px solid alpha(@base01, 0.1);
+    padding: 3px 12px;
+    border: none;
 }
 
 .widget {
     background-color: @base01;
-    padding: 3px 8px;
+    padding: 3px 12px;
     margin: 0 4px;
-    border-radius: 8px;
+    border-radius: 16px;
 }
 
 .workspaces {
@@ -66,7 +65,7 @@ These provide semantic color accents:
     font-weight: normal;
     padding: 4px 9px;
     margin: 1px 2px;
-    border-radius: 8px;
+    border-radius: 16px;
 }
 
 .workspaces .item.focused {
@@ -83,7 +82,7 @@ These provide semantic color accents:
 .popup-clock {
     background-color: @base01;
     padding: 15px;
-    border-radius: 12px;
+    border-radius: 16px;
     border: 1px solid alpha(@base01, 0.3);
     box-shadow: none;
     min-width: 300px;
@@ -120,7 +119,7 @@ These provide semantic color accents:
 .popup-notifications {
     background-color: @base00;
     padding: 15px;
-    border-radius: 12px;
+    border-radius: 16px;
     border: 1px solid alpha(@base01, 0.3);
 }
 
@@ -134,7 +133,7 @@ These provide semantic color accents:
     color: @base05;
     padding: 8px 16px;
     margin: 5px;
-    border-radius: 8px;
+    border-radius: 16px;
     border: none;
 }
 
