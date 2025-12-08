@@ -106,6 +106,17 @@
       ]
     },
     {
+      "type": "custom",
+      "class": "mouse-battery",
+      "show_if": "poll:10000:~/.config/ironbar/modules/mouse-battery/has-mouse-connected.sh",
+      "bar": [
+        {
+          "type": "label",
+          "label": "{{30000:~/.config/ironbar/modules/mouse-battery/mouse-battery-status.sh}}"
+        }
+      ]
+    },
+    {
       "type": "tray",
       "icon_size": 32,
       "show_if": "poll:2000:~/.config/ironbar/modules/tray/has-tray-items.sh"

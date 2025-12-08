@@ -9,6 +9,7 @@
     ./system/xkb-custom.nix
 
     # Hardware
+    ./hardware/logitech.nix
     ./hardware/nuphy.nix
     ./hardware/fprintd
     ./hardware/fprintd/lid-management.nix

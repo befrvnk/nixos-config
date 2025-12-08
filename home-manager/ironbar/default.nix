@@ -90,6 +90,17 @@ in
     executable = true;
   };
 
+  # Logitech mouse battery module
+  # Shows battery status for mice connected via Logitech USB receivers
+  xdg.configFile."ironbar/modules/mouse-battery/mouse-battery-status.sh" = {
+    source = ./modules/mouse-battery/mouse-battery-status.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/mouse-battery/has-mouse-connected.sh" = {
+    source = ./modules/mouse-battery/has-mouse-connected.sh;
+    executable = true;
+  };
+
   # Systemd service for ironbar with niri overview-only mode
   # Note: This replaces the default ironbar.service since we manage ironbar startup ourselves
   systemd.user.services.ironbar = {
