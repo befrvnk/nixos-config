@@ -9,6 +9,7 @@ when the camera becomes available for purchase.
 import sys
 import subprocess
 import logging
+import time
 from datetime import datetime
 
 try:
@@ -132,6 +133,35 @@ def check_availability() -> bool:
     return is_available
 
 
+def check_availability_with_retry(max_retries: int = 3, retry_delay: int = 10) -> bool:
+    """
+    Check availability with retry logic for transient network failures.
+
+    Args:
+        max_retries: Maximum number of attempts
+        retry_delay: Seconds to wait between retries
+
+    Returns:
+        True if camera is available, False otherwise
+
+    Raises:
+        requests.RequestException: If all retries fail
+    """
+    last_exception = None
+    for attempt in range(max_retries):
+        try:
+            return check_availability()
+        except requests.RequestException as e:
+            last_exception = e
+            if attempt < max_retries - 1:
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed: {e}")
+                logger.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"All {max_retries} attempts failed")
+    raise last_exception
+
+
 def main() -> int:
     """
     Main function to check camera availability and send notifications.
@@ -142,7 +172,7 @@ def main() -> int:
     try:
         logger.info("=== Camera Monitor Check Starting ===")
 
-        is_available = check_availability()
+        is_available = check_availability_with_retry()
 
         if is_available:
             logger.info("✓ Camera IS available!")

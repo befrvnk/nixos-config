@@ -50,6 +50,7 @@ in
 
       Service = {
         Type = "oneshot";
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 15"; # Wait for network after resume
         ExecStart = "${monitorScript}/bin/camera-monitor";
 
         # Environment variables needed for notifications
