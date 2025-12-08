@@ -19,6 +19,7 @@
     ./media-suspend
     ./navi
     ./niri
+    ./obsidian.nix
     ./opencode
     ./packages.nix
     ./nil.nix

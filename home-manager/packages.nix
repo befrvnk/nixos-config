@@ -21,6 +21,7 @@
       navi
       neofetch
       nh
+      obsidian
       powertop
       slack
       spotify
