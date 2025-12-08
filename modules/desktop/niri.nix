@@ -2,7 +2,6 @@
 {
   environment.systemPackages = [
     pkgs.xdg-utils
-    pkgs.niri
   ];
   xdg = {
     autostart.enable = true;
@@ -13,12 +12,12 @@
 
   hardware.graphics.enable = true;
 
-  services.displayManager.sessionPackages = [ pkgs.niri ];
+  services.displayManager.sessionPackages = [ pkgs.niri-unstable ];
 
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-    configPackages = [ pkgs.niri ];
+    configPackages = [ pkgs.niri-unstable ];
   };
 
   security.polkit.enable = true;

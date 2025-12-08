@@ -78,7 +78,7 @@ This configuration uses a minimal, keyboard-driven Wayland desktop:
 
 ### Niri (Window Manager)
 
-[Niri](https://github.com/YaLTeR/niri) is a scrollable-tiling Wayland compositor. Windows are arranged in columns that scroll horizontally, similar to PaperWM.
+[Niri](https://github.com/YaLTeR/niri) is a scrollable-tiling Wayland compositor. Windows are arranged in columns that scroll horizontally, similar to PaperWM. This configuration uses `niri-unstable` from the [niri-flake](https://github.com/sodiboo/niri-flake) for the latest features, with the niri binary cache configured for faster builds.
 
 Key features in this setup:
 - Workspaces numbered 1-9, accessible via `Mod+1` through `Mod+9`

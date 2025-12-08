@@ -43,6 +43,14 @@
       "root"
       "frank"
     ];
+
+    # Additional binary caches (adds to default cache.nixos.org)
+    extra-substituters = [
+      "https://niri.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
+    ];
   };
 
   # Configure systemd-logind for proper lid handling

@@ -34,6 +34,7 @@
   # https://github.com/YaLTeR/niri/blob/main/resources/default-config.kdl
   programs.niri = {
     enable = true;
+    package = pkgs.niri-unstable;
 
     # Configuration organized into logical modules for better readability
     settings = lib.mkMerge [
