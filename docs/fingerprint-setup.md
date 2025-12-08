@@ -21,11 +21,12 @@ Fingerprint authentication will work for:
 
 ## Configuration
 
-The fingerprint configuration is located in `modules/hardware/fprintd.nix`. The module:
+The fingerprint configuration is located in `modules/hardware/fprintd/default.nix`. The module:
 
-1. Enables the fprintd service with the Goodix TOD driver
+1. Enables the fprintd service
 2. Configures PAM (Pluggable Authentication Modules) for fingerprint support
 3. Sets up authentication to try fingerprint first, then fall back to password
+4. Adds lid detection to skip fingerprint auth when laptop lid is closed
 
 ## Enrolling Your Fingerprints
 
@@ -164,12 +165,19 @@ The fingerprint authentication is configured to automatically fall back to passw
 
 ### Using Laptop with Lid Closed
 
-When using your laptop with the lid closed and external monitor:
-- The system automatically stops fprintd when lid is closed (fingerprint unavailable)
-- When lid is opened, fprintd automatically starts again
-- This prevents unnecessary fingerprint timeout delays when using external monitor
+When using your laptop with the lid closed (e.g., with an external monitor):
+- The `fprintd-lid-manager` service monitors lid state via `/proc/acpi/button/lid/*/state`
+- When lid closes, it creates `/run/fprintd-lid-closed` flag file
+- PAM rules check this flag and **skip fingerprint authentication entirely** when lid is closed
+- This means `sudo` and other auth prompts go straight to password with no delay
+- When lid opens, the flag is removed and fingerprint auth becomes available again
 
-To disable this automatic lid management, remove `./hardware/fprintd-lid-management.nix` from `modules/default.nix`.
+**How it works:**
+1. A `pam_exec` rule runs before `pam_fprintd` to check if the flag file exists
+2. If the flag exists (lid closed), PAM skips the fingerprint module entirely
+3. The `fprintd.service` also has a `ConditionPathExists` to prevent D-Bus activation
+
+To disable this automatic lid management, remove `./hardware/fprintd/lid-management.nix` from `modules/default.nix`.
 
 ## Tips
 
@@ -182,6 +190,6 @@ To disable this automatic lid management, remove `./hardware/fprintd-lid-managem
 ## Security Notes
 
 - Fingerprints are stored locally in `/var/lib/fprint/`
-- The fingerprint sensor uses the Goodix TOD (Touch OEM Drivers) for enhanced security
 - Fingerprint authentication is configured as "sufficient" - it tries fingerprint first, but falls back to password
 - This means you can still access your system even if the fingerprint sensor fails
+- Timeout and retry limits (10 seconds, 3 attempts) protect against brute force

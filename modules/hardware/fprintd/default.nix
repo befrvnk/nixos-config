@@ -1,5 +1,12 @@
 { pkgs, ... }:
 
+let
+  # Script that returns success (0) if lid is closed, failure (1) if open
+  # Used by PAM to skip fingerprint auth when lid is closed
+  checkLidClosed = pkgs.writeShellScript "check-lid-closed" ''
+    [ -f /run/fprintd-lid-closed ]
+  '';
+in
 {
   # Enable fingerprint reader support
   services.fprintd = {
@@ -9,6 +16,13 @@
     # If fingerprint stops working after rebuild, uncomment these lines:
     # tod.enable = true;
     # tod.driver = pkgs.libfprint-2-tod1-goodix;
+  };
+
+  # Prevent fprintd from starting when lid is closed
+  # The lid-manager service creates this flag file when lid closes
+  # This blocks D-Bus activation of fprintd, so sudo goes straight to password
+  systemd.services.fprintd.unitConfig = {
+    ConditionPathExists = "!/run/fprintd-lid-closed";
   };
 
   # Add polkit rules to allow fingerprint enrollment and verification
@@ -30,63 +44,107 @@
         # Account management
         account required pam_unix.so
 
-        # Authentication with fingerprint (try first, then fall back to password)
+        # Skip fingerprint auth if lid is closed (success=1 skips next module)
+        auth [success=1 default=ignore] pam_exec.so quiet ${checkLidClosed}
         auth sufficient pam_fprintd.so timeout=10 max-tries=3
         auth include login
       '';
     };
 
     # Enable fingerprint for polkit (used by 1Password and other GUI apps)
-    # Using the built-in fprintAuth with custom module path to pass timeout args
     polkit-1 = {
-      rules.auth.fprintd = {
-        order = 11400; # Before unix auth
-        control = "sufficient";
-        modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
-        args = [
-          "timeout=10"
-          "max-tries=3"
-        ];
+      rules.auth = {
+        # Skip fingerprint if lid is closed (success=1 skips next module)
+        fprintd-lid-check = {
+          order = 11390;
+          control = "[success=1 default=ignore]";
+          modulePath = "${pkgs.pam}/lib/security/pam_exec.so";
+          args = [
+            "quiet"
+            "${checkLidClosed}"
+          ];
+        };
+        fprintd = {
+          order = 11400;
+          control = "sufficient";
+          modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
+          args = [
+            "timeout=10"
+            "max-tries=3"
+          ];
+        };
       };
     };
 
     # Enable fingerprint for sudo with timeout
     sudo = {
-      rules.auth.fprintd = {
-        order = 11400; # Before unix auth
-        control = "sufficient";
-        modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
-        args = [
-          "timeout=10"
-          "max-tries=3"
-        ];
+      rules.auth = {
+        fprintd-lid-check = {
+          order = 11390;
+          control = "[success=1 default=ignore]";
+          modulePath = "${pkgs.pam}/lib/security/pam_exec.so";
+          args = [
+            "quiet"
+            "${checkLidClosed}"
+          ];
+        };
+        fprintd = {
+          order = 11400;
+          control = "sufficient";
+          modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
+          args = [
+            "timeout=10"
+            "max-tries=3"
+          ];
+        };
       };
     };
 
     # Enable fingerprint for login with timeout
     login = {
-      rules.auth.fprintd = {
-        order = 11400; # Before unix auth
-        control = "sufficient";
-        modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
-        args = [
-          "timeout=10"
-          "max-tries=3"
-        ];
+      rules.auth = {
+        fprintd-lid-check = {
+          order = 11390;
+          control = "[success=1 default=ignore]";
+          modulePath = "${pkgs.pam}/lib/security/pam_exec.so";
+          args = [
+            "quiet"
+            "${checkLidClosed}"
+          ];
+        };
+        fprintd = {
+          order = 11400;
+          control = "sufficient";
+          modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
+          args = [
+            "timeout=10"
+            "max-tries=3"
+          ];
+        };
       };
     };
 
     # Enable fingerprint for greetd with a shorter timeout
-    # This allows quick fallback to password for keyring unlock
     greetd = {
-      rules.auth.fprintd = {
-        order = 11400; # Before unix auth
-        control = "sufficient";
-        modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
-        args = [
-          "timeout=5"
-          "max-tries=2"
-        ];
+      rules.auth = {
+        fprintd-lid-check = {
+          order = 11390;
+          control = "[success=1 default=ignore]";
+          modulePath = "${pkgs.pam}/lib/security/pam_exec.so";
+          args = [
+            "quiet"
+            "${checkLidClosed}"
+          ];
+        };
+        fprintd = {
+          order = 11400;
+          control = "sufficient";
+          modulePath = "${pkgs.fprintd}/lib/security/pam_fprintd.so";
+          args = [
+            "timeout=5"
+            "max-tries=2"
+          ];
+        };
       };
     };
   };
