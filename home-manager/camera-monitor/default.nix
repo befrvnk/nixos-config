@@ -71,7 +71,7 @@ in
 
       Timer = {
         OnCalendar = cfg.interval;
-        Persistent = true; # Run missed checks on boot
+        Persistent = false; # Don't run missed checks after suspend/resume
         Unit = "camera-monitor.service";
       };
 
