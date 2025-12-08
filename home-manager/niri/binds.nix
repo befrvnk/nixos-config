@@ -177,18 +177,16 @@
 
     "Mod+Shift+P".action.power-off-monitors = { };
 
-    # Function keys
+    # Function keys (volume/brightness use swayosd-client for OSD display)
     "XF86AudioLowerVolume".action.spawn = [
-      "wpctl"
-      "set-volume"
-      "@DEFAULT_AUDIO_SINK@"
-      "5%-"
+      "swayosd-client"
+      "--output-volume"
+      "lower"
     ];
     "XF86AudioMute".action.spawn = [
-      "wpctl"
-      "set-mute"
-      "@DEFAULT_AUDIO_SINK@"
-      "toggle"
+      "swayosd-client"
+      "--output-volume"
+      "mute-toggle"
     ];
     "XF86AudioNext".action.spawn = [
       "playerctl"
@@ -203,24 +201,23 @@
       "previous"
     ];
     "XF86AudioRaiseVolume".action.spawn = [
-      "wpctl"
-      "set-volume"
-      "@DEFAULT_AUDIO_SINK@"
-      "5%+"
+      "swayosd-client"
+      "--output-volume"
+      "raise"
     ];
     "XF86AudioStop".action.spawn = [
       "playerctl"
       "stop"
     ];
     "XF86MonBrightnessDown".action.spawn = [
-      "brightnessctl"
-      "set"
-      "5%-"
+      "swayosd-client"
+      "--brightness"
+      "lower"
     ];
     "XF86MonBrightnessUp".action.spawn = [
-      "brightnessctl"
-      "set"
-      "5%+"
+      "swayosd-client"
+      "--brightness"
+      "raise"
     ];
   };
 }

@@ -158,10 +158,12 @@ Key features in this setup:
 
 | Shortcut | Action |
 |----------|--------|
-| `XF86AudioRaiseVolume/LowerVolume` | Adjust volume |
-| `XF86AudioMute` | Toggle mute |
-| `XF86MonBrightnessUp/Down` | Adjust brightness |
+| `XF86AudioRaiseVolume/LowerVolume` | Adjust volume (with OSD) |
+| `XF86AudioMute` | Toggle mute (with OSD) |
+| `XF86MonBrightnessUp/Down` | Adjust brightness (with OSD) |
 | `XF86AudioPlay/Prev/Next` | Media controls |
+
+Volume and brightness keys show an on-screen display (OSD) overlay via SwayOSD.
 
 ### Screenshots
 
@@ -281,6 +283,7 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **ironbar** - Customizable status bar
 - **vicinae** - Application launcher
 - **dunst** - Notification daemon
+- **swayosd** - On-screen display for volume/brightness
 - **swaylock** - Screen locker
 - **awww** - Wallpaper daemon with fade transitions
 - **brightnessctl** - Brightness control

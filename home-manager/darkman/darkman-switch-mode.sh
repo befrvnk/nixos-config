@@ -44,6 +44,9 @@ fi
 # Restart Ironbar to pick up new theme CSS
 @systemd@/bin/systemctl --user restart ironbar.service || true
 
+# Restart SwayOSD to pick up new GTK theme colors
+@systemd@/bin/systemctl --user restart swayosd.service || true
+
 # Update vicinae theme based on mode
 if [ -f ~/.config/vicinae/vicinae.json ]; then
   if [ "$MODE" = "light" ]; then
