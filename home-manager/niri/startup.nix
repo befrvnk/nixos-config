@@ -13,5 +13,17 @@
         "${inputs.awww.packages.${pkgs.system}.awww}/bin/awww-daemon"
       ];
     }
+    # Initialize audio enhancement sink for volume control
+    # The Framework audio enhancement filter-chain starts in an uninitialized state
+    # where wpctl reports incorrect volume (1.0) and volume changes don't apply.
+    # Running pw-loopback briefly activates the sink, after which volume control
+    # works correctly even when the sink returns to suspended state.
+    {
+      command = [
+        "${pkgs.bash}/bin/bash"
+        "-c"
+        "timeout 0.5 ${pkgs.pipewire}/bin/pw-loopback --capture-props='media.class=Audio/Sink' --playback-props='node.target=@DEFAULT_AUDIO_SINK@' || true"
+      ];
+    }
   ];
 }

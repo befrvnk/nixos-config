@@ -68,6 +68,39 @@ When [issue #875](https://github.com/JakeStanger/ironbar/issues/875) is fixed:
 2. If stable, can switch back to `{"type": "volume", "max_volume": 100}`
 3. Remove this custom module if no longer needed
 
+## Known Issue: Volume Shows 100% on Fresh Boot
+
+### The Problem
+
+On a fresh boot, the Framework audio enhancement filter-chain (`audio_effect.laptop-convolver`) starts in an uninitialized state. In this state:
+- `wpctl get-volume` returns `1.00` (100%) regardless of actual volume
+- Volume keyboard shortcuts don't apply changes
+- The volume display shows incorrect 100%
+
+### Root Cause
+
+The filter-chain node has two suspended states:
+1. **Uninitialized (fresh boot):** Volume reports 1.0, changes don't apply
+2. **Initialized (after activation):** Volume works correctly, even when suspended
+
+Opening pavucontrol or any app that creates an audio stream activates the sink.
+
+### Solution
+
+A brief `pw-loopback` command at startup initializes the sink. This is configured in `home-manager/niri/startup.nix`:
+
+```nix
+{
+  command = [
+    "${pkgs.bash}/bin/bash"
+    "-c"
+    "timeout 0.5 ${pkgs.pipewire}/bin/pw-loopback --capture-props='media.class=Audio/Sink' --playback-props='node.target=@DEFAULT_AUDIO_SINK@' || true"
+  ];
+}
+```
+
+This runs for 0.5 seconds at startup, initializes the sink, then exits. After initialization, volume control works correctly even when the sink returns to suspended state.
+
 ## Debugging
 
 Test the script manually:
@@ -79,4 +112,9 @@ Check WirePlumber status:
 ```bash
 wpctl status
 wpctl get-volume @DEFAULT_AUDIO_SINK@
+```
+
+Check sink state (should work regardless of suspended/running after initialization):
+```bash
+pw-cli info @DEFAULT_AUDIO_SINK@ | grep state
 ```
