@@ -21,7 +21,8 @@
       "class": "notifications",
       "bar": [
         {
-          "type": "label",
+          "type": "button",
+          "class": "flat",
           "label": "{{2000:~/.config/ironbar/modules/notifications/notification-count.sh}}",
           "on_click": "popup:toggle"
         }

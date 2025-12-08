@@ -79,6 +79,20 @@ These provide semantic color accents:
     padding: 3px 9px;
 }
 
+/* Flat button style - looks like a label but is clickable */
+button.flat {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    min-height: 0;
+    min-width: 0;
+}
+
+button.flat:hover {
+    background-color: transparent;
+}
+
 .popup-clock {
     background-color: @base01;
     padding: 12px;
