@@ -15,11 +15,21 @@ export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(@coreutils@/bin/id -u)/bu
 
 # Set WAYLAND_DISPLAY if not already set (needed for awww to find the correct socket)
 if [ -z "$WAYLAND_DISPLAY" ]; then
-  # Try to find the Wayland display from running processes
-  WAYLAND_DISPLAY=$(@coreutils@/bin/ls /run/user/$(@coreutils@/bin/id -u)/wayland-* 2>/dev/null | @gnugrep@/bin/grep -v 'lock\|awww' | @coreutils@/bin/head -n1 | @gnused@/bin/sed 's|.*/wayland-\([0-9]*\)|\1|')
-  if [ -n "$WAYLAND_DISPLAY" ]; then
-    export WAYLAND_DISPLAY="wayland-$WAYLAND_DISPLAY"
-  fi
+  # Try to find the Wayland display from socket files
+  # Retry up to 5 times with 0.5s delay to handle boot race conditions
+  for attempt in {1..5}; do
+    WAYLAND_NUM=$(@coreutils@/bin/ls /run/user/$(@coreutils@/bin/id -u)/wayland-* 2>/dev/null | @gnugrep@/bin/grep -v 'lock\|awww' | @coreutils@/bin/head -n1 | @gnused@/bin/sed 's|.*/wayland-\([0-9]*\)|\1|')
+    if [ -n "$WAYLAND_NUM" ]; then
+      export WAYLAND_DISPLAY="wayland-$WAYLAND_NUM"
+      break
+    fi
+    @coreutils@/bin/sleep 0.5
+  done
+fi
+
+# Warn if WAYLAND_DISPLAY couldn't be detected (wallpaper update will fail)
+if [ -z "$WAYLAND_DISPLAY" ]; then
+  echo "Warning: Could not detect WAYLAND_DISPLAY, wallpaper may not update" >&2
 fi
 
 # Find the home-manager generation with specialisations from the current system
