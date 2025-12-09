@@ -84,11 +84,11 @@
       ```
     '';
 
-    gc = ''
-      Run garbage collection to free up disk space
+    clean = ''
+      Clean up old NixOS generations (keeps last 5 by default)
 
       ```bash
-      sudo nix-collect-garbage --delete-older-than 7d
+      nh clean all --keep 5
       ```
     '';
   };
@@ -161,6 +161,7 @@
     echo ""
     echo "Available commands:"
     echo "  rebuild [switch] - Rebuild NixOS (default: boot)"
+    echo "  clean [N]        - Clean old generations (default: keep 5)"
     echo "  sysinfo          - Show system information"
     echo "  generations      - List NixOS generations"
     echo ""
@@ -172,7 +173,7 @@
     echo "  /check    - Check flake for errors"
     echo "  /format   - Format Nix files"
     echo "  /lint     - Lint Nix files with statix"
-    echo "  /gc       - Run garbage collection"
+    echo "  /clean    - Clean old generations (keep 5)"
     echo ""
 
     # Show git status if in a git repository
@@ -216,6 +217,15 @@
     # List all available NixOS generations
     generations.exec = ''
       sudo ${pkgs.nix}/bin/nix-env --list-generations --profile /nix/var/nix/profiles/system
+    '';
+
+    # Clean up old generations using nh
+    # Usage: clean [keep-count]
+    # Default keeps 5 generations
+    clean.exec = ''
+      keep="''${1:-5}"
+      echo "+ ${pkgs.nh}/bin/nh clean all --keep $keep"
+      ${pkgs.nh}/bin/nh clean all --keep "$keep"
     '';
   };
 
