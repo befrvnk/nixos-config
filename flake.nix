@@ -59,14 +59,6 @@
       pkgs = inputs.nixpkgs.legacyPackages.${system};
       # Common overlays applied to all hosts
       commonOverlays = [
-        # To update gemini-cli to a new version:
-        # 1. Check latest release: https://github.com/google-gemini/gemini-cli/releases
-        # 2. Update 'version' in overlays/gemini-cli.nix
-        # 3. Get new hash with:
-        #    curl -sL https://github.com/google-gemini/gemini-cli/releases/download/v<VERSION>/gemini.js | sha256sum
-        #    python3 -c "import base64; print('sha256-' + base64.b64encode(bytes.fromhex('<HEX_HASH>')).decode())"
-        # 4. Update 'hash' in overlays/gemini-cli.nix with the output
-        (import ./overlays/gemini-cli.nix)
         inputs.android-nixpkgs.overlays.default
         inputs.niri.overlays.niri
         (import ./overlays/niri.nix)
