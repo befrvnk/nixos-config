@@ -1,6 +1,6 @@
 ---
 name: Test
-description: Write and run tests to verify implementation correctness
+description: MUST BE USED after code changes. Validates with nix flake check before commits. Automatically invoked when implementation completes.
 model: haiku
 tools:
   - Read

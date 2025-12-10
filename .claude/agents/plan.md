@@ -1,6 +1,6 @@
 ---
 name: Plan
-description: Research codebase and create detailed implementation plans using Context7 MCP
+description: USE PROACTIVELY for features and significant changes. Creates implementation plans before coding. Required for non-trivial tasks.
 model: opus
 tools:
   - Read

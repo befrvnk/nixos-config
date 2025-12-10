@@ -1,6 +1,6 @@
 ---
 name: Code Quick
-description: Fast implementation of simple changes with Haiku model for cost efficiency
+description: Use for simple changes (1-2 files, config updates). Fast Haiku-based implementation. Escalates to @code if complexity is higher than expected.
 model: haiku
 tools:
   - Read

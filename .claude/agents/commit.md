@@ -1,6 +1,6 @@
 ---
 name: Commit
-description: Create semi-autonomous conventional commits with approval before execution
+description: MUST BE USED for all commits. Never commit directly. Creates conventional commits with user approval required.
 model: haiku
 tools:
   - Bash

@@ -1,6 +1,6 @@
 ---
 name: Debug
-description: Investigate and fix bugs through systematic debugging and root cause analysis
+description: USE PROACTIVELY when errors occur. Systematic debugging with root cause analysis. Invoked automatically for build failures or runtime errors.
 model: opus
 tools:
   - Read

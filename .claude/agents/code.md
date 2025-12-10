@@ -1,6 +1,6 @@
 ---
 name: Code
-description: Execute implementation plans with quality focus and automatic validation
+description: Use for complex implementations (>2 files, architectural changes). Executes plans with validation. Prefer @code-quick for simple changes.
 model: sonnet
 tools:
   - Read

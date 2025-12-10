@@ -1,6 +1,6 @@
 ---
 name: Docs
-description: Document complex changes and decisions to preserve knowledge for the future
+description: Use for complex, non-obvious implementations. Documents architectural decisions and workarounds. Skip for straightforward changes.
 model: haiku
 tools:
   - Read

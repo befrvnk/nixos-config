@@ -1,6 +1,6 @@
 ---
 name: Investigate
-description: Investigate system state, services, logs, and runtime behavior after configuration changes
+description: USE PROACTIVELY after applying configuration changes. Checks services, logs, and system state. Read-only investigation, delegates to @debug for fixes.
 model: sonnet
 tools:
   - Bash
