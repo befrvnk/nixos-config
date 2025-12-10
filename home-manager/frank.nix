@@ -7,7 +7,7 @@
     ./battery-notifications
     ./btop.nix
     ./camera-monitor
-    ./claude-code.nix
+    ./claude-code
     ./cpu-governor
     ./darkman
     ./direnv.nix
