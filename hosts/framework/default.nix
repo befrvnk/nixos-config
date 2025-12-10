@@ -35,7 +35,9 @@
   hardware.framework.laptop13.audioEnhancement = {
     enable = true;
     hideRawDevice = true;
-    rawDeviceName = "alsa_output.pci-0000_c1_00.6.HiFi__Speaker__sink";
+    # Device name changed from HiFi to analog-stereo after disabling UCM profiles
+    # When UCM is re-enabled: "alsa_output.pci-0000_c1_00.6.HiFi__Speaker__sink"
+    rawDeviceName = "alsa_output.pci-0000_c1_00.6.analog-stereo";
   };
 
   # 1Password - Use NixOS modules for proper CLI/GUI integration
