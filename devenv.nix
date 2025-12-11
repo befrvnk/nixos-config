@@ -1,5 +1,7 @@
 { pkgs, ... }:
-
+let
+  showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
+in
 {
   # Note: Agents are defined in .claude/agents/*.md files
   # Claude Code loads these automatically without needing devenv configuration
@@ -13,6 +15,7 @@
     statix # Nix linter
     deadnix # Find dead Nix code
     nh # NixOS helper
+    nvd # Nix version diff (for changelog lookup)
   ];
 
   # Git hooks configuration - runs automatically after Claude edits files
@@ -205,6 +208,14 @@
 
       echo "+ ${pkgs.nh}/bin/nh os $action $HOME/nixos-config $@"
       ${pkgs.nh}/bin/nh os "$action" "$HOME/nixos-config" "$@"
+      exit_code=$?
+
+      # Show changelog links after successful switch
+      if [ $exit_code -eq 0 ] && [ "$action" = "switch" ]; then
+        ${showChangelogs}
+      fi
+
+      exit $exit_code
     '';
 
     # Quick system info
