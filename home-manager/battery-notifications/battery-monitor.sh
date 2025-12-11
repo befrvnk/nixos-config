@@ -63,8 +63,11 @@ check_battery_state() {
 
     # Handle discharging state
     if [[ "$state" == "discharging" ]]; then
-        # Reset full charge notification when discharging
-        rm -f "$SENT_FULL"
+        # Reset full charge notification only when battery drops meaningfully
+        # This prevents notification spam from load-induced fluctuations near 100%
+        if [[ $percentage -lt 95 ]]; then
+            rm -f "$SENT_FULL"
+        fi
 
         # Check for 5% battery (critical)
         if [[ $percentage -le 5 ]] && [[ ! -f "$SENT_5" ]]; then
