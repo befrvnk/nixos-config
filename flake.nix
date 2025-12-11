@@ -57,29 +57,35 @@
     let
       system = "x86_64-linux";
       pkgs = inputs.nixpkgs.legacyPackages.${system};
-      # Common overlays applied to all hosts
-      commonOverlays = [
-        inputs.android-nixpkgs.overlays.default
-        inputs.niri.overlays.niri
-        (import ./overlays/niri.nix)
-        inputs.claude-code.overlays.default
-        (import ./overlays/claude-code.nix)
-      ];
+
+      # Host configuration helper
+      hostLib = import ./lib/hosts.nix { inherit inputs; };
     in
     {
-      nixosConfigurations.framework = inputs.nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = {
-          inherit inputs;
+      nixosConfigurations = {
+        # Framework Laptop 13 (AMD AI 300 series)
+        framework = hostLib.mkHost {
+          hostname = "framework";
+          cpuVendor = "amd";
+          hasFingerprint = true;
+          hasTouchscreen = false;
         };
-        modules = [
-          # Apply common overlays to all hosts
-          { nixpkgs.overlays = commonOverlays; }
-          ./hosts/framework
-          ./hosts/framework/home.nix
-          inputs.home-manager.nixosModules.home-manager
-          inputs.stylix.nixosModules.stylix
-        ];
+
+        # Future hosts (uncomment when ready):
+        #
+        # surface = hostLib.mkHost {
+        #   hostname = "surface";
+        #   cpuVendor = "intel";
+        #   hasFingerprint = false;
+        #   hasTouchscreen = true;
+        # };
+        #
+        # dell = hostLib.mkHost {
+        #   hostname = "dell";
+        #   cpuVendor = "intel";
+        #   hasFingerprint = true;
+        #   hasTouchscreen = false;
+        # };
       };
 
       # Formatter for `nix fmt` command

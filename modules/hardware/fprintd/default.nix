@@ -1,5 +1,9 @@
-{ pkgs, ... }:
-
+{
+  pkgs,
+  lib,
+  hostConfig,
+  ...
+}:
 let
   # Script that returns success (0) if lid is closed, failure (1) if open
   # Used by PAM to skip fingerprint auth when lid is closed
@@ -7,7 +11,8 @@ let
     [ -f /run/fprintd-lid-closed ]
   '';
 in
-{
+# Only enable fingerprint support on hosts that have fingerprint readers
+lib.mkIf (hostConfig.hasFingerprint or false) {
   # Enable fingerprint reader support
   services.fprintd = {
     enable = true;

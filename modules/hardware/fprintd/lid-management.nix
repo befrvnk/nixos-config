@@ -1,6 +1,11 @@
-{ pkgs, ... }:
-
 {
+  pkgs,
+  lib,
+  hostConfig,
+  ...
+}:
+# Only enable lid management on hosts that have fingerprint readers
+lib.mkIf (hostConfig.hasFingerprint or false) {
   # Systemd service to manage fprintd based on lid state
   # Stops fprintd when lid is closed, starts it when opened
   systemd.services.fprintd-lid-manager = {

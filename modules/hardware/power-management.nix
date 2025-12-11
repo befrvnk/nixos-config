@@ -1,8 +1,14 @@
-{ ... }:
-
+{
+  lib,
+  hostConfig,
+  ...
+}:
+let
+  isAmd = hostConfig.cpuVendor == "amd";
+in
 {
   # Power management optimizations based on PowerTOP recommendations
-  # These settings help extend battery life on Framework laptops
+  # These settings help extend battery life on laptops
 
   # Disable power-profiles-daemon (conflicts with TLP)
   # power-profiles-daemon is often enabled by default in desktop environments
@@ -17,11 +23,11 @@
     # Disable NMI watchdog (saves ~1W)
     # NMI watchdog is used for detecting hard lockups, but not needed for normal use
     "nmi_watchdog=0"
-    # Use AMD P-State guided mode for collaborative frequency scaling
-    # Guided mode: kernel suggests frequencies, CPU adjusts based on internal sensors/constraints
-    # Provides scheduler integration (like passive) plus hardware intelligence (like active)
-    "amd_pstate=guided"
-  ];
+  ]
+  # AMD-specific: Use P-State guided mode for collaborative frequency scaling
+  # Guided mode: kernel suggests frequencies, CPU adjusts based on internal sensors/constraints
+  # Provides scheduler integration (like passive) plus hardware intelligence (like active)
+  ++ lib.optionals isAmd [ "amd_pstate=guided" ];
 
   # Runtime kernel settings
   boot.kernel.sysctl = {
@@ -50,12 +56,12 @@
     enable = true;
     settings = {
       # CPU frequency scaling governor
-      # With AMD P-State Passive mode, full range of governors available (schedutil, ondemand, etc.)
       # schedutil: Scheduler-driven frequency scaling for optimal responsiveness and efficiency
-      # AC: "schedutil" for dynamic frequency scaling based on scheduler load
-      # Battery: "powersave" for extended battery life
+      # Works well with both AMD P-State and Intel P-State drivers
+      # Used on both AC and battery since powersave is too sluggish for typical tasks
+      # (video playback, code compilation) while schedutil is still power-efficient
       CPU_SCALING_GOVERNOR_ON_AC = "schedutil";
-      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
+      CPU_SCALING_GOVERNOR_ON_BAT = "schedutil";
 
       # CPU boost (turbo)
       # AC: Enable turbo for better performance
