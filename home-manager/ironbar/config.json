@@ -126,8 +126,28 @@
       "class": "battery",
       "bar": [
         {
-          "type": "label",
-          "label": "{{5000:~/.config/ironbar/modules/battery/battery-status.sh}}"
+          "type": "button",
+          "class": "flat",
+          "label": "{{5000:~/.config/ironbar/modules/battery/battery-status.sh}}",
+          "on_click": "popup:toggle"
+        }
+      ],
+      "popup": [
+        {
+          "type": "box",
+          "orientation": "vertical",
+          "widgets": [
+            {
+              "type": "label",
+              "class": "popup-title",
+              "label": "Battery Details"
+            },
+            {
+              "type": "label",
+              "class": "battery-details",
+              "label": "{{5000:~/.config/ironbar/modules/battery/battery-details.sh}}"
+            }
+          ]
         }
       ]
     }

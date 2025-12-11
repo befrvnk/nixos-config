@@ -59,6 +59,10 @@ in
     source = ./modules/battery/battery-status.sh;
     executable = true;
   };
+  xdg.configFile."ironbar/modules/battery/battery-details.sh" = {
+    source = ./modules/battery/battery-details.sh;
+    executable = true;
+  };
   xdg.configFile."ironbar/modules/notifications/notification-count.sh" = {
     source = ./modules/notifications/notification-count.sh;
     executable = true;

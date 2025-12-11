@@ -247,6 +247,25 @@ button.flat:hover {
     font-weight: normal;
 }
 
+/* Battery popup styling */
+.popup-battery {
+    background-color: @base00;
+    padding: 15px;
+    border-radius: 16px;
+    border: 1px solid alpha(@base01, 0.3);
+}
+
+.popup-battery label {
+    color: @base05;
+    padding: 5px 0;
+}
+
+.popup-battery .popup-title {
+    font-weight: bold;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
+
 /* Notification popup styling */
 .popup-notifications {
     background-color: @base00;
