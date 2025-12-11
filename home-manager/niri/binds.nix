@@ -23,16 +23,11 @@
       "suspend"
     ];
 
-    # CPU Governor switching (battery only)
-    # Mod+Ctrl+P = Performance (schedutil)
-    # Mod+Ctrl+E = Economy/Efficiency (powersave)
+    # CPU Governor toggle (battery only)
+    # Mod+Ctrl+P = Toggle between schedutil and powersave
     "Mod+Ctrl+P".action.spawn = [
       "switch-governor"
-      "schedutil"
-    ];
-    "Mod+Ctrl+E".action.spawn = [
-      "switch-governor"
-      "powersave"
+      "toggle"
     ];
 
     # Navigation

@@ -27,13 +27,14 @@ get_current_governor() {
 
 # Show usage
 usage() {
-    echo "Usage: switch-governor [schedutil|powersave]"
+    echo "Usage: switch-governor [schedutil|powersave|toggle]"
     echo ""
     echo "Switch CPU governor on battery power"
     echo ""
     echo "Options:"
     echo "  schedutil    - Use schedutil governor (performance)"
     echo "  powersave    - Use powersave governor (battery saving)"
+    echo "  toggle       - Toggle between schedutil and powersave"
     echo ""
     echo "If no argument is provided, shows current governor"
     exit 1
@@ -50,10 +51,19 @@ fi
 
 REQUESTED_GOVERNOR="$1"
 
+# Handle toggle option
+if [[ "$REQUESTED_GOVERNOR" == "toggle" ]]; then
+    if [[ "$CURRENT_GOVERNOR" == "powersave" ]]; then
+        REQUESTED_GOVERNOR="schedutil"
+    else
+        REQUESTED_GOVERNOR="powersave"
+    fi
+fi
+
 # Validate governor
 if [[ "$REQUESTED_GOVERNOR" != "schedutil" && "$REQUESTED_GOVERNOR" != "powersave" ]]; then
     echo "Error: Invalid governor '$REQUESTED_GOVERNOR'"
-    echo "Valid options: schedutil, powersave"
+    echo "Valid options: schedutil, powersave, toggle"
     usage
 fi
 

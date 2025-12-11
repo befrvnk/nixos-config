@@ -79,6 +79,7 @@
     {
       "type": "custom",
       "class": "cpu-governor",
+      "show_if": "poll:2000:~/.config/ironbar/modules/cpu-governor/is-powersave.sh",
       "bar": [
         {
           "type": "label",

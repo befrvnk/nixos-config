@@ -83,6 +83,13 @@ in
     executable = true;
   };
 
+  # CPU governor visibility check
+  # Only shows module when governor is powersave
+  xdg.configFile."ironbar/modules/cpu-governor/is-powersave.sh" = {
+    source = ./modules/cpu-governor/is-powersave.sh;
+    executable = true;
+  };
+
   # Tray visibility check
   # Hides tray module when no StatusNotifierItems are registered
   xdg.configFile."ironbar/modules/tray/has-tray-items.sh" = {

@@ -10,7 +10,7 @@ case "$GOVERNOR" in
         echo "󰓅 Performance"
         ;;
     "powersave")
-        echo "󰾅 Battery"
+        echo "󰾅 Powersave"
         ;;
     *)
         echo "󰻠 $GOVERNOR"
