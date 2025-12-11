@@ -179,10 +179,21 @@ Optional body text
 
 ### Phase 6: Execute Commit
 
-After approval, create the commit using heredoc for proper formatting:
+After approval:
 
+1. **Stage all changes** that should be included in the commit:
 ```bash
-git commit -m "$(cat <<'EOF'
+git add -A  # Stage all changes (new, modified, deleted)
+```
+
+Or if only specific files should be committed:
+```bash
+git add path/to/file1 path/to/file2
+```
+
+2. **Create the commit** using heredoc for proper formatting:
+```bash
+git add -A && git commit -m "$(cat <<'EOF'
 type(scope): short description
 
 Optional body text explaining the change in more detail.
@@ -190,6 +201,8 @@ Can span multiple lines if needed.
 EOF
 )"
 ```
+
+**Important**: Always stage files before committing. Do NOT assume files are already staged.
 
 **Note**: `nixfmt` will run automatically via the git pre-commit hook.
 
@@ -352,6 +365,7 @@ You've succeeded when:
 
 ## Remember
 
+- **Always stage files** - run `git add -A` before committing, never assume files are staged
 - **Conventional commits** - follow the specification strictly
 - **User approval required** - never commit without asking
 - **NO attribution** - clean commits without Claude branding
