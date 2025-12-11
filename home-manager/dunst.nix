@@ -11,10 +11,10 @@
         follow = "mouse";
 
         # Geometry
-        width = 300;
-        height = 300;
-        origin = "top-right";
-        offset = "12x12";
+        width = 400;
+        height = 400;
+        origin = "top-center";
+        offset = "0x64";
 
         # Progress bar
         progress_bar = true;
@@ -75,11 +75,11 @@
 
       # Urgency levels - colors will be overridden by Stylix
       urgency_low = {
-        timeout = 5;
+        timeout = 3;
       };
 
       urgency_normal = {
-        timeout = 10;
+        timeout = 5;
       };
 
       urgency_critical = {
