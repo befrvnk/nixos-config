@@ -208,6 +208,7 @@ This project uses specialized Claude Code subagents for efficient development. E
   - Do NOT add any automated footers, signatures, or attribution
   - Commit messages should contain ONLY: title, optional body, and relevant trailers (Fixes, Closes, etc.)
 - nixfmt runs automatically via pre-commit hook
+- **If commit fails due to nixfmt modifications:** Stage the reformatted files (`git add -u`) and retry the commit
 
 ### Token Optimization
 
