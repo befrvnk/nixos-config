@@ -29,6 +29,13 @@
 
   services.hardware.bolt.enable = false;
 
+  # MediaTek MT7925 WiFi: Set conservative ASPM policy to prevent "driver own failed"
+  # errors during boot. The WiFi card fails to initialize if aggressive ASPM puts it
+  # in a low-power state before driver probe. Module-level disable_aspm=1 was too late.
+  # "performance" keeps ASPM enabled but avoids aggressive power states.
+  # If this still fails, fall back to "pcie_aspm=off".
+  boot.kernelParams = [ "pcie_aspm.policy=performance" ];
+
   # Disable kmod to avoid infinite recursion with kernel packages
   hardware.framework.enableKmod = false;
 
