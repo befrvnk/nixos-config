@@ -25,8 +25,8 @@ echo ""
 echo "Checking changelogs for updated packages..."
 echo ""
 
-# Get changed packages from nvd (only updates [U.])
-changed_packages=$("$nvd" diff "$previous" "$current" 2>/dev/null | "$grep" -E '^\[U' | "$awk" '{print $2}' | "$cut" -d: -f1 || true)
+# Get changed packages from nvd ([U]=upgrade, [C]=changed multi-output)
+changed_packages=$("$nvd" diff "$previous" "$current" 2>/dev/null | "$grep" -E '^\[(U|C)' | "$awk" '{print $3}' | "$cut" -d: -f1 || true)
 
 if [[ -z "$changed_packages" ]]; then
   echo "No package updates detected"
