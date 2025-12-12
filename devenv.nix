@@ -167,6 +167,7 @@ in
     echo "  clean [N]        - Clean old generations (default: keep 5)"
     echo "  sysinfo          - Show system information"
     echo "  generations      - List NixOS generations"
+    echo "  wifi-debug       - Capture WiFi debug logs (run if WiFi fails)"
     echo ""
     echo "Slash commands (Claude Code):"
     echo "  /rebuild  - Rebuild and switch configuration"
@@ -237,6 +238,46 @@ in
       keep="''${1:-5}"
       echo "+ ${pkgs.nh}/bin/nh clean all --keep $keep"
       ${pkgs.nh}/bin/nh clean all --keep "$keep"
+    '';
+
+    # Capture WiFi debug logs when WiFi fails to initialize
+    # Run this BEFORE rebooting if WiFi is not working
+    wifi-debug.exec = ''
+      output_dir="$HOME/wifi-debug-$(${pkgs.coreutils}/bin/date +%Y%m%d-%H%M%S)"
+      ${pkgs.coreutils}/bin/mkdir -p "$output_dir"
+
+      echo "📡 Capturing WiFi debug information to $output_dir"
+      echo ""
+
+      echo "→ Capturing kernel messages (dmesg)..."
+      ${pkgs.util-linux}/bin/dmesg > "$output_dir/dmesg.log" 2>&1
+
+      echo "→ Capturing boot kernel logs (iwlwifi/wifi related)..."
+      ${pkgs.systemd}/bin/journalctl -b 0 -k | ${pkgs.gnugrep}/bin/grep -i -E "(iwl|wifi|wlan|firmware|network)" > "$output_dir/kernel-wifi.log" 2>&1
+
+      echo "→ Capturing NetworkManager logs..."
+      ${pkgs.systemd}/bin/journalctl -b 0 -u NetworkManager > "$output_dir/networkmanager.log" 2>&1
+
+      echo "→ Capturing full boot log..."
+      ${pkgs.systemd}/bin/journalctl -b 0 > "$output_dir/full-boot.log" 2>&1
+
+      echo "→ Capturing network interface state..."
+      ${pkgs.iproute2}/bin/ip a > "$output_dir/ip-addr.log" 2>&1
+      ${pkgs.iproute2}/bin/ip link > "$output_dir/ip-link.log" 2>&1
+
+      echo "→ Capturing loaded modules..."
+      ${pkgs.kmod}/bin/lsmod | ${pkgs.gnugrep}/bin/grep -i -E "(iwl|wifi|cfg80211|mac80211)" > "$output_dir/modules.log" 2>&1
+
+      echo "→ Capturing PCI devices..."
+      ${pkgs.pciutils}/bin/lspci | ${pkgs.gnugrep}/bin/grep -i network > "$output_dir/pci-network.log" 2>&1
+
+      echo ""
+      echo "✅ Debug logs captured to: $output_dir"
+      echo ""
+      echo "Files captured:"
+      ${pkgs.coreutils}/bin/ls -la "$output_dir"
+      echo ""
+      echo "💡 Share these files when reporting WiFi issues."
     '';
   };
 
