@@ -16,10 +16,12 @@
 **Note:** The `rebuild` script is available when the devenv environment is active (automatic via direnv).
 
 ### Additional Commands
-- **Check flake validity:** `nix flake check`
+- **Check flake validity:** `check` (in devenv) or `nix flake check --accept-flake-config`
 - **Format code:** `nix fmt` (auto-formatted on commit via pre-commit hooks)
-- **Update flakes manually:** `nix flake update`
-- **Dry-run build:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run`
+- **Update flakes manually:** `nix flake update --accept-flake-config`
+- **Dry-run build:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config`
+
+**Note:** The `--accept-flake-config` flag trusts the flake's cachix configuration. Devenv scripts include this flag automatically.
 
 ### Legacy Commands (avoid these)
 - ❌ `nixos-rebuild switch` → Use `nh os switch` instead
@@ -41,14 +43,20 @@
 
 Agents CAN safely run these commands without sudo:
 
+- **devenv scripts (preferred):** `rebuild switch`, `rebuild`, `check`, `sysinfo`, `generations`
 - **All nh commands:** `nh os switch ~/nixos-config`, `nh os test ~/nixos-config`, `nh clean all`, etc.
-- **devenv scripts:** `rebuild switch`, `rebuild`, `sysinfo`, `generations` (when in devenv)
-- **Nix commands:** `nix flake check`, `nix flake update`, `nix fmt`, `nix build`
+- **Nix commands:** Always use `--accept-flake-config` flag:
+  - `nix flake check --accept-flake-config`
+  - `nix flake update --accept-flake-config`
+  - `nix build --accept-flake-config`
+  - `nix fmt` (no flag needed)
 - **Git operations:** `git add`, `git commit`, `git push`, `git status`, etc.
 - **User systemd services:** `systemctl --user status/start/stop/restart <service>`
 - **Development tools:** `nixfmt`, `statix`, `deadnix` (when in devenv environment)
 - **File operations:** Read, Edit, Write tools for configuration files
 - **Directory operations:** `ls`, `tree`, `fd`, file searches
+
+**Important for Agents:** Prefer devenv scripts over raw nix commands. Devenv scripts automatically include the correct flags and provide better output.
 
 ## Code Style Guidelines
 - **Formatting:** Uses `nixfmt-rfc-style` - automatically applied via pre-commit hooks
@@ -120,7 +128,7 @@ This project uses specialized Claude Code subagents for efficient development. E
 
 4. @code or @code-quick Agent
    ↓ Implements changes autonomously
-   ↓ Stages new files, runs `nix flake check`
+   ↓ Stages new files, runs `check` (devenv)
    ↓ Returns completion summary for review
 
 5. Review Implementation (Main)
@@ -155,7 +163,7 @@ This project uses specialized Claude Code subagents for efficient development. E
 - For complex implementations requiring deep reasoning
 - Full autonomy during implementation
 - Stages new files with `git add` before validation
-- Runs `nix flake check` after changes
+- Runs `check` (devenv) or `nix flake check --accept-flake-config` after changes
 - Auto-retries on errors (up to 3 attempts)
 - Does NOT run `nixfmt` (handled by git pre-commit hook)
 - Returns to main conversation for review and discussion
@@ -168,7 +176,7 @@ This project uses specialized Claude Code subagents for efficient development. E
 - Escalates to main if unexpected complexity encountered
 
 #### @test Agent (Haiku)
-- For NixOS: validates with `nix flake check` and builds
+- For NixOS: validates with `check` (devenv) or `nix flake check --accept-flake-config`
 - Matches existing test patterns in the project
 - Runs tests immediately after writing
 - Reports clear pass/fail status
@@ -244,7 +252,7 @@ Main: Ask clarifying questions about requirements
 
 Main: Review plan, approve
   ↓
-@code-quick: Adds decoration options, runs nix flake check ✅
+@code-quick: Adds decoration options, runs check ✅
   ↓ Returns completion summary
 
 Main: Review implementation, ask questions
@@ -313,7 +321,7 @@ Use main conversation directly for:
 ✅ **Specialization**: Each agent optimized for specific tasks
 ✅ **Quality**: Sonnet for complex, Haiku for simple (cost-effective)
 ✅ **Learning**: Review phases preserve user understanding
-✅ **Validation**: Automatic `nix flake check` before review
+✅ **Validation**: Automatic `check` (devenv) before review
 ✅ **Documentation**: Complex changes are captured for future
 ✅ **Clean Commits**: Conventional commits without AI attribution
 
@@ -330,10 +338,12 @@ This project uses [nh](https://github.com/nix-community/nh) as a wrapper around 
 
 **When to use what:**
 - System rebuilds: `rebuild switch` (in devenv) or `nh os switch ~/nixos-config` (not `nixos-rebuild`)
+- Flake validation: `check` (in devenv) or `nix flake check --accept-flake-config`
 - Home-manager: Integrated with system rebuild (no separate command needed)
 - Package search: `nh search` (alternative to `nix search`)
 - Cleanup: `nh clean all --keep N` (not `nix-collect-garbage`)
-- Flake operations: Still use `nix flake update`, `nix flake check`, `nix fmt`
+- Flake updates: `nix flake update --accept-flake-config`
+- Formatting: `nix fmt`
 
 ## Project Structure
 
