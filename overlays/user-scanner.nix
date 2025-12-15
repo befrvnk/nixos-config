@@ -1,16 +1,16 @@
 final: prev: {
   user-scanner = prev.python3Packages.buildPythonApplication rec {
     pname = "user-scanner";
-    version = "1.0.5";
+    version = "1.0.8.1";
     pyproject = true;
 
     src = prev.fetchPypi {
       pname = "user_scanner";
       inherit version;
-      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      hash = "sha256-d4+oLf3k+EmxUWCH2S5NSLpnOeF4gRQmvDVqlNxZuLY=";
     };
 
-    build-system = [ prev.python3Packages.setuptools ];
+    build-system = [ prev.python3Packages.flit-core ];
 
     dependencies = with prev.python3Packages; [
       httpx

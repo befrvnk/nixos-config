@@ -9,6 +9,7 @@ let
     (import ../overlays/niri.nix)
     inputs.claude-code.overlays.default
     (import ../overlays/claude-code.nix)
+    (import ../overlays/user-scanner.nix)
   ];
 in
 {
