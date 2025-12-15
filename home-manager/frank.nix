@@ -16,6 +16,7 @@
     ./ghostty.nix
     ./git.nix
     ./ironbar
+    ./lazygit.nix
     ./media-suspend
     ./navi
     ./niri
