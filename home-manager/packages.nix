@@ -15,6 +15,7 @@
       helix
       htop
       imagemagick
+      lazygit
       lf
       mission-center
       nautilus
