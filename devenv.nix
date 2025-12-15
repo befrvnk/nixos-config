@@ -35,7 +35,7 @@ in
       Rebuild NixOS configuration and switch to it using nh
 
       ```bash
-      nh os switch .
+      nh os switch --accept-flake-config .
       ```
     '';
 
@@ -43,7 +43,7 @@ in
       Rebuild NixOS configuration and activate on next boot
 
       ```bash
-      nh os boot .
+      nh os boot --accept-flake-config .
       ```
     '';
 
@@ -51,7 +51,7 @@ in
       Test NixOS configuration without persisting
 
       ```bash
-      nh os test .
+      nh os test --accept-flake-config .
       ```
     '';
 
@@ -207,8 +207,8 @@ in
         shift
       fi
 
-      echo "+ ${pkgs.nh}/bin/nh os $action $HOME/nixos-config $@"
-      ${pkgs.nh}/bin/nh os "$action" "$HOME/nixos-config" "$@"
+      echo "+ ${pkgs.nh}/bin/nh os $action --accept-flake-config $HOME/nixos-config $@"
+      ${pkgs.nh}/bin/nh os "$action" --accept-flake-config "$HOME/nixos-config" "$@"
       exit_code=$?
 
       # Show changelog links after successful switch

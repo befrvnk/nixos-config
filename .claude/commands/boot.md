@@ -1,1 +1,1 @@
-/nix/store/ls4s9p114ay30ljqd2d6bzj36rz5ip2n-claude-commands-boot.md
+/nix/store/a03wgsjik81zpsxcfwkyqwdapm1a5vm6-claude-commands-boot.md

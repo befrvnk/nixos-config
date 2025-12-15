@@ -52,6 +52,21 @@
     };
   };
 
+  nixConfig = {
+    trusted-extra-substituters = [
+      "https://nix-community.cachix.org"
+      "https://niri.cachix.org"
+      "https://vicinae.cachix.org"
+      "https://claude-code.cachix.org"
+    ];
+    trusted-extra-public-keys = [
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
+      "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
+      "claude-code.cachix.org-1:YeXf2aNu7UTX8Vwrze0za1WEDS+4DuI2kVeWEE4fsRk="
+    ];
+  };
+
   outputs =
     inputs:
     let

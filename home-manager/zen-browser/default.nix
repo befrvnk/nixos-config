@@ -1,5 +1,6 @@
 {
   pkgs,
+  inputs,
   ...
 }:
 
@@ -7,6 +8,18 @@ let
   # Import CSS generation modules
   userChromeCSS = import ./userChrome.nix { inherit pkgs; };
   userContentCSS = import ./userContent.nix { inherit pkgs; };
+
+  # Force the "default" profile to prevent Zen from creating new profiles
+  # on each nix store path change (new version = new "installation" to Firefox).
+  # Without this, each update would start with an empty profile.
+  zenPackage = inputs.zen-browser.packages.${pkgs.system}.beta;
+  zenWrapped = zenPackage.overrideAttrs (oldAttrs: {
+    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
+    postFixup = (oldAttrs.postFixup or "") + ''
+      wrapProgram $out/bin/zen \
+        --add-flags "-P default"
+    '';
+  });
 in
 {
   # Link generated userChrome.css with light/dark media queries
@@ -21,6 +34,7 @@ in
 
   programs.zen-browser = {
     enable = true;
+    package = zenWrapped;
 
     # Declarative extension management using policies
     # Extensions are auto-installed and force-enabled

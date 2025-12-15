@@ -125,8 +125,8 @@ NixOS projects often don't have traditional unit tests. Instead, focus on:
 
 Example test for NixOS:
 ```bash
-# Test that niri configuration builds
-nix build .#nixosConfigurations.desktop.config.home-manager.users.frank.wayland.windowManager.niri.package
+# Test that niri configuration builds (--no-link prevents result symlink pollution)
+nix build --no-link .#nixosConfigurations.desktop.config.home-manager.users.frank.wayland.windowManager.niri.package
 
 # Test all specializations build
 nix flake check
@@ -189,7 +189,7 @@ Don't assume tests are wrong - they might have found a real bug!
    ```
 3. Optionally build specific component:
    ```bash
-   nix build .#nixosConfigurations.desktop.config.home-manager.users.frank.wayland.windowManager.niri.package
+   nix build --no-link .#nixosConfigurations.desktop.config.home-manager.users.frank.wayland.windowManager.niri.package
    ```
 4. Report results
 
@@ -249,3 +249,4 @@ You've succeeded when:
 - **Clear reporting** - user needs to understand results
 - **NixOS is different** - validation > unit tests for configs
 - **Tests find bugs** - don't assume they're wrong if they fail
+- **Use `--no-link`** - always use `nix build --no-link` to avoid polluting the project with result symlinks
