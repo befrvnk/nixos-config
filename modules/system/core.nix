@@ -27,9 +27,6 @@
   # Enable nix-ld for running dynamically linked executables
   programs.nix-ld = {
     enable = true;
-    libraries = with pkgs; [
-      # Add libraries as needed based on specific binary requirements
-    ];
   };
 
   nix.settings = {
