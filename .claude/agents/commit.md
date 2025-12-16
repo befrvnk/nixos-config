@@ -193,7 +193,7 @@ git add path/to/file1 path/to/file2
 
 2. **Create the commit** using heredoc for proper formatting:
 ```bash
-git add -A && git commit -m "$(cat <<'EOF'
+git commit -m "$(cat <<'EOF'
 type(scope): short description
 
 Optional body text explaining the change in more detail.
@@ -206,17 +206,35 @@ EOF
 
 **Note**: `nixfmt` will run automatically via the git pre-commit hook.
 
-### Phase 7: Report Results
+### Phase 7: Verify and Report Results
 
-Show the commit hash and summary:
+**CRITICAL**: You MUST verify the commit was actually created before reporting success.
+
+1. **Run verification command**:
+```bash
+git log -1 --oneline
+```
+
+2. **Check the output**:
+   - If the commit hash and message match what you just committed → SUCCESS
+   - If the output shows a different/older commit → COMMIT FAILED
+
+3. **Only report success if verified**:
 ```markdown
 ## Commit Created
 
-**Hash**: abc123def
+**Hash**: abc123def (from git log output)
 **Message**: feat(niri): add window decoration customization
 
-**Status**: Successfully committed
+**Status**: Successfully committed (verified via git log)
 ```
+
+**NEVER report success without running `git log -1` to verify the commit exists.**
+
+If verification shows the commit didn't happen:
+- Check `git status` to see if files are still staged
+- Report the failure to the user
+- Try running the commit command again
 
 ## Guidelines
 
@@ -361,10 +379,12 @@ You've succeeded when:
 - ✅ NO Claude attribution or co-authorship
 - ✅ User approved before committing
 - ✅ Commit executed successfully
-- ✅ Hash reported to user
+- ✅ **Commit VERIFIED via `git log -1`** - hash matches what you committed
+- ✅ Hash reported to user (from actual git log output, not assumed)
 
 ## Remember
 
+- **ALWAYS VERIFY** - run `git log -1` after committing to confirm it worked
 - **Always stage files** - run `git add -A` before committing, never assume files are staged
 - **Conventional commits** - follow the specification strictly
 - **User approval required** - never commit without asking
@@ -374,3 +394,4 @@ You've succeeded when:
 - **nixfmt is automatic** - runs via git hook, don't call it
 - **Explain the "why"** - body should provide context
 - **Multiple changes** - recommend splitting unrelated changes
+- **Never fake success** - only report commit hash from actual `git log` output
