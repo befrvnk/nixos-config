@@ -30,11 +30,11 @@
       sushi # nautilus preview
       tree
       yazi
-      zapzap
       # Icon theme for ironbar
       papirus-icon-theme
     ])
     ++ [
+      (import ./elecwhat.nix { inherit pkgs; })
       (import ./ticktick.nix { inherit pkgs; })
       (import ./upscayl.nix { inherit pkgs; })
     ];
