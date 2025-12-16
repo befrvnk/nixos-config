@@ -13,8 +13,7 @@ let
   zenPackage = inputs.zen-browser.packages.${pkgs.system}.beta;
 
   # Create a launcher script that forces the correct profile
-  # This prevents Zen from creating new profiles on each nix store path change
-  # Named differently to avoid conflict with the package's 'zen' binary
+  # This prevents Zen from using wrong profiles when the nix store path changes
   zenLauncher = pkgs.writeShellScriptBin "zen-launch" ''
     exec ${zenPackage}/bin/zen -P "Default Profile" "$@"
   '';
@@ -34,8 +33,6 @@ in
   };
 
   # Single desktop entry using our profile-aware launcher
-  # This entry will appear in Vicinae alongside the package's entry,
-  # but NoDisplay hides the original zen-beta.desktop
   xdg.desktopEntries.zen-browser = {
     name = "Zen Browser";
     genericName = "Web Browser";
