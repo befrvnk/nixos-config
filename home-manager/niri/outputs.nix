@@ -6,7 +6,11 @@
     };
     "DP-3" = {
       scale = 1.25;
-      variable-refresh-rate = "on-demand";
+      mode = {
+        width = 3840;
+        height = 2160;
+        refresh = 60.0;
+      };
     };
   };
 }

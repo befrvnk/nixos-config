@@ -1,63 +1,38 @@
 #!/usr/bin/env bash
 #
-# Custom volume status script for ironbar
+# Volume status reader for ironbar (event-driven architecture)
 #
 # WHY THIS EXISTS:
-# Ironbar's built-in volume module (type: "volume") has a critical bug where it
-# crashes with PulseAudio mainloop assertion failures:
-#   "Assertion 'e->mainloop->n_enabled_defer_events > 0' failed at mainloop.c:261"
+# This script simply reads from a cache file that is updated by volume-ctl.sh
+# whenever the user changes volume via keybindings. This eliminates all dbus
+# polling overhead - no wpctl calls, no pipewire queries.
 #
-# This is a known issue tracked at: https://github.com/JakeStanger/ironbar/issues/875
-# Status: Open as of 2025-11-14, labeled "Critical" and "help wanted"
+# ARCHITECTURE:
+# 1. User presses volume key (XF86AudioRaiseVolume, etc.)
+# 2. Niri calls volume-ctl.sh which:
+#    - Calls swayosd-client for OSD display
+#    - Updates ~/.cache/volume-status with current volume
+# 3. Ironbar polls this script every 1000ms
+# 4. This script just reads the cache file (instant, no dbus)
 #
-# SOLUTION:
-# This custom script uses wpctl (WirePlumber CLI) instead of PulseAudio bindings.
-# wpctl queries WirePlumber's in-memory state without using PulseAudio's mainloop,
-# completely avoiding the crash.
+# PREVIOUS APPROACH (problematic):
+# Each wpctl call generated ~185 dbus messages due to pipewire Realtime portal
+# queries. At 5 calls/sec (200ms polling), this was 925 dbus messages/sec.
 #
-# IMPLEMENTATION NOTES:
-# - Uses @DEFAULT_AUDIO_SINK@ which automatically resolves to the configured
-#   default audio output (works with sinks, filters, or any audio endpoint)
-# - Polling interval: 200ms (5 updates/sec) for responsive UI feedback
-# - Performance: <0.1% CPU usage, wpctl is very fast (2-5ms execution time)
-# - Handles audio codec power-save mode: When the audio codec is suspended due to
-#   power management (snd_hda_intel power_save=1), wpctl may report incorrect
-#   volume. We use wpctl inspect to get the stored state.default-volume property
-#   which is preserved even when the hardware is in power-save mode.
+# NEW APPROACH:
+# wpctl is only called when user actually changes volume (~occasional).
+# Ironbar polling just reads a file - effectively zero overhead.
+#
+# FALLBACK:
+# If cache file doesn't exist (first boot, cache cleared), show N/A.
+# The cache is initialized on graphical session start via niri startup.
+#
 
-# Get the default sink ID
-sink_id=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -oP 'id \K\d+' | head -1)
+CACHE_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/volume-status"
 
-if [ -z "$sink_id" ]; then
-    echo "󰖁 N/A"
-    exit 0
-fi
-
-# Get volume info using wpctl get-volume (for mute state)
-volume_info=$(wpctl get-volume "$sink_id" 2>/dev/null)
-
-# Parse volume percentage from wpctl get-volume output
-volume=$(echo "$volume_info" | awk '{print int($2 * 100)}')
-
-# Select appropriate Nerd Font icon based on volume state
-# Icons used (from Nerd Fonts):
-#   󰖁 (U+F0581) - Muted or 0% volume
-#   󰕿 (U+F057F) - Low volume (1-32%)
-#   󰖀 (U+F0580) - Medium volume (33-65%)
-#   󰕾 (U+F057E) - High volume (66-100%)
-if echo "$volume_info" | grep -q "MUTED"; then
-    icon="󰖁"  # Muted
-    echo "$icon ${volume}%"
-elif [ "$volume" -eq 0 ]; then
-    icon="󰖁"  # Zero volume
-    echo "$icon ${volume}%"
-elif [ "$volume" -lt 33 ]; then
-    icon="󰕿"  # Low volume
-    echo "$icon ${volume}%"
-elif [ "$volume" -lt 66 ]; then
-    icon="󰖀"  # Medium volume
-    echo "$icon ${volume}%"
+if [ -f "$CACHE_FILE" ]; then
+    cat "$CACHE_FILE"
 else
-    icon="󰕾"  # High volume
-    echo "$icon ${volume}%"
+    # Cache not initialized yet
+    echo "󰖁 N/A"
 fi

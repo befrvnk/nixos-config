@@ -117,7 +117,7 @@
       "bar": [
         {
           "type": "label",
-          "label": "{{200:~/.config/ironbar/modules/volume/volume-status.sh}}"
+          "label": "{{1000:~/.config/ironbar/modules/volume/volume-status.sh}}"
         }
       ]
     },

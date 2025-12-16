@@ -34,20 +34,19 @@ This ironbar setup includes:
 
 **Service:** `systemd.user.services.ironbar`
 
-### 2. Volume Module Workaround
+### 2. Event-Driven Volume Display
 
-**Problem:** Ironbar's built-in volume module has a critical crash bug.
-
-**Error:**
-```
-Assertion 'e->mainloop->n_enabled_defer_events > 0' failed at mainloop.c:261
-```
-
+**Problem 1:** Ironbar's built-in volume module has a critical crash bug.
 **Issue:** https://github.com/JakeStanger/ironbar/issues/875 (Open, Critical)
 
-**Solution:** Custom script using `wpctl` instead of PulseAudio bindings.
+**Problem 2:** Polling with `wpctl` generated ~185 dbus messages per call due to pipewire Realtime portal queries.
 
-**Details:** See `modules/volume/README.md`
+**Solution:** Event-driven architecture with cache file:
+1. `volume-ctl` script (niri keybindings) calls swayosd AND writes to `~/.cache/volume-status`
+2. Ironbar reads the cache file (instant, zero dbus overhead)
+3. Cache initialized on startup via `volume-ctl init`
+
+**Details:** See `modules/volume/volume-status.sh` comments
 
 ### 3. Stylix Color Integration
 
@@ -69,7 +68,7 @@ All custom modules use shell scripts that output formatted text with Nerd Font i
 | WiFi | `modules/wifi/wifi-status.sh` | 5s | Shows SSID and signal strength |
 | Battery | `modules/battery/battery-status.sh` | 5s | Shows battery level and charging status |
 | Notifications | `modules/notifications/*.sh` | 2s | Shows unread count, history popup |
-| **Volume** | `modules/volume/volume-status.sh` | **200ms** | **Shows volume level and mute state** |
+| **Volume** | `modules/volume/volume-status.sh` | **1s (cache read)** | **Event-driven via cache file** |
 
 ## Building
 
@@ -107,24 +106,25 @@ ls -la /run/user/$(id -u)/ironbar-ipc.sock
 
 ### Volume Module Crash (WORKAROUND APPLIED)
 
-**Status:** Custom module implemented to avoid the crash.
+**Status:** Event-driven architecture implemented to avoid crash AND eliminate dbus overhead.
 
 **Tracking:** https://github.com/JakeStanger/ironbar/issues/875
 
-**When fixed:** Switch back to built-in module:
-1. Replace custom volume module in `config.json` with:
-   ```json
-   {"type": "volume", "max_volume": 100}
-   ```
-2. Remove `pkgs.wireplumber` from `default.nix`
-3. Remove volume script configuration from `default.nix`
+**Architecture:**
+- Keybindings call `volume-ctl` instead of `swayosd-client` directly
+- `volume-ctl` calls swayosd AND writes to `~/.cache/volume-status`
+- Ironbar reads cache file (no dbus/pipewire queries)
+- wpctl only called when user changes volume, not on every poll
+
+**When fixed:** Can switch back to built-in module if desired, but event-driven approach is more efficient.
 
 ## Performance
 
 - **Toggle script:** Minimal overhead, event-driven (not polling)
-- **Volume module:** ~0.1% CPU at 200ms polling interval
+- **Volume module:** Near-zero overhead (reads cache file instead of dbus queries)
 - **Total bar CPU:** <1% CPU when visible
 - **Memory:** ~30-40MB resident
+- **DBus impact:** Eliminated ~185 dbus messages per volume poll (was ~925/sec at 200ms interval)
 
 ## Dependencies
 

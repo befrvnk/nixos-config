@@ -124,6 +124,8 @@ in
 
     Service = {
       Type = "simple";
+      # Kill any stale ironbar processes before starting (can happen after rebuild)
+      ExecStartPre = "${pkgs.procps}/bin/pkill -x ironbar || true";
       ExecStart = "${toggleScript}";
       Restart = "on-failure";
       RestartSec = "5s";

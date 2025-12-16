@@ -25,5 +25,14 @@
         "timeout 0.5 ${pkgs.pipewire}/bin/pw-loopback --capture-props='media.class=Audio/Sink' --playback-props='node.target=@DEFAULT_AUDIO_SINK@' || true"
       ];
     }
+    # Initialize volume cache for ironbar (event-driven volume display)
+    # This runs once at startup to populate the cache file that ironbar reads.
+    # Subsequently, volume-ctl updates the cache whenever user changes volume.
+    {
+      command = [
+        "volume-ctl"
+        "init"
+      ];
+    }
   ];
 }

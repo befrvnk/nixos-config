@@ -172,15 +172,17 @@
 
     "Mod+Shift+P".action.power-off-monitors = { };
 
-    # Function keys (volume/brightness use swayosd-client for OSD display)
+    # Toggle internal display (eDP-1) on/off for thermal management
+    "Mod+Shift+D".action.spawn = [ "toggle-internal-display" ];
+
+    # Function keys (volume uses volume-ctl for event-driven updates to ironbar)
+    # volume-ctl calls swayosd-client AND updates the cache file for ironbar
     "XF86AudioLowerVolume".action.spawn = [
-      "swayosd-client"
-      "--output-volume"
+      "volume-ctl"
       "lower"
     ];
     "XF86AudioMute".action.spawn = [
-      "swayosd-client"
-      "--output-volume"
+      "volume-ctl"
       "mute-toggle"
     ];
     "XF86AudioNext".action.spawn = [
@@ -196,8 +198,7 @@
       "previous"
     ];
     "XF86AudioRaiseVolume".action.spawn = [
-      "swayosd-client"
-      "--output-volume"
+      "volume-ctl"
       "raise"
     ];
     "XF86AudioStop".action.spawn = [

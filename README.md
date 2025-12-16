@@ -153,6 +153,8 @@ Key features in this setup:
 |----------|--------|
 | `Mod+Shift+H/L` or `Mod+Shift+Left/Right` | Focus monitor |
 | `Mod+Shift+Ctrl+H/L` | Move window to monitor |
+| `Mod+Shift+D` | Toggle internal display on/off |
+| `Mod+Shift+P` | Power off all monitors |
 
 ### Media & Hardware
 
@@ -505,3 +507,5 @@ See [Adding Packages](./docs/adding-packages.md) for detailed instructions.
 ## Known Issues
 
 - **Ironbar Volume Module:** The reported volume level from `volume-status.sh` only works once pavucontrol was opened or audio was played. Before that `volume-status.sh` returns 100% as volume level which isn't correct.
+
+- **Clamshell Mode Thermals:** Framework laptops run warmer in clamshell mode (lid closed with external monitor) due to the hinge cover restricting exhaust airflow. The 4K @ 144Hz external display also generates significant heat. Opening the lid slightly (~45°) can improve airflow. See [Clamshell Mode Thermals](./docs/clamshell-mode-thermals.md) for details and workarounds.
