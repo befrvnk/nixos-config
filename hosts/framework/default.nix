@@ -1,6 +1,7 @@
 {
   inputs,
   lib,
+  pkgs,
   ...
 }:
 
@@ -11,6 +12,11 @@
     inputs.nixos-hardware.nixosModules.framework-amd-ai-300-series
     inputs.lanzaboote.nixosModules.lanzaboote
   ];
+
+  # Downgrade kernel to 6.17 to avoid VPE queue reset crash during suspend/resume
+  # Bug: commit 31ab31433c9b in 6.18 causes amdgpu VPE failures
+  # Remove when 6.19+ or patched 6.18.x is available in nixpkgs
+  boot.kernelPackages = pkgs.linuxPackages_6_17;
 
   boot.loader.systemd-boot.enable = lib.mkForce false;
   boot.lanzaboote = {
