@@ -125,7 +125,9 @@ in
     Service = {
       Type = "simple";
       # Kill any stale ironbar processes before starting (can happen after rebuild)
-      ExecStartPre = "${pkgs.procps}/bin/pkill -x ironbar || true";
+      # The "-" prefix tells systemd to ignore the exit code (pkill returns 1 if no process found)
+      # Use -f to match full command line (Nix wrappers have names like .ironbar-wrappe)
+      ExecStartPre = "-${pkgs.procps}/bin/pkill -f ironbar";
       ExecStart = "${toggleScript}";
       Restart = "on-failure";
       RestartSec = "5s";
