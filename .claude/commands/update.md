@@ -1,1 +1,1 @@
-/nix/store/zb4axka85j374rbk7jxhh9mm64bppdm3-claude-commands-update.md
+/nix/store/3q4amghkn5zgzxf6s0hi74m9y80ghxfv-claude-commands-update.md

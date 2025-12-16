@@ -59,7 +59,7 @@ in
       Update all flake inputs
 
       ```bash
-      nix flake update
+      nix flake update --accept-flake-config
       ```
     '';
 
@@ -67,7 +67,7 @@ in
       Check flake for errors
 
       ```bash
-      nix flake check
+      nix flake check --accept-flake-config
       ```
     '';
 
@@ -168,6 +168,7 @@ in
     echo "  sysinfo          - Show system information"
     echo "  generations      - List NixOS generations"
     echo "  wifi-debug       - Capture WiFi debug logs (run if WiFi fails)"
+    echo "  update           - Update flake inputs"
     echo ""
     echo "Slash commands (Claude Code):"
     echo "  /rebuild  - Rebuild and switch configuration"
@@ -278,6 +279,11 @@ in
       ${pkgs.coreutils}/bin/ls -la "$output_dir"
       echo ""
       echo "💡 Share these files when reporting WiFi issues."
+    '';
+
+    update.exec = ''
+      echo "Updating flake inputs..."
+      nix flake update --accept-flake-config
     '';
   };
 

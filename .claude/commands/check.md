@@ -1,1 +1,1 @@
-/nix/store/js49yal6jn1hpvbxc1dj5mz5av52m2p9-claude-commands-check.md
+/nix/store/f6czg5nqfpz23byarcn1ywrm5arjy62s-claude-commands-check.md
