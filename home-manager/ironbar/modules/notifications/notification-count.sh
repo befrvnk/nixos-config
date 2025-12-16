@@ -9,8 +9,8 @@ WAITING=$(echo "$COUNTS" | grep "Waiting:" | awk '{print $2}')
 DISPLAYED=$(echo "$COUNTS" | grep "Currently displayed:" | awk '{print $3}')
 HISTORY=$(echo "$COUNTS" | grep "History:" | awk '{print $2}')
 
-# Calculate total notifications (waiting + displayed)
-TOTAL=$((WAITING + DISPLAYED))
+# Use history count (notifications not yet cleared)
+TOTAL=$HISTORY
 
 # Choose icon based on count
 if [[ $TOTAL -eq 0 ]]; then

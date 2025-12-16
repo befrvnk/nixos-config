@@ -1,5 +1,10 @@
 { pkgs, ... }:
-
+let
+  closeAndForget = pkgs.writeShellScript "dunst-close-and-forget" ''
+    ${pkgs.dunst}/bin/dunstctl close
+    ${pkgs.dunst}/bin/dunstctl history-pop
+  '';
+in
 {
   services.dunst = {
     enable = true;
@@ -68,7 +73,7 @@
         ignore_dbusclose = false;
 
         # Mouse actions
-        mouse_left_click = "close_current";
+        mouse_left_click = "${closeAndForget}";
         mouse_middle_click = "do_action, close_current";
         mouse_right_click = "close_all";
       };
