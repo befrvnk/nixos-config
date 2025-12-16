@@ -6,7 +6,6 @@
     ./atuin.nix
     ./battery-notifications
     ./btop.nix
-    ./camera-monitor
     ./claude-code
     ./cpu-governor
     ./darkman
@@ -46,9 +45,6 @@
   home.sessionVariables = {
     NIXOS_OZONE_WL = "1";
   };
-
-  # Enable Fujifilm X-T50 camera availability monitor
-  services.camera-monitor.enable = true;
 
   # Enable SwayOSD for volume/brightness on-screen display
   services.swayosd.enable = true;
