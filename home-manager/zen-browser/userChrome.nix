@@ -163,6 +163,34 @@ let
         color: ${base05} !important;
       }
     '';
+
+  # Glance uses inverted light-dark() function, override with correct colors
+  generateGlanceTheme =
+    scheme: with scheme.palette; ''
+      /* Glance sidebar - override inverted light-dark() with correct theme colors */
+      .zen-glance-sidebar-container toolbarbutton {
+        background: ${base02} !important;
+      }
+
+      .zen-glance-sidebar-container toolbarbutton:hover {
+        background: ${base03} !important;
+      }
+
+      .zen-glance-sidebar-close,
+      .zen-glance-sidebar-open,
+      .zen-glance-sidebar-split {
+        -moz-context-properties: fill, fill-opacity !important;
+        fill: ${base05} !important;
+        color: ${base05} !important;
+      }
+
+      .zen-glance-sidebar-close .toolbarbutton-icon,
+      .zen-glance-sidebar-open .toolbarbutton-icon,
+      .zen-glance-sidebar-split .toolbarbutton-icon {
+        -moz-context-properties: fill, fill-opacity !important;
+        fill: ${base05} !important;
+      }
+    '';
 in
 # Generate combined userChrome.css with both themes using media queries
 pkgs.writeText "userChrome.css" ''
@@ -174,6 +202,8 @@ pkgs.writeText "userChrome.css" ''
   /* ========================================== */
   @media (prefers-color-scheme: dark) {
     ${generateZenTheme darkScheme}
+    /* Glance - override inverted light-dark() with correct dark colors */
+    ${generateGlanceTheme darkScheme}
   }
 
   /* ========================================== */
@@ -181,5 +211,7 @@ pkgs.writeText "userChrome.css" ''
   /* ========================================== */
   @media (prefers-color-scheme: light) {
     ${generateZenTheme lightScheme}
+    /* Glance - override inverted light-dark() with correct light colors */
+    ${generateGlanceTheme lightScheme}
   }
 ''

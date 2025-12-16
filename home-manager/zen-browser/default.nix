@@ -17,7 +17,7 @@ let
     nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
     postFixup = (oldAttrs.postFixup or "") + ''
       wrapProgram $out/bin/zen \
-        --add-flags "-P default"
+        --add-flags "-P 'Default Profile'"
     '';
   });
 in
