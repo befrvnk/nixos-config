@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   inputs,
   ...
 }:
@@ -9,19 +10,19 @@ let
   userChromeCSS = import ./userChrome.nix { inherit pkgs; };
   userContentCSS = import ./userContent.nix { inherit pkgs; };
 
-  # Force the "default" profile to prevent Zen from creating new profiles
-  # on each nix store path change (new version = new "installation" to Firefox).
-  # Without this, each update would start with an empty profile.
   zenPackage = inputs.zen-browser.packages.${pkgs.system}.beta;
-  zenWrapped = zenPackage.overrideAttrs (oldAttrs: {
-    nativeBuildInputs = (oldAttrs.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
-    postFixup = (oldAttrs.postFixup or "") + ''
-      wrapProgram $out/bin/zen \
-        --add-flags "-P 'Default Profile'"
-    '';
-  });
+
+  # Create a launcher script that forces the correct profile
+  # This prevents Zen from creating new profiles on each nix store path change
+  # Named differently to avoid conflict with the package's 'zen' binary
+  zenLauncher = pkgs.writeShellScriptBin "zen-launch" ''
+    exec ${zenPackage}/bin/zen -P "Default Profile" "$@"
+  '';
 in
 {
+  # Add our launcher script to PATH
+  home.packages = [ zenLauncher ];
+
   # Link generated userChrome.css with light/dark media queries
   home.file.".zen/default/chrome/userChrome.css" = {
     source = userChromeCSS;
@@ -32,9 +33,56 @@ in
     source = userContentCSS;
   };
 
+  # Single desktop entry using our profile-aware launcher
+  # This entry will appear in Vicinae alongside the package's entry,
+  # but NoDisplay hides the original zen-beta.desktop
+  xdg.desktopEntries.zen-browser = {
+    name = "Zen Browser";
+    genericName = "Web Browser";
+    exec = "zen-launch %U";
+    icon = "zen-browser";
+    terminal = false;
+    categories = [
+      "Network"
+      "WebBrowser"
+    ];
+    mimeType = [
+      "text/html"
+      "text/xml"
+      "application/xhtml+xml"
+      "x-scheme-handler/http"
+      "x-scheme-handler/https"
+    ];
+    startupNotify = true;
+    settings = {
+      StartupWMClass = "zen-beta";
+    };
+    actions = {
+      new-window = {
+        name = "New Window";
+        exec = "zen-launch --new-window %U";
+      };
+      new-private-window = {
+        name = "New Private Window";
+        exec = "zen-launch --private-window %U";
+      };
+    };
+  };
+
+  # Hide the original desktop entry from the package
+  xdg.desktopEntries.zen-beta = {
+    name = "Zen Browser (Beta)";
+    exec = "zen %U";
+    icon = "zen-browser";
+    terminal = false;
+    settings = {
+      NoDisplay = "true";
+    };
+  };
+
   programs.zen-browser = {
     enable = true;
-    package = zenWrapped;
+    package = zenPackage;
 
     # Declarative extension management using policies
     # Extensions are auto-installed and force-enabled
