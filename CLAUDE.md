@@ -110,7 +110,7 @@ This project uses specialized Claude Code subagents for efficient development. E
 | **@debug** | Sonnet | Systematic bug investigation and fixes | When errors occur |
 | **@investigate** | Sonnet | Check system state, services, logs | After config changes, runtime issues |
 | **@docs** | Haiku | Document complex changes and decisions | For non-obvious implementations |
-| **@commit** | Haiku | Create conventional commits | When ready to commit |
+| **@commit** | Sonnet | Create conventional commits | When ready to commit |
 
 ### Standard Workflow Sequence
 
@@ -144,7 +144,7 @@ This project uses specialized Claude Code subagents for efficient development. E
    ↓ Updates CLAUDE.md or creates module-specific docs
    ↓ Only for non-obvious implementations
 
-8. @commit Agent (Haiku)
+8. @commit Agent (Sonnet)
    ↓ Analyzes changes, drafts conventional commit message
    ↓ Presents for approval before committing
    ↓ Executes commit (nixfmt runs via pre-commit hook automatically)
@@ -205,7 +205,7 @@ This project uses specialized Claude Code subagents for efficient development. E
 - Adds inline comments for non-obvious logic
 - Only invoked for complex, non-obvious changes
 
-#### @commit Agent (Haiku)
+#### @commit Agent (Sonnet)
 - Creates conventional commit messages
 - Analyzes git status, diff, and recent log
 - Presents commit message for approval

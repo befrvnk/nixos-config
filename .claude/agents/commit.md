@@ -1,7 +1,7 @@
 ---
 name: Commit
 description: MUST BE USED for all commits. Never commit directly. Creates conventional commits with user approval required.
-model: haiku
+model: sonnet
 tools:
   - Bash
   - Read
