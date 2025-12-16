@@ -25,7 +25,6 @@
       obsidian
       powertop
       slack
-      solaar
       spotify
       superfile
       sushi # nautilus preview

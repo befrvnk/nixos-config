@@ -1,32 +1,25 @@
 #!/usr/bin/env bash
-# Get Logitech mouse battery status for Ironbar custom module
-# Uses solaar to query devices connected via Logitech USB receivers
+# Get Logitech mouse battery status via upower
+# Uses HID++ battery devices exposed by the kernel driver
 
-# Get solaar output, suppress stderr (notifications warnings)
-OUTPUT=$(solaar show 2>/dev/null)
+# Find HID++ battery device (Logitech mice/keyboards)
+DEVICE=$(upower -e 2>/dev/null | grep "hidpp_battery" | head -1)
 
-if [[ -z "$OUTPUT" ]]; then
+if [[ -z "$DEVICE" ]]; then
     exit 0
 fi
 
-# Look for battery information in solaar output
-# Format: "Battery: XX%, state" or "Battery: XX %"
-BATTERY_LINE=$(echo "$OUTPUT" | grep -i "Battery:" | head -1)
-
-if [[ -z "$BATTERY_LINE" ]]; then
-    exit 0
-fi
-
-# Extract percentage (handles both "50%" and "50 %" formats)
-PERCENTAGE=$(echo "$BATTERY_LINE" | grep -oE '[0-9]+\s*%' | tr -d ' %')
+# Get battery info
+INFO=$(upower -i "$DEVICE" 2>/dev/null)
+PERCENTAGE=$(echo "$INFO" | grep "percentage:" | awk '{print $2}' | tr -d '%')
+STATE=$(echo "$INFO" | grep "state:" | awk '{print $2}')
 
 if [[ -z "$PERCENTAGE" ]]; then
     exit 0
 fi
 
-# Check if charging - show lightning bolt next to mouse icon
-# Match "BatteryStatus.CHARGING" but not "BatteryStatus.DISCHARGING"
-if echo "$BATTERY_LINE" | grep -q "BatteryStatus\.CHARGING"; then
+# Show charging indicator - lightning bolt next to mouse icon
+if [[ "$STATE" == "charging" ]]; then
     echo "󰍽󱐋 ${PERCENTAGE}%"
 else
     echo "󰍽 ${PERCENTAGE}%"

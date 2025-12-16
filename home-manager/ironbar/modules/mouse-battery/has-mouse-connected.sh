@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# Check if a Logitech mouse is connected via USB receiver
+# Check if a Logitech mouse battery is exposed via upower
 # Exit 0 if connected (show module), exit 1 if not (hide module)
 
-# Get solaar output, suppress stderr
-OUTPUT=$(solaar show 2>/dev/null)
-
-# Check if there's battery information (indicates a device is connected)
-if echo "$OUTPUT" | grep -qi "Battery:"; then
+# Look for HID++ battery devices (Logitech mice/keyboards)
+if upower -e 2>/dev/null | grep -q "hidpp_battery"; then
     exit 0  # Mouse connected, show module
 else
     exit 1  # No mouse, hide module
