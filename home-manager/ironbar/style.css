@@ -200,6 +200,10 @@ button.flat:hover {
     border-radius: 16px;
 }
 
+.popup-bluetooth .devices {
+    min-height: 200px;
+}
+
 .popup-bluetooth .header {
     padding-bottom: 12px;
     margin-bottom: 8px;
