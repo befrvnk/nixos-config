@@ -42,6 +42,17 @@
   # If this still fails, fall back to "pcie_aspm=off".
   boot.kernelParams = [ "pcie_aspm.policy=performance" ];
 
+  # Blacklist UCSI modules to fix high I/O pressure and blocked kworker processes
+  # Bug: Linux 6.9+ queries GET_CABLE_PROPERTY which Framework's EC doesn't support
+  # Causes: ucsi_acpi USBC000:00: unknown error 0, blocked kworker/u97:*+events_unbound
+  # USB-C charging and DisplayPort Alt Mode still work without these modules
+  # Tracking: https://github.com/FrameworkComputer/SoftwareFirmwareIssueTracker/issues/3
+  # See: docs/ucsi-usbc-io-pressure.md for full details
+  boot.blacklistedKernelModules = [
+    "ucsi_acpi"
+    "typec_ucsi"
+  ];
+
   # Disable kmod to avoid infinite recursion with kernel packages
   hardware.framework.enableKmod = false;
 
