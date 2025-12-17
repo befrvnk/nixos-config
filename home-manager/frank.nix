@@ -11,6 +11,7 @@
     ./darkman
     ./direnv.nix
     ./dunst.nix
+    ./emacs.nix
     ./gemini-cli.nix
     ./ghostty.nix
     ./git.nix
