@@ -110,7 +110,6 @@ This project uses specialized Claude Code subagents for efficient development. E
 | **@debug** | Sonnet | Systematic bug investigation and fixes | When errors occur |
 | **@investigate** | Sonnet | Check system state, services, logs | After config changes, runtime issues |
 | **@docs** | Haiku | Document complex changes and decisions | For non-obvious implementations |
-| **@commit** | Sonnet | Create conventional commits | When ready to commit |
 
 ### Standard Workflow Sequence
 
@@ -144,10 +143,9 @@ This project uses specialized Claude Code subagents for efficient development. E
    ↓ Updates CLAUDE.md or creates module-specific docs
    ↓ Only for non-obvious implementations
 
-8. @commit Agent (Sonnet)
-   ↓ Analyzes changes, drafts conventional commit message
-   ↓ Presents for approval before committing
-   ↓ Executes commit (nixfmt runs via pre-commit hook automatically)
+8. Commit (Main Conversation)
+   ↓ Main agent creates conventional commit directly
+   ↓ nixfmt runs via pre-commit hook automatically
 ```
 
 ### Agent-Specific Guidelines
@@ -205,19 +203,6 @@ This project uses specialized Claude Code subagents for efficient development. E
 - Adds inline comments for non-obvious logic
 - Only invoked for complex, non-obvious changes
 
-#### @commit Agent (Sonnet)
-- Creates conventional commit messages
-- Analyzes git status, diff, and recent log
-- Presents commit message for approval
-- **Never commits without user approval**
-- **CRITICAL: NO attribution or footers in commit messages**
-  - Do NOT add "Generated with Claude Code" links
-  - Do NOT add "Co-Authored-By: Claude" or any co-author information
-  - Do NOT add any automated footers, signatures, or attribution
-  - Commit messages should contain ONLY: title, optional body, and relevant trailers (Fixes, Closes, etc.)
-- nixfmt runs automatically via pre-commit hook
-- **If commit fails due to nixfmt modifications:** Stage the reformatted files (`git add -u`) and retry the commit
-
 ### Token Optimization
 
 Each subagent operates with isolated context:
@@ -228,7 +213,6 @@ Each subagent operates with isolated context:
   - @test: What was implemented (not how)
   - @debug: Error logs + relevant files
   - @docs: Implementation summary + decisions
-  - @commit: Nothing (reads git directly)
 
 This isolation reduces token usage by 50%+ compared to handling everything in the main conversation.
 
@@ -263,9 +247,7 @@ Main: Review implementation, ask questions
   ↓
 @docs: Skip (change is straightforward)
   ↓
-@commit: Drafts "feat(niri): add window decoration options"
-  ↓ User approves
-  ↓ Commits successfully
+Main: Creates commit "feat(niri): add window decoration options"
 ```
 
 ### Example: Complex Bug Fix
@@ -280,9 +262,7 @@ Main: Gather context about the issue
 
 Main: Review fix, learn from the bug
   ↓
-@commit: Drafts "fix(niri): correct decoration attribute path"
-  ↓ User approves
-  ↓ Commits successfully
+Main: Creates commit "fix(niri): correct decoration attribute path"
 ```
 
 ### Example 3: Post-Configuration Investigation
@@ -300,9 +280,7 @@ User: Also check if niri picked up the new keybindings
 @investigate: Checks niri service restarted, reviews config load
   ↓ Returns: Service restarted successfully, keybindings loaded ✅
 
-Main: Everything looks good! Ready to commit the changes
-  ↓
-@commit: Creates commit for the audio and keybinding changes
+Main: Everything looks good! Creates commit for the audio and keybinding changes
 ```
 
 ### When NOT to Use Subagents
@@ -323,7 +301,6 @@ Use main conversation directly for:
 ✅ **Learning**: Review phases preserve user understanding
 ✅ **Validation**: Automatic `check` (devenv) before review
 ✅ **Documentation**: Complex changes are captured for future
-✅ **Clean Commits**: Conventional commits without AI attribution
 
 ## Why nh (Nix Helper)?
 
