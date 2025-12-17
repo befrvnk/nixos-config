@@ -40,7 +40,15 @@
   # in a low-power state before driver probe. Module-level disable_aspm=1 was too late.
   # "performance" keeps ASPM enabled but avoids aggressive power states.
   # If this still fails, fall back to "pcie_aspm=off".
-  boot.kernelParams = [ "pcie_aspm.policy=performance" ];
+  #
+  # amdgpu.dcdebugmask=0x10: Fix kworker stuck in amdgpu display code causing high I/O
+  # pressure. The amdgpu driver has a timeout issue in dmub_srv_wait_for_idle that causes
+  # workqueue threads to block, triggering rescue threads and ~80-90% PSI I/O pressure.
+  # See: docs/amdgpu-kworker-io-pressure.md
+  boot.kernelParams = [
+    "pcie_aspm.policy=performance"
+    "amdgpu.dcdebugmask=0x10"
+  ];
 
   # Blacklist UCSI modules to fix high I/O pressure and blocked kworker processes
   # Bug: Linux 6.9+ queries GET_CABLE_PROPERTY which Framework's EC doesn't support
