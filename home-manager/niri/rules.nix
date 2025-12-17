@@ -12,19 +12,19 @@
       clip-to-geometry = true;
     }
     {
-      matches = [ { app-id = "^signal$"; } ];
+      matches = [
+        { app-id = "signal"; }
+        { app-id = "elecwhat"; }
+      ];
       open-floating = true;
       default-column-width.fixed = 1000;
       default-window-height.fixed = 600;
     }
     {
-      matches = [ { app-id = "^ZapZap$"; } ];
-      open-floating = true;
-      default-column-width.fixed = 1000;
-      default-window-height.fixed = 600;
-    }
-    {
-      matches = [ { app-id = "^1password$"; } ];
+      matches = [
+        { app-id = "1password"; }
+        { app-id = "com.ezratweaver.AdwBluetooth"; }
+      ];
       open-floating = true;
     }
     {
@@ -38,8 +38,8 @@
     {
       matches = [
         {
-          app-id = "^zen-beta$";
-          title = "^Picture-in-Picture$";
+          app-id = "zen-beta";
+          title = "Picture-in-Picture";
         }
       ];
       open-floating = true;
