@@ -45,6 +45,18 @@ find_battery() {
     return 1
 }
 
+# Validate percentage is a number between 0-100
+validate_percentage() {
+    local value="$1"
+    if [[ -z "$value" ]] || ! [[ "$value" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+    if [[ $value -lt 0 ]] || [[ $value -gt 100 ]]; then
+        return 1
+    fi
+    return 0
+}
+
 # Send a desktop notification
 send_notification() {
     local urgency="$1"
@@ -60,6 +72,12 @@ send_notification() {
 check_battery_state() {
     local percentage="$1"
     local state="$2"
+
+    # Skip if percentage is invalid (prevents false alerts from empty/malformed values)
+    if ! validate_percentage "$percentage"; then
+        echo "Warning: Invalid percentage '$percentage', skipping check" >&2
+        return
+    fi
 
     # Handle discharging state
     if [[ "$state" == "discharging" ]]; then
