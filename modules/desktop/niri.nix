@@ -12,12 +12,12 @@
 
   hardware.graphics.enable = true;
 
-  services.displayManager.sessionPackages = [ pkgs.niri-unstable ];
+  services.displayManager.sessionPackages = [ pkgs.niri ];
 
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
-    configPackages = [ pkgs.niri-unstable ];
+    configPackages = [ pkgs.niri ];
   };
 
   security.polkit.enable = true;
