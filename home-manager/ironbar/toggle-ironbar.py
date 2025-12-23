@@ -7,7 +7,7 @@ Uses Ironbar IPC commands to control visibility.
 
 from json import loads, dumps
 from os import environ
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, run
 from socket import AF_UNIX, socket as Socket, SHUT_WR
 from typing import TextIO
 import sys
@@ -146,6 +146,14 @@ def main() -> None:
                 send_ironbar_command("hide", bar_name)
         print(f"Sent hide command to {len(bar_names)} bar(s)", flush=True)
 
+    def close_popup() -> None:
+        """Close any open ironbar popup."""
+        try:
+            run(["ironbar", "bar", "main", "hide-popup"], capture_output=True)
+            print("Closed popup", flush=True)
+        except Exception as e:
+            print(f"Error closing popup: {e}", file=sys.stderr, flush=True)
+
     # Track last state to avoid sending duplicate commands
     last_visible_state: bool | None = None
 
@@ -165,6 +173,7 @@ def main() -> None:
                     if is_open:
                         show_all_bars()
                     else:
+                        close_popup()
                         hide_all_bars()
                 else:
                     print(f"Ignoring duplicate {'open' if is_open else 'close'} event", flush=True)

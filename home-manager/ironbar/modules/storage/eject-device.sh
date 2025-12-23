@@ -3,7 +3,7 @@
 # Usage: eject-device.sh <slot_number>
 
 # Close the popup first
-ironbar bar main hide-popup storage &
+ironbar bar main hide-popup &
 
 SLOT=${1:-1}
 

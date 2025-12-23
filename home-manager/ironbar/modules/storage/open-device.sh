@@ -15,4 +15,4 @@ if [[ $INDEX -lt ${#MOUNTS[@]} ]]; then
 fi
 
 # Close the popup
-ironbar bar main hide-popup storage
+ironbar bar main hide-popup
