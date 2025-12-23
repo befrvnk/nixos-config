@@ -273,18 +273,153 @@ Passwordless sudo is limited to the specific `set-governor-helper` script only, 
 - User already has physical access to the system
 - TLP resets to safe defaults on reboot/suspend
 
+## SCX sched_ext Scheduler
+
+This system also uses the **SCX (sched_ext)** BPF scheduler framework, which allows custom schedulers to run in userspace while making scheduling decisions for the kernel.
+
+### What is sched_ext?
+
+**sched_ext** is a Linux kernel feature that enables user-space schedulers written in BPF. This allows for:
+- Custom scheduling policies without kernel modifications
+- Easy experimentation with scheduling algorithms
+- Workload-specific optimizations
+
+### Current Configuration
+
+Configured in `modules/services/scx.nix`:
+
+```nix
+{
+  services.scx = {
+    enable = true;
+    package = pkgs.scx_git.full;
+    scheduler = "scx_rusty";
+    extraArgs = [ ];
+  };
+}
+```
+
+### Why scx_rusty?
+
+**scx_rusty** is a work-conserving scheduler that focuses on:
+- **Low latency** - Prioritizes interactive workloads
+- **Work conservation** - Ensures all CPU cores stay busy when work is available
+- **Better responsiveness** - Improved desktop/compositor performance
+
+Alternative schedulers available:
+- `scx_lavd` - Latency-aware virtual deadline scheduler (previously used)
+- `scx_bpfland` - General-purpose with tunable parameters
+- `scx_simple` - Minimal reference scheduler
+
+### How It Complements AMD P-State
+
+SCX and AMD P-State work together:
+1. **AMD P-State** controls CPU **frequency** based on power/performance hints
+2. **SCX** controls **which tasks run on which CPUs** and in what order
+
+Together they provide:
+- Efficient power consumption (P-State scales frequency down when idle)
+- Responsive scheduling (SCX prioritizes interactive tasks)
+- Better overall desktop experience
+
+### Verification
+
+```bash
+# Check if scx_rusty is running
+systemctl status scx
+
+# Check scheduler via sysfs
+cat /sys/kernel/sched_ext/root/type
+# Should show: rusty
+
+# View scheduler statistics
+cat /sys/kernel/sched_ext/root/stats/*
+```
+
+### Troubleshooting
+
+If the system feels sluggish:
+1. Check SCX service: `systemctl status scx`
+2. Restart SCX: `sudo systemctl restart scx`
+3. Try a different scheduler by editing `modules/services/scx.nix`
+
+## Platform Profile Switching
+
+Modern AMD laptops support **ACPI platform profiles** for system-wide power/performance settings. This is separate from CPU governor and affects the entire system.
+
+### Available Profiles
+
+| Profile | Description | Use Case |
+|---------|-------------|----------|
+| `power-saver` | Maximum battery life | Light tasks, reading |
+| `balanced` | Default behavior | Normal usage |
+| `performance` | Maximum performance | Heavy workloads |
+
+### How It Works
+
+Platform profiles are exposed via `/sys/firmware/acpi/platform_profile` and control:
+- Fan curves
+- Power limits (TDP)
+- GPU performance states
+- Charging behavior
+
+### Ironbar Integration
+
+The battery popup in Ironbar includes platform profile switching:
+- Click the battery icon in the status bar
+- Select desired profile in the popup
+- Profile changes immediately (requires polkit authorization)
+
+**Implementation files:**
+- `home-manager/ironbar/modules/battery/get-profile.sh` - Reads current profile
+- `home-manager/ironbar/modules/battery/set-profile.sh` - Sets profile via pkexec
+
+### Manual Switching
+
+```bash
+# Check current profile
+cat /sys/firmware/acpi/platform_profile
+
+# List available profiles
+cat /sys/firmware/acpi/platform_profile_choices
+
+# Set profile (requires root)
+echo balanced | sudo tee /sys/firmware/acpi/platform_profile
+```
+
+### Polkit Authorization
+
+Setting platform profiles requires authorization. The set-profile script uses `pkexec` which prompts for the user's password (or fingerprint if configured).
+
+### Relationship to Other Power Settings
+
+| Feature | Scope | What It Controls |
+|---------|-------|------------------|
+| **Platform Profile** | System-wide | Fan, TDP, GPU, power limits |
+| **CPU Governor** | CPU only | Frequency scaling behavior |
+| **AMD P-State** | CPU frequency | How quickly CPU scales |
+| **TLP** | Power policies | Per-AC/battery settings |
+| **SCX Scheduler** | Task scheduling | Which tasks run when/where |
+
+All these work together for optimal power management.
+
 ## References
 
 - [Arch Linux Wiki: CPU Frequency Scaling](https://wiki.archlinux.org/title/CPU_frequency_scaling)
 - [AMD P-State Driver Documentation](https://www.kernel.org/doc/html/latest/admin-guide/pm/amd-pstate.html)
 - [Linux Kernel schedutil Governor](https://docs.kernel.org/scheduler/schedutil.html)
+- [sched_ext Documentation](https://github.com/sched-ext/scx)
+- [ACPI Platform Profile](https://www.kernel.org/doc/html/latest/userspace-api/sysfs-platform_profile.html)
 
 ## Related Files
 
 - `modules/hardware/power-management.nix` - Main power management configuration including AMD P-State mode and TLP settings
-- `modules/hardware/framework.nix` - Framework-specific hardware configuration (if exists)
+- `modules/services/scx.nix` - SCX sched_ext scheduler configuration
+- `home-manager/cpu-governor/` - Dynamic governor switching scripts
+- `home-manager/ironbar/modules/battery/` - Platform profile switching in status bar
+- `home-manager/niri/binds.nix` - Keybindings including `Mod+Ctrl+P` for governor toggle
 
 ---
 
-**Last Updated**: 2025-12-02
-**Applies To**: Framework Laptop 13 (AMD Ryzen AI 300 Series), NixOS 26.05
+**Last Updated**: 2025-12-23
+**Applies To**: Framework Laptop 13 (AMD Ryzen AI 300 Series), NixOS 25.05

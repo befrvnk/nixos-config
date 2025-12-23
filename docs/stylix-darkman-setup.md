@@ -8,6 +8,8 @@ This document explains our stylix configuration with automatic light/dark theme 
 - [Architecture](#architecture)
 - [Configuration Details](#configuration-details)
 - [How It Works](#how-it-works)
+  - [Wallpaper Management with awww](#4-wallpaper-management-with-awww)
+  - [Monitor Hotplug Handling](#5-monitor-hotplug-handling)
 - [Pitfalls & Solutions](#pitfalls--solutions)
 - [Usage](#usage)
 - [Troubleshooting](#troubleshooting)
@@ -438,6 +440,107 @@ Earlier versions used swaybg, which required killing and restarting the process 
 - Multiple restarts causing topbar flickering
 
 awww solves these issues by staying running and accepting runtime commands.
+
+### 5. Monitor Hotplug Handling
+
+When external monitors are connected or disconnected, the wallpaper needs to be refreshed on all outputs. A dedicated service handles this automatically.
+
+**Architecture:**
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                  Monitor Hotplug Flow                          │
+├───────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────┐    ┌───────────────┐    ┌────────────────┐ │
+│  │   udevadm    │───>│ monitor-      │───>│    awww        │ │
+│  │   monitor    │    │ hotplug.sh    │    │   refresh      │ │
+│  └──────────────┘    └───────────────┘    └────────────────┘ │
+│         │                    │                                 │
+│   DRM events            Wait 2 sec                            │
+│   (connect/             (stabilization)                       │
+│    disconnect)                                                │
+│                                                                │
+└───────────────────────────────────────────────────────────────┘
+```
+
+**Service Configuration** (`home-manager/darkman/default.nix`):
+
+```nix
+systemd.user.services.monitor-hotplug = {
+  Unit = {
+    Description = "Monitor hotplug handler for wallpaper refresh";
+    After = [ "graphical-session.target" ];
+    PartOf = [ "graphical-session.target" ];
+  };
+  Service = {
+    Type = "simple";
+    ExecStart = "${pkgs.bash}/bin/bash ${monitorHotplugScript}";
+    Restart = "on-failure";
+    RestartSec = "5";
+  };
+  Install = {
+    WantedBy = [ "graphical-session.target" ];
+  };
+};
+```
+
+**Script Logic** (`home-manager/darkman/monitor-hotplug.sh`):
+
+```bash
+#!/usr/bin/env bash
+# Prevent multiple instances with lockfile
+LOCKFILE="/tmp/monitor-hotplug.lock"
+exec 200>"$LOCKFILE"
+flock -n 200 || exit 0
+
+# Monitor udev events for DRM changes
+udevadm monitor --udev --subsystem-match=drm | while read -r line; do
+    if echo "$line" | grep -q "change"; then
+        # Wait for display to fully initialize
+        sleep 2
+        # Refresh wallpaper on all outputs
+        awww refresh
+    fi
+done
+```
+
+**Key Features:**
+
+- **Event-driven**: Uses `udevadm monitor` to watch for DRM subsystem changes
+- **Debounced**: 2-second delay prevents multiple refreshes during rapid plug/unplug events
+- **Singleton**: Lockfile prevents multiple instances from running simultaneously
+- **Automatic restart**: Service restarts on failure with 5-second delay
+
+**Verification:**
+
+```bash
+# Check service status
+systemctl --user status monitor-hotplug
+
+# Watch service logs
+journalctl --user -u monitor-hotplug -f
+
+# Test manually (connect/disconnect a monitor)
+# Should see "Display change detected" in logs
+```
+
+**Troubleshooting:**
+
+If wallpaper doesn't refresh on monitor connect/disconnect:
+
+1. Check service is running: `systemctl --user status monitor-hotplug`
+2. Check awww daemon is running: `pgrep awww`
+3. Restart service: `systemctl --user restart monitor-hotplug`
+4. Check for errors: `journalctl --user -u monitor-hotplug --no-pager -n 20`
+
+**Why This Is Needed:**
+
+Without this service, connecting an external monitor would show:
+- Black/gray background on new output
+- Old wallpaper not extended to new display
+
+The monitor-hotplug service ensures seamless wallpaper display across all monitors.
 
 ## Pitfalls & Solutions
 
@@ -915,4 +1018,10 @@ systemctl --user restart darkman
 - `home-manager/frank.nix` - Home-manager config with specialisations
 - `home-manager/stylix.nix` - **Centralized theme definitions with specializations** (change themes here!)
 - `home-manager/ghostty.nix` - Ghostty configuration (automatically themed by Stylix)
-- `flake.nix` - Stylix module imports
+- `home-manager/darkman/default.nix` - Darkman integration and monitor-hotplug service
+- `home-manager/darkman/darkman-switch-mode.sh` - Theme switching script
+- `home-manager/darkman/monitor-hotplug.sh` - Monitor hotplug handler script
+- `home-manager/wallpapers/default.nix` - Wallpaper paths for light/dark modes
+- `home-manager/niri/startup.nix` - awww daemon startup
+- `home-manager/niri/rules.nix` - Layer rules for awww backdrop placement
+- `flake.nix` - Stylix and awww module imports

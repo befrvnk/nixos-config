@@ -103,7 +103,8 @@ Key features in this setup:
 - **Notifications** - Unread count with popup history
 - **Bluetooth** - Connection status
 - **Volume** - Current level (click to adjust)
-- **Battery** - Percentage and charging state
+- **Storage** - Mounted removable devices (USB/SD cards)
+- **Battery** - Percentage, charging state, and power profile switching
 
 ## Keyboard Shortcuts
 
@@ -117,6 +118,8 @@ Key features in this setup:
 | `Mod+O` | Toggle overview mode |
 | `Mod+Shift+E` | Exit Niri |
 | `Mod+Shift+S` | Suspend system |
+| `Mod+Shift+Slash` | Show hotkey overlay |
+| `Mod+A` | Open audio control (pavucontrol) |
 
 ### Window Navigation
 
@@ -136,7 +139,9 @@ Key features in this setup:
 | `Mod+W` | Toggle tabbed column display |
 | `Mod+C` | Center column |
 | `Mod+R` | Switch preset column widths (75%/50%/25%) |
+| `Mod+Shift+R` | Switch preset window heights |
 | `Mod+Minus/Equal` | Decrease/increase column width |
+| `Mod+Shift+Minus/Equal` | Decrease/increase window height |
 
 ### Workspaces
 
@@ -164,6 +169,7 @@ Key features in this setup:
 | `XF86AudioMute` | Toggle mute (with OSD) |
 | `XF86MonBrightnessUp/Down` | Adjust brightness (with OSD) |
 | `XF86AudioPlay/Prev/Next` | Media controls |
+| `Mod+Ctrl+P` | Toggle CPU governor (schedutil/powersave) |
 
 Volume and brightness keys show an on-screen display (OSD) overlay via SwayOSD.
 
@@ -173,7 +179,7 @@ Volume and brightness keys show an on-screen display (OSD) overlay via SwayOSD.
 |----------|--------|
 | `Print` | Screenshot area to clipboard |
 | `Ctrl+Print` | Screenshot screen to clipboard |
-| `Alt+Print` | Screenshot window to clipboard |
+| `Shift+Print` | Screenshot window to clipboard |
 
 ## Network Management
 
@@ -391,7 +397,10 @@ This configuration separates concerns between system-level and user-level settin
 
 ### Power Management
 
-- TLP for automatic power optimization
+- **TLP** for automatic power optimization
+- **SCX scheduler (scx_rusty)** - BPF-based sched_ext scheduler for improved latency
+- **Platform profiles** - Switch between power-saver/balanced/performance via Ironbar battery popup
+- **CPU governor toggle** - `Mod+Ctrl+P` switches between schedutil and powersave
 - Performance mode on AC, powersave on battery
 - CPU boost disabled on battery
 - Smart screen lock (won't lock during media playback)
@@ -441,6 +450,11 @@ Detailed guides for specific topics:
 - [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior
 - [Systemd Inhibitor Locks](./docs/systemd-inhibitor-locks.md) - How inhibitor locks prevent suspend during media playback
 - [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control
+
+### Hardware & System
+- [AMD P-State & Power](./docs/amd-pstate-configuration.md) - CPU scaling, SCX scheduler, platform profiles
+- [Clamshell Mode Thermals](./docs/clamshell-mode-thermals.md) - Thermal behavior with lid closed
+- [MT7925 WiFi Boot Issues](./docs/mt7925-wifi-boot-failure.md) - WiFi driver troubleshooting
 
 ### Tools & Utilities
 - [OpenCode AI Setup](./docs/opencode-ai-setup.md) - AI coding assistant configuration

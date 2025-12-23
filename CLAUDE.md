@@ -486,6 +486,55 @@ Define shared resources once, import everywhere:
 
 Imported in: `stylix.nix`, `darkman/default.nix`
 
+### Event Monitoring Service Pattern
+For services that watch system events (monitor hotplug, overview mode changes):
+```nix
+let
+  watcherScript = pkgs.writeShellScript "event-watcher" ''
+    # Event monitoring logic (e.g., udevadm monitor, niri event-stream)
+    udevadm monitor --udev --subsystem-match=drm | while read -r line; do
+      if echo "$line" | grep -q "change"; then
+        sleep 2  # Debounce
+        some-action
+      fi
+    done
+  '';
+in
+{
+  systemd.user.services.my-watcher = {
+    Unit = {
+      Description = "Event watcher service";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${watcherScript}";
+      Restart = "on-failure";
+      RestartSec = "5";
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+}
+```
+
+Used in: `darkman/default.nix` (monitor-hotplug), `ironbar/modules/niri-overview-watcher/`
+
+### Platform Profile Access Pattern
+For reading/writing ACPI platform profiles:
+```bash
+# Reading (no auth needed)
+cat /sys/firmware/acpi/platform_profile
+# Returns: power-saver, balanced, or performance
+
+# Writing (requires polkit auth)
+pkexec bash -c "echo 'balanced' > /sys/firmware/acpi/platform_profile"
+```
+
+Used in: `home-manager/ironbar/modules/battery/` for profile switching in status bar.
+
 ## Adding New Modules
 
 ### Simple Module (single file)
@@ -607,6 +656,26 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 ### State Versions
 - System: `25.05`, Home: `25.05`
 - **Never change** after initial setup
+
+### Framework Audio pw-loopback
+- The `pw-loopback` process **must start at session startup** for volume controls to work
+- Without it, `wpctl set-volume` commands appear to work but don't change actual volume
+- Configured in `home-manager/niri/startup.nix` as spawn-at-startup
+
+### Platform Profile Polkit
+- Setting platform profiles requires polkit authorization via `pkexec`
+- The Ironbar battery popup handles this transparently
+- Scripts in `home-manager/ironbar/modules/battery/{get,set}-profile.sh`
+
+### Niri Overview Popups
+- A dedicated watcher service closes Ironbar popups when exiting overview mode
+- Without it, popups opened during overview remain visible after returning to desktop
+- Service: `niri-overview-watcher` in `home-manager/ironbar/modules/niri-overview-watcher/`
+
+### SCX Scheduler
+- Uses `scx_rusty` BPF scheduler for improved latency
+- Service managed by systemd: `systemctl status scx`
+- Configuration in `modules/services/scx.nix`
 
 ## Path References
 - **Nix store paths:** `${pkgs.tool}/bin/tool`
