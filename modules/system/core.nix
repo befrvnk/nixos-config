@@ -6,9 +6,11 @@
 
   # Allow passwordless sudo for CPU governor switching helper
   # Allows frank user to run set-governor-helper without password
+  # Also allows passwordless tee to platform_profile for power profile switching
   security.sudo.extraConfig = ''
     frank ALL=(root) NOPASSWD: /home/frank/.nix-profile/bin/set-governor-helper*
     frank ALL=(root) NOPASSWD: /nix/store/*/bin/set-governor-helper*
+    frank ALL=(root) NOPASSWD: /run/current-system/sw/bin/tee /sys/firmware/acpi/platform_profile
   '';
 
   # Let the Framework hardware module handle kernel selection

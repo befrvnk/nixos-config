@@ -186,6 +186,44 @@
               "type": "label",
               "class": "battery-details",
               "label": "{{5000:~/.config/ironbar/modules/battery/battery-details.sh}}"
+            },
+            {
+              "type": "label",
+              "class": "popup-separator",
+              "label": "─────────────────"
+            },
+            {
+              "type": "label",
+              "class": "popup-title",
+              "label": "Power Profile"
+            },
+            {
+              "type": "label",
+              "class": "power-profile-current",
+              "label": "{{2000:~/.config/ironbar/modules/battery/get-profile.sh}}"
+            },
+            {
+              "type": "box",
+              "orientation": "vertical",
+              "class": "power-profile-buttons",
+              "spacing": 8,
+              "widgets": [
+                {
+                  "type": "button",
+                  "label": "low-power",
+                  "on_click": "!~/.config/ironbar/modules/battery/set-profile.sh low-power"
+                },
+                {
+                  "type": "button",
+                  "label": "balanced",
+                  "on_click": "!~/.config/ironbar/modules/battery/set-profile.sh balanced"
+                },
+                {
+                  "type": "button",
+                  "label": "performance",
+                  "on_click": "!~/.config/ironbar/modules/battery/set-profile.sh performance"
+                }
+              ]
             }
           ]
         }

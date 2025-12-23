@@ -63,6 +63,14 @@ in
     source = ./modules/battery/battery-details.sh;
     executable = true;
   };
+  xdg.configFile."ironbar/modules/battery/get-profile.sh" = {
+    source = ./modules/battery/get-profile.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/battery/set-profile.sh" = {
+    source = ./modules/battery/set-profile.sh;
+    executable = true;
+  };
   xdg.configFile."ironbar/modules/notifications/notification-count.sh" = {
     source = ./modules/notifications/notification-count.sh;
     executable = true;

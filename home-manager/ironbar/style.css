@@ -270,6 +270,33 @@ button.flat:hover {
     margin-bottom: 4px;
 }
 
+/* Power Profile Section */
+.popup-battery .popup-separator {
+    color: @base03;
+    margin: 8px 0;
+}
+
+.popup-battery .power-profile-current {
+    color: @base0D;
+    margin-bottom: 8px;
+}
+
+.popup-battery .power-profile-buttons {
+    margin-top: 4px;
+}
+
+.popup-battery .power-profile-buttons button {
+    background-color: @base01;
+    color: @base05;
+    padding: 8px 16px;
+    margin: 5px;
+    border-radius: 8px;
+}
+
+.popup-battery .power-profile-buttons button:hover {
+    background-color: @base02;
+}
+
 /* Notification popup styling */
 .popup-notifications {
     background-color: @base00;
