@@ -19,6 +19,7 @@
       lf
       mission-center
       nautilus
+      gnome-disk-utility
       navi
       neofetch
       nh
