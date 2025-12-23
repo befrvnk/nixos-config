@@ -3,6 +3,6 @@
     enable = true;
     automount = true;
     notify = true;
-    tray = "auto"; # show tray icon when devices are mounted
+    tray = "never"; # rely on notifications instead
   };
 }
