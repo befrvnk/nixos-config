@@ -25,6 +25,7 @@
     ./services/pipewire.nix
     ./services/bluetooth.nix
     ./services/udisks.nix
+    ./services/scx.nix
 
     # Theming
     ./theming/stylix.nix
