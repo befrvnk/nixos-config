@@ -23,12 +23,14 @@
     ./obsidian.nix
     ./opencode
     ./packages.nix
+    ./polkit-agent.nix
     ./nil.nix
     ./signal.nix
     ./ssh.nix
     ./starship.nix
     ./stylix.nix
     ./swaylock.nix
+    ./udiskie.nix
     ./vicinae.nix
     ./zed.nix
     ./zen-browser
