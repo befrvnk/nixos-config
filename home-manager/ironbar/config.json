@@ -1,4 +1,5 @@
 {
+  "name": "main",
   "position": "top",
   "icon_theme": "Papirus-Dark",
   "anchor_to_edges": true,
@@ -67,6 +68,40 @@
       "type": "tray",
       "icon_size": 32,
       "show_if": "poll:2000:~/.config/ironbar/modules/tray/has-tray-items.sh"
+    },
+    {
+      "type": "custom",
+      "class": "storage",
+      "show_if": "poll:3000:~/.config/ironbar/modules/storage/has-mounted-devices.sh",
+      "bar": [
+        {
+          "type": "button",
+          "class": "flat",
+          "label": "{{3000:~/.config/ironbar/modules/storage/storage-status.sh}}",
+          "on_click": "popup:toggle"
+        }
+      ],
+      "popup": [
+        {
+          "type": "box",
+          "orientation": "horizontal",
+          "class": "storage-row",
+          "widgets": [
+            {
+              "type": "button",
+              "class": "storage-name",
+              "label": "{{3000:~/.config/ironbar/modules/storage/device-name.sh 1}}",
+              "on_click": "!~/.config/ironbar/modules/storage/open-device.sh 1"
+            },
+            {
+              "type": "button",
+              "class": "storage-eject",
+              "label": "{{3000:~/.config/ironbar/modules/storage/device-eject.sh 1}}",
+              "on_click": "!~/.config/ironbar/modules/storage/eject-device.sh 1"
+            }
+          ]
+        }
+      ]
     },
     {
       "format": [

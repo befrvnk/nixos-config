@@ -295,3 +295,38 @@ button.flat:hover {
 .popup-notifications button:hover {
     background-color: @base02;
 }
+
+/* Storage popup styling */
+.popup-storage {
+    background-color: @base01;
+    padding: 8px;
+    border-radius: 16px;
+}
+
+/* Device name button - opens in file manager */
+.popup-storage button.storage-name {
+    background-color: @base02;
+    color: @base05;
+    padding: 8px 12px;
+    border-radius: 8px 0 0 8px;
+    border: none;
+}
+
+.popup-storage button.storage-name:hover {
+    background-color: @base03;
+}
+
+/* Eject button */
+.popup-storage button.storage-eject {
+    background-color: @base02;
+    color: @base08;
+    padding: 8px 10px;
+    margin-left: 1px;
+    border-radius: 0 8px 8px 0;
+    border: none;
+}
+
+.popup-storage button.storage-eject:hover {
+    background-color: @base08;
+    color: @base00;
+}

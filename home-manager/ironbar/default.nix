@@ -112,6 +112,33 @@ in
     executable = true;
   };
 
+  # Removable storage module
+  # Shows mounted devices with name+capacity and separate eject buttons
+  xdg.configFile."ironbar/modules/storage/has-mounted-devices.sh" = {
+    source = ./modules/storage/has-mounted-devices.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/storage/storage-status.sh" = {
+    source = ./modules/storage/storage-status.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/storage/device-name.sh" = {
+    source = ./modules/storage/device-name.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/storage/device-eject.sh" = {
+    source = ./modules/storage/device-eject.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/storage/open-device.sh" = {
+    source = ./modules/storage/open-device.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/storage/eject-device.sh" = {
+    source = ./modules/storage/eject-device.sh;
+    executable = true;
+  };
+
   # Systemd service for ironbar with niri overview-only mode
   # Note: This replaces the default ironbar.service since we manage ironbar startup ourselves
   systemd.user.services.ironbar = {
