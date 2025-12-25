@@ -398,7 +398,7 @@ This configuration separates concerns between system-level and user-level settin
 ### Power Management
 
 - **TLP** for automatic power optimization
-- **SCX scheduler (scx_rusty)** - BPF-based sched_ext scheduler for improved latency
+- **SCX scheduler (scx_lavd)** - BPF-based sched_ext scheduler with adaptive power management (autopower mode)
 - **Platform profiles** - Switch between power-saver/balanced/performance via Ironbar battery popup
 - **CPU governor toggle** - `Mod+Ctrl+P` switches between schedutil and powersave
 - Performance mode on AC, powersave on battery

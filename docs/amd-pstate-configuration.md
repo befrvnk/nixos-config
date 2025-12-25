@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the AMD P-State configuration used in this NixOS setup, including what Energy Performance Preference (EPP) is, why we use Passive mode instead of Active mode, and the performance benefits achieved.
+This document explains the AMD P-State configuration used in this NixOS setup, including what Energy Performance Preference (EPP) is, how Active mode works with the scx_lavd scheduler, and the power management architecture.
 
 ## What is AMD P-State?
 
@@ -80,95 +80,97 @@ On the Framework AMD Ryzen AI 300 series with current BIOS (03.04):
 - This is likely a BIOS/firmware limitation or early hardware support issue
 - Without `balance_performance` or `power` EPP options, Active mode couldn't dynamically adjust behavior
 
-## Solution: Switch to Passive Mode
+## Current Configuration: Active Mode with scx_lavd
 
-### Changes Made
+After initially switching to Passive mode to work around BIOS EPP limitations, we've now returned to **Active mode** to enable the scx_lavd scheduler's autopower feature.
 
-#### 1. Kernel Parameter
-Added to `modules/hardware/power-management.nix`:
+### Why Active Mode Now?
+
+The scx_lavd scheduler's `--autopower` flag reads the system's Energy Performance Preference (EPP) to automatically adjust its scheduling behavior. This requires Active mode (`amd_pstate=active`) which exposes EPP via sysfs.
+
+### Kernel Parameter
+Configured in `modules/hardware/power-management.nix`:
 ```nix
 boot.kernelParams = [
   "nmi_watchdog=0"
-  "amd_pstate=passive"  # ← Added this
-];
+]
+++ lib.optionals isAmd [ "amd_pstate=active" ];
 ```
 
-This forces the system to use `amd-pstate` driver (Passive mode) instead of `amd-pstate-epp` (Active mode).
+This uses the `amd-pstate-epp` driver (Active mode) for hardware-controlled frequency scaling.
 
-#### 2. CPU Governor Configuration
-Changed TLP settings in `modules/hardware/power-management.nix`:
+### TLP Configuration
+TLP continues to manage platform profiles and other power settings in `modules/hardware/power-management.nix`:
 ```nix
-# Before:
-CPU_SCALING_GOVERNOR_ON_AC = "performance";
+services.tlp.settings = {
+  # CPU scaling governor (used by both modes)
+  CPU_SCALING_GOVERNOR_ON_AC = "schedutil";
+  CPU_SCALING_GOVERNOR_ON_BAT = "schedutil";
 
-# After:
-CPU_SCALING_GOVERNOR_ON_AC = "schedutil";
+  # Platform profile (system-wide power/thermal behavior)
+  PLATFORM_PROFILE_ON_AC = "balanced";
+  PLATFORM_PROFILE_ON_BAT = "low-power";
+};
 ```
 
-The `schedutil` governor:
-- Integrates directly with Linux scheduler
-- Makes frequency decisions based on scheduler run queue data
-- Scales CPU frequency up/down based on actual workload
-- More responsive than `ondemand` while more efficient than `performance`
+**Note:** In Active mode, the governor setting affects behavior differently than in Passive mode - the hardware still makes autonomous frequency decisions, but the governor provides hints.
 
-#### 3. Removed EPP Settings
-Removed these lines (only relevant for Active mode):
-```nix
-# No longer needed in Passive mode
-CPU_ENERGY_PERF_POLICY_ON_AC = "balance_performance";
-CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-```
+## Verification
 
-## Results
-
-### Verification After Reboot
+### Check Current Configuration
 ```bash
+# Verify Active mode is in use
 $ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver
-amd-pstate  # ✅ Changed from amd-pstate-epp
+amd-pstate-epp  # ✅ Active mode
 
-$ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors
-performance schedutil  # ✅ schedutil now available
+# Check EPP is available
+$ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference
+balance_performance  # or performance, power, etc.
 
-$ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-schedutil  # ✅ Active governor
+# List available EPP values
+$ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferences
 ```
 
-### Performance Improvement
-Measured over 60-second idle periods on 4K@144Hz external monitor:
+## How Active Mode + scx_lavd Work Together
 
-| Metric | Before (performance) | After (schedutil) | Improvement |
-|--------|---------------------|-------------------|-------------|
-| Average CPU | 4.63% | 2.58% | **-44%** |
-| Peak CPU | 16.8% | 7.9% | **-53%** |
+### The Power Management Stack
 
-### Why This Works Better
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Platform Profile                          │
+│         (TLP: power-saver / balanced / performance)          │
+│         Controls: fans, thermals, power limits               │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│              scx_lavd --autopower                            │
+│         Reads EPP → adjusts scheduling behavior              │
+│         Core Compaction: idles unused cores                  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│           AMD P-State Active (EPP)                           │
+│         Hardware-controlled frequency scaling                │
+│         Uses EPP hints for power/performance balance         │
+└─────────────────────────────────────────────────────────────┘
+```
 
-1. **Dynamic Frequency Scaling**: schedutil adjusts CPU frequency based on scheduler load, allowing the CPU to idle at lower frequencies when Niri compositor has nothing to do
+### Benefits of This Architecture
 
-2. **Scheduler Integration**: schedutil sees the scheduler's view of workload, which is more accurate than autonomous hardware decisions for desktop workloads
+1. **Adaptive Scheduling**: scx_lavd reads EPP and automatically adjusts between powersave/balanced/performance modes
+2. **Core Compaction**: When CPU usage < 50%, active cores run faster while idle cores enter deep sleep (C-States)
+3. **Hardware Efficiency**: Active mode lets the CPU make autonomous frequency decisions with lower latency
+4. **Layered Control**: Platform profile controls system-wide behavior, while scx_lavd optimizes task scheduling
 
-3. **Lower Baseline**: Instead of staying at high frequencies "just in case" (performance mode), schedutil only boosts frequency when the scheduler indicates actual work
+### Trade-offs
 
-## Trade-offs
-
-### Passive Mode Advantages
-- ✅ Better idle power consumption
-- ✅ Lower CPU usage for compositors/idle workloads
-- ✅ More predictable behavior
-- ✅ Full governor choice (schedutil, ondemand, conservative)
-- ✅ Better integration with Linux scheduler
-
-### Passive Mode Disadvantages
-- ⚠️ Slightly higher latency on workload spikes (few microseconds)
-- ⚠️ More kernel overhead (but negligible on modern systems)
-- ⚠️ Doesn't leverage CPU's autonomous frequency control capabilities
-
-### When Active Mode Would Be Better
-Active mode (`amd-pstate-epp`) would be preferable if:
-- BIOS/firmware properly exposes all EPP preferences (`balance_performance`, `power`, etc.)
-- Running server workloads where hardware knows best
-- Battery life is critical and hardware power management is well-tuned
-- Future BIOS updates improve EPP support on Framework laptops
+| Aspect | Active Mode + scx_lavd | Previous Passive Mode |
+|--------|------------------------|----------------------|
+| Frequency control | Hardware autonomous | Kernel controlled |
+| Scheduling | scx_lavd (userspace BPF) | CFS (kernel) |
+| Power optimization | Autopower + Core Compaction | schedutil governor |
+| EPP support required | Yes | No |
+| Latency | Lower (hardware decisions) | Slightly higher |
 
 ## Monitoring CPU Behavior
 
@@ -194,28 +196,31 @@ You should see frequencies scale down to ~400-800 MHz during idle and scale up t
 
 ## Future Considerations
 
-### If BIOS Updates Improve EPP Support
-If future Framework BIOS updates expose more EPP preferences:
-1. Could test switching back to Active mode with `amd_pstate=active`
-2. Configure EPP via TLP:
-   ```nix
-   CPU_ENERGY_PERF_POLICY_ON_AC = "balance_performance";
-   CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-   ```
-3. Compare power consumption and responsiveness
+### Alternative scx_lavd Modes
+If autopower doesn't suit your workload, you can try explicit modes:
+```nix
+# For maximum performance (gaming, compiling)
+extraArgs = [ "--performance" ];
 
-### Alternative Governors to Test
-In Passive mode, you can experiment with:
-- `ondemand` - More aggressive frequency scaling, higher power use
-- `conservative` - More gradual frequency scaling, better battery
-- `powersave` - Lowest possible frequencies (for extreme battery saving)
-
-To test (runtime, no reboot needed):
-```bash
-echo ondemand | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+# For maximum battery life
+extraArgs = [ "--powersave" ];
 ```
 
+### Switching Back to Passive Mode
+If EPP-based scheduling causes issues, you can return to kernel-controlled frequency scaling:
+```nix
+boot.kernelParams = [ "amd_pstate=passive" ];
+```
+This enables full governor support (`schedutil`, `ondemand`, etc.) but loses scx_lavd's autopower feature.
+
+### Alternative Schedulers
+If scx_lavd doesn't work well for your use case:
+- `scx_rusty` - Better for throughput-focused workloads
+- `scx_bpfland` - General-purpose with tunable parameters
+
 ## Dynamic Governor Switching on Battery
+
+> **Note:** With `amd_pstate=active`, governors function differently than in passive mode. The hardware makes autonomous frequency decisions, and governors act more as hints. The scx_lavd `--autopower` mode provides adaptive power management that may reduce the need for manual governor switching.
 
 This system includes a custom CPU governor switching feature that allows you to dynamically switch between `powersave` and `schedutil` governors while on battery power, without requiring a reboot.
 
@@ -275,14 +280,14 @@ Passwordless sudo is limited to the specific `set-governor-helper` script only, 
 
 ## SCX sched_ext Scheduler
 
-This system also uses the **SCX (sched_ext)** BPF scheduler framework, which allows custom schedulers to run in userspace while making scheduling decisions for the kernel.
+This system uses the **SCX (sched_ext)** BPF scheduler framework with **scx_lavd** for adaptive power-aware scheduling.
 
 ### What is sched_ext?
 
 **sched_ext** is a Linux kernel feature that enables user-space schedulers written in BPF. This allows for:
 - Custom scheduling policies without kernel modifications
 - Easy experimentation with scheduling algorithms
-- Workload-specific optimizations
+- Workload-specific optimizations (gaming, power saving, etc.)
 
 ### Current Configuration
 
@@ -292,45 +297,63 @@ Configured in `modules/services/scx.nix`:
 {
   services.scx = {
     enable = true;
-    package = pkgs.scx_git.full;
-    scheduler = "scx_rusty";
-    extraArgs = [ ];
+    scheduler = "scx_lavd";
+    extraArgs = [ "--autopower" ];
   };
 }
 ```
 
-### Why scx_rusty?
+### Why scx_lavd with --autopower?
 
-**scx_rusty** is a work-conserving scheduler that focuses on:
-- **Low latency** - Prioritizes interactive workloads
-- **Work conservation** - Ensures all CPU cores stay busy when work is available
-- **Better responsiveness** - Improved desktop/compositor performance
+**scx_lavd** (Latency-criticality Aware Virtual Deadline) is designed for interactive workloads:
 
-Alternative schedulers available:
-- `scx_lavd` - Latency-aware virtual deadline scheduler (previously used)
+- **Autopower Mode**: Automatically switches between powersave/balanced/performance based on:
+  - System's Energy Performance Preference (EPP) - requires `amd_pstate=active`
+  - CPU utilization levels
+- **Core Compaction**: When CPU usage < 50%, active cores run at higher frequencies while idle cores enter deep C-State sleep
+- **Latency-Aware**: Prioritizes latency-critical tasks (UI, input handling)
+- **Virtual Deadlines**: Ensures responsive scheduling without starvation
+
+### Available Power Modes
+
+| Flag | Mode | Behavior |
+|------|------|----------|
+| `--performance` | Performance | Max performance, all cores active |
+| `--powersave` | Power Save | Minimize power, use efficient cores |
+| `--autopower` | Autopilot | **Automatic switching based on EPP and load** |
+| *(none)* | Balanced | Default balanced behavior |
+
+### Alternative Schedulers
+
+- `scx_rusty` - Work-conserving scheduler (good for throughput)
 - `scx_bpfland` - General-purpose with tunable parameters
 - `scx_simple` - Minimal reference scheduler
 
-### How It Complements AMD P-State
+### How scx_lavd + AMD P-State Work Together
 
-SCX and AMD P-State work together:
-1. **AMD P-State** controls CPU **frequency** based on power/performance hints
-2. **SCX** controls **which tasks run on which CPUs** and in what order
+```
+AMD P-State (Active)     →  Controls CPU frequency (hardware autonomous)
+         ↓
+scx_lavd --autopower     →  Reads EPP, adjusts scheduling behavior
+         ↓
+Core Compaction          →  Consolidates work to fewer cores when idle
+```
 
 Together they provide:
-- Efficient power consumption (P-State scales frequency down when idle)
-- Responsive scheduling (SCX prioritizes interactive tasks)
-- Better overall desktop experience
+- Adaptive power management based on workload
+- Efficient core utilization (idle cores sleep deeply)
+- Low-latency scheduling for interactive tasks
+- Hardware-controlled frequency scaling
 
 ### Verification
 
 ```bash
-# Check if scx_rusty is running
+# Check if scx_lavd is running
 systemctl status scx
 
 # Check scheduler via sysfs
 cat /sys/kernel/sched_ext/root/type
-# Should show: rusty
+# Should show: lavd
 
 # View scheduler statistics
 cat /sys/kernel/sched_ext/root/stats/*
@@ -341,7 +364,8 @@ cat /sys/kernel/sched_ext/root/stats/*
 If the system feels sluggish:
 1. Check SCX service: `systemctl status scx`
 2. Restart SCX: `sudo systemctl restart scx`
-3. Try a different scheduler by editing `modules/services/scx.nix`
+3. Verify EPP is available: `cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference`
+4. Try a different scheduler or mode by editing `modules/services/scx.nix`
 
 ## Platform Profile Switching
 

@@ -673,7 +673,10 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Service: `niri-overview-watcher` in `home-manager/ironbar/modules/niri-overview-watcher/`
 
 ### SCX Scheduler
-- Uses `scx_rusty` BPF scheduler for improved latency
+- Uses `scx_lavd` BPF scheduler with `--autopower` for adaptive power management
+- Autopower mode automatically switches between powersave/balanced/performance based on EPP
+- Requires `amd_pstate=active` kernel parameter to read Energy Performance Preference (EPP)
+- Core Compaction: When CPU < 50% usage, active cores run faster while idle cores sleep
 - Service managed by systemd: `systemctl status scx`
 - Configuration in `modules/services/scx.nix`
 

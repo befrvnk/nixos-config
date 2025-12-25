@@ -24,10 +24,11 @@ in
     # NMI watchdog is used for detecting hard lockups, but not needed for normal use
     "nmi_watchdog=0"
   ]
-  # AMD-specific: Use P-State guided mode for collaborative frequency scaling
-  # Guided mode: kernel suggests frequencies, CPU adjusts based on internal sensors/constraints
-  # Provides scheduler integration (like passive) plus hardware intelligence (like active)
-  ++ lib.optionals isAmd [ "amd_pstate=guided" ];
+  # AMD-specific: Use P-State active (EPP) mode for hardware-controlled frequency scaling
+  # Active mode: hardware autonomously controls frequency based on Energy Performance Preference (EPP)
+  # Required for scx_lavd --autopower to read EPP and adjust scheduling behavior
+  # Better idle efficiency and works well with sched_ext schedulers
+  ++ lib.optionals isAmd [ "amd_pstate=active" ];
 
   # Runtime kernel settings
   boot.kernel.sysctl = {
