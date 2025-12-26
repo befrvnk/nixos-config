@@ -106,6 +106,22 @@ in
     executable = true;
   };
 
+  # Weather module
+  # Shows current weather and forecast from wttr.in
+  # Hidden when offline/no data via show_if in config.json
+  xdg.configFile."ironbar/modules/weather/has-weather-data.sh" = {
+    source = ./modules/weather/has-weather-data.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/weather/weather-status.sh" = {
+    source = ./modules/weather/weather-status.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/weather/weather-forecast.sh" = {
+    source = ./modules/weather/weather-forecast.sh;
+    executable = true;
+  };
+
   # Removable storage module
   # Shows mounted devices with name+capacity and separate eject buttons
   xdg.configFile."ironbar/modules/storage/has-mounted-devices.sh" = {

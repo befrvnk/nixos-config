@@ -97,10 +97,11 @@ Key features in this setup:
 [Ironbar](https://github.com/JakeStanger/ironbar) displays system information at the top of the screen:
 
 - **Workspaces** - Click to switch workspaces
+- **Weather** - Current temperature with popup forecast (auto-hides when offline)
 - **Clock** - Current time
+- **Notifications** - Unread count with popup history
 - **System stats** - CPU %, Memory %, Temperature
 - **WiFi status** - Connection indicator
-- **Notifications** - Unread count with popup history
 - **Bluetooth** - Connection status
 - **Volume** - Current level (click to adjust)
 - **Storage** - Mounted removable devices (USB/SD cards)

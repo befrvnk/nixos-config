@@ -15,6 +15,32 @@
 
   "center": [
     {
+      "type": "custom",
+      "class": "weather",
+      "show_if": "poll:300000:~/.config/ironbar/modules/weather/has-weather-data.sh",
+      "bar": [
+        {
+          "type": "button",
+          "class": "flat",
+          "label": "{{600000:~/.config/ironbar/modules/weather/weather-status.sh}}",
+          "on_click": "popup:toggle"
+        }
+      ],
+      "popup": [
+        {
+          "type": "box",
+          "orientation": "vertical",
+          "widgets": [
+            {
+              "type": "label",
+              "class": "weather-forecast",
+              "label": "{{600000:~/.config/ironbar/modules/weather/weather-forecast.sh}}"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "type": "clock"
     },
     {

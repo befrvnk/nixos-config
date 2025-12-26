@@ -371,3 +371,27 @@ button.flat:hover {
     background-color: @base08;
     color: @base00;
 }
+
+/* Weather module styling */
+.weather {
+    font-weight: normal;
+}
+
+/* Weather popup styling */
+.popup-weather {
+    background-color: @base01;
+    padding: 15px;
+    border-radius: 16px;
+    min-width: 220px;
+}
+
+.popup-weather label {
+    color: @base05;
+    padding: 2px 0;
+}
+
+.popup-weather .weather-forecast {
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
