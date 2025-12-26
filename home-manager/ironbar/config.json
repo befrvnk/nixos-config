@@ -107,7 +107,7 @@
       "format": [
         " {cpu_percent}%",
         " {memory_percent}%",
-        " {temp_c@k10temp Tctl}°C"
+        "{temp_c@k10temp Tctl}°C"
       ],
       "type": "sys_info"
     },
