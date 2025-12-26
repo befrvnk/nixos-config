@@ -47,7 +47,6 @@ in
     source = pkgs.replaceVars ./darkman-switch-mode.sh {
       dconf = "${pkgs.dconf}";
       systemd = "${pkgs.systemd}";
-      jq = "${pkgs.jq}";
       niri = "${pkgs.niri}";
       coreutils = "${pkgs.coreutils}";
       gnugrep = "${pkgs.gnugrep}";

@@ -22,14 +22,29 @@ in
 {
   services.vicinae = {
     enable = true;
-    # Disable layer shell mode - it causes Wayland protocol errors with niri
-    # Layer shell is designed for panels/docks but isn't fully compatible with niri
-    # Using regular window mode (useLayerShell = false) works correctly
-    useLayerShell = false;
+
+    # Use the module's systemd integration
+    systemd.enable = true;
 
     settings = {
-      window = {
-        csd = true;
+      launcher_window = {
+        opacity = 1.0;
+        client_side_decorations = {
+          enabled = true;
+        };
+        layer_shell = {
+          enabled = false; # Disabled for niri compatibility
+        };
+      };
+      theme = {
+        light = {
+          name = "stylix";
+          icon_theme = "Papirus";
+        };
+        dark = {
+          name = "stylix";
+          icon_theme = "Papirus";
+        };
       };
     };
 
@@ -38,11 +53,7 @@ in
       nix
       wifi-commander
     ];
-
   };
-
-  # Force overwrite vicinae config - needed because darkman modifies this file
-  xdg.configFile."vicinae/vicinae.json".force = true;
 
   # GTK icon theme (which Qt/vicinae will respect)
   gtk = {

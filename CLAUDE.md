@@ -680,6 +680,14 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Service managed by systemd: `systemctl status scx`
 - Configuration in `modules/services/scx.nix`
 
+### Vicinae Configuration (v0.17+)
+- Config structure uses `theme.light` and `theme.dark` objects, NOT `theme.name`
+- Use `launcher_window` for window settings, NOT `window`
+- Stylix auto-generates `~/.local/share/vicinae/themes/stylix.toml` with current polarity colors
+- Both light/dark modes use "stylix" theme; colors come from the regenerated theme file
+- Darkman just restarts vicinae service - no need to patch settings.json
+- Configuration in `home-manager/vicinae.nix`
+
 ## Path References
 - **Nix store paths:** `${pkgs.tool}/bin/tool`
 - **Relative imports:** `./file.nix` (within same directory)

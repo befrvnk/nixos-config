@@ -57,18 +57,9 @@ fi
 # Restart SwayOSD to pick up new GTK theme colors
 @systemd@/bin/systemctl --user restart swayosd.service || true
 
-# Update vicinae theme based on mode
-if [ -f ~/.config/vicinae/vicinae.json ]; then
-  if [ "$MODE" = "light" ]; then
-    VICINAE_THEME="catppuccin-latte"
-  else
-    VICINAE_THEME="catppuccin-mocha"
-  fi
-
-  @jq@/bin/jq ".theme.name = \"$VICINAE_THEME\"" ~/.config/vicinae/vicinae.json > ~/.config/vicinae/vicinae.json.tmp && \
-  mv ~/.config/vicinae/vicinae.json.tmp ~/.config/vicinae/vicinae.json
-  @systemd@/bin/systemctl --user restart vicinae.service || true
-fi
+# Restart vicinae to pick up the regenerated stylix.toml theme
+# The settings.json already points to "stylix" for both modes - colors come from stylix.toml
+@systemd@/bin/systemctl --user restart vicinae.service || true
 
 # Trigger Niri screen transition effect
 NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
