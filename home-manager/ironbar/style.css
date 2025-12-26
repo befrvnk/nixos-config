@@ -40,6 +40,22 @@ These provide semantic color accents:
     background-color: @transparent;
 }
 
+/* GTK5 Popover container styling - remove default background */
+popover,
+popover.background {
+    background-color: @transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+popover > contents {
+    background-color: @transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
 #bar {
     background-color: @transparent;
     margin-top: 12px;
@@ -253,10 +269,9 @@ button.flat:hover {
 
 /* Battery popup styling */
 .popup-battery {
-    background-color: @base00;
+    background-color: @base01;
     padding: 15px;
     border-radius: 16px;
-    border: 1px solid alpha(@base01, 0.3);
 }
 
 .popup-battery label {
@@ -286,7 +301,7 @@ button.flat:hover {
 }
 
 .popup-battery .power-profile-buttons button {
-    background-color: @base01;
+    background-color: @base02;
     color: @base05;
     padding: 8px 16px;
     margin: 5px;
@@ -294,15 +309,14 @@ button.flat:hover {
 }
 
 .popup-battery .power-profile-buttons button:hover {
-    background-color: @base02;
+    background-color: @base03;
 }
 
 /* Notification popup styling */
 .popup-notifications {
-    background-color: @base00;
+    background-color: @base01;
     padding: 15px;
     border-radius: 16px;
-    border: 1px solid alpha(@base01, 0.3);
 }
 
 .popup-notifications label {
@@ -311,7 +325,7 @@ button.flat:hover {
 }
 
 .popup-notifications button {
-    background-color: @base01;
+    background-color: @base02;
     color: @base05;
     padding: 8px 16px;
     margin: 5px;
@@ -320,7 +334,7 @@ button.flat:hover {
 }
 
 .popup-notifications button:hover {
-    background-color: @base02;
+    background-color: @base03;
 }
 
 /* Storage popup styling */

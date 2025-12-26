@@ -4,7 +4,7 @@
   "icon_theme": "Papirus-Dark",
   "anchor_to_edges": true,
   "start_hidden": true,
-  "popup_gap": 64,
+  "popup_gap": 12,
   "popup_autohide": true,
 
   "start": [
