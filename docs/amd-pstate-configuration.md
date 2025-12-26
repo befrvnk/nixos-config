@@ -100,20 +100,25 @@ boot.kernelParams = [
 This uses the `amd-pstate-epp` driver (Active mode) for hardware-controlled frequency scaling.
 
 ### TLP Configuration
-TLP continues to manage platform profiles and other power settings in `modules/hardware/power-management.nix`:
+TLP manages automatic power switching in `modules/hardware/power-management.nix`:
 ```nix
 services.tlp.settings = {
-  # CPU scaling governor (used by both modes)
-  CPU_SCALING_GOVERNOR_ON_AC = "schedutil";
-  CPU_SCALING_GOVERNOR_ON_BAT = "schedutil";
-
-  # Platform profile (system-wide power/thermal behavior)
-  PLATFORM_PROFILE_ON_AC = "balanced";
+  # Platform profile (fans, thermals, power limits)
+  PLATFORM_PROFILE_ON_AC = "performance";
   PLATFORM_PROFILE_ON_BAT = "low-power";
+
+  # Energy Performance Preference (CPU frequency hints)
+  # Works with scx_lavd --autopower which reads EPP
+  CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+  CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
+
+  # CPU boost (turbo)
+  CPU_BOOST_ON_AC = 1;
+  CPU_BOOST_ON_BAT = 0;
 };
 ```
 
-**Note:** In Active mode, the governor setting affects behavior differently than in Passive mode - the hardware still makes autonomous frequency decisions, but the governor provides hints.
+This creates a unified power experience: on AC you get full performance, on battery you get maximum power savings. Use the battery popup to manually switch to "balanced" when you need compilation performance on battery.
 
 ## Verification
 
@@ -218,65 +223,58 @@ If scx_lavd doesn't work well for your use case:
 - `scx_rusty` - Better for throughput-focused workloads
 - `scx_bpfland` - General-purpose with tunable parameters
 
-## Dynamic Governor Switching on Battery
+## Unified Power Profiles
 
-> **Note:** With `amd_pstate=active`, governors function differently than in passive mode. The hardware makes autonomous frequency decisions, and governors act more as hints. The scx_lavd `--autopower` mode provides adaptive power management that may reduce the need for manual governor switching.
+This system uses **unified power profiles** that control multiple power settings with a single toggle. This replaces the old governor-based switching with a more comprehensive approach.
 
-This system includes a custom CPU governor switching feature that allows you to dynamically switch between `powersave` and `schedutil` governors while on battery power, without requiring a reboot.
+### Available Profiles
 
-### Features
+| Profile | Platform Profile | EPP | CPU Boost | Use Case |
+|---------|------------------|-----|-----------|----------|
+| 🔋 **Power Saver** | `low-power` | `power` | Off | Max battery life |
+| ⚡ **Balanced** | `balanced` | `balance_performance` | On | Battery + dev work |
+| 🚀 **Performance** | `performance` | `performance` | On | Full power on AC |
 
-- **Keyboard shortcuts** for instant switching:
-  - `Super+Ctrl+P` → **Performance** mode (schedutil governor)
-  - `Super+Ctrl+E` → **Economy** mode (powersave governor)
-- **Command-line interface**: `switch-governor [schedutil|powersave]`
-- **Visual feedback**:
-  - Desktop notifications when switching
-  - Ironbar module showing current governor ("󰓅 Performance" or "󰾅 Battery")
-- **Battery-only operation**: Only works when on battery power (AC always uses schedutil)
-- **Automatic reset**: Resets to powersave (default) after reboot or suspend
-- **Passwordless**: No authentication required, configured via sudoers
+### How to Switch Profiles
 
-### Use Cases
+**Via Battery Popup (Recommended):**
+1. Click the battery icon in Ironbar
+2. Select desired profile: low-power, balanced, or performance
 
-**When to use Performance mode (schedutil):**
-- Compiling code, building projects
-- Video editing or heavy media work
-- Running intensive applications (IDEs, browsers with many tabs)
-- When system feels sluggish and you need more responsiveness
+**What Each Toggle Sets:**
+- **Platform Profile**: Controls fans, thermals, and power limits
+- **EPP (Energy Performance Preference)**: Hints to CPU about power/performance tradeoff
+- **CPU Boost**: Enables/disables turbo boost
 
-**When to use Economy mode (powersave):**
-- Reading, writing, light browsing
-- Watching videos (hardware-accelerated playback)
-- Maximum battery life needed
-- Default state (automatically set after reboot)
+### Automatic Switching
+
+TLP automatically switches profiles based on power state:
+
+| Power State | Profile | Why |
+|-------------|---------|-----|
+| **AC** | Performance | Full power available |
+| **Battery** | Power Saver | Maximize battery life |
+
+To use **Balanced** mode on battery (for compilation, dev work), manually switch via the battery popup.
 
 ### Implementation Details
 
 **Files:**
-- `home-manager/cpu-governor/` - Governor switching module
-  - `default.nix` - Module configuration
-  - `switch-governor.sh` - Main switching script
-  - `set-governor-helper.sh` - Helper script for sysfs writes
-- `home-manager/ironbar/modules/cpu-governor/` - Ironbar display module
-  - `cpu-governor-status.sh` - Status display script
-- `home-manager/niri/binds.nix` - Keyboard shortcut configuration
-- `modules/system/core.nix` - Sudoers configuration for passwordless switching
+- `home-manager/ironbar/modules/battery/set-profile.sh` - Unified profile switcher
+- `home-manager/ironbar/modules/battery/get-profile.sh` - Current profile reader
+- `modules/hardware/power-management.nix` - TLP configuration with EPP settings
 
-**How it works:**
-1. User presses keybinding or runs command
-2. Script checks if on battery (exits if on AC)
-3. Script calls `set-governor-helper` with sudo (passwordless via sudoers)
-4. Helper writes governor to `/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`
-5. Desktop notification shows result
-6. Ironbar updates to show current governor
+**How `set-profile.sh` works:**
+```bash
+# Sets all three settings at once:
+1. Platform profile → /sys/firmware/acpi/platform_profile
+2. EPP → /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference
+3. CPU boost → /sys/devices/system/cpu/cpufreq/boost
+```
 
-**Security:**
-Passwordless sudo is limited to the specific `set-governor-helper` script only, which only writes to CPU governor sysfs files. This is safe because:
-- Limited scope (only CPU governor changes)
-- No arbitrary command execution
-- User already has physical access to the system
-- TLP resets to safe defaults on reboot/suspend
+### Legacy Governor Switching
+
+> **Note:** The old `switch-governor` command and `Mod+Ctrl+P` keybinding still exist but are **less relevant** with `amd_pstate=active`. In active mode, governors are just hints—EPP controls actual CPU behavior. Use the unified power profiles instead.
 
 ## SCX sched_ext Scheduler
 

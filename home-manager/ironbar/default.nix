@@ -88,20 +88,6 @@ in
     executable = true;
   };
 
-  # CPU governor status module
-  # Shows current CPU governor (powersave or schedutil)
-  xdg.configFile."ironbar/modules/cpu-governor/cpu-governor-status.sh" = {
-    source = ./modules/cpu-governor/cpu-governor-status.sh;
-    executable = true;
-  };
-
-  # CPU governor visibility check
-  # Only shows module when governor is powersave
-  xdg.configFile."ironbar/modules/cpu-governor/is-powersave.sh" = {
-    source = ./modules/cpu-governor/is-powersave.sh;
-    executable = true;
-  };
-
   # Tray visibility check
   # Hides tray module when no StatusNotifierItems are registered
   xdg.configFile."ironbar/modules/tray/has-tray-items.sh" = {

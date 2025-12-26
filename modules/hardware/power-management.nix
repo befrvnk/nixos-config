@@ -73,8 +73,15 @@ in
       # AMD Platform Profile
       # Controls power/performance balance at the platform level
       # Options: "low-power", "balanced", "performance"
-      PLATFORM_PROFILE_ON_AC = "balanced";
+      PLATFORM_PROFILE_ON_AC = "performance";
       PLATFORM_PROFILE_ON_BAT = "low-power";
+
+      # Energy Performance Preference (EPP)
+      # Hints to CPU about power vs performance tradeoff (requires amd_pstate=active)
+      # Works with scx_lavd --autopower which reads EPP to adjust scheduling
+      # Values: performance, balance_performance, balance_power, power
+      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
 
       # Runtime Power Management
       # Enables automatic power management for PCIe/USB devices

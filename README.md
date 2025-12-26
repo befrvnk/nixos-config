@@ -169,7 +169,6 @@ Key features in this setup:
 | `XF86AudioMute` | Toggle mute (with OSD) |
 | `XF86MonBrightnessUp/Down` | Adjust brightness (with OSD) |
 | `XF86AudioPlay/Prev/Next` | Media controls |
-| `Mod+Ctrl+P` | Toggle CPU governor (schedutil/powersave) |
 
 Volume and brightness keys show an on-screen display (OSD) overlay via SwayOSD.
 
@@ -397,12 +396,13 @@ This configuration separates concerns between system-level and user-level settin
 
 ### Power Management
 
-- **TLP** for automatic power optimization
-- **SCX scheduler (scx_lavd)** - BPF-based sched_ext scheduler with adaptive power management (autopower mode)
-- **Platform profiles** - Switch between power-saver/balanced/performance via Ironbar battery popup
-- **CPU governor toggle** - `Mod+Ctrl+P` switches between schedutil and powersave
-- Performance mode on AC, powersave on battery
-- CPU boost disabled on battery
+- **Unified power profiles** - One toggle controls platform profile, EPP, and CPU boost together
+  - 🔋 **Power Saver** (low-power): Max battery life, no boost
+  - ⚡ **Balanced**: Battery + allows compilation boosts
+  - 🚀 **Performance**: Full power on AC
+- **TLP** for automatic switching (Performance on AC, Power Saver on battery)
+- **SCX scheduler (scx_lavd)** with `--autopower` reads EPP and adjusts scheduling automatically
+- **Battery popup** in Ironbar for manual profile switching
 - Smart screen lock (won't lock during media playback)
 - Auto-suspend after 5 minutes idle
 
