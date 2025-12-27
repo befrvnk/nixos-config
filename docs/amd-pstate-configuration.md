@@ -99,26 +99,25 @@ boot.kernelParams = [
 
 This uses the `amd-pstate-epp` driver (Active mode) for hardware-controlled frequency scaling.
 
-### TLP Configuration
-TLP manages automatic power switching in `modules/hardware/power-management.nix`:
+### Power Profiles Daemon (PPD)
+Power management uses **power-profiles-daemon** (Framework/AMD recommended for modern AMD laptops):
 ```nix
-services.tlp.settings = {
-  # Platform profile (fans, thermals, power limits)
-  PLATFORM_PROFILE_ON_AC = "performance";
-  PLATFORM_PROFILE_ON_BAT = "low-power";
-
-  # Energy Performance Preference (CPU frequency hints)
-  # Works with scx_lavd --autopower which reads EPP
-  CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-  CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-
-  # CPU boost (turbo)
-  CPU_BOOST_ON_AC = 1;
-  CPU_BOOST_ON_BAT = 0;
-};
+# In modules/hardware/power-management.nix
+services.power-profiles-daemon.enable = true;
 ```
 
-This creates a unified power experience: on AC you get full performance, on battery you get maximum power savings. Use the battery popup to manually switch to "balanced" when you need compilation performance on battery.
+PPD properly coordinates platform profile and EPP via the `amd-pmf` driver, avoiding conflicts between different power settings.
+
+### Automatic AC/Battery Switching
+A system service (`power-profile-auto` in `modules/hardware/power-management.nix`) monitors power state via upower and switches profiles:
+- **On battery**: Switches to `power-saver` profile (low-power platform profile, EPP=power, WiFi power save ON)
+- **On AC**: Switches to `balanced` profile (balanced platform profile, EPP=balance_performance, WiFi power save OFF)
+
+Additional power settings controlled by udev rules:
+- **CPU boost**: Disabled on battery, enabled on AC (saves ~2-3W)
+- **USB autosuspend**: Enabled for all devices except HID (keyboard/mouse)
+
+Use the Ironbar battery popup to manually switch to "performance" when needed.
 
 ## Verification
 
@@ -142,9 +141,9 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Platform Profile                          │
-│         (TLP: power-saver / balanced / performance)          │
-│         Controls: fans, thermals, power limits               │
+│            power-profiles-daemon (PPD)                       │
+│         Profiles: power-saver / balanced / performance       │
+│         Controls: platform profile + EPP via amd-pmf         │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
@@ -241,40 +240,56 @@ This system uses **unified power profiles** that control multiple power settings
 1. Click the battery icon in Ironbar
 2. Select desired profile: low-power, balanced, or performance
 
-**What Each Toggle Sets:**
-- **Platform Profile**: Controls fans, thermals, and power limits
-- **EPP (Energy Performance Preference)**: Hints to CPU about power/performance tradeoff
-- **CPU Boost**: Enables/disables turbo boost
+**Via Command Line:**
+```bash
+# List available profiles
+powerprofilesctl list
+
+# Get current profile
+powerprofilesctl get
+
+# Set profile (no sudo needed)
+powerprofilesctl set balanced
+```
+
+**What PPD Controls:**
+- **Platform Profile**: Fans, thermals, and power limits (via amd-pmf)
+- **EPP (Energy Performance Preference)**: CPU power/performance hints
+- **GPU Performance States**: Integrated graphics power states
 
 ### Automatic Switching
 
-TLP automatically switches profiles based on power state:
+The `power-profile-auto` service automatically switches profiles based on power state:
 
 | Power State | Profile | Why |
 |-------------|---------|-----|
-| **AC** | Performance | Full power available |
+| **AC** | Balanced | Good performance with efficiency |
 | **Battery** | Power Saver | Maximize battery life |
 
-To use **Balanced** mode on battery (for compilation, dev work), manually switch via the battery popup.
+To use **Performance** mode (for compilation, heavy work), manually switch via the battery popup or `powerprofilesctl set performance`.
 
 ### Implementation Details
 
 **Files:**
-- `home-manager/ironbar/modules/battery/set-profile.sh` - Unified profile switcher
+- `modules/hardware/power-management.nix` - Main power management (PPD, auto-switching service, udev rules)
+- `home-manager/ironbar/modules/battery/set-profile.sh` - Profile switcher via `powerprofilesctl`
 - `home-manager/ironbar/modules/battery/get-profile.sh` - Current profile reader
-- `modules/hardware/power-management.nix` - TLP configuration with EPP settings
 
-**How `set-profile.sh` works:**
-```bash
-# Sets all three settings at once:
-1. Platform profile → /sys/firmware/acpi/platform_profile
-2. EPP → /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference
-3. CPU boost → /sys/devices/system/cpu/cpufreq/boost
-```
+**Power settings managed:**
+| Setting | Battery | AC | Method |
+|---------|---------|-----|--------|
+| PPD profile | power-saver | balanced | power-profile-auto service |
+| Platform profile | low-power | balanced | power-profile-auto (fallback) |
+| EPP | power | balance_performance | power-profile-auto (fallback) |
+| CPU boost | Off | On | udev rules |
+| WiFi power save | On | Off | power-profile-auto service |
+| USB autosuspend | Auto (except HID) | Auto (except HID) | udev rules |
+| Audio power save | Disabled | Disabled | modprobe config |
 
-### Legacy Governor Switching
+**Why audio power save is disabled:**
+Enabling `snd_hda_intel power_save=1` causes pipewire/wireplumber to repeatedly handle codec wake/sleep cycles, generating excessive DBUS traffic (~300 msg/sec vs ~70 msg/sec) and CPU overhead. The ~0.1-0.3W savings is offset by increased CPU usage.
 
-> **Note:** The old `switch-governor` command and `Mod+Ctrl+P` keybinding still exist but are **less relevant** with `amd_pstate=active`. In active mode, governors are just hints—EPP controls actual CPU behavior. Use the unified power profiles instead.
+No sudo required for profile switching - PPD uses D-Bus for authorization.
 
 ## SCX sched_ext Scheduler
 
@@ -367,7 +382,7 @@ If the system feels sluggish:
 
 ## Platform Profile Switching
 
-Modern AMD laptops support **ACPI platform profiles** for system-wide power/performance settings. This is separate from CPU governor and affects the entire system.
+Modern AMD laptops support **ACPI platform profiles** for system-wide power/performance settings. This is managed by **power-profiles-daemon (PPD)** which properly coordinates with the AMD platform.
 
 ### Available Profiles
 
@@ -379,51 +394,44 @@ Modern AMD laptops support **ACPI platform profiles** for system-wide power/perf
 
 ### How It Works
 
-Platform profiles are exposed via `/sys/firmware/acpi/platform_profile` and control:
-- Fan curves
-- Power limits (TDP)
+PPD coordinates multiple power settings via the `amd-pmf` driver:
+- Platform profile (fans, TDP, power limits)
+- Energy Performance Preference (EPP)
 - GPU performance states
-- Charging behavior
 
 ### Ironbar Integration
 
-The battery popup in Ironbar includes platform profile switching:
+The battery popup in Ironbar includes power profile switching:
 - Click the battery icon in the status bar
 - Select desired profile in the popup
-- Profile changes immediately (requires polkit authorization)
+- Profile changes immediately (no password needed - uses D-Bus)
 
 **Implementation files:**
 - `home-manager/ironbar/modules/battery/get-profile.sh` - Reads current profile
-- `home-manager/ironbar/modules/battery/set-profile.sh` - Sets profile via pkexec
+- `home-manager/ironbar/modules/battery/set-profile.sh` - Sets profile via powerprofilesctl
 
 ### Manual Switching
 
 ```bash
 # Check current profile
-cat /sys/firmware/acpi/platform_profile
+powerprofilesctl get
 
 # List available profiles
-cat /sys/firmware/acpi/platform_profile_choices
+powerprofilesctl list
 
-# Set profile (requires root)
-echo balanced | sudo tee /sys/firmware/acpi/platform_profile
+# Set profile (no sudo needed)
+powerprofilesctl set balanced
 ```
-
-### Polkit Authorization
-
-Setting platform profiles requires authorization. The set-profile script uses `pkexec` which prompts for the user's password (or fingerprint if configured).
 
 ### Relationship to Other Power Settings
 
 | Feature | Scope | What It Controls |
 |---------|-------|------------------|
-| **Platform Profile** | System-wide | Fan, TDP, GPU, power limits |
-| **CPU Governor** | CPU only | Frequency scaling behavior |
-| **AMD P-State** | CPU frequency | How quickly CPU scales |
-| **TLP** | Power policies | Per-AC/battery settings |
+| **PPD** | System-wide | Platform profile + EPP + GPU states |
+| **AMD P-State** | CPU frequency | Hardware-controlled scaling |
 | **SCX Scheduler** | Task scheduling | Which tasks run when/where |
 
-All these work together for optimal power management.
+PPD properly coordinates these settings via the amd-pmf driver, avoiding conflicts that could occur when managing them separately.
 
 ## References
 
@@ -435,13 +443,16 @@ All these work together for optimal power management.
 
 ## Related Files
 
-- `modules/hardware/power-management.nix` - Main power management configuration including AMD P-State mode and TLP settings
+- `modules/hardware/power-management.nix` - Main power management configuration:
+  - PPD (power-profiles-daemon) enablement
+  - `power-profile-auto` system service (AC/battery switching)
+  - Audio power save config (disabled)
+  - Kernel parameters (nmi_watchdog, ASPM, amd_pstate)
+  - udev rules (CPU boost, USB autosuspend)
 - `modules/services/scx.nix` - SCX sched_ext scheduler configuration
-- `home-manager/cpu-governor/` - Dynamic governor switching scripts
-- `home-manager/ironbar/modules/battery/` - Platform profile switching in status bar
-- `home-manager/niri/binds.nix` - Keybindings including `Mod+Ctrl+P` for governor toggle
+- `home-manager/ironbar/modules/battery/` - Power profile switching in status bar
 
 ---
 
-**Last Updated**: 2025-12-23
+**Last Updated**: 2025-12-27
 **Applies To**: Framework Laptop 13 (AMD Ryzen AI 300 Series), NixOS 25.05

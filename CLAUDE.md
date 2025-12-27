@@ -522,18 +522,22 @@ in
 
 Used in: `darkman/default.nix` (monitor-hotplug), `ironbar/modules/niri-overview-watcher/`
 
-### Platform Profile Access Pattern
-For reading/writing ACPI platform profiles:
+### Power Profile Access Pattern (PPD)
+Power profiles are managed via power-profiles-daemon (PPD):
 ```bash
-# Reading (no auth needed)
-cat /sys/firmware/acpi/platform_profile
+# List available profiles
+powerprofilesctl list
+
+# Get current profile
+powerprofilesctl get
 # Returns: power-saver, balanced, or performance
 
-# Writing (requires polkit auth)
-pkexec bash -c "echo 'balanced' > /sys/firmware/acpi/platform_profile"
+# Set profile (no sudo needed, uses D-Bus)
+powerprofilesctl set balanced
 ```
 
 Used in: `home-manager/ironbar/modules/battery/` for profile switching in status bar.
+AC/battery auto-switching handled by `home-manager/power-profile-auto.nix` service.
 
 ## Adding New Modules
 
@@ -662,10 +666,15 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Without it, `wpctl set-volume` commands appear to work but don't change actual volume
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
 
-### Platform Profile Polkit
-- Setting platform profiles requires polkit authorization via `pkexec`
-- The Ironbar battery popup handles this transparently
-- Scripts in `home-manager/ironbar/modules/battery/{get,set}-profile.sh`
+### Power Profiles Daemon (PPD)
+- Power profiles managed via `powerprofilesctl` (no sudo/polkit needed)
+- PPD properly coordinates platform profile and EPP via the amd-pmf driver
+- AC/battery auto-switching via `power-profile-auto` **system** service (in `modules/hardware/power-management.nix`)
+- Battery mode: power-saver profile, WiFi power save ON, CPU boost OFF
+- AC mode: balanced profile, WiFi power save OFF, CPU boost ON
+- USB autosuspend enabled (except HID devices) via udev rules
+- Audio power save disabled (causes DBUS spam with pipewire)
+- Ironbar battery popup uses `powerprofilesctl` for profile switching
 
 ### Niri Overview Popups
 - A dedicated watcher service closes Ironbar popups when exiting overview mode

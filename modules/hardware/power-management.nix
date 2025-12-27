@@ -1,28 +1,98 @@
 {
   lib,
   hostConfig,
+  pkgs,
   ...
 }:
 let
   isAmd = hostConfig.cpuVendor == "amd";
+
+  # Script for automatic power profile switching based on AC/battery state
+  powerProfileAutoScript = pkgs.writeShellScript "power-profile-auto" ''
+    export PATH="${pkgs.power-profiles-daemon}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.iw}/bin:$PATH"
+
+    set_power_saver() {
+      powerprofilesctl set power-saver
+      # PPD may fail to apply settings on some hardware, set directly as fallback
+      echo "low-power" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
+      for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+        echo "power" > "$epp" 2>/dev/null || true
+      done
+      # Enable WiFi power save on battery
+      iw dev wlp192s0 set power_save on 2>/dev/null || true
+    }
+
+    set_balanced() {
+      powerprofilesctl set balanced
+      # PPD may fail to apply settings on some hardware, set directly as fallback
+      echo "balanced" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
+      for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+        echo "balance_performance" > "$epp" 2>/dev/null || true
+      done
+      # Disable WiFi power save on AC for better performance
+      iw dev wlp192s0 set power_save off 2>/dev/null || true
+    }
+
+    # Set initial state based on current power source
+    if [ "$(cat /sys/class/power_supply/AC*/online 2>/dev/null)" = "1" ]; then
+      set_balanced
+    else
+      set_power_saver
+    fi
+
+    # Monitor upower for AC/battery changes
+    ${pkgs.upower}/bin/upower --monitor-detail | while read -r line; do
+      if echo "$line" | grep -q "on-battery"; then
+        if echo "$line" | grep -q "yes"; then
+          set_power_saver
+        else
+          set_balanced
+        fi
+      fi
+    done
+  '';
 in
 {
   # Power management optimizations based on PowerTOP recommendations
   # These settings help extend battery life on laptops
 
-  # Disable power-profiles-daemon (conflicts with TLP)
-  # power-profiles-daemon is often enabled by default in desktop environments
-  # We use TLP instead for more comprehensive power management
-  services.power-profiles-daemon.enable = false;
+  # Enable power-profiles-daemon (Framework/AMD recommended for modern AMD laptops)
+  # PPD coordinates platform profile and EPP via the amd-pmf driver
+  # Note: PPD may fail on some hardware, power-profile-auto service provides fallback
+  services.power-profiles-daemon.enable = true;
 
-  # NOTE: cpuFreqGovernor is managed by TLP (see below)
-  # TLP sets different governors based on AC/battery state
+  # Automatic power profile switching based on AC/battery state
+  # Runs as system service (needs root for sysfs writes)
+  systemd.services.power-profile-auto = {
+    description = "Automatic power profile switching on AC/battery";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "power-profiles-daemon.service" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${powerProfileAutoScript}";
+      Restart = "on-failure";
+      RestartSec = "5";
+    };
+  };
+
+  # Audio power saving DISABLED
+  # Enabling power_save causes pipewire/wireplumber to repeatedly handle codec wake/sleep
+  # cycles, generating excessive DBUS traffic and CPU overhead. The ~0.1-0.3W savings
+  # is offset by the increased CPU usage from constant state transitions.
+  boot.extraModprobeConfig = ''
+    options snd_hda_intel power_save=0
+  '';
 
   # Kernel parameters for power optimization
   boot.kernelParams = [
     # Disable NMI watchdog (saves ~1W)
     # NMI watchdog is used for detecting hard lockups, but not needed for normal use
     "nmi_watchdog=0"
+    # PCIe ASPM: Use powersupersave for maximum power savings
+    # Previously caused MT7925 WiFi boot failures with TLP, but PPD doesn't have
+    # aggressive early udev rules. Testing if this works with PPD.
+    # If WiFi fails to boot, change to "performance". See: docs/mt7925-wifi-boot-failure.md
+    "pcie_aspm.policy=powersupersave"
   ]
   # AMD-specific: Use P-State active (EPP) mode for hardware-controlled frequency scaling
   # Active mode: hardware autonomously controls frequency based on Energy Performance Preference (EPP)
@@ -43,92 +113,19 @@ in
     "vm.laptop_mode" = 5;
   };
 
-  # Runtime power management is handled by TLP (see below)
-  # Previously, we had aggressive udev rules here that enabled power management
-  # for all PCI/USB devices immediately on boot. This caused race conditions where
-  # devices (especially the mt7925e WiFi card) would be put into low-power states
-  # before their drivers fully initialized, leading to "driver own failed" errors.
-  # TLP's RUNTIME_PM_ON_AC/BAT settings handle this more safely by applying power
-  # management after the system has fully booted.
+  # CPU boost control based on power source
+  # PPD doesn't control CPU boost, so we use udev rules
+  # Disabling boost on battery saves ~2-3W
+  services.udev.extraRules = ''
+    # Disable CPU boost when on battery
+    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", RUN+="${pkgs.bash}/bin/bash -c 'echo 0 > /sys/devices/system/cpu/cpufreq/boost'"
+    # Enable CPU boost when on AC
+    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", RUN+="${pkgs.bash}/bin/bash -c 'echo 1 > /sys/devices/system/cpu/cpufreq/boost'"
 
-  # TLP - Advanced power management with AC/battery profiles
-  # Automatically switches between performance and power-saving modes
-  services.tlp = {
-    enable = true;
-    settings = {
-      # CPU frequency scaling governor
-      # schedutil: Scheduler-driven frequency scaling for optimal responsiveness and efficiency
-      # Works well with both AMD P-State and Intel P-State drivers
-      # Used on both AC and battery since powersave is too sluggish for typical tasks
-      # (video playback, code compilation) while schedutil is still power-efficient
-      CPU_SCALING_GOVERNOR_ON_AC = "schedutil";
-      CPU_SCALING_GOVERNOR_ON_BAT = "schedutil";
-
-      # CPU boost (turbo)
-      # AC: Enable turbo for better performance
-      # Battery: Disable turbo to save power (~2-3W savings)
-      CPU_BOOST_ON_AC = 1;
-      CPU_BOOST_ON_BAT = 0;
-
-      # AMD Platform Profile
-      # Controls power/performance balance at the platform level
-      # Options: "low-power", "balanced", "performance"
-      PLATFORM_PROFILE_ON_AC = "performance";
-      PLATFORM_PROFILE_ON_BAT = "low-power";
-
-      # Energy Performance Preference (EPP)
-      # Hints to CPU about power vs performance tradeoff (requires amd_pstate=active)
-      # Works with scx_lavd --autopower which reads EPP to adjust scheduling
-      # Values: performance, balance_performance, balance_power, power
-      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-
-      # Runtime Power Management
-      # Enables automatic power management for PCIe/USB devices
-      RUNTIME_PM_ON_AC = "auto";
-      RUNTIME_PM_ON_BAT = "auto";
-
-      # PCIe Active State Power Management (ASPM)
-      # Allows PCIe devices to enter low-power states
-      # "default" uses system defaults, which are usually conservative
-      PCIE_ASPM_ON_AC = "default";
-      PCIE_ASPM_ON_BAT = "powersupersave";
-
-      # Wi-Fi power saving
-      # Battery: Enable power management
-      # AC: Disable for better performance/latency
-      WIFI_PWR_ON_AC = "off";
-      WIFI_PWR_ON_BAT = "on";
-
-      # USB autosuspend
-      # Automatically suspend USB devices when idle
-      USB_AUTOSUSPEND = 1;
-
-      # Exclude input devices from USB autosuspend
-      # This ensures keyboards and mice stay responsive and can wake the system
-      # Device classes: usbhid = USB HID devices (keyboards, mice)
-      USB_EXCLUDE_BTUSB = 1; # Keep bluetooth adapters active
-      USB_EXCLUDE_PHONE = 1; # Keep phones/tablets active
-      USB_EXCLUDE_WWAN = 1; # Keep WWAN modems active
-
-      # Exclude USB HID devices (mice, keyboards) from autosuspend
-      # This is critical to prevent input lag and recognition delays
-      USB_DENYLIST = "usbhid";
-
-      # NVMe power management
-      # ALPM: Aggressive Link Power Management
-      # Helps NVMe SSDs enter deeper power states
-      AHCI_RUNTIME_PM_ON_AC = "auto";
-      AHCI_RUNTIME_PM_ON_BAT = "auto";
-
-      # Audio power management
-      # Disable audio power saving to prevent:
-      # 1. High pipewire/wireplumber CPU usage (communication issues with audio processing)
-      # 2. Incorrect volume reporting (wpctl returns 1.0 when suspended instead of actual volume)
-      # 3. Volume changes not being visible in UI until audio is played
-      # Setting to 0 keeps audio codec always active, preventing these issues
-      SOUND_POWER_SAVE_ON_AC = 0;
-      SOUND_POWER_SAVE_ON_BAT = 0;
-    };
-  };
+    # USB autosuspend - enable for all devices except HID (keyboard/mouse)
+    # This saves power by putting idle USB devices into suspend mode
+    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
+    # Keep HID devices (class 03) always on to prevent input lag
+    ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
+  '';
 }

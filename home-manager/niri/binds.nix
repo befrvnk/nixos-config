@@ -23,13 +23,6 @@
       "suspend"
     ];
 
-    # CPU Governor toggle (battery only)
-    # Mod+Ctrl+P = Toggle between schedutil and powersave
-    "Mod+Ctrl+P".action.spawn = [
-      "switch-governor"
-      "toggle"
-    ];
-
     # Navigation
     "Mod+Left".action.focus-column-left = { };
     "Mod+Down".action.focus-window-down = { };

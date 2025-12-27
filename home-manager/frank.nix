@@ -7,7 +7,6 @@
     ./battery-notifications
     ./btop.nix
     ./claude-code
-    ./cpu-governor
     ./darkman
     ./direnv.nix
     ./dunst.nix
