@@ -178,6 +178,47 @@
     },
     {
       "type": "custom",
+      "class": "brightness",
+      "bar": [
+        {
+          "type": "button",
+          "class": "flat",
+          "label": "{{2000:~/.config/ironbar/modules/brightness/brightness-status.sh}}",
+          "on_click": "popup:toggle"
+        }
+      ],
+      "popup": [
+        {
+          "type": "box",
+          "orientation": "vertical",
+          "widgets": [
+            {
+              "type": "label",
+              "class": "popup-title",
+              "label": "Display Brightness"
+            },
+            {
+              "type": "label",
+              "class": "brightness-details",
+              "label": "{{2000:~/.config/ironbar/modules/brightness/brightness-details.sh}}"
+            },
+            {
+              "type": "label",
+              "class": "popup-separator",
+              "label": "─────────────────"
+            },
+            {
+              "type": "button",
+              "class": "auto-brightness-toggle",
+              "label": "{{2000:~/.config/ironbar/modules/brightness/get-auto-status.sh}}",
+              "on_click": "!~/.config/ironbar/modules/brightness/toggle-auto.sh"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "custom",
       "class": "battery",
       "bar": [
         {

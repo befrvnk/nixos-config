@@ -149,6 +149,25 @@ in
     executable = true;
   };
 
+  # Brightness module
+  # Shows display brightness with auto-brightness indicator
+  xdg.configFile."ironbar/modules/brightness/brightness-status.sh" = {
+    source = ./modules/brightness/brightness-status.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/brightness/brightness-details.sh" = {
+    source = ./modules/brightness/brightness-details.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/brightness/get-auto-status.sh" = {
+    source = ./modules/brightness/get-auto-status.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/brightness/toggle-auto.sh" = {
+    source = ./modules/brightness/toggle-auto.sh;
+    executable = true;
+  };
+
   # Systemd service for ironbar with niri overview-only mode
   # Note: This replaces the default ironbar.service since we manage ironbar startup ourselves
   systemd.user.services.ironbar = {

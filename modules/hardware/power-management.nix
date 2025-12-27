@@ -132,5 +132,8 @@ in
     ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
     # Keep HID devices (class 03) always on to prevent input lag
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
+
+    # Allow users in video group to read IIO ambient light sensor (for auto-brightness)
+    SUBSYSTEM=="iio", KERNEL=="iio:device*", ATTR{name}=="als", MODE="0664", GROUP="video"
   '';
 }

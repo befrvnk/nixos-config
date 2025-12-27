@@ -95,6 +95,23 @@ popover > contents {
     padding: 3px 9px;
 }
 
+/* Constrain tray icon size to prevent oversized icons from expanding bar height */
+.tray {
+    padding: 0 4px;
+}
+
+.tray .item {
+    padding: 0;
+}
+
+.tray image {
+    -gtk-icon-size: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    min-width: 20px;
+    max-width: 20px;
+}
+
 /* Flat button style - looks like a label but is clickable */
 button.flat {
     background-color: transparent;
@@ -394,4 +411,51 @@ button.flat:hover {
     font-family: "JetBrainsMono Nerd Font", monospace;
     white-space: pre-wrap;
     line-height: 1.4;
+}
+
+/* Brightness module styling */
+.brightness {
+    font-weight: normal;
+}
+
+/* Brightness popup styling */
+.popup-brightness {
+    background-color: @base01;
+    padding: 15px;
+    border-radius: 16px;
+}
+
+.popup-brightness label {
+    color: @base05;
+    padding: 5px 0;
+}
+
+.popup-brightness .popup-title {
+    font-weight: bold;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+.popup-brightness .popup-separator {
+    color: @base03;
+    margin: 8px 0;
+}
+
+.popup-brightness .brightness-details {
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+.popup-brightness button.auto-brightness-toggle {
+    background-color: @base02;
+    color: @base05;
+    padding: 8px 16px;
+    margin-top: 8px;
+    border-radius: 8px;
+    border: none;
+}
+
+.popup-brightness button.auto-brightness-toggle:hover {
+    background-color: @base03;
 }
