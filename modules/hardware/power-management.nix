@@ -20,6 +20,9 @@ let
       done
       # Enable WiFi power save on battery
       iw dev wlp192s0 set power_save on 2>/dev/null || true
+      # Enable ABM (Adaptive Backlight Management) for display power savings
+      # Level 3 = maximum power savings (reduces backlight, increases contrast)
+      echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
     }
 
     set_balanced() {
@@ -31,6 +34,8 @@ let
       done
       # Disable WiFi power save on AC for better performance
       iw dev wlp192s0 set power_save off 2>/dev/null || true
+      # Disable ABM on AC for accurate color reproduction
+      echo 0 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
     }
 
     # Set initial state based on current power source
