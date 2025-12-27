@@ -4,6 +4,12 @@
   boot.initrd.systemd.enable = true;
   security.tpm2.enable = true;
 
+  # ZRAM compressed swap for memory pressure situations
+  zramSwap = {
+    enable = true;
+    algorithm = "zstd";
+  };
+
   # Note: Power profile switching is now handled by power-profiles-daemon
   # which uses D-Bus and polkit for authorization, no sudo config needed
 
