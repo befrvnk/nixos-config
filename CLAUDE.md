@@ -717,6 +717,20 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Service managed by systemd: `systemctl status scx`
 - Configuration in `modules/services/scx.nix`
 
+### CachyOS-Style Optimizations
+Sysctl and kernel parameters based on [CachyOS Settings](https://github.com/CachyOS/CachyOS-Settings):
+- **vm.swappiness = 180**: High value optimized for ZRAM (prefers compressed swap over dropping file cache)
+- **vm.vfs_cache_pressure = 50**: Preserves directory/inode cache longer for better file performance
+- **vm.dirty_bytes/dirty_background_bytes**: Fixed 256MB/64MB thresholds for predictable I/O
+- **vm.page-cluster = 0**: Single-page swap reads optimal for ZRAM/SSD
+- **net.core.netdev_max_backlog = 4096**: Larger network queue prevents packet drops
+- **fs.file-max = 2097152**: High file handle limit for browsers/dev servers
+- **kernel.kptr_restrict = 2**: Security hardening (hides kernel pointers)
+- **rcutree.enable_rcu_lazy=1**: 5-10% power savings at idle via batched RCU callbacks
+- **THP defer+madvise**: Reduces latency spikes from memory compaction
+- **I/O scheduler**: `none` for NVMe (optimal), `mq-deadline` for SATA SSDs
+- Sysctl settings in `modules/system/core.nix`, kernel params in `modules/hardware/power-management.nix`
+
 ### Vicinae Configuration (v0.17+)
 - Config structure uses `theme.light` and `theme.dark` objects, NOT `theme.name`
 - Use `launcher_window` for window settings, NOT `window`

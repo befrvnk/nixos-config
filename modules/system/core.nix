@@ -10,6 +10,62 @@
     algorithm = "zstd";
   };
 
+  # CachyOS-style performance optimizations
+  # Reference: https://github.com/CachyOS/CachyOS-Settings/blob/master/usr/lib/sysctl.d/70-cachyos-settings.conf
+  boot.kernel.sysctl = {
+    # === Memory Management ===
+
+    # Prefer ZRAM over dropping file cache
+    # With ZRAM, higher values (100-200) recommended since swap is fast (RAM speed)
+    # 180 is aggressive but safe - compresses inactive pages, preserves file cache
+    "vm.swappiness" = 180;
+
+    # Preserve VFS (directory/inode) cache longer
+    # Default 100 reclaims aggressively; 50 keeps file metadata in memory
+    # Improves performance for IDEs, file managers, build systems
+    "vm.vfs_cache_pressure" = 50;
+
+    # Fixed thresholds for dirty page writeback (vs percentage-based defaults)
+    # More predictable write behavior, prevents sudden I/O bursts
+    "vm.dirty_bytes" = 268435456; # 256MB - process flushes at this threshold
+    "vm.dirty_background_bytes" = 67108864; # 64MB - background flush starts here
+
+    # Read single page from swap (2^0 = 1 page)
+    # Default 3 (8 pages) assumes sequential access benefits
+    # For ZRAM/SSD, reading exactly what's needed is faster
+    "vm.page-cluster" = 0;
+
+    # === Network ===
+
+    # Larger network packet queue (default: 1000)
+    # Prevents packet drops during traffic bursts (WiFi 6E, high-speed transfers)
+    "net.core.netdev_max_backlog" = 4096;
+
+    # === File System ===
+
+    # Maximum file handles system-wide (default: ~100k)
+    # Prevents "too many open files" for browsers, dev servers, containers
+    "fs.file-max" = 2097152;
+
+    # === Security ===
+
+    # Hide kernel pointers from /proc/kallsyms (security hardening)
+    # Makes kernel exploits harder; may affect debugging tools
+    "kernel.kptr_restrict" = 2;
+
+    # Suppress kernel console messages (only critical errors)
+    # Messages still go to dmesg/journal
+    "kernel.printk" = "3 3 3 3";
+  };
+
+  # Transparent Hugepages optimization
+  # defer+madvise: apps opt-in via madvise(), defrag is background (non-blocking)
+  # Reduces latency spikes from memory compaction
+  systemd.tmpfiles.rules = [
+    "w /sys/kernel/mm/transparent_hugepage/defrag - - - - defer+madvise"
+    "w /sys/kernel/mm/transparent_hugepage/khugepaged/max_ptes_none - - - - 0"
+  ];
+
   # Note: Power profile switching is now handled by power-profiles-daemon
   # which uses D-Bus and polkit for authorization, no sudo config needed
 

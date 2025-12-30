@@ -98,6 +98,9 @@ in
     # aggressive early udev rules. Testing if this works with PPD.
     # If WiFi fails to boot, change to "performance". See: docs/mt7925-wifi-boot-failure.md
     "pcie_aspm.policy=powersupersave"
+    # RCU Lazy: batch RCU callbacks during idle for 5-10% power savings
+    # Allows deeper CPU sleep states at idle; no performance downside
+    "rcutree.enable_rcu_lazy=1"
   ]
   # AMD-specific: Use P-State active (EPP) mode for hardware-controlled frequency scaling
   # Active mode: hardware autonomously controls frequency based on Energy Performance Preference (EPP)
@@ -135,5 +138,11 @@ in
 
     # Allow users in video group to read IIO ambient light sensor (for auto-brightness)
     SUBSYSTEM=="iio", KERNEL=="iio:device*", ATTR{name}=="als", MODE="0664", GROUP="video"
+
+    # I/O scheduler optimization
+    # NVMe: 'none' is optimal (no scheduling overhead, direct submission)
+    # SATA SSD: 'mq-deadline' provides fair latency
+    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
+    ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
   '';
 }

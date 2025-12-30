@@ -405,6 +405,7 @@ This configuration separates concerns between system-level and user-level settin
   - 🚀 **Performance**: Full power on AC
 - **Power-profiles-daemon (PPD)** with automatic switching (Balanced on AC, Power Saver on battery)
 - **ZRAM** compressed swap with zstd for memory pressure without SSD wear
+- **CachyOS-style sysctl tuning** - Optimized VM settings (swappiness=180 for ZRAM, page-cluster=0), network buffers, THP defer+madvise, RCU Lazy (5-10% idle power savings)
 - **ABM (Adaptive Backlight Management)** on battery for display power savings (disabled on AC for accurate colors)
 - **Auto-brightness** via ambient light sensor with hysteresis (toggle with `Mod+Shift+B` for photo editing)
 - **Bluetooth power savings** - Off on boot (~0.5W savings), auto-sleep after 5 min idle when not connected
