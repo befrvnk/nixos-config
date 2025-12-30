@@ -31,7 +31,6 @@
     ./swaylock.nix
     ./udiskie.nix
     ./vicinae.nix
-    ./auto-brightness
     ./zed.nix
     ./zen-browser
     ./zsh

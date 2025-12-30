@@ -6,6 +6,7 @@
 }:
 let
   isAmd = hostConfig.cpuVendor == "amd";
+  abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";
 
   # Script for automatic power profile switching based on AC/battery state
   powerProfileAutoScript = pkgs.writeShellScript "power-profile-auto" ''
@@ -80,6 +81,18 @@ in
     };
   };
 
+  # Make ABM sysfs writable by users (for toggle-abm and ironbar brightness popup)
+  systemd.services.abm-permissions = {
+    description = "Set ABM sysfs permissions for user control";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.coreutils}/bin/chmod 0666 ${abmPath}";
+      RemainAfterExit = true;
+    };
+  };
+
   # Audio power saving DISABLED
   # Enabling power_save causes pipewire/wireplumber to repeatedly handle codec wake/sleep
   # cycles, generating excessive DBUS traffic and CPU overhead. The ~0.1-0.3W savings
@@ -135,9 +148,6 @@ in
     ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
     # Keep HID devices (class 03) always on to prevent input lag
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
-
-    # Allow users in video group to read IIO ambient light sensor (for auto-brightness)
-    SUBSYSTEM=="iio", KERNEL=="iio:device*", ATTR{name}=="als", MODE="0664", GROUP="video"
 
     # I/O scheduler optimization
     # NVMe: 'none' is optimal (no scheduling overhead, direct submission)

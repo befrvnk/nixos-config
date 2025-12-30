@@ -150,7 +150,7 @@ in
   };
 
   # Brightness module
-  # Shows display brightness with auto-brightness indicator
+  # Shows display brightness and ABM (Adaptive Backlight Management) controls
   xdg.configFile."ironbar/modules/brightness/brightness-status.sh" = {
     source = ./modules/brightness/brightness-status.sh;
     executable = true;

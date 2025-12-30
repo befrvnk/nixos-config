@@ -168,8 +168,8 @@
     # Toggle internal display (eDP-1) on/off for thermal management
     "Mod+Shift+D".action.spawn = [ "toggle-internal-display" ];
 
-    # Toggle auto-brightness (for photo editing with accurate colors)
-    "Mod+Shift+B".action.spawn = [ "toggle-auto-brightness" ];
+    # Toggle ABM (for photo editing with accurate colors)
+    "Mod+Shift+B".action.spawn = [ "toggle-abm" ];
 
     # Function keys (volume uses volume-ctl for event-driven updates to ironbar)
     # volume-ctl calls swayosd-client AND updates the cache file for ironbar

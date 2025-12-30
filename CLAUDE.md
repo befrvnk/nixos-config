@@ -550,14 +550,8 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 ```
 - Level 0: Disabled (accurate colors, for photo editing)
 - Level 3: Aggressive (used on battery for power savings)
-- Toggled via `Mod+Shift+B` which also disables auto-brightness
-
-### Auto-Brightness
-The `auto-brightness` user service reads the IIO ambient light sensor:
-- Sensor: `/sys/bus/iio/devices/iio:device0/in_illuminance_raw`
-- Service: `home-manager/auto-brightness/default.nix`
-- Toggle: `toggle-auto-brightness` command (bound to `Mod+Shift+B`)
-- Uses hysteresis to prevent flickering on small lux changes
+- Toggle: `Mod+Shift+B` runs `toggle-abm` command
+- Ironbar brightness popup also has ABM toggle button
 
 ## Adding New Modules
 
@@ -697,12 +691,12 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Ironbar battery popup uses `powerprofilesctl` for profile switching
 - ZRAM with zstd compression enabled for memory pressure (see `modules/system/core.nix`)
 
-### Auto-Brightness and ABM
-- Auto-brightness reads IIO ambient light sensor (`/sys/bus/iio/devices/iio:device0/in_illuminance_raw`)
-- ABM (Adaptive Backlight Management) reduces power by trading color accuracy for brightness
-- `Mod+Shift+B` toggles BOTH auto-brightness and ABM for photo editing mode
-- When disabled: service stops, ABM set to 0 (accurate colors)
-- When re-enabled: service starts, ABM controlled by power-profile-auto based on AC/battery
+### ABM (Adaptive Backlight Management)
+- ABM reduces power by trading color accuracy for brightness
+- `Mod+Shift+B` toggles ABM via `toggle-abm` command
+- When disabled: ABM set to 0 (accurate colors for photo editing)
+- When enabled: ABM set to level 3 (power savings)
+- AC/battery auto-switching handled by `power-profile-auto` system service
 
 ### Niri Overview Popups
 - A dedicated watcher service closes Ironbar popups when exiting overview mode

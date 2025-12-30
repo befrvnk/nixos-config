@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Get auto-brightness status for ironbar button label
+# Get ABM status for ironbar button label
 
-SERVICE="auto-brightness.service"
+ABM_PATH="/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings"
 
-if systemctl --user is-active "$SERVICE" &>/dev/null; then
-    echo "󰁯 Auto: On"
+if [[ -f "$ABM_PATH" ]]; then
+    ABM_LEVEL=$(cat "$ABM_PATH" 2>/dev/null || echo "0")
+    if [[ "$ABM_LEVEL" -eq 0 ]]; then
+        echo "󰹏 ABM: Off"
+    else
+        echo "󰹏 ABM: On"
+    fi
 else
-    echo "󰁯 Auto: Off"
+    echo "󰹏 ABM: N/A"
 fi
