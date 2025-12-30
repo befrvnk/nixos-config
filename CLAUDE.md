@@ -537,7 +537,27 @@ powerprofilesctl set balanced
 ```
 
 Used in: `home-manager/ironbar/modules/battery/` for profile switching in status bar.
-AC/battery auto-switching handled by `home-manager/power-profile-auto.nix` service.
+AC/battery auto-switching handled by `modules/hardware/power-management.nix` system service.
+
+### ABM (Adaptive Backlight Management)
+AMD panel power savings via sysfs:
+```bash
+# Read current ABM level (0-4, higher = more savings)
+cat /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
+
+# Set ABM level (needs root, done by power-profile-auto)
+echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
+```
+- Level 0: Disabled (accurate colors, for photo editing)
+- Level 3: Aggressive (used on battery for power savings)
+- Toggled via `Mod+Shift+B` which also disables auto-brightness
+
+### Auto-Brightness
+The `auto-brightness` user service reads the IIO ambient light sensor:
+- Sensor: `/sys/bus/iio/devices/iio:device0/in_illuminance_raw`
+- Service: `home-manager/auto-brightness/default.nix`
+- Toggle: `toggle-auto-brightness` command (bound to `Mod+Shift+B`)
+- Uses hysteresis to prevent flickering on small lux changes
 
 ## Adding New Modules
 
@@ -670,11 +690,19 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Power profiles managed via `powerprofilesctl` (no sudo/polkit needed)
 - PPD properly coordinates platform profile and EPP via the amd-pmf driver
 - AC/battery auto-switching via `power-profile-auto` **system** service (in `modules/hardware/power-management.nix`)
-- Battery mode: power-saver profile, WiFi power save ON, CPU boost OFF
-- AC mode: balanced profile, WiFi power save OFF, CPU boost ON
+- Battery mode: power-saver profile, WiFi power save ON, CPU boost OFF, ABM level 3
+- AC mode: balanced profile, WiFi power save OFF, CPU boost ON, ABM disabled
 - USB autosuspend enabled (except HID devices) via udev rules
 - Audio power save disabled (causes DBUS spam with pipewire)
 - Ironbar battery popup uses `powerprofilesctl` for profile switching
+- ZRAM with zstd compression enabled for memory pressure (see `modules/system/core.nix`)
+
+### Auto-Brightness and ABM
+- Auto-brightness reads IIO ambient light sensor (`/sys/bus/iio/devices/iio:device0/in_illuminance_raw`)
+- ABM (Adaptive Backlight Management) reduces power by trading color accuracy for brightness
+- `Mod+Shift+B` toggles BOTH auto-brightness and ABM for photo editing mode
+- When disabled: service stops, ABM set to 0 (accurate colors)
+- When re-enabled: service starts, ABM controlled by power-profile-auto based on AC/battery
 
 ### Niri Overview Popups
 - A dedicated watcher service closes Ironbar popups when exiting overview mode

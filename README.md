@@ -104,6 +104,7 @@ Key features in this setup:
 - **WiFi status** - Connection indicator
 - **Bluetooth** - Connection status
 - **Volume** - Current level (click to adjust)
+- **Brightness** - Current level with auto-brightness indicator; popup shows ambient lux and toggle
 - **Storage** - Mounted removable devices (USB/SD cards)
 - **Battery** - Percentage, charging state, and power profile switching
 
@@ -169,6 +170,7 @@ Key features in this setup:
 | `XF86AudioRaiseVolume/LowerVolume` | Adjust volume (with OSD) |
 | `XF86AudioMute` | Toggle mute (with OSD) |
 | `XF86MonBrightnessUp/Down` | Adjust brightness (with OSD) |
+| `Mod+Shift+B` | Toggle auto-brightness and ABM (for photo editing) |
 | `XF86AudioPlay/Prev/Next` | Media controls |
 
 Volume and brightness keys show an on-screen display (OSD) overlay via SwayOSD.
@@ -345,7 +347,7 @@ This configuration separates concerns between system-level and user-level settin
 - Hardware drivers and firmware
 - System services (greetd, darkman, pipewire, bluetooth)
 - Network management
-- Power management (TLP)
+- Power management (power-profiles-daemon, ZRAM)
 - Security (PAM, polkit, TPM)
 - System users and groups
 
@@ -401,7 +403,11 @@ This configuration separates concerns between system-level and user-level settin
   - 🔋 **Power Saver** (low-power): Max battery life, no boost
   - ⚡ **Balanced**: Battery + allows compilation boosts
   - 🚀 **Performance**: Full power on AC
-- **TLP** for automatic switching (Performance on AC, Power Saver on battery)
+- **Power-profiles-daemon (PPD)** with automatic switching (Balanced on AC, Power Saver on battery)
+- **ZRAM** compressed swap with zstd for memory pressure without SSD wear
+- **ABM (Adaptive Backlight Management)** on battery for display power savings (disabled on AC for accurate colors)
+- **Auto-brightness** via ambient light sensor with hysteresis (toggle with `Mod+Shift+B` for photo editing)
+- **Bluetooth power savings** - Off on boot (~0.5W savings), auto-sleep after 5 min idle when not connected
 - **SCX scheduler (scx_lavd)** with `--autopower` reads EPP and adjusts scheduling automatically
 - **Battery popup** in Ironbar for manual profile switching
 - Smart screen lock (won't lock during media playback)
