@@ -92,7 +92,7 @@
   "end": [
     {
       "type": "tray",
-      "icon_size": 32,
+      "icon_size": 16,
       "show_if": "poll:2000:~/.config/ironbar/modules/tray/has-tray-items.sh"
     },
     {

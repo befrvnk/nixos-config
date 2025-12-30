@@ -95,21 +95,17 @@ popover > contents {
     padding: 3px 9px;
 }
 
-/* Constrain tray icon size to prevent oversized icons from expanding bar height */
+/* Tray module - icon size controlled by config icon_size: 20 */
 .tray {
-    padding: 0 4px;
+    padding: 3px 8px;
 }
 
 .tray .item {
-    padding: 0;
-}
-
-.tray image {
-    -gtk-icon-size: 20px;
-    min-height: 20px;
-    max-height: 20px;
-    min-width: 20px;
-    max-width: 20px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0 2px;
+    border-radius: 0;
 }
 
 /* Flat button style - looks like a label but is clickable */
