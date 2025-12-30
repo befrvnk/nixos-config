@@ -24,8 +24,10 @@ while true; do
     # Music is playing - acquire inhibitor lock if we don't have one
     if [ -z "$inhibitor_pid" ] || ! kill -0 "$inhibitor_pid" 2>/dev/null; then
       # Start systemd-inhibit in the background and save its PID
+      # Use --what=sleep to only block suspend, not idle detection
+      # This allows screen lock/off timeouts while preventing suspend
       systemd-inhibit \
-        --what=idle \
+        --what=sleep \
         --who="Audio Playback" \
         --why="Music is playing" \
         --mode=block \
