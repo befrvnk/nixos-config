@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
-# Get current power profile from power-profiles-daemon
-# Maps PPD profile names back to our UI names
+# Get current power profile from sysfs
+# PPD's state is unreliable on kernel 6.17 + amd_pstate EPP mode,
+# so we read directly from platform_profile
 
-PROFILE=$(powerprofilesctl get)
-
-case "$PROFILE" in
-    "power-saver")
-        echo "low-power"
-        ;;
-    "balanced")
-        echo "balanced"
-        ;;
-    "performance")
-        echo "performance"
-        ;;
-    *)
-        echo "$PROFILE"
-        ;;
-esac
+cat /sys/firmware/acpi/platform_profile

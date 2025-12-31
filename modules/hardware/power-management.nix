@@ -9,16 +9,17 @@ let
   abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";
 
   # Script for automatic power profile switching based on AC/battery state
+  # Uses direct sysfs writes instead of PPD (PPD's boost control broken on kernel 6.17)
   powerProfileAutoScript = pkgs.writeShellScript "power-profile-auto" ''
-    export PATH="${pkgs.power-profiles-daemon}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.iw}/bin:$PATH"
+    export PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.iw}/bin:$PATH"
 
     set_power_saver() {
-      powerprofilesctl set power-saver
-      # PPD may fail to apply settings on some hardware, set directly as fallback
       echo "low-power" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
       for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
         echo "power" > "$epp" 2>/dev/null || true
       done
+      # Disable CPU boost on battery (saves ~2-3W)
+      echo 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
       # Enable WiFi power save on battery
       iw dev wlp192s0 set power_save on 2>/dev/null || true
       # Enable ABM (Adaptive Backlight Management) for display power savings
@@ -27,12 +28,12 @@ let
     }
 
     set_balanced() {
-      powerprofilesctl set balanced
-      # PPD may fail to apply settings on some hardware, set directly as fallback
       echo "balanced" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
       for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
         echo "balance_performance" > "$epp" 2>/dev/null || true
       done
+      # Enable CPU boost on AC for better performance
+      echo 1 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
       # Disable WiFi power save on AC for better performance
       iw dev wlp192s0 set power_save off 2>/dev/null || true
       # Disable ABM on AC for accurate color reproduction
@@ -93,6 +94,20 @@ in
     };
   };
 
+  # Make platform_profile writable by users (for ironbar power profile switching)
+  # PPD's boost control is broken on kernel 6.17 + amd_pstate EPP mode, so we
+  # bypass it and write directly to platform_profile from user scripts
+  systemd.services.platform-profile-permissions = {
+    description = "Set platform_profile sysfs permissions for user control";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.coreutils}/bin/chmod 0666 /sys/firmware/acpi/platform_profile";
+      RemainAfterExit = true;
+    };
+  };
+
   # Audio power saving DISABLED
   # Enabling power_save causes pipewire/wireplumber to repeatedly handle codec wake/sleep
   # cycles, generating excessive DBUS traffic and CPU overhead. The ~0.1-0.3W savings
@@ -134,15 +149,9 @@ in
     "vm.laptop_mode" = 5;
   };
 
-  # CPU boost control based on power source
-  # PPD doesn't control CPU boost, so we use udev rules
-  # Disabling boost on battery saves ~2-3W
-  services.udev.extraRules = ''
-    # Disable CPU boost when on battery
-    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="0", RUN+="${pkgs.bash}/bin/bash -c 'echo 0 > /sys/devices/system/cpu/cpufreq/boost'"
-    # Enable CPU boost when on AC
-    SUBSYSTEM=="power_supply", ATTR{type}=="Mains", ATTR{online}=="1", RUN+="${pkgs.bash}/bin/bash -c 'echo 1 > /sys/devices/system/cpu/cpufreq/boost'"
+  # CPU boost is now controlled by power-profile-auto service (more reliable than udev)
 
+  services.udev.extraRules = ''
     # USB autosuspend - enable for all devices except HID (keyboard/mouse)
     # This saves power by putting idle USB devices into suspend mode
     ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"

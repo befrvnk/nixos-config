@@ -403,7 +403,7 @@ This configuration separates concerns between system-level and user-level settin
   - 🔋 **Power Saver** (low-power): Max battery life, no boost
   - ⚡ **Balanced**: Battery + allows compilation boosts
   - 🚀 **Performance**: Full power on AC
-- **Power-profiles-daemon (PPD)** with automatic switching (Balanced on AC, Power Saver on battery)
+- **Automatic power switching** via `power-profile-auto` service (Balanced on AC, Power Saver on battery)
 - **ZRAM** compressed swap with zstd for memory pressure without SSD wear
 - **CachyOS-style sysctl tuning** - Optimized VM settings (swappiness=180 for ZRAM, page-cluster=0), network buffers, THP defer+madvise, RCU Lazy (5-10% idle power savings)
 - **ABM (Adaptive Backlight Management)** on battery for display power savings (disabled on AC for accurate colors)

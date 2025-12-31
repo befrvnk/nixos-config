@@ -522,22 +522,20 @@ in
 
 Used in: `darkman/default.nix` (monitor-hotplug), `ironbar/modules/niri-overview-watcher/`
 
-### Power Profile Access Pattern (PPD)
-Power profiles are managed via power-profiles-daemon (PPD):
+### Power Profile Access Pattern (Direct Sysfs)
+Power profiles are managed via direct sysfs writes. PPD is installed but its boost control
+is broken on kernel 6.17 + amd_pstate EPP mode, so we bypass it:
 ```bash
-# List available profiles
-powerprofilesctl list
-
 # Get current profile
-powerprofilesctl get
-# Returns: power-saver, balanced, or performance
+cat /sys/firmware/acpi/platform_profile
+# Returns: low-power, balanced, or performance
 
-# Set profile (no sudo needed, uses D-Bus)
-powerprofilesctl set balanced
+# Set profile (world-writable via platform-profile-permissions service)
+echo "balanced" > /sys/firmware/acpi/platform_profile
 ```
 
 Used in: `home-manager/ironbar/modules/battery/` for profile switching in status bar.
-AC/battery auto-switching handled by `modules/hardware/power-management.nix` system service.
+AC/battery auto-switching handled by `power-profile-auto` service in `modules/hardware/power-management.nix`.
 
 ### ABM (Adaptive Backlight Management)
 AMD panel power savings via sysfs:
@@ -680,15 +678,16 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Without it, `wpctl set-volume` commands appear to work but don't change actual volume
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
 
-### Power Profiles Daemon (PPD)
-- Power profiles managed via `powerprofilesctl` (no sudo/polkit needed)
-- PPD properly coordinates platform profile and EPP via the amd-pmf driver
-- AC/battery auto-switching via `power-profile-auto` **system** service (in `modules/hardware/power-management.nix`)
-- Battery mode: power-saver profile, WiFi power save ON, CPU boost OFF, ABM level 3
-- AC mode: balanced profile, WiFi power save OFF, CPU boost ON, ABM disabled
+### Power Profiles (Direct Sysfs, not PPD)
+- **PPD is broken** on kernel 6.17 + amd_pstate EPP mode (per-policy boost writes fail)
+- PPD remains installed (for future fixes) but we bypass it with direct sysfs writes
+- `power-profile-auto` **system** service handles all power switching via upower monitoring
+- `platform-profile-permissions` service makes sysfs writable by users
+- Battery mode: low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3
+- AC mode: balanced profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled
+- Ironbar battery popup uses direct sysfs writes (not `powerprofilesctl`)
 - USB autosuspend enabled (except HID devices) via udev rules
 - Audio power save disabled (causes DBUS spam with pipewire)
-- Ironbar battery popup uses `powerprofilesctl` for profile switching
 - ZRAM with zstd compression enabled for memory pressure (see `modules/system/core.nix`)
 
 ### ABM (Adaptive Backlight Management)

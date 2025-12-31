@@ -1,24 +1,17 @@
 #!/usr/bin/env bash
-# Power profile switcher using power-profiles-daemon
-# PPD handles platform profile, EPP, and boost coordination automatically
+# Power profile switcher using direct sysfs
+# PPD's boost control is broken on kernel 6.17 + amd_pstate EPP mode,
+# so we bypass it and write directly to platform_profile
 
 PROFILE="${1:-balanced}"
 
-# Map our UI profile names to PPD profile names
+# Validate and write directly to platform_profile
 case "$PROFILE" in
-    "low-power")
-        PPD_PROFILE="power-saver"
-        ;;
-    "balanced")
-        PPD_PROFILE="balanced"
-        ;;
-    "performance")
-        PPD_PROFILE="performance"
+    "low-power"|"balanced"|"performance")
+        echo "$PROFILE" > /sys/firmware/acpi/platform_profile
         ;;
     *)
         echo "Unknown profile: $PROFILE"
         exit 1
         ;;
 esac
-
-powerprofilesctl set "$PPD_PROFILE"
