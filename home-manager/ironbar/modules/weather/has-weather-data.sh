@@ -4,6 +4,8 @@
 # Used by show_if to hide module when offline or no data
 
 CACHE_FILE="$HOME/.cache/weather-status"
+LAT="48.1521"
+LON="11.6584"
 
 # Check if cache exists and is recent (less than 15 minutes old)
 if [[ -f "$CACHE_FILE" ]]; then
@@ -13,12 +15,12 @@ if [[ -f "$CACHE_FILE" ]]; then
     fi
 fi
 
-# Try to fetch weather data using JSON format
-WEATHER_JSON=$(curl -s --connect-timeout 5 "wttr.in/?format=j1" 2>/dev/null)
+# Try to fetch weather data from Open Meteo DWD ICON API
+WEATHER_JSON=$(curl -s --connect-timeout 5 "https://api.open-meteo.com/v1/dwd-icon?latitude=${LAT}&longitude=${LON}&current=weather_code&timezone=auto" 2>/dev/null)
 
 # Check if we got valid JSON with weather data
 if [[ -n "$WEATHER_JSON" ]]; then
-    WEATHER_CODE=$(echo "$WEATHER_JSON" | jq -r '.current_condition[0].weatherCode // empty' 2>/dev/null)
+    WEATHER_CODE=$(echo "$WEATHER_JSON" | jq -r '.current.weather_code // empty' 2>/dev/null)
     if [[ -n "$WEATHER_CODE" ]]; then
         exit 0  # Data available
     fi

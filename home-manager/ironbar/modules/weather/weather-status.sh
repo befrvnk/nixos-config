@@ -1,28 +1,29 @@
 #!/usr/bin/env bash
-# Fetch current weather from wttr.in (auto-detect location)
+# Fetch current weather from Open Meteo DWD ICON API
 # Format: Nerd Font icon + temperature (e.g., "󰖙 22°C")
 # Uses monochrome icons to match other bar modules
 # Update interval: 10 minutes (600000ms)
 
 CACHE_FILE="$HOME/.cache/weather-status"
+LAT="48.1521"
+LON="11.6584"
 
-# Map wttr.in weather codes to Nerd Font weather icons
+# Map WMO weather codes to Nerd Font weather icons
 get_weather_icon() {
     local code="$1"
     case "$code" in
-        113) echo "󰖙" ;;  # Clear/Sunny
-        116) echo "󰖕" ;;  # Partly cloudy
-        119|122) echo "󰖐" ;;  # Cloudy/Overcast
-        143|248|260) echo "󰖑" ;;  # Mist/Fog
-        176|179|182|185|263|266) echo "󰖗" ;;  # Patchy/light precipitation
-        200|386|389) echo "󰖓" ;;  # Thunderstorm
-        227|230) echo "󰼶" ;;  # Blowing snow/Blizzard
-        281|284|293|296|299|302|311|314|353|356) echo "󰖖" ;;  # Rain/Drizzle
-        305|308|359) echo "󰖞" ;;  # Heavy rain
-        317|320|362|365) echo "󰙿" ;;  # Sleet
-        323|326|329|332|368) echo "󰖘" ;;  # Light/moderate snow
-        335|338|371|392|395) echo "󰼴" ;;  # Heavy snow
-        350|374|377) echo "󰖒" ;;  # Ice pellets/hail
+        0) echo "󰖙" ;;  # Clear sky
+        1|2) echo "󰖕" ;;  # Partly cloudy
+        3) echo "󰖐" ;;  # Overcast
+        45|48) echo "󰖑" ;;  # Fog
+        51|53|55|56|57) echo "󰖗" ;;  # Drizzle
+        61|63|80|81) echo "󰖖" ;;  # Rain
+        65|82) echo "󰖞" ;;  # Heavy rain
+        66|67) echo "󰙿" ;;  # Freezing rain
+        71|73|85) echo "󰖘" ;;  # Snow
+        75|77|86) echo "󰼴" ;;  # Heavy snow
+        95) echo "󰖓" ;;  # Thunderstorm
+        96|99) echo "󰖒" ;;  # Thunderstorm with hail
         *) echo "󰖐" ;;  # Default: cloudy
     esac
 }
@@ -36,16 +37,18 @@ if [[ -f "$CACHE_FILE" ]]; then
     fi
 fi
 
-# Fetch fresh data using JSON format
-WEATHER_JSON=$(curl -s --connect-timeout 5 "wttr.in/?format=j1" 2>/dev/null)
+# Fetch fresh data from Open Meteo DWD ICON API
+WEATHER_JSON=$(curl -s --connect-timeout 5 "https://api.open-meteo.com/v1/dwd-icon?latitude=${LAT}&longitude=${LON}&current=temperature_2m,weather_code&timezone=auto" 2>/dev/null)
 
 if [[ -z "$WEATHER_JSON" ]]; then
     exit 0
 fi
 
 # Extract weather code and temperature using jq
-WEATHER_CODE=$(echo "$WEATHER_JSON" | jq -r '.current_condition[0].weatherCode // empty' 2>/dev/null)
-TEMP=$(echo "$WEATHER_JSON" | jq -r '.current_condition[0].temp_C // empty' 2>/dev/null)
+WEATHER_CODE=$(echo "$WEATHER_JSON" | jq -r '.current.weather_code // empty' 2>/dev/null)
+TEMP=$(echo "$WEATHER_JSON" | jq -r '.current.temperature_2m // empty' 2>/dev/null)
+# Round temperature to integer
+TEMP=$(printf "%.0f" "$TEMP" 2>/dev/null)
 
 if [[ -n "$WEATHER_CODE" && -n "$TEMP" ]]; then
     ICON=$(get_weather_icon "$WEATHER_CODE")
