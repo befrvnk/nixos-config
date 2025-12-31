@@ -523,8 +523,8 @@ in
 Used in: `darkman/default.nix` (monitor-hotplug), `ironbar/modules/niri-overview-watcher/`
 
 ### Power Profile Access Pattern (Direct Sysfs)
-Power profiles are managed via direct sysfs writes. PPD is installed but its boost control
-is broken on kernel 6.17 + amd_pstate EPP mode, so we bypass it:
+Power profiles can be managed via direct sysfs writes or PPD. PPD boost control was broken on
+kernel 6.17 + amd_pstate EPP mode, but **works correctly on CachyOS 6.18.2+**:
 ```bash
 # Get current profile
 cat /sys/firmware/acpi/platform_profile
@@ -678,14 +678,14 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Without it, `wpctl set-volume` commands appear to work but don't change actual volume
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
 
-### Power Profiles (Direct Sysfs, not PPD)
-- **PPD is broken** on kernel 6.17 + amd_pstate EPP mode (per-policy boost writes fail)
-- PPD remains installed (for future fixes) but we bypass it with direct sysfs writes
-- `power-profile-auto` **system** service handles all power switching via upower monitoring
-- `platform-profile-permissions` service makes sysfs writable by users
+### Power Profiles (PPD works on CachyOS)
+- **PPD boost control** was broken on kernel 6.17 + amd_pstate EPP mode, but **works on CachyOS 6.18.2+**
+- `powerprofilesctl` correctly controls boost: power-saver=OFF, performance=ON
+- `power-profile-auto` **system** service handles AC/battery auto-switching via upower monitoring
+- `platform-profile-permissions` service makes sysfs writable by users (for direct access if needed)
 - Battery mode: low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3
 - AC mode: balanced profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled
-- Ironbar battery popup uses direct sysfs writes (not `powerprofilesctl`)
+- Ironbar battery popup can use either `powerprofilesctl` or direct sysfs writes
 - USB autosuspend enabled (except HID devices) via udev rules
 - Audio power save disabled (causes DBUS spam with pipewire)
 - ZRAM with zstd compression enabled for memory pressure (see `modules/system/core.nix`)
@@ -709,6 +709,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Core Compaction: When CPU < 50% usage, active cores run faster while idle cores sleep
 - Service managed by systemd: `systemctl status scx`
 - Configuration in `modules/services/scx.nix`
+- **CachyOS kernel** provides best sched_ext/scx_lavd integration (via xddxdd/nix-cachyos-kernel flake)
 
 ### CachyOS-Style Optimizations
 Sysctl and kernel parameters based on [CachyOS Settings](https://github.com/CachyOS/CachyOS-Settings):

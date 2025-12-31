@@ -10,6 +10,7 @@ let
     inputs.claude-code.overlays.default
     (import ../overlays/claude-code.nix)
     (import ../overlays/user-scanner.nix)
+    inputs.nix-cachyos-kernel.overlays.pinned
   ];
 in
 {

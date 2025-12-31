@@ -13,10 +13,11 @@
     inputs.lanzaboote.nixosModules.lanzaboote
   ];
 
-  # Downgrade kernel to 6.17 to avoid VPE queue reset crash during suspend/resume
-  # Bug: commit 31ab31433c9b in 6.18 causes amdgpu VPE failures
-  # Remove when 6.19+ or patched 6.18.x is available in nixpkgs
-  boot.kernelPackages = pkgs.linuxPackages_6_17;
+  # Use CachyOS kernel for best sched_ext/scx_lavd integration
+  # 6.17 reached EOL; CachyOS provides optimizations for gaming and power efficiency
+  # Available variants: linuxPackages-cachyos-latest, linuxPackages-cachyos-lts
+  # Fallback: pkgs.linuxPackages_6_12 if issues arise
+  boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-latest;
 
   boot.loader.systemd-boot.enable = lib.mkForce false;
   boot.lanzaboote = {
