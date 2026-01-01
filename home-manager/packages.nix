@@ -4,7 +4,7 @@
   home.packages =
     (with pkgs; [
       adw-bluetooth
-      anytype
+      # anytype  # FIXME: Disabled - npm deps out of sync (Missing: encoding@ from lock file)
       bat
       chromium
       ddcutil
