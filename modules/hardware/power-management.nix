@@ -8,55 +8,55 @@ let
   isAmd = hostConfig.cpuVendor == "amd";
   abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";
 
-  # Script for automatic power profile switching based on AC/battery state
-  # Uses direct sysfs writes instead of PPD (PPD's boost control broken on kernel 6.17)
-  powerProfileAutoScript = pkgs.writeShellScript "power-profile-auto" ''
-    export PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.iw}/bin:$PATH"
+  stateFile = "/run/power-profile-state";
 
-    set_power_saver() {
-      echo "low-power" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
-      for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
-        echo "power" > "$epp" 2>/dev/null || true
-      done
-      # Disable CPU boost on battery (saves ~2-3W)
-      echo 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
-      # Enable WiFi power save on battery
-      iw dev wlp192s0 set power_save on 2>/dev/null || true
-      # Enable ABM (Adaptive Backlight Management) for display power savings
-      # Level 3 = maximum power savings (reduces backlight, increases contrast)
-      echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
-    }
-
-    set_balanced() {
-      echo "balanced" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
-      for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
-        echo "balance_performance" > "$epp" 2>/dev/null || true
-      done
-      # Enable CPU boost on AC for better performance
-      echo 1 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
-      # Disable WiFi power save on AC for better performance
-      iw dev wlp192s0 set power_save off 2>/dev/null || true
-      # Disable ABM on AC for accurate color reproduction
-      echo 0 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
-    }
-
-    # Set initial state based on current power source
-    if [ "$(cat /sys/class/power_supply/AC*/online 2>/dev/null)" = "1" ]; then
-      set_balanced
-    else
-      set_power_saver
-    fi
-
-    # Monitor upower for AC/battery changes
-    ${pkgs.upower}/bin/upower --monitor-detail | while read -r line; do
-      if echo "$line" | grep -q "on-battery"; then
-        if echo "$line" | grep -q "yes"; then
-          set_power_saver
-        else
-          set_balanced
-        fi
-      fi
+  # Script for power-saver mode (on battery)
+  setPowerSaver = pkgs.writeShellScript "set-power-saver" ''
+    export PATH="${pkgs.coreutils}/bin:${pkgs.iw}/bin:${pkgs.systemd}/bin:$PATH"
+    # Only apply if state changed (udev fires constantly)
+    [ -f ${stateFile} ] && [ "$(cat ${stateFile})" = "battery" ] && exit 0
+    echo "battery" > ${stateFile}
+    logger -t power-profile "Switching to power-saver (on battery)"
+    echo "low-power" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
+    for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+      echo "power" > "$epp" 2>/dev/null || true
     done
+    # Disable CPU boost on battery (saves ~2-3W)
+    echo 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
+    # Enable WiFi power save on battery
+    iw dev wlp192s0 set power_save on 2>/dev/null || true
+    # Enable ABM (Adaptive Backlight Management) for display power savings
+    echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
+  '';
+
+  # Script for balanced mode (on AC)
+  setBalanced = pkgs.writeShellScript "set-balanced" ''
+    export PATH="${pkgs.coreutils}/bin:${pkgs.iw}/bin:${pkgs.systemd}/bin:$PATH"
+    # Only apply if state changed (udev fires constantly)
+    [ -f ${stateFile} ] && [ "$(cat ${stateFile})" = "ac" ] && exit 0
+    echo "ac" > ${stateFile}
+    logger -t power-profile "Switching to balanced (AC connected)"
+    echo "balanced" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
+    for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+      echo "balance_performance" > "$epp" 2>/dev/null || true
+    done
+    # Enable CPU boost on AC for better performance
+    echo 1 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
+    # Disable WiFi power save on AC for better performance
+    iw dev wlp192s0 set power_save off 2>/dev/null || true
+    # Disable ABM on AC for accurate color reproduction
+    echo 0 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
+  '';
+
+  # Script to apply correct profile based on current AC state (for boot)
+  # Removes state file first to force applying the profile
+  applyPowerProfile = pkgs.writeShellScript "apply-power-profile" ''
+    rm -f ${stateFile}
+    if [ "$(cat /sys/class/power_supply/ACAD/online 2>/dev/null)" = "1" ]; then
+      ${setBalanced}
+    else
+      ${setPowerSaver}
+    fi
   '';
 in
 {
@@ -68,17 +68,15 @@ in
   # Note: PPD may fail on some hardware, power-profile-auto service provides fallback
   services.power-profiles-daemon.enable = true;
 
-  # Automatic power profile switching based on AC/battery state
-  # Runs as system service (needs root for sysfs writes)
-  systemd.services.power-profile-auto = {
-    description = "Automatic power profile switching on AC/battery";
+  # Apply correct power profile at boot based on current AC state
+  systemd.services.power-profile-init = {
+    description = "Set initial power profile based on AC state";
     wantedBy = [ "multi-user.target" ];
     after = [ "power-profiles-daemon.service" ];
     serviceConfig = {
-      Type = "simple";
-      ExecStart = "${powerProfileAutoScript}";
-      Restart = "on-failure";
-      RestartSec = "5";
+      Type = "oneshot";
+      ExecStart = "${applyPowerProfile}";
+      RemainAfterExit = true;
     };
   };
 
@@ -149,9 +147,12 @@ in
     "vm.laptop_mode" = 5;
   };
 
-  # CPU boost is now controlled by power-profile-auto service (more reliable than udev)
-
   services.udev.extraRules = ''
+    # Power profile switching based on battery status (ACAD doesn't generate events)
+    # Use ENV instead of ATTR - ENV is set in the uevent, ATTR requires sysfs read
+    SUBSYSTEM=="power_supply", KERNEL=="BAT1", ENV{POWER_SUPPLY_STATUS}=="Charging", RUN+="${setBalanced}"
+    SUBSYSTEM=="power_supply", KERNEL=="BAT1", ENV{POWER_SUPPLY_STATUS}=="Discharging", RUN+="${setPowerSaver}"
+
     # USB autosuspend - enable for all devices except HID (keyboard/mouse)
     # This saves power by putting idle USB devices into suspend mode
     ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"

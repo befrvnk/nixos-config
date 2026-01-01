@@ -109,12 +109,13 @@ services.power-profiles-daemon.enable = true;
 PPD properly coordinates platform profile and EPP via the `amd-pmf` driver, avoiding conflicts between different power settings.
 
 ### Automatic AC/Battery Switching
-A system service (`power-profile-auto` in `modules/hardware/power-management.nix`) monitors power state via upower and switches profiles:
-- **On battery**: Switches to `power-saver` profile (low-power platform profile, EPP=power, WiFi power save ON)
-- **On AC**: Switches to `balanced` profile (balanced platform profile, EPP=balance_performance, WiFi power save OFF)
+Udev rules in `modules/hardware/power-management.nix` trigger on battery status changes (`ENV{POWER_SUPPLY_STATUS}` on BAT1):
+- **On battery (Discharging)**: Switches to power-saver (low-power platform profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3)
+- **On AC (Charging)**: Switches to balanced (balanced platform profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled)
 
-Additional power settings controlled by udev rules:
-- **CPU boost**: Disabled on battery, enabled on AC (saves ~2-3W)
+This approach has zero CPU overhead (no monitoring daemon) and uses state tracking (`/run/power-profile-state`) to avoid redundant switches from frequent battery events.
+
+Additional udev rules:
 - **USB autosuspend**: Enabled for all devices except HID (keyboard/mouse)
 
 Use the Ironbar battery popup to manually switch to "performance" when needed.
@@ -259,30 +260,30 @@ powerprofilesctl set balanced
 
 ### Automatic Switching
 
-The `power-profile-auto` service automatically switches profiles based on power state:
+Udev rules automatically switch profiles based on battery status:
 
 | Power State | Profile | Why |
 |-------------|---------|-----|
-| **AC** | Balanced | Good performance with efficiency |
-| **Battery** | Power Saver | Maximize battery life |
+| **AC (Charging)** | Balanced | Good performance with efficiency |
+| **Battery (Discharging)** | Power Saver | Maximize battery life |
 
 To use **Performance** mode (for compilation, heavy work), manually switch via the battery popup or `powerprofilesctl set performance`.
 
 ### Implementation Details
 
 **Files:**
-- `modules/hardware/power-management.nix` - Main power management (PPD, auto-switching service, udev rules)
+- `modules/hardware/power-management.nix` - Main power management (PPD, udev rules for auto-switching)
 - `home-manager/ironbar/modules/battery/set-profile.sh` - Profile switcher via `powerprofilesctl`
 - `home-manager/ironbar/modules/battery/get-profile.sh` - Current profile reader
 
 **Power settings managed:**
 | Setting | Battery | AC | Method |
 |---------|---------|-----|--------|
-| PPD profile | power-saver | balanced | power-profile-auto service |
-| Platform profile | low-power | balanced | power-profile-auto (fallback) |
-| EPP | power | balance_performance | power-profile-auto (fallback) |
+| Platform profile | low-power | balanced | udev rules |
+| EPP | power | balance_performance | udev rules |
 | CPU boost | Off | On | udev rules |
-| WiFi power save | On | Off | power-profile-auto service |
+| WiFi power save | On | Off | udev rules |
+| ABM (panel power savings) | Level 3 | Disabled | udev rules |
 | USB autosuspend | Auto (except HID) | Auto (except HID) | udev rules |
 | Audio power save | Disabled | Disabled | modprobe config |
 
@@ -445,14 +446,14 @@ PPD properly coordinates these settings via the amd-pmf driver, avoiding conflic
 
 - `modules/hardware/power-management.nix` - Main power management configuration:
   - PPD (power-profiles-daemon) enablement
-  - `power-profile-auto` system service (AC/battery switching)
+  - udev rules for AC/battery auto-switching (zero CPU overhead)
   - Audio power save config (disabled)
   - Kernel parameters (nmi_watchdog, ASPM, amd_pstate)
-  - udev rules (CPU boost, USB autosuspend)
+  - udev rules (USB autosuspend, I/O scheduler)
 - `modules/services/scx.nix` - SCX sched_ext scheduler configuration
 - `home-manager/ironbar/modules/battery/` - Power profile switching in status bar
 
 ---
 
-**Last Updated**: 2025-12-27
+**Last Updated**: 2026-01-01
 **Applies To**: Framework Laptop 13 (AMD Ryzen AI 300 Series), NixOS 25.05

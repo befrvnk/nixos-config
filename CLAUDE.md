@@ -535,7 +535,7 @@ echo "balanced" > /sys/firmware/acpi/platform_profile
 ```
 
 Used in: `home-manager/ironbar/modules/battery/` for profile switching in status bar.
-AC/battery auto-switching handled by `power-profile-auto` service in `modules/hardware/power-management.nix`.
+AC/battery auto-switching handled by udev rules in `modules/hardware/power-management.nix`.
 
 ### ABM (Adaptive Backlight Management)
 AMD panel power savings via sysfs:
@@ -543,7 +543,7 @@ AMD panel power savings via sysfs:
 # Read current ABM level (0-4, higher = more savings)
 cat /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 
-# Set ABM level (needs root, done by power-profile-auto)
+# Set ABM level (needs root, done by udev rules on AC/battery change)
 echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 ```
 - Level 0: Disabled (accurate colors, for photo editing)
@@ -681,7 +681,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 ### Power Profiles (PPD works on CachyOS)
 - **PPD boost control** was broken on kernel 6.17 + amd_pstate EPP mode, but **works on CachyOS 6.18.2+**
 - `powerprofilesctl` correctly controls boost: power-saver=OFF, performance=ON
-- `power-profile-auto` **system** service handles AC/battery auto-switching via upower monitoring
+- **udev rules** handle AC/battery auto-switching (triggered by `ENV{POWER_SUPPLY_STATUS}` on BAT1)
 - `platform-profile-permissions` service makes sysfs writable by users (for direct access if needed)
 - Battery mode: low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3
 - AC mode: balanced profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled
@@ -695,7 +695,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - `Mod+Shift+B` toggles ABM via `toggle-abm` command
 - When disabled: ABM set to 0 (accurate colors for photo editing)
 - When enabled: ABM set to level 3 (power savings)
-- AC/battery auto-switching handled by `power-profile-auto` system service
+- AC/battery auto-switching handled by udev rules (zero CPU overhead)
 
 ### Niri Overview Popups
 - A dedicated watcher service closes Ironbar popups when exiting overview mode
