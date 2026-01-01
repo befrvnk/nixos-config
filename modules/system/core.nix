@@ -4,6 +4,10 @@
   boot.initrd.systemd.enable = true;
   security.tpm2.enable = true;
 
+  # Enable I2C device access for external monitor control (DDC/CI)
+  # Loads i2c-dev module and sets up udev rules for user access
+  hardware.i2c.enable = true;
+
   # ZRAM compressed swap for memory pressure situations
   zramSwap = {
     enable = true;

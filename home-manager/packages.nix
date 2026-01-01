@@ -7,6 +7,7 @@
       anytype
       bat
       chromium
+      ddcutil
       devenv
       discord
       eza

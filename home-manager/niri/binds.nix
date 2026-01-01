@@ -201,14 +201,13 @@
       "playerctl"
       "stop"
     ];
+    # Unified brightness: internal (swayosd) + external (ddcutil in background)
     "XF86MonBrightnessDown".action.spawn = [
-      "swayosd-client"
-      "--brightness"
+      "brightness-ctl"
       "lower"
     ];
     "XF86MonBrightnessUp".action.spawn = [
-      "swayosd-client"
-      "--brightness"
+      "brightness-ctl"
       "raise"
     ];
   };

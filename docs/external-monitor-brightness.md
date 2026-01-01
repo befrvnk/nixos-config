@@ -4,153 +4,73 @@
 
 External monitors connected via USB-C or DisplayPort do not support brightness control through the standard Linux backlight interface. They require DDC/CI (Display Data Channel Command Interface) protocol to adjust brightness and other settings.
 
-## Investigation Summary
+## Current Implementation
 
-### Current Configuration
+External monitor brightness control is fully integrated with the standard brightness keys. Both displays stay synchronized.
 
-**Display Setup:**
-- Built-in display: `eDP-1` (Framework 13 laptop screen)
-- External monitor: `DP-3` (4K monitor via USB-C)
-- Configuration: `home-manager/niri/outputs.nix`
+### How It Works
 
-**Brightness Control Setup:**
-- Brightness control package: `brightnessctl` (installed in `home-manager/niri/default.nix:17`)
-- Niri keyboard shortcuts: XF86MonBrightnessUp/Down mapped to `brightnessctl` commands (`home-manager/niri/binds.nix:171-172`)
+The `brightness-ctl` script (`home-manager/niri/default.nix`) provides unified control:
 
-### Root Cause
+1. **Internal display**: Adjusted via `brightnessctl` (synchronous) with swayosd OSD feedback
+2. **External monitors**: Synced to internal brightness via `ddcutil` in background
 
-The issue has multiple layers:
+The external monitor always catches up to match the internal display's brightness percentage. Rapid keypresses are handled gracefully - the external monitor syncs to the final value.
 
-1. **brightnessctl Limitation**
-   - `brightnessctl` only works with devices exposed through the kernel's backlight interface
-   - Running `brightnessctl -l` shows only the laptop's backlight device: `amdgpu_bl1`
-   - External monitors don't expose brightness controls through the kernel backlight interface
+### Sync Mechanism
 
-2. **External Monitors Require DDC/CI**
-   - External monitors use the DDC/CI (Display Data Channel Command Interface) protocol
-   - DDC/CI communicates over the I2C bus to control monitor settings
-   - Requires the `i2c-dev` kernel module to expose I2C devices as `/dev/i2c-*`
-
-3. **Missing Kernel Module**
-   - The `i2c-dev` kernel module is not loaded by default
-   - Without it, no `/dev/i2c*` devices exist
-   - Running `ddcutil detect` confirms: "No /dev/i2c devices exist. ddcutil requires module i2c-dev."
-   - While `ddcutil` is already installed on the system, it cannot function without the kernel module
-
-## Solution
-
-### Step 1: Enable i2c-dev Kernel Module
-
-Add the `i2c-dev` kernel module to your NixOS configuration to enable DDC/CI communication with external monitors.
-
-**Option A: Add to `modules/system/core.nix`** (recommended for system-wide configuration):
-```nix
-{ pkgs, lib, ... }:
-
-{
-  boot.initrd.systemd.enable = true;
-  security.tpm2.enable = true;
-
-  # Enable I2C device access for external monitor control (DDC/CI)
-  boot.kernelModules = [ "i2c-dev" ];
-
-  networking.networkmanager.enable = true;
-  # ... rest of configuration
-}
+```
+Keypress → brightnessctl (sync) → Read % → Write target file → Show OSD
+                                              ↓
+                              Background: ddcutil syncs to target
+                                              ↓
+                              Loop until target stops changing
 ```
 
-**Option B: Add to `hosts/framework/default.nix`** (for Framework-specific configuration):
-```nix
-{ nixos-hardware, lanzaboote, lib, ... }:
+- A lock file prevents multiple ddcutil processes from running simultaneously
+- If target changes while ddcutil is running, it syncs again after completion
+- This ensures the external monitor always reaches the final brightness value
 
-{
-  imports = [ /* ... */ ];
+### Configuration
 
-  # Enable I2C device access for external monitor control (DDC/CI)
-  boot.kernelModules = [ "i2c-dev" ];
+| Component | Location |
+|-----------|----------|
+| I2C access (`hardware.i2c.enable`) | `modules/system/core.nix` |
+| User in `i2c` group | `modules/users.nix` |
+| ddcutil package | `home-manager/packages.nix` |
+| `brightness-ctl` script | `home-manager/niri/default.nix` |
+| Keyboard bindings | `home-manager/niri/binds.nix` |
 
-  boot.loader.systemd-boot.enable = lib.mkForce false;
-  # ... rest of configuration
-}
-```
-
-After adding this configuration:
-```bash
-sudo nixos-rebuild switch
-reboot
-```
-
-### Step 2: Verify DDC/CI Functionality
-
-After rebooting, verify that the i2c-dev module is loaded and external monitors are detected:
+### Manual Control
 
 ```bash
-# Check if i2c devices exist
-ls -la /dev/i2c*
-
-# Check if i2c-dev module is loaded
-lsmod | grep i2c_dev
-
 # Detect external monitors
 ddcutil detect
 
-# Get capabilities of your external monitor
-ddcutil capabilities
-```
-
-### Step 3: Control External Monitor Brightness
-
-Once DDC/CI is working, you can control external monitor brightness using `ddcutil`:
-
-```bash
 # Get current brightness (VCP code 10 is brightness)
 ddcutil getvcp 10
 
 # Set brightness to 50%
 ddcutil setvcp 10 50
 
-# Set brightness to 100%
-ddcutil setvcp 10 100
-
 # Get all supported VCP codes for your monitor
 ddcutil capabilities
 ```
 
-### Optional: Add Custom Niri Keybindings
-
-To control external monitor brightness with keyboard shortcuts, you can add custom bindings to `home-manager/niri/binds.nix`:
-
-```nix
-# External monitor brightness control (using ddcutil)
-# Note: Replace "DP-3" with your actual monitor identifier from `ddcutil detect`
-"Mod+XF86MonBrightnessUp".action.spawn = [
-  "sh" "-c"
-  "current=$(ddcutil getvcp 10 --terse | cut -d' ' -f4); new=$((current + 5)); ddcutil setvcp 10 $new"
-];
-
-"Mod+XF86MonBrightnessDown".action.spawn = [
-  "sh" "-c"
-  "current=$(ddcutil getvcp 10 --terse | cut -d' ' -f4); new=$((current - 5)); [ $new -lt 0 ] && new=0; ddcutil setvcp 10 $new"
-];
-```
-
-This allows you to use:
-- **Brightness keys**: Control laptop screen (existing functionality)
-- **Mod + Brightness keys**: Control external monitor (new functionality)
-
 ## Technical Details
 
-### How brightnessctl Works
-- Accesses kernel's sysfs backlight interface: `/sys/class/backlight/`
-- Works only with devices that expose brightness controls through the kernel
-- Typically works for laptop built-in displays, not external monitors
+### Why brightnessctl Instead of swayosd
+
+The script uses `brightnessctl` to change brightness because it's **synchronous** - it returns only after sysfs is updated. This avoids a race condition where reading brightness immediately after `swayosd-client --brightness raise` could return a stale value.
+
+The OSD is then shown via `swayosd-client --custom-progress` with the actual brightness value.
 
 ### How DDC/CI Works
 - Uses I2C bus to communicate with monitors
 - Implements MCCS (Monitor Control Command Set) protocol
 - Requires `i2c-dev` kernel module to expose I2C devices
-- Tools like `ddcutil` or `ddccontrol` can communicate via DDC/CI
-- Supports various controls: brightness, contrast, color temperature, input source, etc.
+- User must be in `i2c` group for permission to access `/dev/i2c-*`
+- Commands are slow (~100-200ms) compared to native backlight
 
 ### I2C Modules on Framework 13
 The following I2C-related modules are loaded by default:
@@ -160,30 +80,48 @@ The following I2C-related modules are loaded by default:
 - `i2c_hid`: Generic I2C HID support
 - `i2c_algo_bit`: Bit-banging algorithm for I2C
 
-However, `i2c-dev` (which exposes I2C devices to userspace as `/dev/i2c-*`) is not loaded by default.
+The `i2c-dev` module is enabled via `hardware.i2c.enable = true` in `modules/system/core.nix`.
 
 ## Limitations
 
-1. **ddcutil Performance**: DDC/CI commands can be relatively slow (100-200ms per command) compared to native backlight controls.
+1. **ddcutil Performance**: DDC/CI commands are slow (~100-200ms). The script runs ddcutil in the background so OSD feedback remains instant.
 
 2. **Monitor Compatibility**: Not all monitors fully support DDC/CI. Some may have limited or non-functional implementations.
 
 3. **USB-C Docks**: Some USB-C docks may not properly pass through DDC/CI commands. Direct USB-C connection to monitors typically works better.
 
-## Future Improvements
+## Troubleshooting
 
-Potential enhancements for better external monitor control:
+### Verify i2c-dev module is loaded
+```bash
+lsmod | grep i2c_dev
+ls -la /dev/i2c*
+```
 
-1. **Automatic Monitor Detection**: Script to automatically detect and control the appropriate monitor
-2. **Unified Brightness Control**: Wrapper script that uses `brightnessctl` for internal displays and `ddcutil` for external monitors
-3. **GUI Application**: Use tools like `ddcui` (Qt-based GUI for ddcutil) for easier manual control
+### Check user is in i2c group
+```bash
+groups | grep i2c
+```
 
-## Related Files
+### Check if monitor is detected
+```bash
+ddcutil detect
+```
 
-- `home-manager/niri/binds.nix`: Keyboard shortcuts for brightness control
-- `home-manager/niri/outputs.nix`: Display output configuration
-- `modules/system/core.nix`: System-level configuration (add kernel modules here)
-- `hosts/framework/default.nix`: Framework-specific configuration
+### Permission denied errors
+Ensure `hardware.i2c.enable = true` is set and user is in `i2c` group. Reboot after changes.
+
+### External monitor not syncing
+Check the target file and lock file:
+```bash
+cat /tmp/brightness-ctl-target
+ls -la /tmp/brightness-ctl-ddc.lock
+```
+
+If lock file exists but no ddcutil is running, remove it:
+```bash
+rm /tmp/brightness-ctl-ddc.lock
+```
 
 ## References
 
@@ -191,7 +129,3 @@ Potential enhancements for better external monitor control:
 - [ddcutil GitHub Repository](https://github.com/rockowitz/ddcutil)
 - [DDC/CI Protocol](https://en.wikipedia.org/wiki/Display_Data_Channel)
 - [VESA MCCS Standard](https://vesa.org/)
-
-## Date
-
-Investigation completed: 2025-11-07
