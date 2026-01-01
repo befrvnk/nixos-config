@@ -12,3 +12,7 @@ result
 .devenv.flake.nix
 devenv.lock
 .mcp.json
+
+# Claude Code - Nix-managed symlinks (regenerated on rebuild)
+.claude/commands/
+.claude/settings.json
