@@ -155,8 +155,9 @@ in
     # USB autosuspend - enable for all devices except HID (keyboard/mouse)
     # This saves power by putting idle USB devices into suspend mode
     ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
-    # Keep HID devices (class 03) always on to prevent input lag
-    ACTION=="add", SUBSYSTEM=="usb", ATTR{bInterfaceClass}=="03", TEST=="power/control", ATTR{power/control}="on"
+    # Keep HID devices always on to prevent input lag
+    # Match when usbhid driver binds (at interface level), then set parent device's power control
+    ACTION=="add|bind", SUBSYSTEM=="usb", DRIVERS=="usbhid", ATTR{../power/control}="on"
 
     # I/O scheduler optimization
     # NVMe: 'none' is optimal (no scheduling overhead, direct submission)
