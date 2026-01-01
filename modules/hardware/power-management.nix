@@ -8,75 +8,112 @@ let
   isAmd = hostConfig.cpuVendor == "amd";
   abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";
 
-  stateFile = "/run/power-profile-state";
-
-  # Script for power-saver mode (on battery)
-  setPowerSaver = pkgs.writeShellScript "set-power-saver" ''
-    export PATH="${pkgs.coreutils}/bin:${pkgs.iw}/bin:${pkgs.systemd}/bin:$PATH"
-    # Only apply if state changed (udev fires constantly)
-    [ -f ${stateFile} ] && [ "$(cat ${stateFile})" = "battery" ] && exit 0
-    echo "battery" > ${stateFile}
-    logger -t power-profile "Switching to power-saver (on battery)"
-    echo "low-power" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
-    for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
-      echo "power" > "$epp" 2>/dev/null || true
-    done
+  # Script for battery profile extras (boost, WiFi power save, ABM)
+  # tuned's [script] plugin runs this when activating the profile
+  # Note: tuned's [cpu] boost setting doesn't work, so we set it here
+  batteryScript = pkgs.writeShellScript "tuned-battery-extras" ''
     # Disable CPU boost on battery (saves ~2-3W)
     echo 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
     # Enable WiFi power save on battery
-    iw dev wlp192s0 set power_save on 2>/dev/null || true
-    # Enable ABM (Adaptive Backlight Management) for display power savings
-    echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
+    ${pkgs.iw}/bin/iw dev wlp192s0 set power_save on 2>/dev/null || true
+    # Enable ABM (Adaptive Backlight Management) level 3 for power savings
+    echo 3 > ${abmPath} 2>/dev/null || true
   '';
 
-  # Script for balanced mode (on AC)
-  setBalanced = pkgs.writeShellScript "set-balanced" ''
-    export PATH="${pkgs.coreutils}/bin:${pkgs.iw}/bin:${pkgs.systemd}/bin:$PATH"
-    # Only apply if state changed (udev fires constantly)
-    [ -f ${stateFile} ] && [ "$(cat ${stateFile})" = "ac" ] && exit 0
-    echo "ac" > ${stateFile}
-    logger -t power-profile "Switching to balanced (AC connected)"
-    echo "balanced" > /sys/firmware/acpi/platform_profile 2>/dev/null || true
-    for epp in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
-      echo "balance_performance" > "$epp" 2>/dev/null || true
-    done
+  # Script for AC profile extras (boost, WiFi power save off, ABM off)
+  acScript = pkgs.writeShellScript "tuned-ac-extras" ''
     # Enable CPU boost on AC for better performance
     echo 1 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
     # Disable WiFi power save on AC for better performance
-    iw dev wlp192s0 set power_save off 2>/dev/null || true
+    ${pkgs.iw}/bin/iw dev wlp192s0 set power_save off 2>/dev/null || true
     # Disable ABM on AC for accurate color reproduction
-    echo 0 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings 2>/dev/null || true
-  '';
-
-  # Script to apply correct profile based on current AC state (for boot)
-  # Removes state file first to force applying the profile
-  applyPowerProfile = pkgs.writeShellScript "apply-power-profile" ''
-    rm -f ${stateFile}
-    if [ "$(cat /sys/class/power_supply/ACAD/online 2>/dev/null)" = "1" ]; then
-      ${setBalanced}
-    else
-      ${setPowerSaver}
-    fi
+    echo 0 > ${abmPath} 2>/dev/null || true
   '';
 in
 {
-  # Power management optimizations based on PowerTOP recommendations
-  # These settings help extend battery life on laptops
+  # Power management using tuned (Red Hat's power management daemon)
+  # tuned provides event-based AC/battery switching via upower, eliminating
+  # the CPU overhead of udev rules that fire on every battery status update.
 
-  # Enable power-profiles-daemon (Framework/AMD recommended for modern AMD laptops)
-  # PPD coordinates platform profile and EPP via the amd-pmf driver
-  # Note: PPD may fail on some hardware, power-profile-auto service provides fallback
-  services.power-profiles-daemon.enable = true;
+  # Explicitly disable conflicting power management tools
+  services.tlp.enable = false;
+  services.auto-cpufreq.enable = false;
 
-  # Apply correct power profile at boot based on current AC state
-  systemd.services.power-profile-init = {
-    description = "Set initial power profile based on AC state";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "power-profiles-daemon.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${applyPowerProfile}";
-      RemainAfterExit = true;
+  services.tuned = {
+    enable = true;
+
+    # Enable power-profiles-daemon API compatibility
+    # This allows existing tools (GNOME, KDE, powerprofilesctl) to work
+    ppdSupport = true;
+
+    # Configure automatic AC/battery profile switching
+    ppdSettings = {
+      main = {
+        default = "balanced";
+        battery_detection = true; # Auto-switch on AC/battery via upower
+      };
+      profiles = {
+        # Use built-in powersave for explicit power-saver requests
+        power-saver = "powersave";
+        balanced = "framework-ac";
+        performance = "throughput-performance";
+      };
+      battery = {
+        # When on battery with "balanced" PPD profile, use our custom battery profile
+        # battery_detection auto-switches from balanced to this when unplugging
+        balanced = "framework-battery";
+      };
+    };
+
+    # Custom tuned profiles for Framework laptop
+    profiles = {
+      # Battery profile: aggressive power savings
+      framework-battery = {
+        main = {
+          summary = "Framework laptop battery profile";
+          include = "powersave";
+        };
+        acpi = {
+          platform_profile = "low-power";
+        };
+        cpu = {
+          energy_performance_preference = "power";
+        };
+        # Script must be in profile dir (tuned security restriction)
+        script = {
+          script = "script.sh";
+        };
+      };
+
+      # AC profile: balanced performance
+      framework-ac = {
+        main = {
+          summary = "Framework laptop AC profile";
+          include = "balanced";
+        };
+        acpi = {
+          platform_profile = "balanced";
+        };
+        cpu = {
+          energy_performance_preference = "balance_performance";
+        };
+        # Script must be in profile dir (tuned security restriction)
+        script = {
+          script = "script.sh";
+        };
+      };
+    };
+  };
+
+  # Place tuned scripts in profile directories (required by tuned security policy)
+  environment.etc = {
+    "tuned/profiles/framework-battery/script.sh" = {
+      source = batteryScript;
+      mode = "0755";
+    };
+    "tuned/profiles/framework-ac/script.sh" = {
+      source = acScript;
+      mode = "0755";
     };
   };
 
@@ -93,8 +130,7 @@ in
   };
 
   # Make platform_profile writable by users (for ironbar power profile switching)
-  # PPD's boost control is broken on kernel 6.17 + amd_pstate EPP mode, so we
-  # bypass it and write directly to platform_profile from user scripts
+  # Allows manual override via ironbar without going through tuned
   systemd.services.platform-profile-permissions = {
     description = "Set platform_profile sysfs permissions for user control";
     wantedBy = [ "multi-user.target" ];
@@ -120,9 +156,9 @@ in
     # NMI watchdog is used for detecting hard lockups, but not needed for normal use
     "nmi_watchdog=0"
     # PCIe ASPM: Use powersupersave for maximum power savings
-    # Previously caused MT7925 WiFi boot failures with TLP, but PPD doesn't have
-    # aggressive early udev rules. Testing if this works with PPD.
-    # If WiFi fails to boot, change to "performance". See: docs/mt7925-wifi-boot-failure.md
+    # Previously caused MT7925 WiFi boot failures with TLP, but tuned doesn't have
+    # aggressive early udev rules. If WiFi fails, change to "performance".
+    # See: docs/mt7925-wifi-boot-failure.md
     "pcie_aspm.policy=powersupersave"
     # RCU Lazy: batch RCU callbacks during idle for 5-10% power savings
     # Allows deeper CPU sleep states at idle; no performance downside
@@ -135,6 +171,7 @@ in
   ++ lib.optionals isAmd [ "amd_pstate=active" ];
 
   # Runtime kernel settings
+  # Note: tuned also manages some sysctl settings, these are kept as system-wide defaults
   boot.kernel.sysctl = {
     # VM writeback timeout
     # Default: 500 (5 seconds)
@@ -147,12 +184,9 @@ in
     "vm.laptop_mode" = 5;
   };
 
+  # Udev rules for device-specific power settings
+  # Note: AC/battery switching is handled by tuned via upower events
   services.udev.extraRules = ''
-    # Power profile switching based on battery status (ACAD doesn't generate events)
-    # Use ENV instead of ATTR - ENV is set in the uevent, ATTR requires sysfs read
-    SUBSYSTEM=="power_supply", KERNEL=="BAT1", ENV{POWER_SUPPLY_STATUS}=="Charging", RUN+="${setBalanced}"
-    SUBSYSTEM=="power_supply", KERNEL=="BAT1", ENV{POWER_SUPPLY_STATUS}=="Discharging", RUN+="${setPowerSaver}"
-
     # USB autosuspend - enable for all devices except HID (keyboard/mouse)
     # This saves power by putting idle USB devices into suspend mode
     ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"

@@ -347,7 +347,7 @@ This configuration separates concerns between system-level and user-level settin
 - Hardware drivers and firmware
 - System services (greetd, darkman, pipewire, bluetooth)
 - Network management
-- Power management (power-profiles-daemon, ZRAM)
+- Power management (tuned with PPD compatibility, ZRAM)
 - Security (PAM, polkit, TPM)
 - System users and groups
 

@@ -99,21 +99,24 @@ boot.kernelParams = [
 
 This uses the `amd-pstate-epp` driver (Active mode) for hardware-controlled frequency scaling.
 
-### Power Profiles Daemon (PPD)
-Power management uses **power-profiles-daemon** (Framework/AMD recommended for modern AMD laptops):
+### tuned with PPD Compatibility
+Power management uses **tuned** (Red Hat's power management daemon) with **tuned-ppd** for PPD API compatibility:
 ```nix
 # In modules/hardware/power-management.nix
-services.power-profiles-daemon.enable = true;
+services.tuned = {
+  enable = true;
+  ppdSupport = true;  # Enables tuned-ppd for PPD API compatibility
+};
 ```
 
-PPD properly coordinates platform profile and EPP via the `amd-pmf` driver, avoiding conflicts between different power settings.
+tuned provides event-based AC/battery switching via upower, eliminating the CPU overhead of udev rules that fire on every battery status update.
 
 ### Automatic AC/Battery Switching
-Udev rules in `modules/hardware/power-management.nix` trigger on battery status changes (`ENV{POWER_SUPPLY_STATUS}` on BAT1):
-- **On battery (Discharging)**: Switches to power-saver (low-power platform profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3)
-- **On AC (Charging)**: Switches to balanced (balanced platform profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled)
+tuned-ppd handles automatic profile switching via upower events (not udev):
+- **On battery**: Switches to `framework-battery` profile (low-power platform profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3)
+- **On AC**: Switches to `framework-ac` profile (balanced platform profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled)
 
-This approach has zero CPU overhead (no monitoring daemon) and uses state tracking (`/run/power-profile-state`) to avoid redundant switches from frequent battery events.
+This approach has minimal CPU overhead (event-based via upower, not polling or per-second udev events).
 
 Additional udev rules:
 - **USB autosuspend**: Enabled for all devices except HID (keyboard/mouse)
@@ -142,9 +145,10 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│            power-profiles-daemon (PPD)                       │
-│         Profiles: power-saver / balanced / performance       │
-│         Controls: platform profile + EPP via amd-pmf         │
+│              tuned + tuned-ppd                               │
+│         Custom profiles: framework-battery / framework-ac    │
+│         PPD API: power-saver / balanced / performance        │
+│         Controls: platform profile + EPP + WiFi + ABM        │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
@@ -225,7 +229,7 @@ If scx_lavd doesn't work well for your use case:
 
 ## Unified Power Profiles
 
-This system uses **unified power profiles** that control multiple power settings with a single toggle. This replaces the old governor-based switching with a more comprehensive approach.
+This system uses **unified power profiles** via tuned that control multiple power settings with a single toggle. Custom tuned profiles (`framework-battery`, `framework-ac`) provide Framework-specific optimizations.
 
 ### Available Profiles
 
@@ -243,7 +247,7 @@ This system uses **unified power profiles** that control multiple power settings
 
 **Via Command Line:**
 ```bash
-# List available profiles
+# List available profiles (PPD API via tuned-ppd)
 powerprofilesctl list
 
 # Get current profile
@@ -251,46 +255,50 @@ powerprofilesctl get
 
 # Set profile (no sudo needed)
 powerprofilesctl set balanced
+
+# Check active tuned profile
+tuned-adm active
 ```
 
-**What PPD Controls:**
-- **Platform Profile**: Fans, thermals, and power limits (via amd-pmf)
-- **EPP (Energy Performance Preference)**: CPU power/performance hints
-- **GPU Performance States**: Integrated graphics power states
+**What tuned Controls:**
+- **Platform Profile**: Fans, thermals, and power limits (via `[acpi]` section)
+- **EPP (Energy Performance Preference)**: CPU power/performance hints (via `[cpu]` section)
+- **WiFi Power Save**: Network power management (via script plugin)
+- **ABM (Adaptive Backlight)**: Display power savings (via script plugin)
 
 ### Automatic Switching
 
-Udev rules automatically switch profiles based on battery status:
+tuned-ppd automatically switches profiles based on battery status via upower:
 
-| Power State | Profile | Why |
-|-------------|---------|-----|
-| **AC (Charging)** | Balanced | Good performance with efficiency |
-| **Battery (Discharging)** | Power Saver | Maximize battery life |
+| Power State | tuned Profile | PPD Profile | Why |
+|-------------|---------------|-------------|-----|
+| **AC (Charging)** | framework-ac | balanced | Good performance with efficiency |
+| **Battery (Discharging)** | framework-battery | balanced→power-saver | Maximize battery life |
 
 To use **Performance** mode (for compilation, heavy work), manually switch via the battery popup or `powerprofilesctl set performance`.
 
 ### Implementation Details
 
 **Files:**
-- `modules/hardware/power-management.nix` - Main power management (PPD, udev rules for auto-switching)
-- `home-manager/ironbar/modules/battery/set-profile.sh` - Profile switcher via `powerprofilesctl`
-- `home-manager/ironbar/modules/battery/get-profile.sh` - Current profile reader
+- `modules/hardware/power-management.nix` - tuned configuration with custom profiles
+- `home-manager/ironbar/modules/battery/set-profile.sh` - Profile switcher (uses `tuned-adm`)
+- `home-manager/ironbar/modules/battery/get-profile.sh` - Current profile reader (reads sysfs)
 
 **Power settings managed:**
 | Setting | Battery | AC | Method |
 |---------|---------|-----|--------|
-| Platform profile | low-power | balanced | udev rules |
-| EPP | power | balance_performance | udev rules |
-| CPU boost | Off | On | udev rules |
-| WiFi power save | On | Off | udev rules |
-| ABM (panel power savings) | Level 3 | Disabled | udev rules |
+| Platform profile | low-power | balanced | tuned `[acpi]` section |
+| EPP | power | balance_performance | tuned `[cpu]` section |
+| CPU boost | Off | On | tuned `[cpu]` section |
+| WiFi power save | On | Off | tuned `[script]` plugin |
+| ABM (panel power savings) | Level 3 | Disabled | tuned `[script]` plugin |
 | USB autosuspend | Auto (except HID) | Auto (except HID) | udev rules |
 | Audio power save | Disabled | Disabled | modprobe config |
 
 **Why audio power save is disabled:**
 Enabling `snd_hda_intel power_save=1` causes pipewire/wireplumber to repeatedly handle codec wake/sleep cycles, generating excessive DBUS traffic (~300 msg/sec vs ~70 msg/sec) and CPU overhead. The ~0.1-0.3W savings is offset by increased CPU usage.
 
-No sudo required for profile switching - PPD uses D-Bus for authorization.
+No sudo required for profile switching - tuned-ppd uses D-Bus for authorization.
 
 ## SCX sched_ext Scheduler
 
@@ -383,7 +391,7 @@ If the system feels sluggish:
 
 ## Platform Profile Switching
 
-Modern AMD laptops support **ACPI platform profiles** for system-wide power/performance settings. This is managed by **power-profiles-daemon (PPD)** which properly coordinates with the AMD platform.
+Modern AMD laptops support **ACPI platform profiles** for system-wide power/performance settings. This is managed by **tuned** with **tuned-ppd** providing PPD API compatibility.
 
 ### Available Profiles
 
@@ -395,44 +403,47 @@ Modern AMD laptops support **ACPI platform profiles** for system-wide power/perf
 
 ### How It Works
 
-PPD coordinates multiple power settings via the `amd-pmf` driver:
-- Platform profile (fans, TDP, power limits)
-- Energy Performance Preference (EPP)
-- GPU performance states
+tuned manages power settings via custom profiles:
+- Platform profile (fans, TDP, power limits) via `[acpi]` section
+- Energy Performance Preference (EPP) via `[cpu]` section
+- WiFi power save and ABM via `[script]` plugin
+
+tuned-ppd provides PPD API compatibility so `powerprofilesctl` commands work.
 
 ### Ironbar Integration
 
 The battery popup in Ironbar includes power profile switching:
 - Click the battery icon in the status bar
 - Select desired profile in the popup
-- Profile changes immediately (no password needed - uses D-Bus)
+- Profile changes immediately via `tuned-adm` (applies all settings: EPP, boost, WiFi, ABM)
 
 **Implementation files:**
-- `home-manager/ironbar/modules/battery/get-profile.sh` - Reads current profile
-- `home-manager/ironbar/modules/battery/set-profile.sh` - Sets profile via powerprofilesctl
+- `home-manager/ironbar/modules/battery/get-profile.sh` - Reads current profile from sysfs
+- `home-manager/ironbar/modules/battery/set-profile.sh` - Sets profile via `tuned-adm`
 
 ### Manual Switching
 
 ```bash
-# Check current profile
+# Via PPD API (tuned-ppd)
 powerprofilesctl get
-
-# List available profiles
 powerprofilesctl list
-
-# Set profile (no sudo needed)
 powerprofilesctl set balanced
+
+# Via tuned directly
+tuned-adm active
+tuned-adm list
+tuned-adm profile framework-ac
 ```
 
 ### Relationship to Other Power Settings
 
 | Feature | Scope | What It Controls |
 |---------|-------|------------------|
-| **PPD** | System-wide | Platform profile + EPP + GPU states |
+| **tuned** | System-wide | Platform profile + EPP + WiFi + ABM |
 | **AMD P-State** | CPU frequency | Hardware-controlled scaling |
 | **SCX Scheduler** | Task scheduling | Which tasks run when/where |
 
-PPD properly coordinates these settings via the amd-pmf driver, avoiding conflicts that could occur when managing them separately.
+tuned coordinates these settings via custom profiles, with tuned-ppd providing the PPD API for compatibility with existing tools.
 
 ## References
 
@@ -445,8 +456,8 @@ PPD properly coordinates these settings via the amd-pmf driver, avoiding conflic
 ## Related Files
 
 - `modules/hardware/power-management.nix` - Main power management configuration:
-  - PPD (power-profiles-daemon) enablement
-  - udev rules for AC/battery auto-switching (zero CPU overhead)
+  - tuned enablement with custom profiles (framework-battery, framework-ac)
+  - tuned-ppd for PPD API compatibility
   - Audio power save config (disabled)
   - Kernel parameters (nmi_watchdog, ASPM, amd_pstate)
   - udev rules (USB autosuspend, I/O scheduler)

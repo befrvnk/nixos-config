@@ -522,9 +522,11 @@ in
 
 Used in: `darkman/default.nix` (monitor-hotplug), `ironbar/modules/niri-overview-watcher/`
 
-### Power Profile Access Pattern (Direct Sysfs)
-Power profiles can be managed via direct sysfs writes or PPD. PPD boost control was broken on
-kernel 6.17 + amd_pstate EPP mode, but **works correctly on CachyOS 6.18.2+**:
+### Power Profile Access Pattern (tuned + Direct Sysfs)
+Power profiles are managed by tuned with tuned-ppd providing PPD API compatibility.
+AC/battery auto-switching is handled by tuned via upower events (not udev).
+
+Direct sysfs access is still available for manual override:
 ```bash
 # Get current profile
 cat /sys/firmware/acpi/platform_profile
@@ -532,10 +534,13 @@ cat /sys/firmware/acpi/platform_profile
 
 # Set profile (world-writable via platform-profile-permissions service)
 echo "balanced" > /sys/firmware/acpi/platform_profile
+
+# Check active tuned profile
+tuned-adm active
 ```
 
-Used in: `home-manager/ironbar/modules/battery/` for profile switching in status bar.
-AC/battery auto-switching handled by udev rules in `modules/hardware/power-management.nix`.
+Used in: `home-manager/ironbar/modules/battery/` for manual profile switching in status bar.
+AC/battery auto-switching handled by tuned in `modules/hardware/power-management.nix`.
 
 ### ABM (Adaptive Backlight Management)
 AMD panel power savings via sysfs:
@@ -543,7 +548,7 @@ AMD panel power savings via sysfs:
 # Read current ABM level (0-4, higher = more savings)
 cat /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 
-# Set ABM level (needs root, done by udev rules on AC/battery change)
+# Set ABM level (done by tuned profile scripts on AC/battery change)
 echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 ```
 - Level 0: Disabled (accurate colors, for photo editing)
@@ -678,14 +683,15 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Without it, `wpctl set-volume` commands appear to work but don't change actual volume
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
 
-### Power Profiles (PPD works on CachyOS)
-- **PPD boost control** was broken on kernel 6.17 + amd_pstate EPP mode, but **works on CachyOS 6.18.2+**
-- `powerprofilesctl` correctly controls boost: power-saver=OFF, performance=ON
-- **udev rules** handle AC/battery auto-switching (triggered by `ENV{POWER_SUPPLY_STATUS}` on BAT1)
-- `platform-profile-permissions` service makes sysfs writable by users (for direct access if needed)
+### Power Profiles (tuned with PPD compatibility)
+- **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility
+- `powerprofilesctl` still works (talks to tuned-ppd D-Bus API)
+- **tuned handles AC/battery auto-switching** via upower events (not udev, minimal CPU overhead)
+- Custom profiles `framework-battery` and `framework-ac` in `modules/hardware/power-management.nix`
+- `platform-profile-permissions` service makes sysfs writable (kept for compatibility)
 - Battery mode: low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3
 - AC mode: balanced profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled
-- Ironbar battery popup can use either `powerprofilesctl` or direct sysfs writes
+- Ironbar battery popup uses `tuned-adm` for profile switching (applies all settings)
 - USB autosuspend enabled (except HID devices) via udev rules
 - Audio power save disabled (causes DBUS spam with pipewire)
 - ZRAM with zstd compression enabled for memory pressure (see `modules/system/core.nix`)
@@ -695,7 +701,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - `Mod+Shift+B` toggles ABM via `toggle-abm` command
 - When disabled: ABM set to 0 (accurate colors for photo editing)
 - When enabled: ABM set to level 3 (power savings)
-- AC/battery auto-switching handled by udev rules (zero CPU overhead)
+- AC/battery auto-switching handled by tuned profile scripts (minimal CPU overhead)
 
 ### Niri Overview Popups
 - A dedicated watcher service closes Ironbar popups when exiting overview mode
