@@ -27,21 +27,16 @@
       url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    vicinae = {
-      url = "github:vicinaehq/vicinae";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Don't use inputs.nixpkgs.follows here - vicinae cachix has builds
+    # for the flake's own nixpkgs version, using follows causes cache misses
+    vicinae.url = "github:vicinaehq/vicinae";
     vicinae-extensions = {
       url = "github:vicinaehq/extensions";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        vicinae.follows = "vicinae";
-      };
+      inputs.vicinae.follows = "vicinae";
     };
-    niri = {
-      url = "github:sodiboo/niri-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Don't use inputs.nixpkgs.follows here - niri cachix has builds
+    # for the flake's own nixpkgs version, using follows causes cache misses
+    niri.url = "github:sodiboo/niri-flake";
     awww = {
       url = "git+https://codeberg.org/LGFae/awww";
       inputs.nixpkgs.follows = "nixpkgs";
