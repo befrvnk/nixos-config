@@ -29,18 +29,32 @@ else
     ABM_STATUS="N/A"
 fi
 
-# Check screen idle status
+# Check if audio is playing via wpctl
+# >2 active channels means actual audio (baseline is 2 speaker outputs)
+WPCTL_STATUS=$(wpctl status 2>/dev/null)
 AUDIO_PLAYING=false
-MANUAL_ON=false
 PLAYING_APPS=""
 
-# Check for audio playing via PipeWire (pw-dump + jq)
-PLAYING_APPS=$(pw-dump 2>/dev/null | jq -r '.[] | select(.info.props."media.class" == "Stream/Output/Audio" and .info.props."application.name" != null) | .info.props."application.name"' 2>/dev/null | sort -u | head -3 | paste -sd ', ')
-if [[ -n "$PLAYING_APPS" ]]; then
-    AUDIO_PLAYING=true
+# Check for paused state first
+if ! echo "$WPCTL_STATUS" | grep -q '\[paused\]'; then
+    # >2 active channels means actual audio playing
+    if [ "$(echo "$WPCTL_STATUS" | grep -c '\[active\]')" -gt 2 ]; then
+        AUDIO_PLAYING=true
+        # Extract app names from Streams section (lines with numbers before [active] channels)
+        PLAYING_APPS=$(echo "$WPCTL_STATUS" | awk '
+            /Streams:/ { in_streams=1 }
+            in_streams && /^[[:space:]]+[0-9]+\./ {
+                gsub(/^[[:space:]]+[0-9]+\. /, "")
+                gsub(/[[:space:]]+$/, "")
+                if ($0 !~ /output_/) print
+            }
+            /^[[:space:]]*$/ && in_streams { in_streams=0 }
+        ' | sort -u | head -3 | paste -sd ', ')
+    fi
 fi
 
 # Check for manual stay-on toggle
+MANUAL_ON=false
 if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
     MANUAL_ON=true
 fi

@@ -27,12 +27,22 @@ else
     ICON="󰃝"  # dim
 fi
 
-# Check if screen is staying on (audio playing OR manual toggle)
+# Check if audio is playing via wpctl
+# >2 active channels means actual audio (baseline is 2 speaker outputs)
+is_audio_playing() {
+    local status=$(wpctl status 2>/dev/null)
+    # If [paused] exists, media is paused
+    if echo "$status" | grep -q '\[paused\]'; then
+        return 1
+    fi
+    # >2 active channels means actual audio playing
+    [ "$(echo "$status" | grep -c '\[active\]')" -gt 2 ]
+}
+
+# Check if screen should stay on (audio playing OR manual toggle)
 STAYING_ON=false
 
-# Check for audio playing via PipeWire (pw-dump + jq)
-AUDIO_STREAMS=$(pw-dump 2>/dev/null | jq -r '[.[] | select(.info.props."media.class" == "Stream/Output/Audio" and .info.props."application.name" != null)] | length' 2>/dev/null)
-if [[ "$AUDIO_STREAMS" -gt 0 ]]; then
+if is_audio_playing; then
     STAYING_ON=true
 fi
 

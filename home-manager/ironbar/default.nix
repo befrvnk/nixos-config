@@ -167,10 +167,6 @@ in
     source = ./modules/display/toggle-auto.sh;
     executable = true;
   };
-  xdg.configFile."ironbar/modules/display/get-playing-apps.sh" = {
-    source = ./modules/display/get-playing-apps.sh;
-    executable = true;
-  };
   xdg.configFile."ironbar/modules/display/toggle-stay-on.sh" = {
     source = ./modules/display/toggle-stay-on.sh;
     executable = true;
