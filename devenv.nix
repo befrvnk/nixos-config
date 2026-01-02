@@ -94,6 +94,27 @@ in
       nh clean all --keep 5
       ```
     '';
+
+    firewall = ''
+      Analyze refused firewall connections and identify their sources
+
+      First, get the external refused connections (filtering out local network):
+      ```bash
+      journalctl -k -b --no-pager | grep "refused" | grep -v 'SRC=192\.168\.' | grep -v 'SRC=10\.' | grep -v 'SRC=172\.1[6-9]\.' | grep -v 'SRC=172\.2[0-9]\.' | grep -v 'SRC=172\.3[0-1]\.' | tail -20
+      ```
+
+      Then for each unique external IP, look up who owns it:
+      ```bash
+      journalctl -k -b --no-pager | grep "refused" | grep -v 'SRC=192\.168\.' | grep -v 'SRC=10\.' | grep -v 'SRC=172\.1[6-9]\.' | grep -v 'SRC=172\.2[0-9]\.' | grep -v 'SRC=172\.3[0-1]\.' | grep -oP 'SRC=\K[0-9a-fA-F.:]+' | sort -u | head -10 | while read ip; do echo "=== $ip ==="; curl -s "https://ipinfo.io/$ip" 2>/dev/null | jq -r '"  Org: \(.org // "unknown")\n  City: \(.city // "unknown"), \(.country // "unknown")"'; done
+      ```
+
+      Analyze the results and explain:
+      1. How many external connections were refused
+      2. Who owns the source IPs (CDN, ISP, cloud provider, etc.)
+      3. What ports they were targeting
+      4. Whether the traffic looks malicious or benign (e.g., CDN responses, port scans)
+      5. Any recommendations
+    '';
   };
 
   # Custom workflow hooks for automation
@@ -179,6 +200,7 @@ in
     echo "  /format   - Format Nix files"
     echo "  /lint     - Lint Nix files with statix"
     echo "  /clean    - Clean old generations (keep 5)"
+    echo "  /firewall - Analyze refused firewall connections"
     echo ""
 
     # Show git status if in a git repository
