@@ -161,6 +161,10 @@ main() {
     local last_state_file="$STATE_DIR/last_state"
     local monitoring_device=false
 
+    # Event-local variables (reset for each device changed event)
+    local event_percentage=""
+    local event_state=""
+
     while read -r line; do
         # Track which device we're currently reading data for
         if [[ "$line" =~ device\ changed:[[:space:]]+(.+) ]]; then
@@ -168,6 +172,9 @@ main() {
             # Only monitor our specific battery device, ignore other batteries (mouse, keyboard, etc)
             if [[ "$current_device" == "$battery_device" ]]; then
                 monitoring_device=true
+                # Reset event-local variables for fresh parsing of this event
+                event_percentage=""
+                event_state=""
             else
                 monitoring_device=false
             fi
@@ -179,24 +186,24 @@ main() {
             continue
         fi
 
-        # Parse percentage changes
-        if [[ "$line" =~ percentage:[[:space:]]+([0-9]+)% ]]; then
-            percentage="${BASH_REMATCH[1]}"
+        # Parse state changes (comes before percentage in upower output)
+        if [[ "$line" =~ state:[[:space:]]+([a-z-]+) ]]; then
+            event_state="${BASH_REMATCH[1]}"
         fi
 
-        # Parse state changes
-        if [[ "$line" =~ state:[[:space:]]+([a-z-]+) ]]; then
-            state="${BASH_REMATCH[1]}"
+        # Parse percentage changes (comes after state in upower output)
+        # Trigger check here since this is the last field we need
+        if [[ "$line" =~ percentage:[[:space:]]+([0-9]+)% ]]; then
+            event_percentage="${BASH_REMATCH[1]}"
 
-            # Check battery state when we have both percentage and state
-            # Only check if the state has actually changed to avoid duplicate notifications
-            if [[ -n "$percentage" ]] && [[ -n "$state" ]]; then
-                local current_state="${percentage}_${state}"
+            # Check battery state only when we have BOTH values from THIS event
+            if [[ -n "$event_percentage" ]] && [[ -n "$event_state" ]]; then
+                local current_state="${event_percentage}_${event_state}"
                 local last_state=""
                 [[ -f "$last_state_file" ]] && last_state=$(cat "$last_state_file")
 
                 if [[ "$current_state" != "$last_state" ]]; then
-                    check_battery_state "$percentage" "$state"
+                    check_battery_state "$event_percentage" "$event_state"
                     echo "$current_state" > "$last_state_file"
                 fi
             fi
