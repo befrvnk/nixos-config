@@ -149,22 +149,34 @@ in
     executable = true;
   };
 
-  # Brightness module
-  # Shows display brightness and ABM (Adaptive Backlight Management) controls
-  xdg.configFile."ironbar/modules/brightness/brightness-status.sh" = {
-    source = ./modules/brightness/brightness-status.sh;
+  # Display module
+  # Shows display brightness, ABM controls, and idle inhibition status
+  xdg.configFile."ironbar/modules/display/display-status.sh" = {
+    source = ./modules/display/display-status.sh;
     executable = true;
   };
-  xdg.configFile."ironbar/modules/brightness/brightness-details.sh" = {
-    source = ./modules/brightness/brightness-details.sh;
+  xdg.configFile."ironbar/modules/display/display-details.sh" = {
+    source = ./modules/display/display-details.sh;
     executable = true;
   };
-  xdg.configFile."ironbar/modules/brightness/get-auto-status.sh" = {
-    source = ./modules/brightness/get-auto-status.sh;
+  xdg.configFile."ironbar/modules/display/get-auto-status.sh" = {
+    source = ./modules/display/get-auto-status.sh;
     executable = true;
   };
-  xdg.configFile."ironbar/modules/brightness/toggle-auto.sh" = {
-    source = ./modules/brightness/toggle-auto.sh;
+  xdg.configFile."ironbar/modules/display/toggle-auto.sh" = {
+    source = ./modules/display/toggle-auto.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/display/get-playing-apps.sh" = {
+    source = ./modules/display/get-playing-apps.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/display/toggle-stay-on.sh" = {
+    source = ./modules/display/toggle-stay-on.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/display/get-stay-on-status.sh" = {
+    source = ./modules/display/get-stay-on-status.sh;
     executable = true;
   };
 

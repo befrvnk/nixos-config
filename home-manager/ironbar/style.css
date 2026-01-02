@@ -409,41 +409,47 @@ button.flat:hover {
     line-height: 1.4;
 }
 
-/* Brightness module styling */
-.brightness {
+/* Display module styling */
+.display {
     font-weight: normal;
 }
 
-/* Brightness popup styling */
-.popup-brightness {
+/* Extra margin to prevent the idle indicator icon (󰈈) from being clipped
+   when screen is staying on due to audio playback or manual override */
+.display button.flat {
+    margin-right: 4px;
+}
+
+/* Display popup styling */
+.popup-display {
     background-color: @base01;
     padding: 15px;
     border-radius: 16px;
 }
 
-.popup-brightness label {
+.popup-display label {
     color: @base05;
     padding: 5px 0;
 }
 
-.popup-brightness .popup-title {
+.popup-display .popup-title {
     font-weight: bold;
     padding-bottom: 8px;
     margin-bottom: 4px;
 }
 
-.popup-brightness .popup-separator {
+.popup-display .popup-separator {
     color: @base03;
     margin: 8px 0;
 }
 
-.popup-brightness .brightness-details {
+.popup-display .display-details {
     font-family: "JetBrainsMono Nerd Font", monospace;
     white-space: pre-wrap;
     line-height: 1.4;
 }
 
-.popup-brightness button.auto-brightness-toggle {
+.popup-display button.display-toggle {
     background-color: @base02;
     color: @base05;
     padding: 8px 16px;
@@ -452,7 +458,7 @@ button.flat:hover {
     border: none;
 }
 
-.popup-brightness button.auto-brightness-toggle:hover {
+.popup-display button.display-toggle:hover {
     background-color: @base03;
 }
 

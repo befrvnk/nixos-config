@@ -104,7 +104,7 @@ Key features in this setup:
 - **WiFi status** - Connection indicator
 - **Bluetooth** - Connection status
 - **Volume** - Current level (click to adjust)
-- **Brightness** - Current level with auto-brightness indicator; popup shows ambient lux and toggle
+- **Display** - Brightness level with idle status; popup shows ABM toggle and stay-on control
 - **Storage** - Mounted removable devices (USB/SD cards)
 - **Battery** - Percentage, charging state, and power profile switching
 

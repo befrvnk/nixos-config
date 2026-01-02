@@ -205,12 +205,12 @@
     },
     {
       "type": "custom",
-      "class": "brightness",
+      "class": "display",
       "bar": [
         {
           "type": "button",
           "class": "flat",
-          "label": "{{2000:~/.config/ironbar/modules/brightness/brightness-status.sh}}",
+          "label": "{{2000:~/.config/ironbar/modules/display/display-status.sh}}",
           "on_click": "popup:toggle"
         }
       ],
@@ -222,12 +222,12 @@
             {
               "type": "label",
               "class": "popup-title",
-              "label": "Display Brightness"
+              "label": "Display Settings"
             },
             {
               "type": "label",
-              "class": "brightness-details",
-              "label": "{{2000:~/.config/ironbar/modules/brightness/brightness-details.sh}}"
+              "class": "display-details",
+              "label": "{{2000:~/.config/ironbar/modules/display/display-details.sh}}"
             },
             {
               "type": "label",
@@ -236,9 +236,15 @@
             },
             {
               "type": "button",
-              "class": "auto-brightness-toggle",
-              "label": "{{2000:~/.config/ironbar/modules/brightness/get-auto-status.sh}}",
-              "on_click": "!~/.config/ironbar/modules/brightness/toggle-auto.sh"
+              "class": "display-toggle",
+              "label": "{{2000:~/.config/ironbar/modules/display/get-auto-status.sh}}",
+              "on_click": "!~/.config/ironbar/modules/display/toggle-auto.sh"
+            },
+            {
+              "type": "button",
+              "class": "display-toggle",
+              "label": "{{2000:~/.config/ironbar/modules/display/get-stay-on-status.sh}}",
+              "on_click": "!~/.config/ironbar/modules/display/toggle-stay-on.sh"
             }
           ]
         }

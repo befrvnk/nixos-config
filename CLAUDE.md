@@ -554,7 +554,7 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 - Level 0: Disabled (accurate colors, for photo editing)
 - Level 3: Aggressive (used on battery for power savings)
 - Toggle: `Mod+Shift+B` runs `toggle-abm` command
-- Ironbar brightness popup also has ABM toggle button
+- Ironbar display popup has ABM and Stay On toggle buttons
 
 ## Adding New Modules
 
