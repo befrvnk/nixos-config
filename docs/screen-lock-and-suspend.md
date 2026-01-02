@@ -5,8 +5,8 @@ This document describes how screen locking and system suspend work in this NixOS
 ## Overview
 
 The system uses three main components to manage screen locking and suspend:
-1. **swayidle** - Monitors user inactivity and triggers actions
-2. **inhibit-suspend-while-playing** - Prevents auto-suspend when media is playing
+1. **swayidle** - Monitors user inactivity and triggers lock/suspend actions
+2. **wayland-pipewire-idle-inhibit** - Prevents idle (screen lock/off) when audio is playing via PipeWire
 3. **spotify-suspend-handler** - Pauses/resumes Spotify during suspend to prevent crashes
 
 ## Behavior Scenarios
@@ -14,22 +14,19 @@ The system uses three main components to manage screen locking and suspend:
 ### Scenario 1: Idle with Media Playing (YouTube, Spotify, etc.)
 
 **Timeline:**
-- **5:00** - Screen turns off (no lock screen)
-- **5:05** - Suspend is **blocked** by inhibitor
-- **5:10** - Display remains off (fallback check)
-- **Media continues playing throughout**
+- **Screen stays on** - idle is inhibited while audio plays
+- **System never locks or suspends**
+- **Media continues playing**
 
 **What you experience:**
-- Screen turns off after 5 minutes of idle
-- Move mouse/keyboard to wake screen (no password needed)
-- YouTube/music keeps playing
-- System never suspends
+- As long as audio is playing through PipeWire, the screen stays on
+- No password prompt, no screen dimming
+- Works with any application that outputs audio
 
 **Technical details:**
-- `playerctl status` detects "Playing" state
-- Smart lock script (`smartLock`) turns off screen instead of locking
-- `inhibit-suspend-while-playing` service holds systemd "idle" inhibitor lock
-- System suspend is blocked while inhibitor is active
+- `wayland-pipewire-idle-inhibit` monitors PipeWire audio streams
+- When audio is detected (for 5+ seconds), it inhibits idle via Wayland protocol
+- swayidle's timeouts are not triggered
 
 ---
 
@@ -45,10 +42,9 @@ The system uses three main components to manage screen locking and suspend:
 - Wake requires unlocking with password
 
 **Technical details:**
-- `playerctl status` returns "Stopped" or "Paused"
-- Smart lock script locks screen normally
-- No inhibitor lock active
-- `systemctl suspend` executes successfully
+- No audio playing = no idle inhibition
+- swayidle triggers lock at 300 seconds
+- swayidle triggers suspend at 305 seconds
 
 ---
 
@@ -61,7 +57,7 @@ The system uses three main components to manage screen locking and suspend:
 - **On wake** - Spotify resumes (if it was playing)
 
 **What you experience:**
-- Close lid → System suspends immediately
+- Close lid → System suspends immediately (even if media is playing)
 - Open lid → Enter password to unlock
 - Spotify automatically resumes if it was playing
 
@@ -82,7 +78,7 @@ The system uses three main components to manage screen locking and suspend:
 
 **What you experience:**
 - Can work normally with external monitor and lid closed
-- Auto-suspend still depends on media playback state
+- Idle behavior still depends on audio playback state
 
 **Technical details:**
 - `HandleLidSwitchDocked = "ignore"` in systemd-logind config
@@ -94,21 +90,15 @@ The system uses three main components to manage screen locking and suspend:
 
 ### Screen Lock and Idle Timeout
 **File:** `home-manager/swaylock.nix`
-- Defines idle timeouts (5 minutes)
-- Smart lock logic (media-aware)
-- Suspend trigger (5 seconds after lock)
+- swaylock configuration (appearance, theming)
+- swayidle timeouts (5 minutes lock, 5:05 suspend)
+- wayland-pipewire-idle-inhibit service configuration
 
-### Media Playback Detection
-**File:** `home-manager/media-suspend.nix`
-- **Service 1:** `inhibit-suspend-while-playing`
-  - Monitors all MPRIS-compatible players
-  - Blocks auto-suspend when media is playing
-  - Works with: Spotify, YouTube (Firefox/Chrome), VLC, etc.
-
-- **Service 2:** `spotify-suspend-handler`
-  - Spotify-specific crash prevention
-  - Pauses before suspend, resumes after wake
-  - Only affects Spotify, not other players
+### Spotify Crash Prevention
+**File:** `home-manager/spotify-suspend/default.nix`
+- **Service:** `spotify-suspend-handler`
+  - Pauses Spotify before suspend, resumes after wake
+  - Prevents crashes from audio device disconnection
 
 ### System-Level Suspend Settings
 **File:** `modules/system/core.nix`
@@ -119,48 +109,53 @@ The system uses three main components to manage screen locking and suspend:
 
 ---
 
-## Media Player Compatibility
+## How wayland-pipewire-idle-inhibit Works
 
-The system detects media playback using **MPRIS** (Media Player Remote Interfacing Specification).
+Unlike the previous polling-based approach, wayland-pipewire-idle-inhibit is event-driven:
 
-### Supported Players:
-- ✅ **Web browsers** (YouTube, Netflix, etc.)
-  - Firefox
-  - Chromium/Chrome
-  - Zen Browser
-- ✅ **Music players**
-  - Spotify
-  - VLC
-  - MPV (with MPRIS support)
-- ✅ **Most Linux media applications** that implement MPRIS
+1. **Monitors PipeWire** for audio stream activity
+2. **Ignores short sounds** (< 5 seconds) like notification sounds
+3. **Uses Wayland idle-inhibit protocol** to prevent screen lock/off
+4. **Releases inhibition** when audio stops
 
-### Detection Command:
-```bash
-playerctl status
+### Configuration Options
+
+```nix
+services.wayland-pipewire-idle-inhibit = {
+  enable = true;
+  settings = {
+    verbosity = "WARN";           # Logging level
+    media_minimum_duration = 5;   # Ignore sounds < 5 seconds
+    idle_inhibitor = "wayland";   # Use Wayland protocol
+  };
+};
 ```
-Returns: `Playing`, `Paused`, or `Stopped`
 
 ---
 
 ## Troubleshooting
 
 ### Screen locks while watching videos
-**Cause:** Media player doesn't support MPRIS or isn't reporting playback state
+**Cause:** wayland-pipewire-idle-inhibit service not running or audio not routing through PipeWire
 
 **Check:**
 ```bash
-playerctl status
+systemctl --user status wayland-pipewire-idle-inhibit
 ```
-Should return `Playing` when video is active. If not, the player doesn't support MPRIS.
+Should show: `active (running)`
 
-**Workaround:** Use a different player or browser that supports MPRIS.
+**Also check:**
+```bash
+wpctl status
+```
+Verify audio is playing through PipeWire sinks.
 
 ---
 
 ### Spotify crashes after suspend
 **Cause:** Audio device disconnects during suspend, CEF framework crashes
 
-**Solution:** Already implemented in `media-suspend.nix`
+**Solution:** Already implemented in `spotify-suspend/default.nix`
 - Automatically pauses Spotify before suspend
 - Resumes playback after wake (2-second delay for audio devices)
 
@@ -172,20 +167,18 @@ Should show: `active (running)`
 
 ---
 
-### System suspends while playing music
-**Cause:** Inhibitor service not running
+### Screen doesn't stay on during audio playback
+**Cause:** wayland-pipewire-idle-inhibit not detecting audio
 
-**Check:**
+**Check service logs:**
 ```bash
-systemctl --user status inhibit-suspend-while-playing
+journalctl --user -u wayland-pipewire-idle-inhibit -f
 ```
-Should show: `active (running)`
 
-**Check current inhibitors:**
-```bash
-systemd-inhibit --list
-```
-Should show "Audio Playback" inhibitor when media is playing.
+**Possible causes:**
+- Audio duration < 5 seconds (increase `media_minimum_duration`)
+- Audio not routing through PipeWire
+- Application using different audio backend
 
 ---
 
@@ -199,21 +192,23 @@ Edit `home-manager/swaylock.nix`:
 timeouts = [
   {
     timeout = 300;  # Change this (in seconds)
-    command = "${smartLock}";
+    command = "${pkgs.swaylock}/bin/swaylock -f";
   }
-  # ...
+  {
+    timeout = 305;  # Suspend 5 seconds after lock
+    command = "${pkgs.systemd}/bin/systemctl suspend";
+  }
 ];
 ```
 
-### Disable smart locking (always lock, even with media)
+### Adjust audio duration threshold
 
-Edit `home-manager/swaylock.nix`, replace `smartLock` with direct swaylock:
+Edit `home-manager/swaylock.nix`:
 
 ```nix
-{
-  timeout = 300;
-  command = "${pkgs.swaylock}/bin/swaylock -f";
-}
+services.wayland-pipewire-idle-inhibit.settings = {
+  media_minimum_duration = 10;  # Ignore sounds < 10 seconds
+};
 ```
 
 ### Disable auto-suspend entirely
@@ -232,19 +227,17 @@ Remove the suspend timeout from `home-manager/swaylock.nix`:
 
 ## Summary Table
 
-| Scenario | After 5 min idle | Locks? | Suspends? | Media continues? |
-|----------|------------------|--------|-----------|------------------|
-| YouTube playing | Screen off | ❌ No | ❌ No | ✅ Yes |
-| Spotify playing | Screen off | ❌ No | ❌ No | ✅ Yes |
-| No media | Screen locked | ✅ Yes | ✅ Yes (5:05) | N/A |
-| Lid close | Immediate | ✅ Yes | ✅ Yes | ❌ No (pauses) |
-| External monitor + lid closed | Normal behavior | Depends | Depends | Depends |
+| Scenario | Screen | Locks? | Suspends? | Audio continues? |
+|----------|--------|--------|-----------|------------------|
+| Audio/video playing | Stays on | No | No | Yes |
+| No media | Locks at 5 min | Yes | Yes (5:05) | N/A |
+| Lid close | Locks | Yes | Yes | No (Spotify pauses) |
+| External monitor + lid closed | Normal | Depends | Depends | Depends |
 
 ---
 
 ## Related Files
 
-- `home-manager/swaylock.nix` - Screen lock configuration
-- `home-manager/media-suspend.nix` - Media playback and suspend inhibition
+- `home-manager/swaylock.nix` - Screen lock and idle inhibit configuration
+- `home-manager/spotify-suspend/default.nix` - Spotify crash prevention
 - `modules/system/core.nix` - System-level power management
-- `docs/screen-lock-and-suspend.md` - This documentation

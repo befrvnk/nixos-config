@@ -379,7 +379,7 @@ nixos-config/
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (ironbar, vicinae, dunst)
-- User services (swayidle, battery notifications)
+- User services (swayidle, wayland-pipewire-idle-inhibit, battery notifications)
 - Theming specializations (dark/light modes)
 
 **Package Split:**

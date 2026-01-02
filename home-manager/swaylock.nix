@@ -16,6 +16,7 @@
 
   # Use swayidle to automatically lock the screen before suspend/sleep
   # This ensures the lock screen is properly shown when opening the lid
+  # Note: wayland-pipewire-idle-inhibit prevents idle during audio/video playback
   services.swayidle = {
     enable = true;
     events = {
@@ -26,23 +27,28 @@
     };
     timeouts = [
       # Lock screen after 5 minutes of inactivity
-      # Video players set Wayland idle inhibitors, so this only triggers for audio-only playback
-      # The inhibit-suspend-while-playing service blocks suspend when music is playing
+      # wayland-pipewire-idle-inhibit prevents this during audio/video playback
       {
         timeout = 300;
         command = "${pkgs.swaylock}/bin/swaylock -f";
       }
-      # Suspend 5 seconds after lock (unless audio is playing)
+      # Suspend 5 seconds after lock
       {
         timeout = 305;
         command = "${pkgs.systemd}/bin/systemctl suspend";
       }
-      # Turn off displays if suspend was inhibited (audio still playing)
-      {
-        timeout = 310;
-        command = "${pkgs.niri}/bin/niri msg action power-off-monitors";
-      }
     ];
+  };
+
+  # Prevent idle (screen lock/off) when audio is playing through PipeWire
+  # Uses Wayland idle-inhibit protocol for event-driven detection (no polling)
+  services.wayland-pipewire-idle-inhibit = {
+    enable = true;
+    settings = {
+      verbosity = "WARN";
+      media_minimum_duration = 5; # Ignore notification sounds
+      idle_inhibitor = "wayland";
+    };
   };
 
   # Ensure swayidle is available (swaylock already included in niri packages)

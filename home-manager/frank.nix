@@ -16,7 +16,7 @@
     ./git.nix
     ./ironbar
     ./lazygit.nix
-    ./media-suspend
+    ./spotify-suspend
     ./navi
     ./niri
     ./obsidian.nix
