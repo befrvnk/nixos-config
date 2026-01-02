@@ -1,8 +1,24 @@
 #!/usr/bin/env bash
-# Firewall details for ironbar popup - shows refused connections grouped by port
+# Firewall details for ironbar popup - shows external refused connections
+# Filters out local network traffic to highlight potential threats
 
-# Get the last refused connection with details
-LAST=$(journalctl -k -b --no-pager 2>/dev/null | grep "refused" | tail -1)
+# Filter for external IPs only (exclude private ranges)
+filter_external() {
+    grep -v 'SRC=192\.168\.' | \
+    grep -v 'SRC=10\.' | \
+    grep -v 'SRC=172\.1[6-9]\.' | \
+    grep -v 'SRC=172\.2[0-9]\.' | \
+    grep -v 'SRC=172\.3[0-1]\.'
+}
+
+# Get all refused connections
+ALL_REFUSED=$(journalctl -k -b --no-pager 2>/dev/null | grep "refused")
+
+# Get external refused connections
+EXTERNAL=$(echo "$ALL_REFUSED" | filter_external)
+
+# Get the last external refused connection
+LAST=$(echo "$EXTERNAL" | tail -1)
 
 if [[ -n "$LAST" ]]; then
     # Extract timestamp (first 3 fields: Mon DD HH:MM:SS)
@@ -12,7 +28,7 @@ if [[ -n "$LAST" ]]; then
     SPT=$(echo "$LAST" | grep -oP 'SPT=\K[0-9]+' || echo "?")
     DPT=$(echo "$LAST" | grep -oP 'DPT=\K[0-9]+' || echo "?")
 
-    echo "Last Refused"
+    echo "Last External"
     echo "───────────────────"
     echo "Time: $TIME"
     echo "From: $SRC:$SPT"
@@ -20,21 +36,23 @@ if [[ -n "$LAST" ]]; then
     echo ""
 fi
 
-echo "By Port"
+echo "External by Source"
 echo "───────────────────"
 
-# Extract DPT (destination port) from refused packet logs and group by port
-PORTS=$(journalctl -k -b --no-pager 2>/dev/null | grep "refused" | \
-    grep -oP 'DPT=\K[0-9]+' | sort | uniq -c | sort -rn)
+# Group external connections by source IP
+SOURCES=$(echo "$EXTERNAL" | grep -oP 'SRC=\K[0-9.]+' | sort | uniq -c | sort -rn)
 
-if [[ -n "$PORTS" ]]; then
-    echo "$PORTS" | while read count port; do
-        printf "Port %-6s %s\n" "$port" "$count"
+if [[ -n "$SOURCES" ]]; then
+    echo "$SOURCES" | while read count ip; do
+        printf "%-15s %s\n" "$ip" "$count"
     done
 else
-    echo "No refused connections"
+    echo "No external connections"
 fi
 
 echo "───────────────────"
-TOTAL=$(journalctl -k -b --no-pager 2>/dev/null | grep -c "refused" || echo "0")
-echo "Total: $TOTAL (since boot)"
+EXT_COUNT=$(echo "$EXTERNAL" | grep -c "refused" || echo "0")
+LOCAL_COUNT=$(echo "$ALL_REFUSED" | grep -c "refused" || echo "0")
+LOCAL_COUNT=$((LOCAL_COUNT - EXT_COUNT))
+echo "External: $EXT_COUNT"
+echo "Local: $LOCAL_COUNT (filtered)"

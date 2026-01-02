@@ -55,14 +55,15 @@ Log prefixes:
 
 A firewall module in the status bar shows refused connections at a glance:
 
-- **Hidden** when no connections have been refused
-- **Visible** with shield icon and count when connections are blocked
+- **Filters local network traffic** (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+- **Hidden** when only local connections are refused (smart home devices, router)
+- **Visible** with shield icon and count when external IPs are blocked
 - **Click** to see popup with:
-  - Last refused connection (time, source IP:port, destination port)
-  - Connections grouped by destination port
-  - Total count since boot
+  - Last external connection (time, source IP:port, destination port)
+  - External sources grouped by IP address
+  - Count breakdown: "External: X" and "Local: Y (filtered)"
 
-This helps identify if you're on a network that's scanning your ports without manually checking logs.
+This filters out harmless local traffic (like Philips Hue SSDP responses) so you can spot actual threats when on untrusted networks.
 
 Configuration: `home-manager/ironbar/modules/firewall/`
 
