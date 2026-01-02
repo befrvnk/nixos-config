@@ -197,7 +197,8 @@ in
     # I/O scheduler optimization
     # NVMe: 'none' is optimal (no scheduling overhead, direct submission)
     # SATA SSD: 'mq-deadline' provides fair latency
-    ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
-    ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+    # Note: DEVTYPE=="disk" excludes partitions and controllers which don't have schedulers
+    ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ENV{DEVTYPE}=="disk", ATTR{queue/scheduler}="none"
+    ACTION=="add|change", KERNEL=="sd[a-z]", ENV{DEVTYPE}=="disk", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
   '';
 }
