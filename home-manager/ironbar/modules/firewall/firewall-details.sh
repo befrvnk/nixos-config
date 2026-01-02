@@ -23,10 +23,15 @@ LAST=$(echo "$EXTERNAL" | tail -1)
 if [[ -n "$LAST" ]]; then
     # Extract timestamp (first 3 fields: Mon DD HH:MM:SS)
     TIME=$(echo "$LAST" | awk '{print $1, $2, $3}')
-    # Extract source IP and port
-    SRC=$(echo "$LAST" | grep -oP 'SRC=\K[0-9.]+' || echo "?")
+    # Extract source IP (IPv4 or IPv6) and port
+    SRC=$(echo "$LAST" | grep -oP 'SRC=\K[0-9a-fA-F.:]+' || echo "?")
     SPT=$(echo "$LAST" | grep -oP 'SPT=\K[0-9]+' || echo "?")
     DPT=$(echo "$LAST" | grep -oP 'DPT=\K[0-9]+' || echo "?")
+
+    # Truncate long IPv6 addresses
+    if [[ ${#SRC} -gt 20 ]]; then
+        SRC="${SRC:0:17}..."
+    fi
 
     echo "Last External"
     echo "───────────────────"
@@ -39,12 +44,16 @@ fi
 echo "External by Source"
 echo "───────────────────"
 
-# Group external connections by source IP
-SOURCES=$(echo "$EXTERNAL" | grep -oP 'SRC=\K[0-9.]+' | sort | uniq -c | sort -rn)
+# Group external connections by source IP (handles both IPv4 and IPv6)
+SOURCES=$(echo "$EXTERNAL" | grep -oP 'SRC=\K[0-9a-fA-F.:]+' | sort | uniq -c | sort -rn)
 
 if [[ -n "$SOURCES" ]]; then
     echo "$SOURCES" | while read count ip; do
-        printf "%-15s %s\n" "$ip" "$count"
+        # Truncate long IPv6 addresses for display
+        if [[ ${#ip} -gt 20 ]]; then
+            ip="${ip:0:17}..."
+        fi
+        printf "%3s  %s\n" "$count" "$ip"
     done
 else
     echo "No external connections"
