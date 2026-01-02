@@ -6,6 +6,7 @@
 
     # System packages and configuration
     ./system/packages.nix
+    ./system/security.nix
     ./system/xkb-custom.nix
 
     # Hardware

@@ -634,6 +634,22 @@ See: `modules/hardware/fprintd/default.nix`
 - LUKS with TPM2 auto-unlock configured in `hardware-configuration.nix`
 - 1Password integration via polkit
 
+### Firewall Configuration
+- Enabled in `modules/system/security.nix`
+- **Incoming traffic**: Blocked by default
+- **Outgoing traffic**: Allowed
+- **Localhost**: Always allowed (dev servers work without configuration)
+- To open ports for LAN access: add to `allowedTCPPorts` or `allowedUDPPorts`
+
+### Kernel Security Hardening
+Configured in `modules/system/security.nix`:
+- `kernel.dmesg_restrict = 1` - Kernel logs root-only
+- `kernel.sysrq = 0` - Disable Magic SysRq key
+- `kernel.yama.ptrace_scope = 1` - Restrict process debugging
+- Network hardening: disable IP forwarding, ignore ICMP redirects, enable SYN cookies
+
+See: `docs/security-hardening.md` for full details
+
 ## Theming System
 
 ### Three-Layer Architecture

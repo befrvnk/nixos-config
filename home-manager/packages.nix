@@ -24,6 +24,7 @@
       navi
       neofetch
       nh
+      nmap
       obsidian
       powertop
       slack
