@@ -168,6 +168,22 @@ in
     executable = true;
   };
 
+  # Firewall module
+  # Shows count of refused connections and per-port breakdown in popup
+  # Hidden when no refused connections via show_if
+  xdg.configFile."ironbar/modules/firewall/has-refused.sh" = {
+    source = ./modules/firewall/has-refused.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/firewall/firewall-status.sh" = {
+    source = ./modules/firewall/firewall-status.sh;
+    executable = true;
+  };
+  xdg.configFile."ironbar/modules/firewall/firewall-details.sh" = {
+    source = ./modules/firewall/firewall-details.sh;
+    executable = true;
+  };
+
   # Systemd service for ironbar with niri overview-only mode
   # Note: This replaces the default ironbar.service since we manage ironbar startup ourselves
   systemd.user.services.ironbar = {

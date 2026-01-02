@@ -51,6 +51,21 @@ Log prefixes:
 - `refused connection:` - TCP connection attempts
 - `refused packet:` - Other blocked packets
 
+### Ironbar Status Module
+
+A firewall module in the status bar shows refused connections at a glance:
+
+- **Hidden** when no connections have been refused
+- **Visible** with shield icon and count when connections are blocked
+- **Click** to see popup with:
+  - Last refused connection (time, source IP:port, destination port)
+  - Connections grouped by destination port
+  - Total count since boot
+
+This helps identify if you're on a network that's scanning your ports without manually checking logs.
+
+Configuration: `home-manager/ironbar/modules/firewall/`
+
 ### Currently Open Ports
 
 | Port | Protocol | Purpose |
