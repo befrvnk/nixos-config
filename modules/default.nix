@@ -10,6 +10,7 @@
     ./system/xkb-custom.nix
 
     # Hardware
+    ./hardware/android.nix
     ./hardware/logitech.nix
     ./hardware/nuphy.nix
     ./hardware/fprintd
