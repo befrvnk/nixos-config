@@ -45,10 +45,6 @@
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    wayland-pipewire-idle-inhibit = {
-      url = "github:rafaelrc7/wayland-pipewire-idle-inhibit";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     # Don't use inputs.nixpkgs.follows here - the pinned overlay requires
     # the flake's own nixpkgs version to get binary cache hits
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";

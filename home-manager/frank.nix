@@ -4,6 +4,7 @@
   imports = [
     inputs.zen-browser.homeModules.beta
     ./atuin.nix
+    ./audio-idle-inhibit
     ./battery-notifications
     ./btop.nix
     ./claude-code
