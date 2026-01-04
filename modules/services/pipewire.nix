@@ -9,16 +9,13 @@
     alsa.support32Bit = true;
     pulse.enable = true;
 
-    # Allow 44.1kHz for QEMU/Android emulator compatibility
-    # QEMU outputs at 44100Hz - allowing it avoids resampling overhead
+    # Use 44.1kHz as default - matches Spotify and Android emulator
+    # Eliminates sample rate switching (which causes crackling on seek)
+    # 48kHz content (YouTube, system sounds) is resampled transparently
     extraConfig.pipewire = {
       "10-clock-config" = {
         "context.properties" = {
-          "default.clock.rate" = 48000;
-          "default.clock.allowed-rates" = [
-            44100
-            48000
-          ];
+          "default.clock.rate" = 44100;
         };
       };
     };
@@ -42,7 +39,7 @@
             matches = [ { "application.process.binary" = "qemu-system-x86_64"; } ];
             actions = {
               update-props = {
-                "node.latency" = "4096/48000";
+                "node.latency" = "4096/44100";
               };
             };
           }
