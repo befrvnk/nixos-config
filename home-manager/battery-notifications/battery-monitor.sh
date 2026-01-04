@@ -142,6 +142,11 @@ main() {
 
     echo "Monitoring battery: $battery_device" >&2
 
+    # Extract the native-path (e.g., "BAT1") from the battery device for secondary validation
+    local battery_native_path
+    battery_native_path=$(upower -i "$battery_device" | grep "native-path:" | awk '{print $2}')
+    echo "Battery native-path: $battery_native_path" >&2
+
     # Get initial battery state
     local info
     info=$(upower -i "$battery_device")
@@ -164,6 +169,7 @@ main() {
     # Event-local variables (reset for each device changed event)
     local event_percentage=""
     local event_state=""
+    local event_native_path=""
 
     while read -r line; do
         # Track which device we're currently reading data for
@@ -175,6 +181,7 @@ main() {
                 # Reset event-local variables for fresh parsing of this event
                 event_percentage=""
                 event_state=""
+                event_native_path=""
             else
                 monitoring_device=false
             fi
@@ -183,6 +190,17 @@ main() {
 
         # Only parse data if we're monitoring our specific battery device
         if [[ "$monitoring_device" == false ]]; then
+            continue
+        fi
+
+        # Parse native-path for secondary validation (guards against race conditions on resume)
+        # This ensures we only process data from the actual laptop battery, not mouse/keyboard
+        if [[ "$line" =~ native-path:[[:space:]]+([^[:space:]]+) ]]; then
+            event_native_path="${BASH_REMATCH[1]}"
+            # If native-path doesn't match our battery, stop monitoring this event
+            if [[ "$event_native_path" != "$battery_native_path" ]]; then
+                monitoring_device=false
+            fi
             continue
         fi
 
@@ -197,7 +215,8 @@ main() {
             event_percentage="${BASH_REMATCH[1]}"
 
             # Check battery state only when we have BOTH values from THIS event
-            if [[ -n "$event_percentage" ]] && [[ -n "$event_state" ]]; then
+            # and native-path was validated (guards against processing wrong device)
+            if [[ -n "$event_percentage" ]] && [[ -n "$event_state" ]] && [[ "$event_native_path" == "$battery_native_path" ]]; then
                 local current_state="${event_percentage}_${event_state}"
                 local last_state=""
                 [[ -f "$last_state_file" ]] && last_state=$(cat "$last_state_file")
