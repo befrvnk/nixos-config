@@ -699,6 +699,13 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Without it, `wpctl set-volume` commands appear to work but don't change actual volume
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
 
+### Android Emulator (QEMU) Audio
+- QEMU outputs at 44.1kHz while PipeWire defaults to 48kHz, causing resampling overhead
+- QEMU's timing jitter causes buffer underruns that affect **all audio** (Spotify, YouTube, etc.)
+- WirePlumber rule in `modules/services/pipewire.nix` applies larger buffers only to QEMU
+- 44.1kHz added to `allowed-rates` to avoid resampling when only QEMU is playing
+- Normal apps keep low latency (~21ms), QEMU gets ~85ms buffer for stability
+
 ### Power Profiles (tuned with PPD compatibility)
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility
 - `powerprofilesctl` still works (talks to tuned-ppd D-Bus API)
