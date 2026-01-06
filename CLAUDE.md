@@ -700,11 +700,18 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
 
 ### Android Emulator (QEMU) Audio
-- QEMU outputs at 44.1kHz with timing jitter that causes buffer underruns
-- These underruns affect **all audio** (Spotify, YouTube, etc.) since audio is mixed
-- PipeWire configured to use 44.1kHz as default (matches Spotify and QEMU)
+- QEMU outputs at 44.1kHz while PipeWire defaults to 48kHz, causing resampling overhead
+- QEMU's timing jitter causes buffer underruns that affect **all audio** (Spotify, YouTube, etc.)
 - WirePlumber rule in `modules/services/pipewire.nix` applies larger buffers only to QEMU
-- Normal apps keep low latency (~21ms), QEMU gets ~93ms buffer for stability
+- 44.1kHz added to `allowed-rates` to avoid resampling when only QEMU is playing
+- Normal apps keep low latency (~21ms), QEMU gets ~85ms buffer for stability
+
+### PipeWire Sample Rate Switching
+- PipeWire supports both 44.1kHz (Spotify, QEMU) and 48kHz (YouTube, system sounds)
+- Rate switching can cause crackling without proper ALSA buffer configuration
+- Large `api.alsa.headroom` (8192) and `api.alsa.period-size` (1024) prevent crackling
+- Configuration in `modules/services/pipewire.nix`
+- See: https://bbs.archlinux.org/viewtopic.php?id=280654
 
 ### Power Profiles (tuned with PPD compatibility)
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility

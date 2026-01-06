@@ -9,13 +9,15 @@
     alsa.support32Bit = true;
     pulse.enable = true;
 
-    # Use 44.1kHz as default - matches Spotify and Android emulator
-    # Eliminates sample rate switching (which causes crackling on seek)
-    # 48kHz content (YouTube, system sounds) is resampled transparently
+    # Allow both 44.1kHz (Spotify, QEMU) and 48kHz (YouTube, system sounds)
     extraConfig.pipewire = {
       "10-clock-config" = {
         "context.properties" = {
           "default.clock.rate" = 44100;
+          "default.clock.allowed-rates" = [
+            44100
+            48000
+          ];
         };
       };
     };
@@ -30,17 +32,30 @@
         };
       };
 
-      # Increase buffer size specifically for QEMU (Android emulator)
-      # Prevents buffer underruns from emulator timing jitter without
-      # adding latency to other applications like Spotify/YouTube
+      # Increase ALSA buffer for all output devices to handle sample rate switches
+      # Large headroom (8192) prevents crackling during 44.1kHz <-> 48kHz transitions
+      # See: https://bbs.archlinux.org/viewtopic.php?id=280654
+      alsa-buffer = {
+        "monitor.alsa.rules" = [
+          {
+            # Match all ALSA output devices
+            matches = [ { "node.name" = "~alsa_output.*"; } ];
+            actions.update-props = {
+              "api.alsa.period-size" = 1024;
+              "api.alsa.headroom" = 8192;
+            };
+          }
+        ];
+      };
+
+      # Increase buffer size for QEMU (Android emulator)
+      # Prevents buffer underruns from emulator timing jitter
       qemu-latency = {
         "monitor.alsa.rules" = [
           {
             matches = [ { "application.process.binary" = "qemu-system-x86_64"; } ];
-            actions = {
-              update-props = {
-                "node.latency" = "4096/44100";
-              };
+            actions.update-props = {
+              "node.latency" = "4096/44100";
             };
           }
         ];
