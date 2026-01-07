@@ -35,6 +35,8 @@
       yazi
       # Icon theme for ironbar
       papirus-icon-theme
+      # Icon font for hamr
+      material-symbols
     ])
     ++ [
       (import ./elecwhat.nix { inherit pkgs; })

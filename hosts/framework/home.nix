@@ -12,6 +12,7 @@
       inputs.stylix.homeModules.stylix
       inputs.vicinae.homeManagerModules.default
       inputs.niri.homeModules.niri
+      ../../pkgs/hamr/hm-module.nix
     ];
     extraSpecialArgs = {
       inherit inputs;

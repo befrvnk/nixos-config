@@ -15,6 +15,7 @@
     ./gemini-cli.nix
     ./ghostty.nix
     ./git.nix
+    ./hamr.nix
     ./ironbar
     ./lazygit.nix
     ./spotify-suspend

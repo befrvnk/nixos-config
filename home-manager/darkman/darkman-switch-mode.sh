@@ -61,6 +61,9 @@ fi
 # The settings.json already points to "stylix" for both modes - colors come from stylix.toml
 @systemd@/bin/systemctl --user restart vicinae.service || true
 
+# Restart hamr to pick up the regenerated colors.json from Stylix
+@systemd@/bin/systemctl --user restart hamr.service || true
+
 # Trigger Niri screen transition effect
 NIRI_SOCKET=$(/run/current-system/sw/bin/find /run/user/* -maxdepth 1 -name 'niri*.sock' 2>/dev/null | /run/current-system/sw/bin/head -n1)
 if [ -n "$NIRI_SOCKET" ]; then
