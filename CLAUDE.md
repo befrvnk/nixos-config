@@ -52,7 +52,7 @@ Agents CAN safely run these commands without sudo:
   - `nix fmt` (no flag needed)
 - **Git operations:** `git add`, `git commit`, `git push`, `git status`, etc.
 - **User systemd services:** `systemctl --user status/start/stop/restart <service>`
-- **Development tools:** `nixfmt`, `statix`, `deadnix` (when in devenv environment)
+- **Development tools:** `deadnix`, `nixfmt`, `shellcheck`, `statix` (when in devenv environment)
 - **File operations:** Read, Edit, Write tools for configuration files
 - **Directory operations:** `ls`, `tree`, `fd`, file searches
 
@@ -65,6 +65,10 @@ Agents CAN safely run these commands without sudo:
 - **Naming:** kebab-case for files, camelCase for variables where appropriate
 - **Comments:** Minimal inline comments, prefer self-documenting code
 - **Error handling:** Use proper Nix attribute set validation and default values
+- **Sorting:** Always sort imports and lists alphabetically for consistency and easier diffs
+- **Script externalization:** Never inline scripts longer than 5 lines in Nix files. Write them to separate `.sh` files and load with `builtins.readFile` or `pkgs.replaceVars`
+- **Explicit PATH in scripts:** Always use `pkgs.writeShellScript` with explicit PATH exports, never assume tools are in PATH
+- **Attribute set merging:** Prefer `lib.mkMerge` over inline merging when combining multiple attribute sets for readability
 
 ## Development Workflow
 - direnv automatically loads devenv environment on directory entry
@@ -73,6 +77,25 @@ Agents CAN safely run these commands without sudo:
 - Test changes with `nh os test ~/nixos-config` before committing to ensure they work
 - Use `nix flake update && rebuild switch` to update flakes and rebuild in one command
 - Clean old generations periodically with `nh clean all --keep 5`
+
+### Code Quality and Testing
+
+**Conditional testing based on file types:**
+- **Nix files modified:** Run `nh os test ~/nixos-config` or `nix flake check --accept-flake-config`
+- **Shell scripts only:** Skip Nix testing, just validate scripts
+- **Documentation only:** No testing needed
+
+**Linting and validation:**
+- **After modifying Nix files:** Run `statix check .` to catch common issues, fix any warnings
+- **After modifying shell scripts:** Run `shellcheck <script>` to validate syntax and catch bugs
+- **Before commits:** Run `nix fmt` to format all Nix files
+
+**Testing scripts before manual testing:**
+- **Always test scripts by running them** when possible to catch errors early
+- For display/status scripts (e.g., ironbar modules): Run directly and verify output
+- For scripts with controlled input: Test with sample data
+- For complex scripts: Copy and run individual sections in bash to verify behavior
+- This saves significant time by catching issues before full system rebuild
 
 ### Standard Development Process
 1. **Check existing documentation** - Review README.md and docs/ for related content

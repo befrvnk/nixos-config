@@ -9,14 +9,15 @@ in
 
   # Packages available in the development environment
   packages = with pkgs; [
-    git
-    nixfmt-rfc-style
-    statix # Nix linter
     deadnix # Find dead Nix code
-    nh # NixOS helper
-    nvd # Nix version diff (for changelog lookup)
+    git
     grim # Screenshot tool (for take-readme-screenshots)
     imagemagick # Image processing (for thumbnails)
+    nh # NixOS helper
+    nixfmt-rfc-style
+    nvd # Nix version diff (for changelog lookup)
+    shellcheck # Shell script linter
+    statix # Nix linter
   ];
 
   # Git hooks configuration - runs automatically after Claude edits files
@@ -118,15 +119,18 @@ in
     '';
 
     commit = ''
-      Format Nix files and create a git commit
+      Format, lint, and create a git commit
 
       Follow these steps:
-      1. Run `nix fmt` to format all Nix files
-      2. Check `git status` to see all changes
-      3. Check `git diff` to understand what changed
-      4. Check `git log --oneline -5` for recent commit style
-      5. Stage relevant changes with `git add`
-      6. Create commit with message: $ARGUMENTS (or generate appropriate message if none provided)
+      1. Stage all changed files with `git add -A`
+      2. Run `nix fmt` to format all Nix files
+      3. Run `statix check .` to lint Nix files (fix any issues found)
+      4. Run `shellcheck` on any modified shell scripts (fix any issues found)
+      5. Stage any formatting/lint changes with `git add -A`
+      6. Check `git status` to see all staged changes
+      7. Check `git diff --cached` to understand what will be committed
+      8. Check `git log --oneline -5` for recent commit style
+      9. Create commit with message: $ARGUMENTS (or generate appropriate message if none provided)
 
       Commit message format:
       ```
