@@ -84,8 +84,6 @@
     defaultLocale = "en_US.UTF-8";
   };
 
-  programs.zsh.enable = true;
-
   # Enable nix-ld for running dynamically linked executables
   programs.nix-ld = {
     enable = true;

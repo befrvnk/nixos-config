@@ -153,7 +153,7 @@ nixos-config/
 
 **Home-Manager modules:** `home-manager/frank.nix` imports all user modules
 - Complex apps get directories (niri/, ironbar/, darkman/)
-- Simple configs are single files (git.nix, ssh.nix, zsh.nix)
+- Simple configs are single files (git.nix, ssh.nix, nushell.nix)
 - Each module is self-contained
 
 ## System vs Home-Manager Split
@@ -168,7 +168,7 @@ nixos-config/
 
 **Home-Manager Level** (`home-manager/`): User-specific customization
 - User applications and packages
-- Shell configuration (zsh, starship)
+- Shell configuration (nushell, starship, atuin, carapace)
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (ironbar, vicinae, dunst)

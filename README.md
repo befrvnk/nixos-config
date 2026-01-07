@@ -221,13 +221,117 @@ connect XX:XX:XX:XX # Connect to device
 disconnect         # Disconnect current device
 ```
 
+## Shell Environment
+
+This configuration uses **Nushell** as the default shell with several integrations for an enhanced command-line experience.
+
+### Nushell
+
+[Nushell](https://www.nushell.sh/) is a modern shell that treats data as structured tables rather than plain text. This makes it powerful for data manipulation and scripting.
+
+**Key differences from traditional shells:**
+- Commands output structured data (tables, records, lists) instead of text
+- Pipeline operators work on structured data: `ls | where size > 1mb | sort-by modified`
+- Built-in commands for JSON, YAML, CSV, and other formats
+- Strong typing with helpful error messages
+- Cross-platform consistency
+
+**Basic Nushell commands:**
+
+```nushell
+# List files as a table (sortable, filterable)
+ls | sort-by size | reverse
+
+# Filter files by extension
+ls | where name =~ ".nix$"
+
+# Work with JSON
+open package.json | get dependencies
+
+# HTTP requests return structured data
+http get https://api.github.com/users/octocat | select login name
+
+# String manipulation
+"hello world" | str capitalize
+
+# Math operations
+[1 2 3 4 5] | math sum
+
+# System information as structured data
+sys | get host
+```
+
+**Configuration:** `~/.config/nushell/config.nu` (managed by home-manager)
+
+### Shell Integrations
+
+| Tool | Keybinding | Description |
+|------|------------|-------------|
+| **Starship** | - | Cross-shell prompt with git status, directory, and more |
+| **Atuin** | `Ctrl+R` | Search shell history with fuzzy matching and sync |
+| **Carapace** | `Tab` | Completions for 1000+ commands (git, docker, kubectl, etc.) |
+| **Navi** | `Ctrl+G` | Interactive cheatsheet browser |
+| **Direnv** | - | Auto-loads `.envrc` files when entering directories |
+
+### Shell Keybindings
+
+| Keybinding | Action |
+|------------|--------|
+| `Ctrl+R` | Search command history (Atuin) |
+| `Ctrl+G` | Open cheatsheet browser (Navi) |
+| `Ctrl+Left/Right` | Move cursor by word |
+| `Alt+B/F` | Move cursor backward/forward by word |
+| `Tab` | Trigger completions (Carapace) |
+| `Up/Down` | Navigate history |
+
+### Nushell Tips
+
+**Pipelines with structured data:**
+```nushell
+# Find large files
+ls **/* | where type == file | where size > 100mb | sort-by size
+
+# Git log as table
+git log --oneline -20 | lines | split column " " hash message
+
+# Process JSON API responses
+http get https://api.example.com/data | get items | where active == true
+```
+
+**Useful built-in commands:**
+```nushell
+# Explore data interactively
+ls | explore
+
+# Get help for any command
+help ls
+help str
+
+# View command source
+view source some-command
+
+# Benchmark a command
+timeit { ls }
+```
+
+**Working with the system:**
+```nushell
+# Process management
+ps | where cpu > 10
+
+# Disk usage
+df | where mount =~ "home"
+
+# Environment variables
+$env.PATH | split row ":"
+```
+
 ## Installed Software
 
 ### System Packages
 
 Core utilities installed at the system level in `modules/system/packages.nix`:
 
-- **Shell:** zsh
 - **Editor:** vim
 - **Version Control:** git
 - **Networking:** wget, networkmanager
@@ -262,6 +366,14 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **claude-code** - Anthropic's AI coding assistant
 - **gemini-cli** - Google's Gemini AI
 
+#### Shell
+- **nushell** - Modern shell with structured data pipelines
+- **carapace** - Multi-shell completion engine (1000+ commands)
+- **starship** - Cross-shell prompt
+- **atuin** - Shell history search with sync
+- **navi** - Interactive cheatsheet (`Ctrl+G`)
+- **direnv** - Automatic environment loading
+
 #### Terminal & CLI
 - **ghostty** - GPU-accelerated terminal
 - **bat** - Syntax-highlighted cat
@@ -273,9 +385,7 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **yazi** - Terminal file manager
 - **superfile** - Terminal file manager with preview
 - **lf** - Terminal file manager
-- **navi** - Interactive cheatsheet
 - **neofetch** - System info display
-- **starship** - Cross-shell prompt
 - **powertop** - Monitor system power usage
 
 #### File Management
@@ -353,7 +463,7 @@ This configuration separates concerns between system-level and user-level settin
 
 **Home-Manager Level** (`home-manager/`):
 - User applications and packages
-- Shell configuration (zsh, starship)
+- Shell configuration (nushell, starship, atuin, carapace)
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (ironbar, vicinae, dunst)

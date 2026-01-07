@@ -29,10 +29,10 @@
     # This caches the Nix development shell to make subsequent loads instant
     nix-direnv.enable = true;
 
-    # Automatically enable direnv in bash
+    # Automatically enable direnv in bash (fallback shell)
     enableBashIntegration = true;
 
-    # Automatically enable direnv in zsh
-    enableZshIntegration = true;
+    # Automatically enable direnv in nushell
+    enableNushellIntegration = true;
   };
 }

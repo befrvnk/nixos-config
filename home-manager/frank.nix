@@ -18,15 +18,16 @@
     ./hamr.nix
     ./ironbar
     ./lazygit.nix
-    ./spotify-suspend
     ./navi
+    ./nil.nix
     ./niri
+    ./nushell.nix
     ./obsidian.nix
     ./opencode
     ./packages.nix
     ./polkit-agent.nix
-    ./nil.nix
     ./signal.nix
+    ./spotify-suspend
     ./ssh.nix
     ./starship.nix
     ./stylix.nix
@@ -35,7 +36,6 @@
     ./vicinae.nix
     ./zed.nix
     ./zen-browser
-    ./zsh
   ];
 
   home.username = "frank";
