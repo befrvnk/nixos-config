@@ -3,8 +3,6 @@ let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
 in
 {
-  # Note: Agents are defined in .claude/agents/*.md files
-  # Claude Code loads these automatically without needing devenv configuration
   # Enable Claude Code integration
   claude.code.enable = true;
 
@@ -115,6 +113,27 @@ in
       4. Whether the traffic looks malicious or benign (e.g., CDN responses, port scans)
       5. Any recommendations
     '';
+
+    commit = ''
+      Format Nix files and create a git commit
+
+      Follow these steps:
+      1. Run `nix fmt` to format all Nix files
+      2. Check `git status` to see all changes
+      3. Check `git diff` to understand what changed
+      4. Check `git log --oneline -5` for recent commit style
+      5. Stage relevant changes with `git add`
+      6. Create commit with message: $ARGUMENTS (or generate appropriate message if none provided)
+
+      Commit message format:
+      ```
+      <type>(<scope>): <short summary>
+
+      <optional detailed explanation>
+      ```
+
+      Types: feat, fix, refactor, docs, style, chore
+    '';
   };
 
   # Custom workflow hooks for automation
@@ -201,6 +220,7 @@ in
     echo "  /lint     - Lint Nix files with statix"
     echo "  /clean    - Clean old generations (keep 5)"
     echo "  /firewall - Analyze refused firewall connections"
+    echo "  /commit   - Format and create git commit"
     echo ""
 
     # Show git status if in a git repository
