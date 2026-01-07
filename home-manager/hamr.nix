@@ -67,11 +67,16 @@ let
       "on_success_container": "${colors.base05}"
     }
   '';
+  # Set to true to enable hamr launcher for testing
+  enableHamr = false;
 in
 {
-  programs.hamr.enable = true;
+  programs.hamr.enable = enableHamr;
 
   # Generate colors.json from current Stylix theme
   # This file is auto-watched by hamr and reloaded on change
-  xdg.configFile."hamr/colors.json".text = generateColorsJson;
+  xdg.configFile."hamr/colors.json" = {
+    enable = enableHamr;
+    text = generateColorsJson;
+  };
 }
