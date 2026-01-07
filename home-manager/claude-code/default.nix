@@ -1,13 +1,14 @@
 { pkgs, ... }:
 let
-  statusLineScript = pkgs.runCommand "claude-statusline" { } ''
-    cp ${
-      pkgs.replaceVars ./statusline.sh {
-        git = "${pkgs.git}/bin/git";
-        jq = "${pkgs.jq}/bin/jq";
-      }
-    } $out
-    chmod +x $out
+  # Python statusline script with accurate context tracking
+  statusLineScript = pkgs.writers.writePython3Bin "claude-statusline" {
+    flakeIgnore = [ "E501" ]; # Ignore line length warnings
+  } (builtins.readFile ./statusline.py);
+
+  # Wrapper to ensure git is in PATH
+  statusLineWrapper = pkgs.writeShellScript "claude-statusline-wrapper" ''
+    export GIT_PATH="${pkgs.git}/bin/git"
+    exec ${statusLineScript}/bin/claude-statusline "$@"
   '';
 in
 {
@@ -18,7 +19,7 @@ in
       alwaysThinkingEnabled = true;
       statusLine = {
         type = "command";
-        command = "${statusLineScript}";
+        command = "${statusLineWrapper}";
         padding = 0;
       };
     };
