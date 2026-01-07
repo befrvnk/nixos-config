@@ -1,6 +1,7 @@
 { pkgs, ... }:
 let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
+  takeReadmeScreenshots = import ./scripts/take-readme-screenshots.nix { inherit pkgs; };
 in
 {
   # Enable Claude Code integration
@@ -14,6 +15,8 @@ in
     deadnix # Find dead Nix code
     nh # NixOS helper
     nvd # Nix version diff (for changelog lookup)
+    grim # Screenshot tool (for take-readme-screenshots)
+    imagemagick # Image processing (for thumbnails)
   ];
 
   # Git hooks configuration - runs automatically after Claude edits files
@@ -203,12 +206,13 @@ in
     echo "🚀 NixOS Config Development Environment"
     echo ""
     echo "Available commands:"
-    echo "  rebuild [switch] - Rebuild NixOS (default: boot)"
-    echo "  clean [N]        - Clean old generations (default: keep 5)"
-    echo "  sysinfo          - Show system information"
-    echo "  generations      - List NixOS generations"
-    echo "  wifi-debug       - Capture WiFi debug logs (run if WiFi fails)"
-    echo "  update           - Update flake inputs"
+    echo "  rebuild [switch]          - Rebuild NixOS (default: boot)"
+    echo "  clean [N]                 - Clean old generations (default: keep 5)"
+    echo "  sysinfo                   - Show system information"
+    echo "  generations               - List NixOS generations"
+    echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
+    echo "  update                    - Update flake inputs"
+    echo "  take-readme-screenshots   - Capture screenshots for README"
     echo ""
     echo "Slash commands (Claude Code):"
     echo "  /rebuild  - Rebuild and switch configuration"
@@ -326,6 +330,12 @@ in
     update.exec = ''
       echo "Updating flake inputs..."
       nix flake update --accept-flake-config
+    '';
+
+    # Take README screenshots in light/dark and normal/overview modes
+    # Opens Ghostty with neofetch and captures all combinations
+    take-readme-screenshots.exec = ''
+      ${takeReadmeScreenshots}
     '';
   };
 
