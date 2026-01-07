@@ -91,6 +91,7 @@ in
   };
 
   # Systemd service to monitor for display changes and refresh wallpaper
+  # Uses udevadm monitor for DRM subsystem events (sysfs files don't generate inotify events)
   systemd.user.services.monitor-hotplug = {
     Unit = {
       Description = "Monitor hotplug wallpaper refresh";
@@ -100,7 +101,7 @@ in
 
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'while ${pkgs.inotify-tools}/bin/inotifywait -e create,delete -m /sys/class/drm/*/status 2>/dev/null; do ~/.local/share/monitor-hotplug.sh; done'";
+      ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.systemd}/bin/udevadm monitor --udev --subsystem-match=drm | while read -r line; do if echo \"$line\" | ${pkgs.gnugrep}/bin/grep -q \"change\"; then sleep 2; ~/.local/share/monitor-hotplug.sh; fi; done'";
       Restart = "always";
       RestartSec = "3";
     };
