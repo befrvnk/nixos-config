@@ -79,3 +79,8 @@ fi
 
 # Change wallpaper with fade transition (no daemon restart needed)
 @awww@/bin/awww img "$WALLPAPER" --transition-type simple --transition-duration 1
+
+# Update Nushell theme (running sessions will pick this up via pre_prompt hook)
+NUSHELL_STATE_DIR="$HOME/.local/state/nushell"
+@coreutils@/bin/mkdir -p "$NUSHELL_STATE_DIR"
+@coreutils@/bin/cp "$HOME/.config/nushell/theme-$MODE.nuon" "$NUSHELL_STATE_DIR/theme.nuon"
