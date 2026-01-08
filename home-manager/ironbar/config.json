@@ -50,7 +50,7 @@
         {
           "type": "button",
           "class": "flat",
-          "label": "{{2000:~/.config/ironbar/modules/notifications/notification-count.sh}}",
+          "label": "{{watch:2000:~/.config/ironbar/modules/notifications/notification-count-watch.sh}}",
           "on_click": "popup:toggle"
         }
       ],
@@ -257,7 +257,7 @@
         {
           "type": "button",
           "class": "flat",
-          "label": "{{5000:~/.config/ironbar/modules/battery/battery-status.sh}}",
+          "label": "{{watch:5000:~/.config/ironbar/modules/battery/battery-watch.sh}}",
           "on_click": "popup:toggle"
         }
       ],

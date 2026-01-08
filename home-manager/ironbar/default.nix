@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   config,
   ...
 }:
@@ -33,6 +34,35 @@ let
     @define-color base0F #${colors.base0F};
 
     ${builtins.readFile ./style.css}
+  '';
+
+  # Battery watching script with injected dependencies
+  # Uses upower --monitor-detail for event-driven updates instead of polling
+  batteryWatch = pkgs.writeShellScript "battery-watch" ''
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.upower
+        pkgs.gawk
+        pkgs.gnugrep
+        pkgs.coreutils
+      ]
+    }"
+    ${builtins.readFile ./modules/battery/battery-watch.sh}
+  '';
+
+  # Notification count watching script with injected dependencies
+  # Uses dbus-monitor to watch for notification events
+  notificationCountWatch = pkgs.writeShellScript "notification-count-watch" ''
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.dunst
+        pkgs.dbus
+        pkgs.gawk
+        pkgs.gnugrep
+        pkgs.coreutils
+      ]
+    }"
+    ${builtins.readFile ./modules/notifications/notification-count-watch.sh}
   '';
 in
 {
@@ -71,12 +101,22 @@ in
     source = ./modules/battery/set-profile.sh;
     executable = true;
   };
+  # Event-driven battery watcher (replaces polling in bar status)
+  xdg.configFile."ironbar/modules/battery/battery-watch.sh" = {
+    source = batteryWatch;
+    executable = true;
+  };
   xdg.configFile."ironbar/modules/notifications/notification-count.sh" = {
     source = ./modules/notifications/notification-count.sh;
     executable = true;
   };
   xdg.configFile."ironbar/modules/notifications/notification-history.sh" = {
     source = ./modules/notifications/notification-history.sh;
+    executable = true;
+  };
+  # Event-driven notification watcher (replaces polling in bar status)
+  xdg.configFile."ironbar/modules/notifications/notification-count-watch.sh" = {
+    source = notificationCountWatch;
     executable = true;
   };
 
