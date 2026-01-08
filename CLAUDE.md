@@ -43,7 +43,7 @@
 
 Agents CAN safely run these commands without sudo:
 
-- **devenv scripts (preferred):** `rebuild switch`, `rebuild`, `check`, `sysinfo`, `generations`
+- **devenv scripts (preferred):** `rebuild switch`, `rebuild`, `check`, `sysinfo`, `generations`, `flake-update`
 - **All nh commands:** `nh os switch ~/nixos-config`, `nh os test ~/nixos-config`, `nh clean all`, etc.
 - **Nix commands:** Always use `--accept-flake-config` flag:
   - `nix flake check --accept-flake-config`

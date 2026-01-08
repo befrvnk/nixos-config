@@ -215,7 +215,7 @@ in
     echo "  sysinfo                   - Show system information"
     echo "  generations               - List NixOS generations"
     echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
-    echo "  update                    - Update flake inputs"
+    echo "  flake-update              - Update flake inputs"
     echo "  take-readme-screenshots   - Capture screenshots for README"
     echo ""
     echo "Slash commands (Claude Code):"
@@ -331,7 +331,7 @@ in
       echo "💡 Share these files when reporting WiFi issues."
     '';
 
-    update.exec = ''
+    flake-update.exec = ''
       echo "Updating flake inputs..."
       nix flake update --accept-flake-config
     '';
