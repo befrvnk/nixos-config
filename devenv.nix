@@ -123,14 +123,16 @@ in
 
       Follow these steps:
       1. Stage all changed files with `git add -A`
-      2. Run `nix fmt` to format all Nix files
-      3. Run `statix check .` to lint Nix files (fix any issues found)
-      4. Run `shellcheck` on any modified shell scripts (fix any issues found)
-      5. Stage any formatting/lint changes with `git add -A`
+      2. Get list of staged .nix files: `git diff --cached --name-only --diff-filter=ACMR '*.nix'`
+      3. Run `statix check` only on staged Nix files (skip if none). Fix any warnings in those files.
+      4. Run `shellcheck` on any staged shell scripts (fix any issues found)
+      5. Stage any lint fixes with `git add -A`
       6. Check `git status` to see all staged changes
       7. Check `git diff --cached` to understand what will be committed
       8. Check `git log --oneline -5` for recent commit style
       9. Create commit with message: $ARGUMENTS (or generate appropriate message if none provided)
+
+      Note: The pre-commit hook automatically runs nixfmt on commit, so manual formatting is not needed.
 
       Commit message format:
       ```
