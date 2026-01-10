@@ -18,8 +18,30 @@
             44100
             48000
           ];
+          # Increase quantum to prevent buffer underruns with QEMU
+          # See: https://forum.endeavouros.com/t/pipewire-guide-audio-crackling-popping-and-latency/69602
+          "default.clock.quantum" = 2048;
+          "default.clock.min-quantum" = 1024;
+          "default.clock.max-quantum" = 4096;
+          # Increase link buffers (default 16 causes crackling)
+          "link.max-buffers" = 128;
         };
       };
+    };
+
+    # QEMU-specific latency via pulse.rules
+    # QEMU requests ~2.7ms latency which causes underruns on most hardware
+    # See: https://github.com/wwmm/easyeffects/issues/2406
+    extraConfig.pipewire-pulse."99-qemu-latency" = {
+      "pulse.rules" = [
+        {
+          matches = [ { "application.process.binary" = "qemu-system-x86_64"; } ];
+          actions.update-props = {
+            "pulse.min.req" = "4096/44100";
+            "pulse.min.quantum" = "4096/44100";
+          };
+        }
+      ];
     };
 
     wireplumber.extraConfig = {
@@ -48,18 +70,6 @@
         ];
       };
 
-      # Increase buffer size for QEMU (Android emulator)
-      # Prevents buffer underruns from emulator timing jitter
-      qemu-latency = {
-        "monitor.alsa.rules" = [
-          {
-            matches = [ { "application.process.binary" = "qemu-system-x86_64"; } ];
-            actions.update-props = {
-              "node.latency" = "4096/44100";
-            };
-          }
-        ];
-      };
     };
   };
 }

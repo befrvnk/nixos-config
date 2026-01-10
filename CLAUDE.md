@@ -516,16 +516,21 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
 
 ### Android Emulator (QEMU) Audio
-- QEMU outputs at 44.1kHz while PipeWire defaults to 48kHz, causing resampling overhead
-- QEMU's timing jitter causes buffer underruns that affect **all audio** (Spotify, YouTube, etc.)
-- WirePlumber rule in `modules/services/pipewire.nix` applies larger buffers only to QEMU
+- QEMU requests extremely low latency (~2.7ms / 118 samples at 44.1kHz) causing buffer underruns
+- This affects **all audio** (Spotify, YouTube, etc.) when the emulator is running
+- Fix uses `pulse.rules` in `pipewire-pulse.conf` to force higher latency for QEMU specifically
+- **Important:** `monitor.alsa.rules` only matches hardware devices, NOT application streams
+- QEMU uses PulseAudio compatibility layer, so it must be configured via `pulse.rules`
 - 44.1kHz added to `allowed-rates` to avoid resampling when only QEMU is playing
-- Normal apps keep low latency (~21ms), QEMU gets ~85ms buffer for stability
+- Global quantum increased (`min-quantum=1024`, `quantum=2048`) for additional stability
+- See: https://github.com/wwmm/easyeffects/issues/2406
 
 ### PipeWire Sample Rate Switching
 - PipeWire supports both 44.1kHz (Spotify, QEMU) and 48kHz (YouTube, system sounds)
 - Rate switching can cause crackling without proper ALSA buffer configuration
 - Large `api.alsa.headroom` (8192) and `api.alsa.period-size` (1024) prevent crackling
+- Quantum settings: `quantum=2048`, `min-quantum=1024`, `max-quantum=4096`
+- `link.max-buffers=128` (default 16 is too low and causes crackling)
 - Configuration in `modules/services/pipewire.nix`
 - See: https://bbs.archlinux.org/viewtopic.php?id=280654
 
