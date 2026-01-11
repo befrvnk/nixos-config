@@ -11,7 +11,7 @@
   '';
 
   # Helper function to create a wrapper that loads Anytype API key
-  # Usage: wrapWithAnytypeKey { package = pkgs.opencode; name = "opencode"; }
+  # Usage: wrapWithAnytypeKey { package = pkgs.claude-code; name = "claude"; }
   wrapWithAnytypeKey =
     { package, name }:
     pkgs.writeShellApplication {

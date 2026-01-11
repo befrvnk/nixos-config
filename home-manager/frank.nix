@@ -25,7 +25,6 @@
     ./niri
     ./nushell.nix
     ./obsidian.nix
-    ./opencode
     ./packages.nix
     ./polkit-agent.nix
     ./signal.nix
