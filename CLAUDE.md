@@ -525,6 +525,17 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Global quantum increased (`min-quantum=1024`, `quantum=2048`) for additional stability
 - See: https://github.com/wwmm/easyeffects/issues/2406
 
+### Android Emulator GPU (AMD Radeon 890M)
+- Android emulator requires specific environment variables for AMD GPU hardware acceleration
+- `VK_ICD_FILENAMES` must point to system Vulkan ICD, otherwise emulator fails with `VK_ERROR_INCOMPATIBLE_DRIVER`
+- `RADV_DEBUG=zerovram` fixes gray screen issue on RDNA 3.5 GPUs (gfx1150)
+- Variables set via `systemd.user.sessionVariables` in `home-manager/android/default.nix`
+- **Important:** `home.sessionVariables` does NOT work for GUI apps launched via greetd
+- AVDs created in Android Studio use `hw.gpu.mode=auto` which doesn't work reliably
+- Run `configure-avd` after creating AVDs to set `hw.gpu.mode=host` and disable quickboot
+- Quickboot must be disabled for hardware GPU mode to work
+- Configuration in `home-manager/android/`
+
 ### PipeWire Sample Rate Switching
 - PipeWire supports both 44.1kHz (Spotify, QEMU) and 48kHz (YouTube, system sounds)
 - Rate switching can cause crackling without proper ALSA buffer configuration

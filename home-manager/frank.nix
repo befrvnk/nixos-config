@@ -3,6 +3,7 @@
 {
   imports = [
     inputs.zen-browser.homeModules.beta
+    ./android
     ./atuin.nix
     ./audio-idle-inhibit
     ./battery-notifications
@@ -16,6 +17,7 @@
     ./ghostty.nix
     ./git.nix
     ./hamr.nix
+    ./intellij
     ./ironbar
     ./lazygit.nix
     ./navi

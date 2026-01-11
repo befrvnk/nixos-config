@@ -48,6 +48,11 @@
     # Don't use inputs.nixpkgs.follows here - the pinned overlay requires
     # the flake's own nixpkgs version to get binary cache hits
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    # JetBrains IDE plugins (for NixIDEA in IntelliJ IDEA)
+    nix-jetbrains-plugins = {
+      url = "github:nix-community/nix-jetbrains-plugins";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   nixConfig = {
