@@ -72,7 +72,7 @@ generations      # List NixOS generations
 Pre-commit hooks automatically format Nix files:
 
 1. When you run `git commit`, the hook intercepts it
-2. Formats all staged `.nix` files with `nixfmt-rfc-style`
+2. Formats all staged `.nix` files with `nixfmt`
 3. Re-stages the formatted files
 4. Proceeds with the commit
 
@@ -130,7 +130,7 @@ Main configuration file defining the environment. Key sections:
 ```nix
 packages = with pkgs; [
   git
-  nixfmt-rfc-style
+  nixfmt
   statix
   deadnix
   nh
@@ -142,7 +142,7 @@ packages = with pkgs; [
 git-hooks.hooks = {
   nixfmt = {
     enable = true;
-    package = pkgs.nixfmt-rfc-style;
+    package = pkgs.nixfmt;
   };
 };
 ```
@@ -248,7 +248,7 @@ Edit `devenv.nix` and add to the `packages` list:
 ```nix
 packages = with pkgs; [
   git
-  nixfmt-rfc-style
+  nixfmt
   your-package-here  # Add here
 ];
 ```
@@ -261,7 +261,7 @@ Edit the `git-hooks.hooks` section in `devenv.nix`:
 
 ```nix
 git-hooks.hooks = {
-  nixfmt = { enable = true; package = pkgs.nixfmt-rfc-style; };
+  nixfmt = { enable = true; package = pkgs.nixfmt; };
   statix.enable = true;     # Add linter
   deadnix.enable = true;    # Add dead code detector
 };

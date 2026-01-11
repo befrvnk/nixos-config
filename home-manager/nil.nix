@@ -11,7 +11,7 @@
     auto-archive = true
 
     [nil.formatting]
-    # Use nixfmt-rfc-style for formatting (matches project convention)
-    command = ["${pkgs.nixfmt-rfc-style}/bin/nixfmt"]
+    # Use nixfmt for formatting (matches project convention)
+    command = ["${pkgs.nixfmt}/bin/nixfmt"]
   '';
 }

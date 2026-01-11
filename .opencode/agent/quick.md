@@ -100,7 +100,7 @@ Even though you're fast, maintain quality:
 - ✅ Don't run `nixfmt` (git hook handles it)
 
 ### For NixOS Projects
-- Follow nixfmt-rfc-style conventions
+- Follow nixfmt (RFC style) conventions
 - Use `nix flake check` for validation
 - Stage new files before checking
 - Keep changes focused and simple

@@ -14,7 +14,7 @@ in
     grim # Screenshot tool (for take-readme-screenshots)
     imagemagick # Image processing (for thumbnails)
     nh # NixOS helper
-    nixfmt-rfc-style
+    nixfmt
     nvd # Nix version diff (for changelog lookup)
     shellcheck # Shell script linter
     statix # Nix linter
@@ -24,7 +24,7 @@ in
   git-hooks.hooks = {
     nixfmt = {
       enable = true;
-      package = pkgs.nixfmt-rfc-style;
+      package = pkgs.nixfmt;
     };
     # Optional: enable these for additional code quality checks
     # statix.enable = true;    # Nix linter

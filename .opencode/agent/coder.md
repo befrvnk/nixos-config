@@ -117,7 +117,7 @@ Structure your completion report as:
 - **Avoid over-engineering**: Solve the immediate problem, don't add unnecessary complexity
 
 ### For NixOS Projects
-- Follow **nixfmt-rfc-style** formatting conventions
+- Follow **nixfmt** (RFC style) formatting conventions
 - Don't run `nixfmt` manually (it runs via git hook during commit)
 - Use `nix flake check` for validation after changes
 - Prefer `nh` command in documentation (though nix commands work fine)

@@ -53,6 +53,10 @@
       url = "github:nix-community/nix-jetbrains-plugins";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Pinned nixpkgs for Zed - uses a revision with cached binary
+    # Update this when Zed updates and cache.nixos.org has the new version
+    # Find cached revisions: check Hydra builds at https://hydra.nixos.org/job/nixpkgs/trunk/zed-editor.x86_64-linux
+    nixpkgs-zed.url = "github:NixOS/nixpkgs/1de85f4c808a70f012571ca7ab52a61724f950d8";
   };
 
   nixConfig = {
@@ -109,6 +113,6 @@
       };
 
       # Formatter for `nix fmt` command
-      formatter.${system} = pkgs.nixfmt-rfc-style;
+      formatter.${system} = pkgs.nixfmt;
     };
 }

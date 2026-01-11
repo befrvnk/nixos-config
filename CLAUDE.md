@@ -59,7 +59,7 @@ Agents CAN safely run these commands without sudo:
 **Important for Agents:** Prefer devenv scripts over raw nix commands. Devenv scripts automatically include the correct flags and provide better output.
 
 ## Code Style Guidelines
-- **Formatting:** Uses `nixfmt-rfc-style` - automatically applied via pre-commit hooks
+- **Formatting:** Uses `nixfmt` (RFC style) - automatically applied via pre-commit hooks
 - **File structure:** Modular organization with clear separation (modules/, home-manager/, hosts/)
 - **Imports:** Use relative imports within modules, absolute paths for cross-module imports
 - **Naming:** kebab-case for files, camelCase for variables where appropriate
@@ -702,7 +702,7 @@ Add package X, fix bug Y, update README for Z
 
 Configured via `flake.nix` and managed by `pre-commit-hooks.nix`:
 
-**nixfmt-rfc-style:**
+**nixfmt:**
 - Formats all `.nix` files
 - Runs automatically on `git commit`
 - Can also run manually: `nix fmt`
@@ -755,7 +755,7 @@ In `flake.nix`, add to pre-commit-hooks:
 
 ```nix
 hooks = {
-  nixfmt-rfc-style.enable = true;
+  nixfmt.enable = true;
   # Add new hook:
   new-hook = {
     enable = true;

@@ -157,7 +157,7 @@ When you encounter issues:
 When working on NixOS configurations (like this project):
 
 - Prefer `nh` command over `nixos-rebuild` (see AGENTS.md)
-- Follow nixfmt-rfc-style formatting conventions
+- Follow nixfmt (RFC style) formatting conventions
 - Check for existing module patterns in the codebase
 - Consider Stylix integration for UI-related changes
 - Be aware of specializations and build types (work, personal, etc.)
