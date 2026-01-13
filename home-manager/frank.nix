@@ -27,6 +27,7 @@
     ./obsidian.nix
     ./packages.nix
     ./polkit-agent.nix
+    ./profile-sync-daemon.nix
     ./signal.nix
     ./spotify-suspend
     ./ssh.nix

@@ -24,6 +24,7 @@
     # Services
     ./services/darkman.nix
     ./services/keyd.nix
+    ./services/oomd.nix
     ./services/pipewire.nix
     ./services/bluetooth.nix
     ./services/udisks.nix

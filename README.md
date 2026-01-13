@@ -454,7 +454,7 @@ This configuration separates concerns between system-level and user-level settin
 **System Level** (`modules/`):
 - Boot configuration and kernel parameters
 - Hardware drivers and firmware
-- System services (greetd, darkman, pipewire, bluetooth)
+- System services (greetd, darkman, pipewire, bluetooth, systemd-oomd)
 - Network management
 - Power management (tuned with PPD compatibility, ZRAM)
 - Security (PAM, polkit, TPM)
@@ -466,7 +466,7 @@ This configuration separates concerns between system-level and user-level settin
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (ironbar, vicinae, dunst)
-- User services (swayidle, battery notifications)
+- User services (swayidle, battery notifications, profile-sync-daemon)
 - Theming specializations (dark/light modes)
 
 ## Features
@@ -514,6 +514,7 @@ This configuration separates concerns between system-level and user-level settin
   - 🚀 **Performance**: Full power on AC
 - **Automatic power switching** via udev rules (Balanced on AC, Power Saver on battery)
 - **ZRAM** compressed swap with zstd for memory pressure without SSD wear
+- **systemd-oomd** proactively kills runaway processes before system freezes (works with ZRAM)
 - **CachyOS-style sysctl tuning** - Optimized VM settings (swappiness=180 for ZRAM, page-cluster=0), network buffers, THP defer+madvise, RCU Lazy (5-10% idle power savings)
 - **ABM (Adaptive Backlight Management)** on battery for display power savings (disabled on AC for accurate colors)
 - **Auto-brightness** via ambient light sensor with hysteresis (toggle with `Mod+Shift+B` for photo editing)
@@ -522,6 +523,13 @@ This configuration separates concerns between system-level and user-level settin
 - **Battery popup** in Ironbar for manual profile switching
 - **wayland-pipewire-idle-inhibit** - Screen stays on during audio/video playback
 - Auto-suspend after 5 minutes idle (when no media playing)
+
+### Browser Performance
+
+- **profile-sync-daemon** syncs Zen Browser profile to tmpfs (RAM)
+- Reduces SSD writes and improves browser responsiveness
+- Automatic sync every 10 minutes with crash recovery backups
+- Custom browser definition for Zen Browser support
 
 ### Notifications
 

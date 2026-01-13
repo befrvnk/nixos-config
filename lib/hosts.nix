@@ -11,6 +11,7 @@ let
     (import ../overlays/claude-code.nix)
     (import ../overlays/user-scanner.nix)
     (import ../overlays/hamr.nix)
+    (import ../overlays/profile-sync-daemon.nix)
     inputs.nix-cachyos-kernel.overlays.pinned
   ];
 in

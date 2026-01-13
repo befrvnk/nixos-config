@@ -593,6 +593,28 @@ Sysctl and kernel parameters based on [CachyOS Settings](https://github.com/Cach
 - **I/O scheduler**: `none` for NVMe (optimal), `mq-deadline` for SATA SSDs
 - Sysctl settings in `modules/system/core.nix`, kernel params in `modules/hardware/power-management.nix`
 
+### systemd-oomd (Out-of-Memory Daemon)
+- Proactively kills processes under memory pressure before kernel OOM killer triggers
+- Works with ZRAM: high swappiness (180) fills ZRAM first, oomd acts at 90% swap usage
+- Enabled for both user slices (desktop apps) and system slice (services)
+- 20-second memory pressure duration before action (Fedora default, prevents false positives)
+- Configuration in `modules/services/oomd.nix`
+- Check status: `systemctl status systemd-oomd`
+- View kills: `journalctl -u systemd-oomd`
+
+### Profile-sync-daemon (psd)
+- Syncs browser profiles to tmpfs (RAM) for reduced SSD writes and faster I/O
+- **Zen Browser support added via overlay** in `overlays/profile-sync-daemon.nix`
+  - psd only reads browser definitions from its package directory, not user config
+  - Overlay patches the package to include Zen browser definition
+- Reads profile paths from `~/.zen/profiles.ini` (same format as Firefox)
+- Resync timer runs every 10 minutes (configurable in `home-manager/profile-sync-daemon.nix`)
+- Crash recovery: keeps last 3 backup snapshots
+- **Close browser before first activation** to ensure clean sync
+- Check status: `systemctl --user status psd`
+- Preview sync targets: `psd preview`
+- Configuration in `home-manager/profile-sync-daemon.nix`
+
 ### Vicinae Configuration (v0.17+)
 - Config structure uses `theme.light` and `theme.dark` objects, NOT `theme.name`
 - Use `launcher_window` for window settings, NOT `window`
