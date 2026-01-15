@@ -10,22 +10,34 @@ let
   };
 
   appimageContents = pkgs.appimageTools.extractType2 { inherit pname version src; };
-in
-pkgs.appimageTools.wrapType2 {
-  inherit pname version src;
 
-  extraInstallCommands = ''
-    install -m 444 -D ${appimageContents}/elecwhat.desktop $out/share/applications/elecwhat.desktop
-    install -m 444 -D ${appimageContents}/elecwhat.png $out/share/icons/hicolor/512x512/apps/elecwhat.png
-    substituteInPlace $out/share/applications/elecwhat.desktop \
-      --replace-fail 'Exec=AppRun' 'Exec=elecwhat'
-  '';
+  unwrapped = pkgs.appimageTools.wrapType2 {
+    inherit pname version src;
 
-  meta = with pkgs.lib; {
-    description = "Simple desktop WhatsApp client for Linux";
-    homepage = "https://github.com/piec/elecwhat";
-    license = licenses.gpl3Plus;
-    platforms = [ "x86_64-linux" ];
-    mainProgram = "elecwhat";
+    extraInstallCommands = ''
+      install -m 444 -D ${appimageContents}/elecwhat.desktop $out/share/applications/elecwhat.desktop
+      install -m 444 -D ${appimageContents}/elecwhat.png $out/share/icons/hicolor/512x512/apps/elecwhat.png
+      substituteInPlace $out/share/applications/elecwhat.desktop \
+        --replace-fail 'Exec=AppRun' 'Exec=elecwhat'
+    '';
+
+    meta = with pkgs.lib; {
+      description = "Simple desktop WhatsApp client for Linux";
+      homepage = "https://github.com/piec/elecwhat";
+      license = licenses.gpl3Plus;
+      platforms = [ "x86_64-linux" ];
+      mainProgram = "elecwhat";
+    };
   };
+in
+# Wrap with Wayland/Ozone flags for proper clipboard support
+pkgs.symlinkJoin {
+  name = "elecwhat-wayland";
+  paths = [ unwrapped ];
+  buildInputs = [ pkgs.makeWrapper ];
+  postBuild = ''
+    wrapProgram $out/bin/elecwhat \
+      --add-flags "--enable-features=UseOzonePlatform" \
+      --add-flags "--ozone-platform=wayland"
+  '';
 }
