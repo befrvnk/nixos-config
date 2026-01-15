@@ -10,6 +10,7 @@ in
 {
   home.packages = [
     pkgs.androidStudioPackages.canary
+    pkgs.android-studio
     configureAvd
   ];
 
