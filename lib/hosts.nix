@@ -12,6 +12,7 @@ let
     (import ../overlays/user-scanner.nix)
     (import ../overlays/hamr.nix)
     (import ../overlays/profile-sync-daemon.nix)
+    (import ../overlays/worktrunk.nix)
     inputs.nix-cachyos-kernel.overlays.pinned
   ];
 in
