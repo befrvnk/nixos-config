@@ -80,9 +80,9 @@ def parse_transcript(transcript_path: str) -> tuple[int, int]:
                                 if item.get('text', '').strip().startswith('/compact'):
                                     last_compact_idx = i
                                     break
-                # Also check for summary events which indicate post-compact
-                if entry.get('type') == 'summary':
-                    last_compact_idx = i
+                # Note: Don't treat summary events as compact boundaries.
+                # Summary events can appear for various reasons, not just /compact.
+                # Only actual /compact commands should reset the context count.
             except json.JSONDecodeError:
                 continue
 
@@ -168,17 +168,18 @@ def main():
     # Get model name
     model = input_data.get('model', {}).get('display_name', 'unknown')
 
-    # Get context info from JSON (as fallback/baseline)
+    # Get context info from JSON (authoritative source from Claude Code)
     current_tokens, context_size, from_current = get_context_from_json(input_data)
 
-    # Try to get more accurate count from transcript
-    transcript_path = input_data.get('transcript_path', '')
-    if transcript_path:
-        transcript_input, transcript_output = parse_transcript(transcript_path)
-        if transcript_input > 0:
-            # Use transcript data - it's the most recent API response's input_tokens
-            # which represents the actual context size at that point
-            current_tokens = transcript_input
+    # Only fall back to transcript parsing if current_usage wasn't available
+    # The JSON current_usage is authoritative; transcript parsing has edge cases
+    # that can cause under-reporting (e.g., incorrect /compact boundary detection)
+    if not from_current:
+        transcript_path = input_data.get('transcript_path', '')
+        if transcript_path:
+            transcript_input, transcript_output = parse_transcript(transcript_path)
+            if transcript_input > 0:
+                current_tokens = transcript_input
 
     # Calculate percentage
     percent = int((current_tokens / context_size) * 100) if context_size > 0 else 0
