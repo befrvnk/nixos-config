@@ -336,6 +336,10 @@ in
     flake-update.exec = ''
       echo "Updating flake inputs..."
       nix flake update --accept-flake-config
+
+      echo ""
+      echo "Updating IntelliJ IDEA Community package..."
+      ./scripts/update-idea-community.sh || echo "⚠️  IntelliJ update failed (may already be up to date)"
     '';
 
     # Take README screenshots in light/dark and normal/overview modes

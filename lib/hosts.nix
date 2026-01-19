@@ -9,9 +9,10 @@ let
     (import ../overlays/niri.nix)
     inputs.claude-code.overlays.default
     (import ../overlays/claude-code.nix)
-    (import ../overlays/user-scanner.nix)
     (import ../overlays/hamr.nix)
+    (import ../overlays/idea-community.nix)
     (import ../overlays/profile-sync-daemon.nix)
+    (import ../overlays/user-scanner.nix)
     (import ../overlays/worktrunk.nix)
     inputs.nix-cachyos-kernel.overlays.pinned
   ];
