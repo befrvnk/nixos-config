@@ -14,7 +14,10 @@ let
     inputs.nix-cachyos-kernel.overlays.pinned
     (import ../overlays/profile-sync-daemon.nix)
     (import ../overlays/user-scanner.nix)
-    (import ../overlays/worktrunk.nix)
+    # worktrunk from flake
+    (final: prev: {
+      worktrunk = inputs.worktrunk.packages.${prev.system}.default;
+    })
   ];
 in
 {
