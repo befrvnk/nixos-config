@@ -135,14 +135,14 @@ in
     executable = true;
   };
 
-  # Logitech mouse battery module
-  # Shows battery status for mice connected via Logitech USB receivers
-  xdg.configFile."ironbar/modules/mouse-battery/mouse-battery-status.sh" = {
-    source = ./modules/mouse-battery/mouse-battery-status.sh;
+  # Peripheral battery module
+  # Shows battery status for connected peripherals (mouse, keyboard)
+  xdg.configFile."ironbar/modules/peripheral-battery/peripheral-battery-status.sh" = {
+    source = ./modules/peripheral-battery/peripheral-battery-status.sh;
     executable = true;
   };
-  xdg.configFile."ironbar/modules/mouse-battery/has-mouse-connected.sh" = {
-    source = ./modules/mouse-battery/has-mouse-connected.sh;
+  xdg.configFile."ironbar/modules/peripheral-battery/has-peripherals-connected.sh" = {
+    source = ./modules/peripheral-battery/has-peripherals-connected.sh;
     executable = true;
   };
 

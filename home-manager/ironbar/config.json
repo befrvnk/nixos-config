@@ -184,12 +184,12 @@
     },
     {
       "type": "custom",
-      "class": "mouse-battery",
-      "show_if": "poll:10000:~/.config/ironbar/modules/mouse-battery/has-mouse-connected.sh",
+      "class": "peripheral-battery",
+      "show_if": "poll:10000:~/.config/ironbar/modules/peripheral-battery/has-peripherals-connected.sh",
       "bar": [
         {
           "type": "label",
-          "label": "{{30000:~/.config/ironbar/modules/mouse-battery/mouse-battery-status.sh}}"
+          "label": "{{30000:~/.config/ironbar/modules/peripheral-battery/peripheral-battery-status.sh}}"
         }
       ]
     },

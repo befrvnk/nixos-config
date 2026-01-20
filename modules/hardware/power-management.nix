@@ -8,7 +8,7 @@ let
   isAmd = hostConfig.cpuVendor == "amd";
   abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";
 
-  # Script for battery profile extras (boost, WiFi power save, ABM)
+  # Script for battery profile extras (boost, WiFi power save, ABM, Bluetooth)
   # tuned's [script] plugin runs this when activating the profile
   # Note: tuned's [cpu] boost setting doesn't work, so we set it here
   batteryScript = pkgs.writeShellScript "tuned-battery-extras" ''
@@ -18,9 +18,11 @@ let
     ${pkgs.iw}/bin/iw dev wlp192s0 set power_save on 2>/dev/null || true
     # Enable ABM (Adaptive Backlight Management) level 3 for power savings
     echo 3 > ${abmPath} 2>/dev/null || true
+    # Turn off Bluetooth on battery (saves ~0.5W, peripherals typically not needed mobile)
+    ${pkgs.bluez}/bin/bluetoothctl power off 2>/dev/null || true
   '';
 
-  # Script for AC profile extras (boost, WiFi power save off, ABM off)
+  # Script for AC profile extras (boost, WiFi power save off, ABM off, Bluetooth on)
   acScript = pkgs.writeShellScript "tuned-ac-extras" ''
     # Enable CPU boost on AC for better performance
     echo 1 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
@@ -28,6 +30,8 @@ let
     ${pkgs.iw}/bin/iw dev wlp192s0 set power_save off 2>/dev/null || true
     # Disable ABM on AC for accurate color reproduction
     echo 0 > ${abmPath} 2>/dev/null || true
+    # Turn on Bluetooth on AC (for external peripherals at desk)
+    ${pkgs.bluez}/bin/bluetoothctl power on 2>/dev/null || true
   '';
 in
 {
