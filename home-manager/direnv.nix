@@ -19,7 +19,7 @@
 # - direnv requires explicit approval (direnv allow) before loading a new .envrc
 # - This prevents arbitrary code execution from untrusted directories
 
-{ ... }:
+_:
 
 {
   programs.direnv = {
@@ -34,5 +34,9 @@
 
     # Automatically enable direnv in nushell
     enableNushellIntegration = true;
+
+    # Disable "is taking a while to execute" warning
+    # Nix/devenv shells can take a few seconds on first load
+    config.global.warn_timeout = "0s";
   };
 }

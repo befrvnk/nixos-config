@@ -14,6 +14,8 @@
 # - Direnv: Auto-loads .envrc files (via enableNushellIntegration in direnv.nix)
 # - Carapace: Tab completions for external commands
 # - Navi: Cheatsheet widget with Ctrl+G (manual integration below)
+# - Worktrunk: Git worktree management with directory switching (manual integration below)
+#              User config with direnv hook is in xdg.configFile below
 #
 # Keybindings:
 # - Ctrl+Left/Right: Word navigation
@@ -177,6 +179,39 @@ in
 
       $env.config.keybindings = ($env.config.keybindings | append $navi_keybinding)
 
+      # Worktrunk shell integration for directory switching
+      # Wraps the wt binary to enable `wt switch` to change the shell's directory
+      def --env --wrapped wt [...args: string] {
+        let directive_file = (mktemp)
+        try {
+          with-env { WORKTRUNK_DIRECTIVE_FILE: $directive_file } {
+            ^wt ...$args
+          }
+          let exit_code = $env.LAST_EXIT_CODE
+
+          # Parse and execute directives (cd commands)
+          if ($directive_file | path exists) {
+            let directives = (open $directive_file | str trim)
+            if ($directives | is-not-empty) {
+              # Extract path from cd command: cd '/path/to/dir' or cd "/path/to/dir"
+              let cd_match = ($directives | parse "cd '{path}'" | get -o path | first)
+              let cd_path = if ($cd_match | is-empty) {
+                # Try double quotes
+                $directives | parse 'cd "{path}"' | get -o path | first
+              } else {
+                $cd_match
+              }
+              if ($cd_path | is-not-empty) {
+                cd $cd_path
+              }
+            }
+          }
+        } catch {
+          # Clean up on error
+        }
+        rm -f $directive_file
+      }
+
       # Helper function to load theme from NUON file
       def load-nushell-theme [] {
         let theme_file = ($env.HOME | path join ".local/state/nushell/theme.nuon")
@@ -247,6 +282,13 @@ in
   # These are copied to ~/.local/state/nushell/theme.nuon by darkman
   xdg.configFile."nushell/theme-dark.nuon".text = mkNushellTheme darkColors;
   xdg.configFile."nushell/theme-light.nuon".text = mkNushellTheme lightColors;
+
+  # Worktrunk user config with direnv auto-allow hook
+  # User hooks run automatically without approval on all repositories
+  xdg.configFile."worktrunk/config.toml".text = ''
+    # Auto-allow direnv in new worktrees
+    post-create = "direnv allow"
+  '';
 
   # Disable Stylix's nushell target since we manage themes ourselves
   stylix.targets.nushell.enable = lib.mkForce false;
