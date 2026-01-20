@@ -5,16 +5,16 @@ let
   # Common overlays applied to all hosts
   commonOverlays = [
     inputs.android-nixpkgs.overlays.default
-    inputs.niri.overlays.niri
-    (import ../overlays/niri.nix)
-    inputs.claude-code.overlays.default
     (import ../overlays/claude-code.nix)
+    inputs.claude-code.overlays.default
     (import ../overlays/hamr.nix)
     (import ../overlays/idea-community.nix)
+    inputs.niri.overlays.niri
+    (import ../overlays/niri.nix)
+    inputs.nix-cachyos-kernel.overlays.pinned
     (import ../overlays/profile-sync-daemon.nix)
     (import ../overlays/user-scanner.nix)
     (import ../overlays/worktrunk.nix)
-    inputs.nix-cachyos-kernel.overlays.pinned
   ];
 in
 {
