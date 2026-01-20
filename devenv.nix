@@ -340,6 +340,10 @@ in
       echo ""
       echo "Updating IntelliJ IDEA Community package..."
       ./scripts/update-idea-community.sh || echo "⚠️  IntelliJ update failed (may already be up to date)"
+
+      echo ""
+      echo "Updating worktrunk package..."
+      ./scripts/update-worktrunk.sh || echo "⚠️  worktrunk update failed (may already be up to date)"
     '';
 
     # Take README screenshots in light/dark and normal/overview modes

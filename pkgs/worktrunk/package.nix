@@ -10,16 +10,16 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "worktrunk";
-  version = "0.15.1";
+  version = "0.17.0";
 
   src = fetchFromGitHub {
     owner = "max-sixty";
     repo = "worktrunk";
     tag = "v${version}";
-    hash = "sha256-/p3H3q2LgimLi9Ykqsr25d5A4kV1D0vM3ZpL3R/eXQQ=";
+    hash = "sha256-VCTcKR/84hUmkxlwX/h0+FHn2dUw8MfQ98HUUaczm/Q=";
   };
 
-  cargoHash = "sha256-60o9JLUSL3B7OpSMWdlsaAr7ZRaAKbAi8C88qMqKE/A=";
+  cargoLock.lockFile = src + "/Cargo.lock";
 
   nativeBuildInputs = [ pkg-config ];
 
