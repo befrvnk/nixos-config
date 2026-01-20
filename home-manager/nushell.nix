@@ -212,6 +212,13 @@ in
         rm -f $directive_file
       }
 
+      # Launch any application detached from terminal (survives shell exit)
+      def launch [app: string, ...args: string] {
+        let cmd = if ($args | is-empty) { $app } else { $"($app) ($args | str join ' ')" }
+        bash -c $"nohup ($cmd) >/dev/null 2>&1 & disown"
+        print $"($app) launched"
+      }
+
       # Helper function to load theme from NUON file
       def load-nushell-theme [] {
         let theme_file = ($env.HOME | path join ".local/state/nushell/theme.nuon")
