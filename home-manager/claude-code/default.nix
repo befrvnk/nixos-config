@@ -35,4 +35,7 @@ in
     # Note: Subagents are project-specific and located in .claude/agents/
     # They are version controlled with the project, not managed by Nix
   };
+
+  # Global Claude Code skills (available in all projects)
+  home.file.".claude/skills/remember/SKILL.md".source = ./skills/remember.md;
 }
