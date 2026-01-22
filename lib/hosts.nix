@@ -5,6 +5,7 @@ let
   # Common overlays applied to all hosts
   commonOverlays = [
     inputs.android-nixpkgs.overlays.default
+    (import ../overlays/android-studio-canary.nix)
     (import ../overlays/claude-code.nix)
     inputs.claude-code.overlays.default
     (import ../overlays/hamr.nix)
