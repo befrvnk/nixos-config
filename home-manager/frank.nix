@@ -19,6 +19,7 @@
     ./hamr.nix
     ./intellij
     ./ironbar
+    ./jujutsu.nix
     ./lazygit.nix
     ./navi
     ./nil.nix
