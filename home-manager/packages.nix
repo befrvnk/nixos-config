@@ -6,6 +6,7 @@
       adw-bluetooth
       anytype
       bat
+      celluloid
       chromium
       ddcutil
       devenv
