@@ -3,9 +3,14 @@
 # Shell completions are provided by Carapace (configured in nushell.nix).
 # No additional Nushell integration is needed.
 
-{ ... }:
+{ pkgs, ... }:
 
 {
+  home.packages = with pkgs; [
+    jjui # TUI for jujutsu
+    lazyjj # lazygit-style TUI for jujutsu
+  ];
+
   programs.jujutsu = {
     enable = true;
 
