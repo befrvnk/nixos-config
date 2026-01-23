@@ -70,6 +70,15 @@ Agents CAN safely run these commands without sudo:
 - **Explicit PATH in scripts:** Always use `pkgs.writeShellScript` with explicit PATH exports, never assume tools are in PATH
 - **Attribute set merging:** Prefer `lib.mkMerge` over inline merging when combining multiple attribute sets for readability
 
+### Nushell Usage
+- User's default shell is Nushell (configured in `modules/users.nix`)
+- When proposing commands, show both Bash and Nushell syntax to help learn Nushell
+- Key Nushell differences:
+  - No `&` for backgrounding - use `bash -c "cmd &"` or run command directly (many daemons self-daemonize)
+  - Use `;` to chain commands (not `&&` which is logical AND in Nushell)
+  - Pipelines use structured data, not text streams
+  - Environment variables: `$env.VAR` instead of `$VAR`
+
 ## Development Workflow
 - direnv automatically loads devenv environment on directory entry
 - Pre-commit hooks (via devenv) ensure all committed code is formatted
