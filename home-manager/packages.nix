@@ -28,6 +28,7 @@
       nmap
       obsidian
       powertop
+      rsync # Required by profile-sync-daemon for browser profile syncing
       slack
       spotify
       superfile
