@@ -56,11 +56,11 @@
 
 stdenv.mkDerivation rec {
   pname = "idea-community";
-  version = "2025.3.1.1";
+  version = "2025.3.2";
 
   src = fetchzip {
     url = "https://github.com/JetBrains/intellij-community/releases/download/idea/${version}/idea-${version}.tar.gz";
-    hash = "sha256-wkVF7JBHiQpcm+d2WRW60XVekmk6R16vKEgaShy1oQs=";
+    hash = "sha256-hllhjl0AZcNzT3pvb1iNVNoQR/rUT2u/ryKdTxfGVYA=";
   };
 
   nativeBuildInputs = [
