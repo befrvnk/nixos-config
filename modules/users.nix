@@ -5,10 +5,11 @@
     isNormalUser = true;
     description = "Frank Hermann";
     extraGroups = [
-      "networkmanager" # Network management permissions
-      "wheel" # Sudo access
-      "plugdev" # Access to USB/HID devices (e.g., NuPhy keyboards via WebHID)
       "i2c" # Access to I2C devices for external monitor control (ddcutil)
+      "input" # Access to input devices for stasis idle manager (libinput)
+      "networkmanager" # Network management permissions
+      "plugdev" # Access to USB/HID devices (e.g., NuPhy keyboards via WebHID)
+      "wheel" # Sudo access
     ];
     shell = pkgs.nushell;
   };

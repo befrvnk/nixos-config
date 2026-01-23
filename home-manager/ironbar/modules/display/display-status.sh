@@ -3,7 +3,6 @@
 # Shows brightness percentage and idle inhibition indicator
 
 BRIGHTNESS_PATH="/sys/class/backlight/amdgpu_bl1"
-PID_FILE="/tmp/stay-on-inhibit-$USER.pid"
 
 # Get current brightness percentage
 if [[ -f "$BRIGHTNESS_PATH/brightness" ]] && [[ -f "$BRIGHTNESS_PATH/max_brightness" ]]; then
@@ -27,27 +26,12 @@ else
     ICON="󰃝"  # dim
 fi
 
-# Check if audio is playing via wpctl
-# >2 active channels means actual audio (baseline is 2 speaker outputs)
-is_audio_playing() {
-    local status=$(wpctl status 2>/dev/null)
-    # If [paused] exists, media is paused
-    if echo "$status" | grep -q '\[paused\]'; then
-        return 1
-    fi
-    # >2 active channels means actual audio playing
-    [ "$(echo "$status" | grep -c '\[active\]')" -gt 2 ]
-}
-
-# Check if screen should stay on (audio playing OR manual toggle)
+# Check if stasis is currently inhibiting idle (manual toggle, app inhibitor, or media)
+STATUS=$(stasis info --json 2>/dev/null)
 STAYING_ON=false
 
-if is_audio_playing; then
-    STAYING_ON=true
-fi
-
-# Check for manual stay-on toggle
-if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+# Check for various possible field names indicating inhibition
+if echo "$STATUS" | grep -qE '"(manually_inhibited|paused|inhibited|idle_inhibited)":\s*true'; then
     STAYING_ON=true
 fi
 

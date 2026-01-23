@@ -28,6 +28,7 @@
       nmap
       obsidian
       powertop
+      pulseaudio # pactl for stasis media detection
       rsync # Required by profile-sync-daemon for browser profile syncing
       slack
       spotify

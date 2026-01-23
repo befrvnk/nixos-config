@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # Get manual stay-on status for ironbar button label
+# Queries stasis for inhibit status
 
-PID_FILE="/tmp/stay-on-inhibit-$USER.pid"
+STATUS=$(stasis info --json 2>/dev/null)
 
-if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+# Check for various possible field names in stasis JSON output
+if echo "$STATUS" | grep -qE '"(manually_inhibited|paused|inhibited)":\s*true'; then
     echo "󰈈 Stay On: ON"
 else
     echo "󰈈 Stay On: OFF"
