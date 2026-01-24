@@ -583,6 +583,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Trade-off: ~0.1-0.3W extra power consumption (amplifier stays on)
 - Configuration in `home-manager/audio-keep-alive/`
 - Check status: `systemctl --user status audio-keep-alive`
+- See: https://docs.kernel.org/sound/soc/pops-clicks.html
 
 ### Power Profiles (tuned with PPD compatibility)
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility
