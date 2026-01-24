@@ -16,11 +16,12 @@
         "context.properties" = {
           "default.clock.rate" = 48000;
           "default.clock.allowed-rates" = [ 48000 ];
-          # Increase quantum to prevent buffer underruns with QEMU
+          # Quantum settings: balance latency vs stability
+          # Lower = snappier response, higher = more stable
           # See: https://forum.endeavouros.com/t/pipewire-guide-audio-crackling-popping-and-latency/69602
-          "default.clock.quantum" = 2048;
-          "default.clock.min-quantum" = 1024;
-          "default.clock.max-quantum" = 4096;
+          "default.clock.quantum" = 1024; # ~21ms at 48kHz (default: 1024)
+          "default.clock.min-quantum" = 512; # ~11ms (allows lower latency apps)
+          "default.clock.max-quantum" = 2048; # ~43ms (for demanding apps like QEMU)
           # Increase link buffers (default 16 causes crackling)
           "link.max-buffers" = 128;
         };

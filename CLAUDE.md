@@ -541,7 +541,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Fix uses `pulse.rules` in `pipewire-pulse.conf` to force higher latency for QEMU specifically
 - **Important:** `monitor.alsa.rules` only matches hardware devices, NOT application streams
 - QEMU uses PulseAudio compatibility layer, so it must be configured via `pulse.rules`
-- Global quantum increased (`min-quantum=1024`, `quantum=2048`) for additional stability
+- QEMU-specific latency rules force higher quantum (4096 samples) via `pulse.rules`
 - See: https://github.com/wwmm/easyeffects/issues/2406
 
 ### Android Emulator GPU (AMD Radeon 890M)
@@ -559,7 +559,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - **Forced 48kHz sample rate** eliminates pops from rate switching (44.1kHz sources resampled)
 - **Node suspension disabled** (`session.suspend-timeout-seconds=0`) eliminates pops on pause/resume
 - Large `api.alsa.headroom` (8192) and `api.alsa.period-size` (1024) for stable playback
-- Quantum settings: `quantum=2048`, `min-quantum=1024`, `max-quantum=4096`
+- Quantum settings: `quantum=1024` (~21ms), `min-quantum=512` (~11ms), `max-quantum=2048` (~43ms)
 - `link.max-buffers=128` (default 16 is too low and causes crackling)
 - Configuration in `modules/services/pipewire.nix`
 - See: https://bbs.archlinux.org/viewtopic.php?id=280654
