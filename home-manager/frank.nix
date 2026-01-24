@@ -6,6 +6,7 @@
     ./android
     ./audio-keep-alive
     ./atuin.nix
+    ./audio-idle-inhibit
     ./battery-notifications
     ./btop.nix
     ./claude-code
@@ -30,12 +31,11 @@
     ./polkit-agent.nix
     ./profile-sync-daemon.nix
     ./signal.nix
-    # Disabled for stasis migration testing - re-enable if Spotify crashes during suspend
-    # ./spotify-suspend
+    ./spotify-suspend
     ./ssh.nix
     ./starship.nix
-    ./stasis.nix
     ./stylix.nix
+    ./swaylock.nix
     ./udiskie.nix
     ./vicinae.nix
     ./zed.nix

@@ -9,10 +9,9 @@
     useUserPackages = true;
     users.frank = ../../home-manager/frank.nix;
     sharedModules = [
-      inputs.niri.homeModules.niri
-      inputs.stasis.homeModules.default
       inputs.stylix.homeModules.stylix
       inputs.vicinae.homeManagerModules.default
+      inputs.niri.homeModules.niri
       ../../pkgs/hamr/hm-module.nix
     ];
     extraSpecialArgs = {

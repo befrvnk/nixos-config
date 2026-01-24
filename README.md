@@ -466,7 +466,7 @@ This configuration separates concerns between system-level and user-level settin
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (ironbar, vicinae, dunst)
-- User services (stasis idle manager, battery notifications, profile-sync-daemon)
+- User services (swayidle, battery notifications, profile-sync-daemon)
 - Theming specializations (dark/light modes)
 
 ## Features
@@ -521,8 +521,8 @@ This configuration separates concerns between system-level and user-level settin
 - **Bluetooth power savings** - Off on boot (~0.5W savings), auto-sleep after 5 min idle when not connected
 - **SCX scheduler (scx_lavd)** with `--autopower` reads EPP and adjusts scheduling automatically
 - **Battery popup** in Ironbar for manual profile switching
-- **Stasis idle manager** - Modern event-driven idle management with media detection and app inhibition
-- Auto-suspend after 5 minutes idle (when no media playing or inhibiting apps running)
+- **wayland-pipewire-idle-inhibit** - Screen stays on during audio/video playback
+- Auto-suspend after 5 minutes idle (when no media playing)
 
 ### Browser Performance
 
@@ -572,7 +572,7 @@ Detailed guides for specific topics:
 ### Theming & Desktop
 - [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Theme switching with light/dark modes
 - [Ironbar with Niri Overview](./docs/ironbar-niri-overview.md) - Status bar overview-mode integration
-- [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior with stasis idle manager
+- [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior with wayland-pipewire-idle-inhibit
 - [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control
 
 ### Hardware & System

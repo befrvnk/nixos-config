@@ -204,7 +204,7 @@ nixos-config/
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (ironbar, vicinae, dunst)
-- User services (stasis idle manager, battery notifications)
+- User services (swayidle, wayland-pipewire-idle-inhibit, battery notifications)
 - Theming specializations (dark/light modes)
 
 **Package Split:**
@@ -523,17 +523,6 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - The `pw-loopback` process **must start at session startup** for volume controls to work
 - Without it, `wpctl set-volume` commands appear to work but don't change actual volume
 - Configured in `home-manager/niri/startup.nix` as spawn-at-startup
-
-### Stasis Idle Manager
-- **Requires `input` group** for activity detection via libinput
-- Without `input` group, idle timer doesn't reset on mouse/keyboard activity
-- **Requires `pactl`** (pulseaudio package) for media detection
-- Must be started via Niri `spawn-at-startup` (not systemd service) for proper Wayland access
-- Configuration uses RUNE language with `default:` block at top level
-- `inhibit_apps` uses exact Wayland app_id (e.g., `"zen-beta"` not `"zen"`)
-- Check status with `stasis info`, manual control with `stasis pause/resume/toggle-inhibit`
-- Replaces swayidle + wayland-pipewire-idle-inhibit
-- Configuration in `home-manager/stasis.nix`
 
 ### Android Emulator (QEMU) Audio
 - QEMU requests extremely low latency (~2.7ms) causing buffer underruns

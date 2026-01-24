@@ -12,12 +12,6 @@
         "${inputs.awww.packages.${pkgs.system}.awww}/bin/awww-daemon"
       ];
     }
-    # Start stasis idle manager (must be spawned by niri for proper Wayland session access)
-    {
-      command = [
-        "${inputs.stasis.packages.${pkgs.system}.default}/bin/stasis"
-      ];
-    }
     # Initialize audio enhancement sink for volume control
     # The Framework audio enhancement filter-chain starts in an uninitialized state
     # where wpctl reports incorrect volume (1.0) and volume changes don't apply.

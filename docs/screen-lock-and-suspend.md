@@ -4,11 +4,10 @@ This document describes how screen locking and system suspend work in this NixOS
 
 ## Overview
 
-The system uses **stasis** as the primary idle manager. Stasis is a modern, event-driven Wayland idle manager that:
-1. Monitors user activity via libinput (requires `input` group membership)
-2. Detects media playback via PipeWire/PulseAudio (pactl)
-3. Inhibits idle for specific applications (configurable)
-4. Triggers lock and suspend actions based on configurable timeouts
+The system uses three main components to manage screen locking and suspend:
+1. **swayidle** - Monitors user inactivity and triggers lock/suspend actions
+2. **wayland-pipewire-idle-inhibit** - Prevents idle (screen lock/off) when audio is playing via PipeWire
+3. **spotify-suspend-handler** - Pauses/resumes Spotify during suspend to prevent crashes
 
 ## Behavior Scenarios
 
@@ -25,9 +24,9 @@ The system uses **stasis** as the primary idle manager. Stasis is a modern, even
 - Works with any application that outputs audio
 
 **Technical details:**
-- Stasis monitors PipeWire sink inputs via `pactl`
-- `monitor_media true` enables automatic media detection
-- Active audio streams inhibit idle actions
+- `wayland-pipewire-idle-inhibit` monitors PipeWire audio streams
+- When audio is detected (for 5+ seconds), it inhibits idle via Wayland protocol
+- swayidle's timeouts are not triggered
 
 ---
 
@@ -44,47 +43,33 @@ The system uses **stasis** as the primary idle manager. Stasis is a modern, even
 
 **Technical details:**
 - No audio playing = no idle inhibition
-- Stasis triggers lock at 300 seconds
-- Stasis triggers suspend at 305 seconds
-- Pre-suspend command locks screen before suspend
+- swayidle triggers lock at 300 seconds
+- swayidle triggers suspend at 305 seconds
 
 ---
 
-### Scenario 3: Specific Applications Running
+### Scenario 3: Lid Close (Anytime)
 
 **Timeline:**
-- **Screen stays on** while inhibiting app is running
-- Depends on `inhibit_apps` configuration
+- **Immediate** - Screen locks
+- **Immediate** - Spotify pauses (if playing)
+- **Immediate** - System suspends
+- **On wake** - Spotify resumes (if it was playing)
 
 **What you experience:**
-- Certain applications (browsers, media players) prevent idle
-- Useful for reading, video calls without audio
-
-**Technical details:**
-- `inhibit_apps` list in stasis config specifies app IDs
-- Current inhibitors: spotify, mpv, vlc, firefox, zen-beta
-- Stasis matches running applications by their Wayland app_id
-
----
-
-### Scenario 4: Lid Close (Anytime)
-
-**Timeline:**
-- **Immediate** - System suspends (handled by systemd-logind)
-- **On wake** - Screen lock requires password
-
-**What you experience:**
-- Close lid → System suspends immediately
+- Close lid → System suspends immediately (even if media is playing)
 - Open lid → Enter password to unlock
+- Spotify automatically resumes if it was playing
 
 **Technical details:**
-- Lid close handled by systemd-logind, not stasis
-- `HandleLidSwitch = "suspend"` in logind config
-- Stasis `pre_suspend_command` ensures screen is locked
+- `before-sleep` event triggers swaylock
+- `spotify-suspend-handler` detects `PrepareForSleep` signal
+- Checks if Spotify is playing, pauses it, saves state to `/tmp/spotify-was-playing-$USER`
+- On resume, waits 2 seconds for audio devices, then resumes playback
 
 ---
 
-### Scenario 5: External Monitor with Lid Closed
+### Scenario 4: External Monitor with Lid Closed
 
 **Timeline:**
 - **No automatic actions**
@@ -103,72 +88,47 @@ The system uses **stasis** as the primary idle manager. Stasis is a modern, even
 
 ## Configuration Files
 
-### Stasis Idle Manager
-**File:** `home-manager/stasis.nix`
-- Stasis configuration (timeouts, inhibitors, media monitoring)
-- Swaylock configuration (appearance, theming)
+### Screen Lock and Idle Timeout
+**File:** `home-manager/swaylock.nix`
+- swaylock configuration (appearance, theming)
+- swayidle timeouts (5 minutes lock, 5:05 suspend)
+- wayland-pipewire-idle-inhibit service configuration
+
+### Spotify Crash Prevention
+**File:** `home-manager/spotify-suspend/default.nix`
+- **Service:** `spotify-suspend-handler`
+  - Pauses Spotify before suspend, resumes after wake
+  - Prevents crashes from audio device disconnection
 
 ### System-Level Suspend Settings
 **File:** `modules/system/core.nix`
 - `HandleLidSwitch = "suspend"` - Lid close always suspends
 - `HandleLidSwitchDocked = "ignore"` - Ignore lid when docked
 - `HandleLidSwitchExternalPower = "suspend"` - Suspend on lid close even when plugged in
-- `IdleAction = "ignore"` - Don't auto-suspend (managed by stasis instead)
-
-### User Groups
-**File:** `modules/users.nix`
-- User must be in `input` group for stasis to detect activity via libinput
+- `IdleAction = "ignore"` - Don't auto-suspend (managed by swayidle instead)
 
 ---
 
-## How Stasis Works
+## How wayland-pipewire-idle-inhibit Works
 
-Stasis is an event-driven idle manager with multiple detection methods:
+Unlike the previous polling-based approach, wayland-pipewire-idle-inhibit is event-driven:
 
-1. **Activity detection via libinput** - Monitors keyboard/mouse input directly
-   - Requires user membership in `input` group
-   - Resets idle timer on any input event
-
-2. **Media detection via PipeWire** - Uses `pactl list sink-inputs`
-   - Detects actively playing audio streams
-   - Ignores paused/corked streams
-   - `monitor_media true` enables this feature
-
-3. **Application inhibition** - Matches running apps by ID
-   - `inhibit_apps` list specifies which apps prevent idle
-   - Useful for apps that don't use audio (reading, video calls)
-
-4. **Wayland idle-inhibit protocol** - Respects application requests
-   - Applications can request idle inhibition directly
-   - Stasis honors these requests automatically
+1. **Monitors PipeWire** for audio stream activity
+2. **Ignores short sounds** (< 5 seconds) like notification sounds
+3. **Uses Wayland idle-inhibit protocol** to prevent screen lock/off
+4. **Releases inhibition** when audio stops
 
 ### Configuration Options
 
-```rune
-default:
-  monitor_media true           # Detect playing audio
-  debounce_seconds 2           # Debounce activity events
-
-  inhibit_apps [               # Apps that prevent idle
-    "spotify"
-    "mpv"
-    "vlc"
-    "firefox"
-    "zen-beta"
-  ]
-
-  pre_suspend_command "swaylock -f"  # Lock before suspend
-
-  lock_screen:
-    timeout 300                # Lock after 5 minutes
-    command "swaylock -f"
-  end
-
-  suspend:
-    timeout 305                # Suspend 5 seconds after lock
-    command "systemctl suspend"
-  end
-end
+```nix
+services.wayland-pipewire-idle-inhibit = {
+  enable = true;
+  settings = {
+    verbosity = "WARN";           # Logging level
+    media_minimum_duration = 5;   # Ignore sounds < 5 seconds
+    idle_inhibitor = "wayland";   # Use Wayland protocol
+  };
+};
 ```
 
 ---
@@ -176,74 +136,49 @@ end
 ## Troubleshooting
 
 ### Screen locks while watching videos
-**Cause:** Media detection not working
+**Cause:** wayland-pipewire-idle-inhibit service not running or audio not routing through PipeWire
 
-**Check stasis status:**
+**Check:**
 ```bash
-stasis info
+systemctl --user status wayland-pipewire-idle-inhibit
 ```
-Should show `Media Players Playing: 1` or higher when audio is playing.
+Should show: `active (running)`
 
-**If media shows 0:**
-- Verify `pactl` is installed: `which pactl`
-- Check audio streams: `pactl list sink-inputs`
+**Also check:**
+```bash
+wpctl status
+```
+Verify audio is playing through PipeWire sinks.
 
 ---
 
-### Idle timer doesn't reset on mouse/keyboard activity
-**Cause:** User not in `input` group
+### Spotify crashes after suspend
+**Cause:** Audio device disconnects during suspend, CEF framework crashes
 
-**Check group membership:**
+**Solution:** Already implemented in `spotify-suspend/default.nix`
+- Automatically pauses Spotify before suspend
+- Resumes playback after wake (2-second delay for audio devices)
+
+**Verify it's working:**
 ```bash
-groups
+systemctl --user status spotify-suspend-handler
 ```
-Should include `input`.
-
-**If missing:**
-- Add `"input"` to `extraGroups` in `modules/users.nix`
-- Rebuild and **reboot** (group changes require new login session)
+Should show: `active (running)`
 
 ---
 
-### Screen doesn't stay on for specific apps
-**Cause:** App not in `inhibit_apps` list
+### Screen doesn't stay on during audio playback
+**Cause:** wayland-pipewire-idle-inhibit not detecting audio
 
-**Check current inhibitors:**
+**Check service logs:**
 ```bash
-stasis info
-```
-Shows `InhibitApps` list and `Apps Inhibiting` count.
-
-**Find app ID:**
-```bash
-niri msg windows | grep app_id
+journalctl --user -u wayland-pipewire-idle-inhibit -f
 ```
 
-**Add to config:** Edit `home-manager/stasis.nix` and add the app ID to `inhibit_apps`.
-
----
-
-### Manual control
-
-**Pause stasis (prevent lock/suspend):**
-```bash
-stasis pause
-```
-
-**Resume stasis:**
-```bash
-stasis resume
-```
-
-**Toggle manual inhibition:**
-```bash
-stasis toggle-inhibit
-```
-
-**Check status:**
-```bash
-stasis info
-```
+**Possible causes:**
+- Audio duration < 5 seconds (increase `media_minimum_duration`)
+- Audio not routing through PipeWire
+- Application using different audio backend
 
 ---
 
@@ -251,45 +186,41 @@ stasis info
 
 ### Adjust idle timeouts
 
-Edit `home-manager/stasis.nix`:
+Edit `home-manager/swaylock.nix`:
 
-```rune
-lock_screen:
-  timeout 600  # 10 minutes instead of 5
-  command "swaylock -f"
-end
-
-suspend:
-  timeout 610  # Suspend 10 seconds after lock
-  command "systemctl suspend"
-end
+```nix
+timeouts = [
+  {
+    timeout = 300;  # Change this (in seconds)
+    command = "${pkgs.swaylock}/bin/swaylock -f";
+  }
+  {
+    timeout = 305;  # Suspend 5 seconds after lock
+    command = "${pkgs.systemd}/bin/systemctl suspend";
+  }
+];
 ```
 
-### Add applications to inhibit list
+### Adjust audio duration threshold
 
-Edit `home-manager/stasis.nix`:
+Edit `home-manager/swaylock.nix`:
 
-```rune
-inhibit_apps [
-  "spotify"
-  "mpv"
-  "vlc"
-  "firefox"
-  "zen-beta"
-  "your-app-id"  # Add new app here
-]
+```nix
+services.wayland-pipewire-idle-inhibit.settings = {
+  media_minimum_duration = 10;  # Ignore sounds < 10 seconds
+};
 ```
 
 ### Disable auto-suspend entirely
 
-Remove the suspend block from `home-manager/stasis.nix`:
+Remove the suspend timeout from `home-manager/swaylock.nix`:
 
-```rune
-# Delete or comment out:
-# suspend:
-#   timeout 305
-#   command "systemctl suspend"
-# end
+```nix
+# Delete or comment out this section:
+# {
+#   timeout = 305;
+#   command = "${pkgs.systemd}/bin/systemctl suspend";
+# }
 ```
 
 ---
@@ -299,28 +230,14 @@ Remove the suspend block from `home-manager/stasis.nix`:
 | Scenario | Screen | Locks? | Suspends? | Audio continues? |
 |----------|--------|--------|-----------|------------------|
 | Audio/video playing | Stays on | No | No | Yes |
-| Inhibiting app running | Stays on | No | No | N/A |
-| No media/apps | Locks at 5 min | Yes | Yes (5:05) | N/A |
-| Lid close | Locks | Yes | Yes | Pauses |
+| No media | Locks at 5 min | Yes | Yes (5:05) | N/A |
+| Lid close | Locks | Yes | Yes | No (Spotify pauses) |
 | External monitor + lid closed | Normal | Depends | Depends | Depends |
-| Manual pause (`stasis pause`) | Stays on | No | No | Yes |
-
----
-
-## Ironbar Integration
-
-The display popup in Ironbar shows "Stay On" toggle that controls stasis:
-- **ON**: Manually inhibits idle (same as `stasis toggle-inhibit`)
-- **OFF**: Normal idle behavior
-
-Scripts location: `home-manager/ironbar/modules/display/`
 
 ---
 
 ## Related Files
 
-- `home-manager/stasis.nix` - Stasis idle manager and swaylock configuration
-- `home-manager/niri/startup.nix` - Stasis spawn-at-startup
-- `home-manager/ironbar/modules/display/` - Stay-on toggle scripts
-- `modules/users.nix` - Input group for activity detection
+- `home-manager/swaylock.nix` - Screen lock and idle inhibit configuration
+- `home-manager/spotify-suspend/default.nix` - Spotify crash prevention
 - `modules/system/core.nix` - System-level power management
