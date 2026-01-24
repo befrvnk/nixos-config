@@ -4,6 +4,7 @@
   imports = [
     inputs.zen-browser.homeModules.beta
     ./android
+    ./audio-keep-alive
     ./atuin.nix
     ./battery-notifications
     ./btop.nix

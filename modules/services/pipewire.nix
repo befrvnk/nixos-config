@@ -9,15 +9,13 @@
     alsa.support32Bit = true;
     pulse.enable = true;
 
-    # Allow both 44.1kHz (Spotify, QEMU) and 48kHz (YouTube, system sounds)
+    # Force 48kHz to eliminate pops from sample rate switching
+    # All 44.1kHz sources (Spotify, QEMU) are resampled - inaudible quality difference
     extraConfig.pipewire = {
       "10-clock-config" = {
         "context.properties" = {
-          "default.clock.rate" = 44100;
-          "default.clock.allowed-rates" = [
-            44100
-            48000
-          ];
+          "default.clock.rate" = 48000;
+          "default.clock.allowed-rates" = [ 48000 ];
           # Increase quantum to prevent buffer underruns with QEMU
           # See: https://forum.endeavouros.com/t/pipewire-guide-audio-crackling-popping-and-latency/69602
           "default.clock.quantum" = 2048;
@@ -37,8 +35,8 @@
         {
           matches = [ { "application.process.binary" = "qemu-system-x86_64"; } ];
           actions.update-props = {
-            "pulse.min.req" = "4096/44100";
-            "pulse.min.quantum" = "4096/44100";
+            "pulse.min.req" = "4096/48000";
+            "pulse.min.quantum" = "4096/48000";
           };
         }
       ];
@@ -54,8 +52,7 @@
         };
       };
 
-      # Increase ALSA buffer for all output devices to handle sample rate switches
-      # Large headroom (8192) prevents crackling during 44.1kHz <-> 48kHz transitions
+      # Large ALSA buffer and headroom for stable playback
       # See: https://bbs.archlinux.org/viewtopic.php?id=280654
       alsa-buffer = {
         "monitor.alsa.rules" = [
@@ -65,6 +62,35 @@
             actions.update-props = {
               "api.alsa.period-size" = 1024;
               "api.alsa.headroom" = 8192;
+              # Prevent node suspension to eliminate pops on pause/resume
+              "session.suspend-timeout-seconds" = 0;
+            };
+          }
+        ];
+      };
+
+      # Prevent suspension on all audio sinks and filter-chain nodes
+      # This eliminates pops when audio starts/stops
+      # Matches: convolver, filter-chain effects, and any Audio/Sink nodes
+      audio-no-suspend = {
+        "node.rules" = [
+          {
+            # Match filter-chain and audio effect nodes by name pattern
+            matches = [
+              { "node.name" = "~audio_effect.*"; }
+              { "node.name" = "~filter-chain-*"; }
+            ];
+            actions.update-props = {
+              "session.suspend-timeout-seconds" = 0;
+            };
+          }
+          {
+            # Match all Audio/Sink nodes by media.class
+            matches = [
+              { "media.class" = "Audio/Sink"; }
+            ];
+            actions.update-props = {
+              "session.suspend-timeout-seconds" = 0;
             };
           }
         ];

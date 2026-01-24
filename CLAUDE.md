@@ -536,12 +536,11 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Configuration in `home-manager/stasis.nix`
 
 ### Android Emulator (QEMU) Audio
-- QEMU requests extremely low latency (~2.7ms / 118 samples at 44.1kHz) causing buffer underruns
+- QEMU requests extremely low latency (~2.7ms) causing buffer underruns
 - This affects **all audio** (Spotify, YouTube, etc.) when the emulator is running
 - Fix uses `pulse.rules` in `pipewire-pulse.conf` to force higher latency for QEMU specifically
 - **Important:** `monitor.alsa.rules` only matches hardware devices, NOT application streams
 - QEMU uses PulseAudio compatibility layer, so it must be configured via `pulse.rules`
-- 44.1kHz added to `allowed-rates` to avoid resampling when only QEMU is playing
 - Global quantum increased (`min-quantum=1024`, `quantum=2048`) for additional stability
 - See: https://github.com/wwmm/easyeffects/issues/2406
 
@@ -556,14 +555,34 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Quickboot must be disabled for hardware GPU mode to work
 - Configuration in `home-manager/android/`
 
-### PipeWire Sample Rate Switching
-- PipeWire supports both 44.1kHz (Spotify, QEMU) and 48kHz (YouTube, system sounds)
-- Rate switching can cause crackling without proper ALSA buffer configuration
-- Large `api.alsa.headroom` (8192) and `api.alsa.period-size` (1024) prevent crackling
+### PipeWire Audio Configuration
+- **Forced 48kHz sample rate** eliminates pops from rate switching (44.1kHz sources resampled)
+- **Node suspension disabled** (`session.suspend-timeout-seconds=0`) eliminates pops on pause/resume
+- Large `api.alsa.headroom` (8192) and `api.alsa.period-size` (1024) for stable playback
 - Quantum settings: `quantum=2048`, `min-quantum=1024`, `max-quantum=4096`
 - `link.max-buffers=128` (default 16 is too low and causes crackling)
 - Configuration in `modules/services/pipewire.nix`
 - See: https://bbs.archlinux.org/viewtopic.php?id=280654
+
+### Audio Power Saving (snd_hda_intel)
+- **power_save=0** disables the timeout for entering low-power mode
+- **power_save_controller=N** disables the controller entirely (critical for eliminating pops)
+- `power_save_controller` must be set via **systemd service** (kernel param doesn't work, module loads too early)
+- `audio-power-save-controller` service writes to sysfs at boot after sound.target
+- tuned profiles override modprobe settings via `[audio] timeout=X` - must set `timeout=0` in custom profiles
+- Configuration in `modules/hardware/power-management.nix` (systemd service + modprobe + tuned profiles)
+- See: https://www.kernel.org/doc/html/latest/sound/designs/powersave.html
+
+### Audio Keep-Alive (amplifier pop prevention)
+- Speaker amplifier pops when powering on/off between audio playback
+- **Cannot be fixed at driver level** - hardware limitation of portable audio subsystems
+- Solution: `audio-keep-alive` user service plays inaudible silence to keep amplifier active
+- Uses `pacat` to stream zeros at 1% volume (655/65536) to default sink
+- Service starts with graphical session, restarts on failure
+- Minimal resource usage (~1.6MB memory, negligible CPU)
+- Trade-off: ~0.1-0.3W extra power consumption (amplifier stays on)
+- Configuration in `home-manager/audio-keep-alive/`
+- Check status: `systemctl --user status audio-keep-alive`
 
 ### Power Profiles (tuned with PPD compatibility)
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility

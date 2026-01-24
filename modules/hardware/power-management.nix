@@ -83,6 +83,11 @@ in
         cpu = {
           energy_performance_preference = "power";
         };
+        # Disable audio power saving (causes pops on pause/resume)
+        # Override powersave profile's timeout=10 setting
+        audio = {
+          timeout = "0";
+        };
         # Script must be in profile dir (tuned security restriction)
         script = {
           script = "script.sh";
@@ -100,6 +105,10 @@ in
         };
         cpu = {
           energy_performance_preference = "balance_performance";
+        };
+        # Disable audio power saving (causes pops on pause/resume)
+        audio = {
+          timeout = "0";
         };
         # Script must be in profile dir (tuned security restriction)
         script = {
@@ -146,12 +155,29 @@ in
     };
   };
 
+  # Disable audio codec power save controller at runtime
+  # Kernel cmdline param doesn't work (module loads too early), so set via sysfs
+  # This eliminates pops/clicks when audio streams start/stop
+  systemd.services.audio-power-save-controller = {
+    description = "Disable snd_hda_intel power save controller";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "sound.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.bash}/bin/bash -c 'echo N > /sys/module/snd_hda_intel/parameters/power_save_controller'";
+      RemainAfterExit = true;
+    };
+  };
+
   # Audio power saving DISABLED
   # Enabling power_save causes pipewire/wireplumber to repeatedly handle codec wake/sleep
   # cycles, generating excessive DBUS traffic and CPU overhead. The ~0.1-0.3W savings
   # is offset by the increased CPU usage from constant state transitions.
+  # power_save_controller=N disables the controller entirely, preventing pop/click on
+  # audio start/stop even when power_save=0 (which only sets the timeout).
+  # See: https://www.kernel.org/doc/html/latest/sound/designs/powersave.html
   boot.extraModprobeConfig = ''
-    options snd_hda_intel power_save=0
+    options snd_hda_intel power_save=0 power_save_controller=N
   '';
 
   # Kernel parameters for power optimization
