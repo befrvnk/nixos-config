@@ -585,6 +585,15 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Check status: `systemctl --user status audio-keep-alive`
 - See: https://docs.kernel.org/sound/soc/pops-clicks.html
 
+### ALSA Master Volume (Framework)
+- Framework laptop ALSA defaults Master to 77% (-15 dB), leaving significant headroom unused
+- The Framework audio enhancement filter-chain maxes out at 0 dB (100% PipeWire volume)
+- Without fixing ALSA levels, max volume is -15 dB quieter than hardware capability
+- `alsa-mixer-init` systemd service sets Master and PCM to 100% at boot
+- Card 1 is HD-Audio Generic_1 (Family 17h/19h/1ah HD Audio Controller - speakers)
+- Check levels: `amixer -c1 scontents | grep -A2 "Master\|PCM"`
+- Configuration in `modules/services/pipewire.nix`
+
 ### Power Profiles (tuned with PPD compatibility)
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility
 - `powerprofilesctl` still works (talks to tuned-ppd D-Bus API)

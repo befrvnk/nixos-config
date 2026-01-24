@@ -1,7 +1,21 @@
-{ ... }:
+{ pkgs, ... }:
 
 {
   services.pulseaudio.enable = false;
+
+  # Set ALSA mixer levels to 100% at boot
+  # Framework laptop defaults Master to 77% (-15 dB), leaving significant headroom unused
+  # Card 1 is the HD-Audio Generic_1 (Family 17h/19h/1ah HD Audio Controller - speakers)
+  systemd.services.alsa-mixer-init = {
+    description = "Initialize ALSA mixer levels";
+    after = [ "sound.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.alsa-utils}/bin/amixer -c1 sset Master 100% && ${pkgs.alsa-utils}/bin/amixer -c1 sset PCM 100%";
+    };
+  };
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;
