@@ -2,7 +2,7 @@
 
 let
   # Import shared theme configuration (used by both Stylix and Zen Browser)
-  themes = import ../themes.nix { inherit pkgs; };
+  themes = import ../../shared/themes.nix { inherit pkgs; };
 
   # Convert YAML color schemes to JSON and import
   # We use yq-go to convert YAML to JSON, then parse with builtins.fromJSON

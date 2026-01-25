@@ -25,7 +25,7 @@
 
 { pkgs, lib, ... }:
 let
-  themes = import ./themes.nix { inherit pkgs; };
+  themes = import ../shared/themes.nix { inherit pkgs; };
 
   # Parse base16 scheme YAML to get color values
   parseBase16Scheme =
@@ -41,7 +41,7 @@ let
   lightColors = parseBase16Scheme themes.light.base16Scheme;
 
   # Generate nushell color config from base16 palette in NUON format
-  # Based on Stylix's nushell module but with string using base05 for better readability
+  # Based on Stylix's nushell module (https://github.com/nix-community/stylix/blob/master/modules/nushell/hm.nix)
   # NUON format allows runtime loading (source requires constant path at parse time)
   mkNushellTheme =
     colors:
@@ -61,7 +61,7 @@ let
         duration: "${p.base08}"
         range: "${p.base08}"
         float: "${p.base08}"
-        string: "${p.base05}"
+        string: "${p.base04}"
         nothing: "${p.base08}"
         binary: "${p.base08}"
         cellpath: "${p.base08}"

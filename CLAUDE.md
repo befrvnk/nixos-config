@@ -174,6 +174,8 @@ nixos-config/
 │   ├── ironbar/           # Status bar (modular scripts)
 │   └── */                 # Other app configs
 ├── overlays/              # Package modifications
+├── shared/                # Shared configurations (used by both system and home-manager)
+│   └── themes.nix         # Central theme definitions (base16 schemes)
 └── docs/                  # Detailed documentation
 ```
 
@@ -302,14 +304,24 @@ See: `home-manager/stylix.nix`
 ### Shared Resource Pattern
 Define shared resources once, import everywhere:
 ```nix
-# home-manager/wallpapers/default.nix
+# shared/themes.nix - Central theme definitions
+{ pkgs }:
+let
+  parseScheme = schemeFile: /* parses YAML, extracts variant as polarity */;
+in {
+  dark = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+  light = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+}
+
+# home-manager/wallpapers/default.nix - Wallpaper definitions
 {
   light = ./mountain.jpg;
   dark = ./mountain_dark.jpg;
 }
 ```
 
-Imported in: `stylix.nix`, `darkman/default.nix`
+- Themes imported in: `modules/theming/stylix.nix`, `home-manager/stylix.nix`, `ghostty.nix`, `nushell.nix`, `zen-browser/`
+- Wallpapers imported in: `stylix.nix`, `darkman/default.nix`
 
 ### Event Monitoring Service Pattern
 For services that watch system events (monitor hotplug, overview mode changes):
@@ -476,6 +488,25 @@ Configured in `modules/system/security.nix`:
 See: `docs/security-hardening.md` for full details
 
 ## Theming System
+
+### Centralized Theme Definitions
+All theme configuration is centralized in `shared/themes.nix`:
+```nix
+dark = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+light = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+```
+
+**Key features:**
+- Single source of truth for both system and home-manager modules
+- Polarity (`dark`/`light`) is automatically derived from the scheme's `variant` field
+- To change themes, edit only `shared/themes.nix` - all apps update automatically
+
+**Modules that import themes.nix:**
+- `modules/theming/stylix.nix` - System-level Stylix
+- `home-manager/stylix.nix` - Home-manager Stylix with specializations
+- `home-manager/ghostty.nix` - Terminal theme generation
+- `home-manager/nushell.nix` - Shell color configuration
+- `home-manager/zen-browser/` - Browser CSS generation
 
 ### Three-Layer Architecture
 1. **System-level Stylix** (`modules/theming/stylix.nix`): Minimal base config

@@ -1,12 +1,15 @@
 { pkgs, ... }:
 
+let
+  themes = import ../../shared/themes.nix { inherit pkgs; };
+in
 {
   # Minimal system-level stylix configuration
   # The actual theming is handled by home-manager specialisations
   stylix = {
     enable = true;
     autoEnable = true;
-    base16Scheme = "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
+    base16Scheme = themes.dark.base16Scheme;
     image = ../../home-manager/wallpapers/mountain.jpg;
 
     # Disable version check warnings (we use nixpkgs-unstable for everything)

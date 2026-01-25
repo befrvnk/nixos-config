@@ -64,7 +64,7 @@ popover > contents {
 }
 
 .widget {
-    background-color: @base01;
+    background-color: @base00;
     padding: 3px 12px;
     margin: 0 4px;
     border-radius: 16px;
@@ -77,7 +77,7 @@ popover > contents {
 
 /* Fix: Text styles don't apply */
 .workspaces .item {
-    background-color: @base01;
+    background-color: @base00;
     font-weight: normal;
     padding: 4px 9px;
     margin: 1px 2px;
@@ -123,7 +123,7 @@ button.flat:hover {
 }
 
 .popup-clock {
-    background-color: @base01;
+    background-color: @base00;
     padding: 12px;
     border-radius: 16px;
 }
@@ -139,14 +139,14 @@ button.flat:hover {
    Structure: calendar.view > header, grid > label(.day-name, .day-number, .today, .other-month) */
 .popup-clock .calendar,
 .popup-clock calendar {
-    background-color: @base01;
+    background-color: @base00;
     color: @base05;
     border: none;
     box-shadow: none;
 }
 
 .popup-clock calendar header {
-    background-color: @base01;
+    background-color: @base00;
     color: @base05;
     padding: 4px 0;
     border: none;
@@ -177,7 +177,7 @@ button.flat:hover {
 }
 
 .popup-clock calendar grid {
-    background-color: @base01;
+    background-color: @base00;
     padding: 4px;
 }
 
@@ -224,7 +224,7 @@ button.flat:hover {
 
 /* Bluetooth popup styling */
 .popup-bluetooth {
-    background-color: @base01;
+    background-color: @base00;
     padding: 12px;
     border-radius: 16px;
 }
@@ -282,7 +282,7 @@ button.flat:hover {
 
 /* Battery popup styling */
 .popup-battery {
-    background-color: @base01;
+    background-color: @base00;
     padding: 15px;
     border-radius: 16px;
 }
@@ -327,7 +327,7 @@ button.flat:hover {
 
 /* Notification popup styling */
 .popup-notifications {
-    background-color: @base01;
+    background-color: @base00;
     padding: 15px;
     border-radius: 16px;
 }
@@ -352,7 +352,7 @@ button.flat:hover {
 
 /* Storage popup styling */
 .popup-storage {
-    background-color: @base01;
+    background-color: @base00;
     padding: 8px;
     border-radius: 16px;
 }
@@ -392,7 +392,7 @@ button.flat:hover {
 
 /* Weather popup styling */
 .popup-weather {
-    background-color: @base01;
+    background-color: @base00;
     padding: 15px;
     border-radius: 16px;
     min-width: 220px;
@@ -422,7 +422,7 @@ button.flat:hover {
 
 /* Display popup styling */
 .popup-display {
-    background-color: @base01;
+    background-color: @base00;
     padding: 15px;
     border-radius: 16px;
 }
@@ -464,7 +464,7 @@ button.flat:hover {
 
 /* Firewall popup styling */
 .popup-firewall {
-    background-color: @base01;
+    background-color: @base00;
     padding: 12px;
     border-radius: 16px;
     min-width: 180px;
