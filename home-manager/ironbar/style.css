@@ -68,6 +68,8 @@ popover > contents {
     padding: 3px 12px;
     margin: 0 4px;
     border-radius: 16px;
+    border: 1px solid @base03;
+    font-size: 16px;
 }
 
 .workspaces {

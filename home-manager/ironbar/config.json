@@ -9,7 +9,39 @@
 
   "start": [
     {
-      "type": "workspaces"
+      "type": "custom",
+      "class": "firewall",
+      "show_if": "poll:60000:~/.config/ironbar/modules/firewall/has-refused.sh",
+      "bar": [
+        {
+          "type": "button",
+          "class": "flat",
+          "label": "{{60000:~/.config/ironbar/modules/firewall/firewall-status.sh}}",
+          "on_click": "popup:toggle"
+        }
+      ],
+      "popup": [
+        {
+          "type": "box",
+          "orientation": "vertical",
+          "class": "popup-firewall",
+          "widgets": [
+            {
+              "type": "label",
+              "class": "firewall-details",
+              "label": "{{60000:~/.config/ironbar/modules/firewall/firewall-details.sh}}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "format": [
+        " {cpu_percent}%",
+        " {memory_percent}%",
+        "{temp_c@k10temp Tctl}°C"
+      ],
+      "type": "sys_info"
     }
   ],
 
@@ -128,41 +160,6 @@
           ]
         }
       ]
-    },
-    {
-      "type": "custom",
-      "class": "firewall",
-      "show_if": "poll:60000:~/.config/ironbar/modules/firewall/has-refused.sh",
-      "bar": [
-        {
-          "type": "button",
-          "class": "flat",
-          "label": "{{60000:~/.config/ironbar/modules/firewall/firewall-status.sh}}",
-          "on_click": "popup:toggle"
-        }
-      ],
-      "popup": [
-        {
-          "type": "box",
-          "orientation": "vertical",
-          "class": "popup-firewall",
-          "widgets": [
-            {
-              "type": "label",
-              "class": "firewall-details",
-              "label": "{{60000:~/.config/ironbar/modules/firewall/firewall-details.sh}}"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "format": [
-        " {cpu_percent}%",
-        " {memory_percent}%",
-        "{temp_c@k10temp Tctl}°C"
-      ],
-      "type": "sys_info"
     },
     {
       "type": "custom",
