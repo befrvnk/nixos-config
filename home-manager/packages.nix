@@ -34,7 +34,6 @@
       superfile
       sushi # nautilus preview
       tree
-      worktrunk
       yazi
       # Icon theme for ironbar
       papirus-icon-theme

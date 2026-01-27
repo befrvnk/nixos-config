@@ -290,13 +290,6 @@ in
   xdg.configFile."nushell/theme-dark.nuon".text = mkNushellTheme darkColors;
   xdg.configFile."nushell/theme-light.nuon".text = mkNushellTheme lightColors;
 
-  # Worktrunk user config with direnv auto-allow hook
-  # User hooks run automatically without approval on all repositories
-  xdg.configFile."worktrunk/config.toml".text = ''
-    # Auto-allow direnv in new worktrees
-    post-create = "direnv allow"
-  '';
-
   # Disable Stylix's nushell target since we manage themes ourselves
   stylix.targets.nushell.enable = lib.mkForce false;
 }

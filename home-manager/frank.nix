@@ -38,6 +38,7 @@
     ./swaylock.nix
     ./udiskie.nix
     ./vicinae.nix
+    ./worktrunk.nix
     ./zed.nix
     ./zen-browser
   ];
