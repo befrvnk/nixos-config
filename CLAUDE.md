@@ -414,7 +414,7 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 
 ### Adding Packages
 - **System package:** Add to `modules/system/packages.nix`, then run `rebuild switch`
-- **User package:** Add to `home-manager/packages.nix`, then run `rebuild switch`
+- **User package:** If the package has a dedicated module file/directory (e.g., `home-manager/worktrunk.nix`), add `home.packages` there to keep everything bundled. Otherwise, add to `home-manager/packages.nix`. Then run `rebuild switch`
 - **Custom package:** Create overlay in `overlays/`, then run `rebuild switch`
 - **Test first:** Use `nh os test ~/nixos-config` to verify the package builds before switching
 
