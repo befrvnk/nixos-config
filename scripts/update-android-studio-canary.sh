@@ -15,9 +15,9 @@ trap 'rm -f "$TEMP_FILE"' EXIT
 curl -sL "$RELEASES_URL" > "$TEMP_FILE"
 
 # The XML structure is predictable: the first <item> with <channel>Canary</channel> is the latest
-# Extract the version from the first Canary item
+# Extract the version and Linux download URL from the first Canary item
 # Use awk for more reliable parsing
-LATEST=$(awk '
+read -r LATEST LINUX_URL < <(awk '
     /<item>/,/<\/item>/ {
         if (/<version>/) {
             gsub(/.*<version>/, "")
@@ -25,7 +25,18 @@ LATEST=$(awk '
             version = $0
         }
         if (/<channel>Canary<\/channel>/) {
-            print version
+            in_canary = 1
+        }
+        if (in_canary && /<link>.*linux\.tar\.gz/) {
+            gsub(/.*<link>/, "")
+            gsub(/<\/link>.*/, "")
+            linux_url = $0
+        }
+        if (in_canary && /<checksum>/ && linux_url != "") {
+            gsub(/.*<checksum>/, "")
+            gsub(/<\/checksum>.*/, "")
+            checksum = $0
+            print version, linux_url
             exit
         }
     }
@@ -37,6 +48,7 @@ if [[ -z "$LATEST" ]]; then
 fi
 
 echo "Latest canary version: $LATEST"
+echo "Download URL: $LINUX_URL"
 
 # Get current version from package
 CURRENT=$(grep 'version = ' "$VERSION_FILE" | sed 's/.*"\(.*\)".*/\1/')
@@ -66,9 +78,8 @@ CHECKSUM=$(awk -v version="$LATEST" '
 
 if [[ -z "$CHECKSUM" ]]; then
     echo "Warning: Could not extract checksum from releases XML, prefetching instead..."
-    URL="https://dl.google.com/dl/android/studio/ide-zips/${LATEST}/android-studio-${LATEST}-linux.tar.gz"
-    echo "Prefetching: $URL"
-    HASH=$(nix-prefetch-url --unpack "$URL" 2>/dev/null | tail -1)
+    echo "Prefetching: $LINUX_URL"
+    HASH=$(nix-prefetch-url "$LINUX_URL" 2>/dev/null | tail -1)
     SRI_HASH=$(nix hash to-sri --type sha256 "$HASH" 2>/dev/null)
 else
     echo "Found checksum: $CHECKSUM"
@@ -77,22 +88,27 @@ else
 
     if [[ -z "$SRI_HASH" ]]; then
         echo "Warning: Could not convert checksum, prefetching instead..."
-        URL="https://dl.google.com/dl/android/studio/ide-zips/${LATEST}/android-studio-${LATEST}-linux.tar.gz"
-        echo "Prefetching: $URL"
-        HASH=$(nix-prefetch-url --unpack "$URL" 2>/dev/null | tail -1)
+        echo "Prefetching: $LINUX_URL"
+        HASH=$(nix-prefetch-url "$LINUX_URL" 2>/dev/null | tail -1)
         SRI_HASH=$(nix hash to-sri --type sha256 "$HASH" 2>/dev/null)
     fi
 fi
 
 echo "New hash: $SRI_HASH"
 
-# Update the version file
+# Convert Google edge URL to dl.google.com (both work, but dl.google.com is more reliable)
+# edgedl.me.gvt1.com -> dl.google.com/dl/android/studio
+DOWNLOAD_URL="${LINUX_URL//https:\/\/edgedl.me.gvt1.com\/android\/studio\//https:\/\/dl.google.com\/dl\/android\/studio\/}"
+echo "Normalized URL: $DOWNLOAD_URL"
+
+# Update the version file with URL (needed for new naming scheme like panda2-canary1)
 cat > "$VERSION_FILE" << EOF
 # Android Studio Canary version info
 # Updated automatically by: ./scripts/update-android-studio-canary.sh
 {
   version = "$LATEST";
   hash = "$SRI_HASH";
+  url = "$DOWNLOAD_URL";
 }
 EOF
 
