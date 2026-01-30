@@ -1,5 +1,11 @@
 { pkgs, ... }:
 
+let
+  alsaMixerInitScript = pkgs.writeShellScript "alsa-mixer-init" ''
+    ${pkgs.alsa-utils}/bin/amixer -c1 sset Master 100%
+    ${pkgs.alsa-utils}/bin/amixer -c1 sset PCM 100%
+  '';
+in
 {
   services.pulseaudio.enable = false;
 
@@ -13,7 +19,7 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = "${pkgs.alsa-utils}/bin/amixer -c1 sset Master 100% && ${pkgs.alsa-utils}/bin/amixer -c1 sset PCM 100%";
+      ExecStart = "${alsaMixerInitScript}";
     };
   };
   security.rtkit.enable = true;
