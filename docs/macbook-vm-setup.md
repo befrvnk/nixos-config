@@ -36,7 +36,17 @@ Verify installation:
 nix --version
 ```
 
-## Phase 2: Clone and Apply Darwin Configuration
+## Phase 2: Install Homebrew
+
+nix-darwin manages Homebrew packages but requires Homebrew to be installed separately:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Follow the post-installation instructions to add Homebrew to your PATH.
+
+## Phase 3: Clone and Apply Darwin Configuration
 
 Clone the repository:
 
@@ -57,10 +67,10 @@ This installs:
 - Zsh with Nix paths configured
 - Touch ID for sudo
 
-## Phase 3: Create NixOS VM in UTM
+## Phase 4: Create NixOS VM in UTM
 
 1. Download NixOS ISO (aarch64/ARM64 version) from https://nixos.org/download
-2. Open UTM (installed by nix-darwin in Phase 2)
+2. Open UTM (installed by nix-darwin in Phase 3)
 3. Create new VM with these settings:
    - **Type**: Linux
    - **Architecture**: ARM64 (aarch64)
@@ -71,7 +81,7 @@ This installs:
    - **Network**: Shared Network (or Bridged for SSH access)
 4. Boot from NixOS ISO
 
-## Phase 4: Install NixOS in VM
+## Phase 5: Install NixOS in VM
 
 In the VM, open a terminal and become root:
 
@@ -121,7 +131,7 @@ Reboot and remove the ISO from UTM:
 reboot
 ```
 
-## Phase 5: Apply Full Configuration in VM
+## Phase 6: Apply Full Configuration in VM
 
 After rebooting, login as root (no password required initially).
 
@@ -156,7 +166,7 @@ Reboot to apply all changes:
 sudo reboot
 ```
 
-## Phase 6: Post-Installation
+## Phase 7: Post-Installation
 
 ### Display Resize
 
