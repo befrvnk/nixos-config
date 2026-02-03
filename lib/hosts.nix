@@ -30,6 +30,7 @@ in
       cpuVendor ? "intel", # "amd" or "intel"
       hasFingerprint ? false,
       hasTouchscreen ? false,
+      isVirtualMachine ? false,
     }:
     lib.nixosSystem {
       inherit system;
@@ -41,6 +42,7 @@ in
             cpuVendor
             hasFingerprint
             hasTouchscreen
+            isVirtualMachine
             ;
         };
       };

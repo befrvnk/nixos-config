@@ -62,6 +62,11 @@
       url = "github:max-sixty/worktrunk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # macOS system configuration
+    nix-darwin = {
+      url = "github:nix-darwin/nix-darwin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   nixConfig = {
@@ -89,10 +94,19 @@
       system = "x86_64-linux";
       pkgs = inputs.nixpkgs.legacyPackages.${system};
 
-      # Host configuration helper
+      # Host configuration helpers
       hostLib = import ./lib/hosts.nix { inherit inputs; };
+      darwinLib = import ./lib/darwin.nix { inherit inputs; };
     in
     {
+      # macOS (nix-darwin) configurations
+      darwinConfigurations = {
+        # MacBook Pro 14" (2024) - M4 Pro
+        macbook = darwinLib.mkDarwinHost {
+          hostname = "macbook-darwin";
+        };
+      };
+
       nixosConfigurations = {
         # Framework Laptop 13 (AMD AI 300 series)
         framework = hostLib.mkHost {
@@ -100,6 +114,16 @@
           cpuVendor = "amd";
           hasFingerprint = true;
           hasTouchscreen = false;
+        };
+
+        # NixOS VM guest for MacBook (runs in UTM)
+        macbook-vm = hostLib.mkHost {
+          hostname = "macbook-vm";
+          system = "aarch64-linux";
+          cpuVendor = "other";
+          hasFingerprint = false;
+          hasTouchscreen = false;
+          isVirtualMachine = true;
         };
 
         # Future hosts (uncomment when ready):
