@@ -45,16 +45,10 @@ git clone https://github.com/befrvnk/nixos-config.git ~/nixos-config
 cd ~/nixos-config
 ```
 
-First-time nix-darwin bootstrap:
+First-time nix-darwin bootstrap (and subsequent rebuilds):
 
 ```bash
-sudo nix run nix-darwin -- switch --flake .#macbook
-```
-
-For subsequent rebuilds:
-
-```bash
-sudo darwin-rebuild switch --flake .#macbook
+sudo -H nix run nix-darwin -- switch --flake .#macbook
 ```
 
 This installs:
