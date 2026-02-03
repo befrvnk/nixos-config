@@ -41,20 +41,20 @@ nix --version
 Clone the repository:
 
 ```bash
-git clone https://github.com/your-username/nixos-config.git ~/nixos-config
+git clone https://github.com/befrvnk/nixos-config.git ~/nixos-config
 cd ~/nixos-config
 ```
 
 First-time nix-darwin bootstrap:
 
 ```bash
-nix run nix-darwin -- switch --flake .#macbook
+sudo nix run nix-darwin -- switch --flake .#macbook
 ```
 
 For subsequent rebuilds:
 
 ```bash
-darwin-rebuild switch --flake .#macbook
+sudo darwin-rebuild switch --flake .#macbook
 ```
 
 This installs:
@@ -146,7 +146,7 @@ su - frank
 Clone the config:
 
 ```bash
-git clone https://github.com/your-username/nixos-config.git ~/nixos-config
+git clone https://github.com/befrvnk/nixos-config.git ~/nixos-config
 cd ~/nixos-config
 ```
 
