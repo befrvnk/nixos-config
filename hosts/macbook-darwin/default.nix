@@ -8,14 +8,9 @@
   nixpkgs.config.allowUnfree = true;
   nixpkgs.hostPlatform = "aarch64-darwin";
 
-  nix = {
-    settings = {
-      experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
-    };
-  };
+  # Let Determinate Systems installer manage Nix (don't conflict with its daemon)
+  # Nix settings (flakes, substituters) are configured by Determinate instead
+  nix.enable = false;
 
   programs.zsh = {
     enable = true;
