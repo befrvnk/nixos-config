@@ -1,24 +1,29 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
   takeReadmeScreenshots = import ./scripts/take-readme-screenshots.nix { inherit pkgs; };
+  isLinux = pkgs.stdenv.isLinux;
 in
 {
   # Enable Claude Code integration
   claude.code.enable = true;
 
   # Packages available in the development environment
-  packages = with pkgs; [
-    deadnix # Find dead Nix code
-    git
-    grim # Screenshot tool (for take-readme-screenshots)
-    imagemagick # Image processing (for thumbnails)
-    nh # NixOS helper
-    nixfmt
-    nvd # Nix version diff (for changelog lookup)
-    shellcheck # Shell script linter
-    statix # Nix linter
-  ];
+  packages =
+    with pkgs;
+    [
+      deadnix # Find dead Nix code
+      git
+      nh # NixOS helper
+      nixfmt
+      nvd # Nix version diff (for changelog lookup)
+      shellcheck # Shell script linter
+      statix # Nix linter
+    ]
+    ++ lib.optionals isLinux [
+      grim # Screenshot tool (for take-readme-screenshots) - Linux only
+      imagemagick # Image processing (for thumbnails) - Linux only
+    ];
 
   # Git hooks configuration - runs automatically after Claude edits files
   git-hooks.hooks = {
@@ -209,27 +214,31 @@ in
 
   # Shell initialization
   enterShell = ''
-    echo "🚀 NixOS Config Development Environment"
+    echo "🚀 Nix Config Development Environment"
     echo ""
     echo "Available commands:"
-    echo "  rebuild [switch]          - Rebuild NixOS (default: boot)"
+    ${lib.optionalString isLinux ''
+      echo "  rebuild [switch]          - Rebuild NixOS (default: boot)"
+      echo "  sysinfo                   - Show system information"
+      echo "  generations               - List NixOS generations"
+      echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
+      echo "  take-readme-screenshots   - Capture screenshots for README"
+    ''}
     echo "  clean [N]                 - Clean old generations (default: keep 5)"
-    echo "  sysinfo                   - Show system information"
-    echo "  generations               - List NixOS generations"
-    echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
     echo "  flake-update              - Update flake inputs"
-    echo "  take-readme-screenshots   - Capture screenshots for README"
     echo ""
     echo "Slash commands (Claude Code):"
-    echo "  /rebuild  - Rebuild and switch configuration"
-    echo "  /boot     - Rebuild and activate on next boot"
-    echo "  /test     - Test configuration without persisting"
+    ${lib.optionalString isLinux ''
+      echo "  /rebuild  - Rebuild and switch configuration"
+      echo "  /boot     - Rebuild and activate on next boot"
+      echo "  /test     - Test configuration without persisting"
+      echo "  /firewall - Analyze refused firewall connections"
+    ''}
     echo "  /update   - Update flake inputs"
     echo "  /check    - Check flake for errors"
     echo "  /format   - Format Nix files"
     echo "  /lint     - Lint Nix files with statix"
     echo "  /clean    - Clean old generations (keep 5)"
-    echo "  /firewall - Analyze refused firewall connections"
     echo "  /commit   - Format and create git commit"
     echo ""
 
@@ -247,7 +256,34 @@ in
   '';
 
   # Scripts - Additional helper scripts available in PATH
+  # Cross-platform scripts
   scripts = {
+    # Clean up old generations using nh
+    # Usage: clean [keep-count]
+    # Default keeps 5 generations
+    clean.exec = ''
+      keep="''${1:-5}"
+      echo "+ ${pkgs.nh}/bin/nh clean all --keep $keep"
+      ${pkgs.nh}/bin/nh clean all --keep "$keep"
+    '';
+
+    flake-update.exec = ''
+      echo "Updating flake inputs..."
+      nix flake update --accept-flake-config
+
+      echo ""
+      echo "Updating IntelliJ IDEA Community package..."
+      ./scripts/update-idea-community.sh || echo "⚠️  IntelliJ update failed (may already be up to date)"
+
+      echo ""
+      echo "Updating Android Studio Canary package..."
+      ./scripts/update-android-studio-canary.sh || echo "⚠️  Android Studio Canary update failed (may already be up to date)"
+    '';
+
+  }
+  // lib.optionalAttrs isLinux {
+    # NixOS-specific scripts
+
     # Rebuild NixOS configuration using nh (Nix Helper)
     # Usage: rebuild [switch] [nh-options]
     # Default action is 'boot', use 'rebuild switch' to activate immediately
@@ -282,15 +318,6 @@ in
     # List all available NixOS generations
     generations.exec = ''
       sudo ${pkgs.nix}/bin/nix-env --list-generations --profile /nix/var/nix/profiles/system
-    '';
-
-    # Clean up old generations using nh
-    # Usage: clean [keep-count]
-    # Default keeps 5 generations
-    clean.exec = ''
-      keep="''${1:-5}"
-      echo "+ ${pkgs.nh}/bin/nh clean all --keep $keep"
-      ${pkgs.nh}/bin/nh clean all --keep "$keep"
     '';
 
     # Capture WiFi debug logs when WiFi fails to initialize
@@ -331,19 +358,6 @@ in
       ${pkgs.coreutils}/bin/ls -la "$output_dir"
       echo ""
       echo "💡 Share these files when reporting WiFi issues."
-    '';
-
-    flake-update.exec = ''
-      echo "Updating flake inputs..."
-      nix flake update --accept-flake-config
-
-      echo ""
-      echo "Updating IntelliJ IDEA Community package..."
-      ./scripts/update-idea-community.sh || echo "⚠️  IntelliJ update failed (may already be up to date)"
-
-      echo ""
-      echo "Updating Android Studio Canary package..."
-      ./scripts/update-android-studio-canary.sh || echo "⚠️  Android Studio Canary update failed (may already be up to date)"
     '';
 
     # Take README screenshots in light/dark and normal/overview modes
