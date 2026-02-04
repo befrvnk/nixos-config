@@ -57,6 +57,7 @@
     casks = [
       "android-studio"
       "ghostty"
+      "miro"
     ];
   };
 
