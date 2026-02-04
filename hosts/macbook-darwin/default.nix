@@ -1,8 +1,7 @@
-{ pkgs, ... }:
+{ inputs, pkgs, ... }:
+
 {
   system.stateVersion = 5;
-
-  # Primary user for Homebrew and other user-specific options
   system.primaryUser = "frank";
 
   nixpkgs.config.allowUnfree = true;
@@ -12,6 +11,15 @@
   # Nix settings (flakes, substituters) are configured by Determinate instead
   nix.enable = false;
 
+  # Home-manager integration
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    users.frank = ../../home-manager/darwin/frank.nix;
+    extraSpecialArgs = { inherit inputs; };
+  };
+
+  # Shell configuration
   programs.zsh = {
     enable = true;
     shellInit = ''
@@ -33,6 +41,7 @@
     wget
   ];
 
+  # Homebrew for GUI apps not available in nixpkgs
   homebrew = {
     enable = true;
     onActivation = {
@@ -40,10 +49,39 @@
       cleanup = "zap";
     };
     casks = [
-      "utm"
+      "android-studio"
     ];
   };
 
-  # Touch ID for sudo (new API path)
+  # macOS System Defaults
+  system.defaults = {
+    dock = {
+      autohide = true;
+      show-recents = false;
+      tilesize = 48;
+      mru-spaces = false;
+    };
+    finder = {
+      AppleShowAllExtensions = true;
+      ShowPathbar = true;
+      ShowStatusBar = true;
+      FXEnableExtensionChangeWarning = false;
+      _FXShowPosixPathInTitle = true;
+    };
+    NSGlobalDomain = {
+      AppleKeyboardUIMode = 3; # Full keyboard access
+      InitialKeyRepeat = 15;
+      KeyRepeat = 2;
+      ApplePressAndHoldEnabled = false;
+      NSAutomaticCapitalizationEnabled = false;
+      NSAutomaticSpellingCorrectionEnabled = false;
+    };
+    trackpad = {
+      Clicking = true;
+      TrackpadRightClick = true;
+    };
+  };
+
+  # Touch ID for sudo
   security.pam.services.sudo_local.touchIdAuth = true;
 }

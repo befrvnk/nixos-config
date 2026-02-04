@@ -116,16 +116,6 @@
           hasTouchscreen = false;
         };
 
-        # NixOS VM guest for MacBook (runs in UTM)
-        macbook-vm = hostLib.mkHost {
-          hostname = "macbook-vm";
-          system = "aarch64-linux";
-          cpuVendor = "other";
-          hasFingerprint = false;
-          hasTouchscreen = false;
-          isVirtualMachine = true;
-        };
-
         # Future hosts (uncomment when ready):
         #
         # surface = hostLib.mkHost {

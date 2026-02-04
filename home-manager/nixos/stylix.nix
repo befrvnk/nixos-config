@@ -2,7 +2,7 @@
 
 let
   wallpapers = import ./wallpapers;
-  themes = import ../shared/themes.nix { inherit pkgs; };
+  themes = import ../../shared/themes.nix { inherit pkgs; };
 in
 {
   # Base stylix configuration (default to dark theme)

@@ -14,6 +14,7 @@ in
         inherit inputs;
       };
       modules = [
+        inputs.home-manager.darwinModules.home-manager
         ../hosts/${hostname}
       ];
     };

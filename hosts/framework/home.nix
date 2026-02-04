@@ -7,7 +7,7 @@
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.frank = ../../home-manager/frank.nix;
+    users.frank = ../../home-manager/nixos/frank.nix;
     sharedModules = [
       inputs.stylix.homeModules.stylix
       inputs.vicinae.homeManagerModules.default

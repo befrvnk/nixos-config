@@ -1,7 +1,13 @@
+# Darwin-specific Ghostty configuration
+#
+# On macOS, Ghostty uses automatic theme switching based on system appearance.
+# We generate both light and dark themes from our base16 color schemes.
+# No Stylix dependency - themes are built directly from shared/themes.nix.
+
 { pkgs, ... }:
 
 let
-  themes = import ../shared/themes.nix { inherit pkgs; };
+  themes = import ../../shared/themes.nix { inherit pkgs; };
 
   # Parse base16 scheme YAML to get color values
   parseBase16Scheme =
@@ -13,12 +19,11 @@ let
     in
     builtins.fromJSON (builtins.readFile jsonFile);
 
-  # Colors are now dynamically loaded from themes.nix
+  # Colors are dynamically loaded from themes.nix
   darkColors = (parseBase16Scheme themes.dark.base16Scheme).palette;
   lightColors = (parseBase16Scheme themes.light.base16Scheme).palette;
 
   # Helper to convert base16 colors to Ghostty theme format
-  # Note: base16 colors already include '#' prefix
   mkGhosttyTheme = colors: ''
     background = ${colors.base00}
     cursor-color = ${colors.base05}
@@ -44,9 +49,6 @@ let
   '';
 in
 {
-  # Disable Stylix's automatic Ghostty theming
-  stylix.targets.ghostty.enable = false;
-
   programs.ghostty = {
     enable = true;
     package = pkgs.ghostty;
@@ -60,9 +62,6 @@ in
       keybind = [
         "shift+enter=text:\\x1b\\r"
       ];
-
-      # Note: Ctrl+Left/Right word jumping is configured at the shell level
-      # in zsh/keybindings.zsh instead of here, as recommended by Ghostty docs
     };
   };
 

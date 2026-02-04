@@ -1,7 +1,7 @@
 {
-  lib,
   hostConfig,
   pkgs,
+  lib,
   ...
 }:
 let
@@ -34,7 +34,7 @@ let
     ${pkgs.bluez}/bin/bluetoothctl power on 2>/dev/null || true
   '';
 in
-lib.mkIf (!hostConfig.isVirtualMachine) {
+{
   # Power management using tuned (Red Hat's power management daemon)
   # tuned provides event-based AC/battery switching via upower, eliminating
   # the CPU overhead of udev rules that fire on every battery status update.

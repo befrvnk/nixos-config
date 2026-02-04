@@ -2,28 +2,35 @@
 
 {
   imports = [
+    # Shared modules (cross-platform)
+    ../shared/atuin.nix
+    ../shared/btop.nix
+    ../shared/claude-code
+    ../shared/direnv.nix
+    ../shared/git.nix
+    ../shared/jujutsu.nix
+    ../shared/lazygit.nix
+    ../shared/navi
+    ../shared/nil.nix
+    ../shared/ssh.nix
+    ../shared/starship.nix
+    ../shared/worktrunk.nix
+    ../shared/zed.nix
+
+    # NixOS-specific modules
     inputs.zen-browser.homeModules.beta
     ./android
-    ./audio-keep-alive
-    ./atuin.nix
     ./audio-idle-inhibit
+    ./audio-keep-alive
     ./battery-notifications
-    ./btop.nix
-    ./claude-code
     ./darkman
-    ./direnv.nix
     ./dunst.nix
     ./emacs.nix
     ./gemini-cli.nix
     ./ghostty.nix
-    ./git.nix
     ./hamr.nix
     ./intellij
     ./ironbar
-    ./jujutsu.nix
-    ./lazygit.nix
-    ./navi
-    ./nil.nix
     ./niri
     ./nushell.nix
     ./obsidian.nix
@@ -32,14 +39,10 @@
     ./profile-sync-daemon.nix
     ./signal.nix
     ./spotify-suspend
-    ./ssh.nix
-    ./starship.nix
     ./stylix.nix
     ./swaylock.nix
     ./udiskie.nix
     ./vicinae.nix
-    ./worktrunk.nix
-    ./zed.nix
     ./zen-browser
   ];
 

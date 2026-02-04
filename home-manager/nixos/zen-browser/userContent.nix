@@ -2,7 +2,7 @@
 
 let
   # Import shared theme configuration
-  themes = import ../../shared/themes.nix { inherit pkgs; };
+  themes = import ../../../shared/themes.nix { inherit pkgs; };
 
   # Convert YAML color schemes to JSON and import
   yamlToScheme =

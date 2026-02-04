@@ -1,12 +1,8 @@
-{
-  lib,
-  hostConfig,
-  ...
-}:
+{ ... }:
 
 {
   boot.initrd.systemd.enable = true;
-  security.tpm2.enable = !hostConfig.isVirtualMachine;
+  security.tpm2.enable = true;
 
   # Enable I2C device access for external monitor control (DDC/CI)
   # Loads i2c-dev module and sets up udev rules for user access
@@ -124,8 +120,8 @@
     ];
   };
 
-  # Configure systemd-logind for proper lid handling (physical laptops only)
-  services.logind.settings.Login = lib.mkIf (!hostConfig.isVirtualMachine) {
+  # Configure systemd-logind for proper lid handling
+  services.logind.settings.Login = {
     HandleLidSwitch = "suspend";
     HandleLidSwitchDocked = "ignore";
     HandleLidSwitchExternalPower = "suspend";

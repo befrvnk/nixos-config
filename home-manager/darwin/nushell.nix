@@ -1,12 +1,7 @@
-# Nushell configuration with Carapace completions
+# Darwin-specific Nushell configuration
 #
-# Nushell is a modern shell with structured data pipelines.
-# Carapace provides completions for 1000+ commands.
-#
-# Theme switching:
-# - Light and dark theme files are generated at build time using Stylix colors (NUON format)
-# - Darkman copies the active theme to ~/.local/state/nushell/theme.nuon
-# - A pre_prompt hook loads the theme file for automatic color updates
+# On macOS, we use dark theme by default (no automatic switching like Linux).
+# Themes are generated from shared/themes.nix without Stylix dependency.
 #
 # Integrations:
 # - Starship: Prompt (via enableNushellIntegration in starship.nix)
@@ -15,7 +10,6 @@
 # - Carapace: Tab completions for external commands
 # - Navi: Cheatsheet widget with Ctrl+G (manual integration below)
 # - Worktrunk: Git worktree management with directory switching (manual integration below)
-#              User config with direnv hook is in xdg.configFile below
 #
 # Keybindings:
 # - Ctrl+Left/Right: Word navigation
@@ -23,9 +17,9 @@
 # - Ctrl+G: Navi cheatsheet widget
 # - Ctrl+R: Atuin history search
 
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 let
-  themes = import ../shared/themes.nix { inherit pkgs; };
+  themes = import ../../shared/themes.nix { inherit pkgs; };
 
   # Parse base16 scheme YAML to get color values
   parseBase16Scheme =
@@ -38,11 +32,8 @@ let
     builtins.fromJSON (builtins.readFile jsonFile);
 
   darkColors = parseBase16Scheme themes.dark.base16Scheme;
-  lightColors = parseBase16Scheme themes.light.base16Scheme;
 
   # Generate nushell color config from base16 palette in NUON format
-  # Based on Stylix's nushell module (https://github.com/nix-community/stylix/blob/master/modules/nushell/hm.nix)
-  # NUON format allows runtime loading (source requires constant path at parse time)
   mkNushellTheme =
     colors:
     let
@@ -143,7 +134,6 @@ in
       }
 
       # Navi widget for Ctrl+G cheatsheet access
-      # (home-manager navi module doesn't have enableNushellIntegration)
       def navi_widget [] {
         let current_input = (commandline)
         let last_command = ($current_input | navi fn widget::last_command | str trim)
@@ -180,7 +170,6 @@ in
       $env.config.keybindings = ($env.config.keybindings | append $navi_keybinding)
 
       # Worktrunk shell integration for directory switching
-      # Wraps the wt binary to enable `wt switch` to change the shell's directory
       def --env --wrapped wt [...args: string] {
         let directive_file = (mktemp)
         try {
@@ -189,14 +178,11 @@ in
           }
           let exit_code = $env.LAST_EXIT_CODE
 
-          # Parse and execute directives (cd commands)
           if ($directive_file | path exists) {
             let directives = (open $directive_file | str trim)
             if ($directives | is-not-empty) {
-              # Extract path from cd command: cd '/path/to/dir' or cd "/path/to/dir"
               let cd_match = ($directives | parse "cd '{path}'" | get -o path | first)
               let cd_path = if ($cd_match | is-empty) {
-                # Try double quotes
                 $directives | parse 'cd "{path}"' | get -o path | first
               } else {
                 $cd_match
@@ -212,70 +198,22 @@ in
         rm -f $directive_file
       }
 
-      # Launch any application detached from terminal (survives shell exit)
+      # Launch any application detached from terminal
       def launch [app: string, ...args: string] {
         let cmd = if ($args | is-empty) { $app } else { $"($app) ($args | str join ' ')" }
         bash -c $"nohup ($cmd) >/dev/null 2>&1 & disown"
         print $"($app) launched"
       }
 
-      # Helper function to load theme from NUON file
-      def load-nushell-theme [] {
-        let theme_file = ($env.HOME | path join ".local/state/nushell/theme.nuon")
-        if ($theme_file | path exists) {
-          open $theme_file
-        } else {
-          # Fallback: try to load from config directory
-          let dark_theme = ($env.HOME | path join ".config/nushell/theme-dark.nuon")
-          if ($dark_theme | path exists) {
-            open $dark_theme
-          } else {
-            null
-          }
-        }
-      }
-
-      # Load theme on startup
-      let theme = (load-nushell-theme)
-      if $theme != null {
-        $env.config.color_config = $theme
-      }
-
-      # Pre-prompt hook to reload theme when it changes
-      # This enables automatic theme switching when darkman updates the theme file
-      $env.config.hooks.pre_prompt = ($env.config.hooks.pre_prompt | default [] | append {||
-        let theme_file = ($env.HOME | path join ".local/state/nushell/theme.nuon")
-        if ($theme_file | path exists) {
-          # Only reload if file has changed since last check
-          let current_mtime = (ls -l $theme_file | get 0.modified)
-          let last_mtime = ($env.NUSHELL_THEME_MTIME? | default "")
-          if $current_mtime != $last_mtime {
-            $env.config.color_config = (open $theme_file)
-            $env.NUSHELL_THEME_MTIME = $current_mtime
-          }
-        }
-      })
-    '';
-
-    # Environment setup: ensure theme state directory exists and initialize theme
-    extraEnv = ''
-      # Create theme state directory if it doesn't exist
-      mkdir ($env.HOME | path join ".local/state/nushell")
-
-      # If no theme is set yet, copy the dark theme as default
-      let theme_file = ($env.HOME | path join ".local/state/nushell/theme.nuon")
-      if not ($theme_file | path exists) {
-        let dark_theme = ($env.HOME | path join ".config/nushell/theme-dark.nuon")
-        if ($dark_theme | path exists) {
-          cp $dark_theme $theme_file
-        }
+      # Load theme on startup (static dark theme on macOS)
+      let theme_file = ($env.HOME | path join ".config/nushell/theme.nuon")
+      if ($theme_file | path exists) {
+        $env.config.color_config = (open $theme_file)
       }
     '';
 
     shellAliases = {
-      # Firewall log viewing (migrated from zsh)
-      firewall-log = "journalctl -k | grep 'refused'";
-      firewall-log-live = "sudo dmesg --follow | grep 'refused'";
+      # macOS-specific aliases can go here
     };
   };
 
@@ -285,11 +223,6 @@ in
     enableNushellIntegration = true;
   };
 
-  # Generate theme files for both light and dark modes in NUON format
-  # These are copied to ~/.local/state/nushell/theme.nuon by darkman
-  xdg.configFile."nushell/theme-dark.nuon".text = mkNushellTheme darkColors;
-  xdg.configFile."nushell/theme-light.nuon".text = mkNushellTheme lightColors;
-
-  # Disable Stylix's nushell target since we manage themes ourselves
-  stylix.targets.nushell.enable = lib.mkForce false;
+  # Static dark theme for nushell on macOS
+  xdg.configFile."nushell/theme.nuon".text = mkNushellTheme darkColors;
 }
