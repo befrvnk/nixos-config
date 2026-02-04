@@ -1,7 +1,6 @@
 # Darwin-specific Nushell configuration
 #
-# On macOS, we use dark theme by default (no automatic switching like Linux).
-# Themes are generated from shared/themes.nix without Stylix dependency.
+# Uses system defaults for theming - no custom color configuration.
 #
 # Integrations:
 # - Starship: Prompt (via enableNushellIntegration in starship.nix)
@@ -17,66 +16,7 @@
 # - Ctrl+G: Navi cheatsheet widget
 # - Ctrl+R: Atuin history search
 
-{ pkgs, ... }:
-let
-  themes = import ../../shared/themes.nix { inherit pkgs; };
-
-  # Parse base16 scheme YAML to get color values
-  parseBase16Scheme =
-    schemeFile:
-    let
-      jsonFile = pkgs.runCommand "base16-to-json" { } ''
-        ${pkgs.yq-go}/bin/yq -o json ${schemeFile} > $out
-      '';
-    in
-    builtins.fromJSON (builtins.readFile jsonFile);
-
-  darkColors = parseBase16Scheme themes.dark.base16Scheme;
-
-  # Generate nushell color config from base16 palette in NUON format
-  mkNushellTheme =
-    colors:
-    let
-      p = colors.palette;
-    in
-    ''
-      {
-        separator: "${p.base03}"
-        leading_trailing_space_bg: "${p.base04}"
-        header: "${p.base0B}"
-        date: "${p.base0E}"
-        filesize: "${p.base0D}"
-        row_index: "${p.base0C}"
-        bool: "${p.base08}"
-        int: "${p.base0B}"
-        duration: "${p.base08}"
-        range: "${p.base08}"
-        float: "${p.base08}"
-        string: "${p.base04}"
-        nothing: "${p.base08}"
-        binary: "${p.base08}"
-        cellpath: "${p.base08}"
-        hints: dark_gray
-        shape_garbage: {fg: "${p.base07}", bg: "${p.base08}"}
-        shape_bool: "${p.base0D}"
-        shape_int: {fg: "${p.base0E}", attr: b}
-        shape_float: {fg: "${p.base0E}", attr: b}
-        shape_range: {fg: "${p.base0A}", attr: b}
-        shape_internalcall: {fg: "${p.base0C}", attr: b}
-        shape_external: "${p.base0C}"
-        shape_externalarg: {fg: "${p.base0B}", attr: b}
-        shape_literal: "${p.base0D}"
-        shape_operator: "${p.base0A}"
-        shape_signature: {fg: "${p.base0B}", attr: b}
-        shape_string: "${p.base0B}"
-        shape_filepath: "${p.base0D}"
-        shape_globpattern: {fg: "${p.base0D}", attr: b}
-        shape_variable: "${p.base0E}"
-        shape_flag: {fg: "${p.base0D}", attr: b}
-        shape_custom: {attr: b}
-      }
-    '';
-in
+{ ... }:
 
 {
   programs.nushell = {
@@ -204,12 +144,6 @@ in
         bash -c $"nohup ($cmd) >/dev/null 2>&1 & disown"
         print $"($app) launched"
       }
-
-      # Load theme on startup (static dark theme on macOS)
-      let theme_file = ($env.HOME | path join ".config/nushell/theme.nuon")
-      if ($theme_file | path exists) {
-        $env.config.color_config = (open $theme_file)
-      }
     '';
 
     shellAliases = {
@@ -222,7 +156,4 @@ in
     enable = true;
     enableNushellIntegration = true;
   };
-
-  # Static dark theme for nushell on macOS
-  xdg.configFile."nushell/theme.nuon".text = mkNushellTheme darkColors;
 }

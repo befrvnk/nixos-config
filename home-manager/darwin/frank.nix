@@ -9,7 +9,7 @@
 # - No Linux-specific services (ironbar, darkman, battery-notifications, etc.)
 # - No systemd user services
 
-{ ... }:
+{ inputs, ... }:
 
 {
   imports = [
@@ -29,9 +29,11 @@
     ../shared/zed.nix
 
     # Darwin-specific modules
+    inputs.zen-browser.homeModules.beta
     ./ghostty.nix
     ./nushell.nix
     ./packages.nix
+    ./zen-browser.nix
   ];
 
   home.username = "frank";
