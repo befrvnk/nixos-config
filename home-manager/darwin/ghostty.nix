@@ -12,6 +12,11 @@
     package = null;
 
     settings = {
+      # Follow macOS system appearance (light/dark mode)
+      window-theme = "auto";
+      # Conditional theme: light mode theme, dark mode theme
+      theme = "light:Catppuccin Latte,dark:Catppuccin Mocha";
+
       # Fix Shift+Enter for Claude Code
       # https://github.com/anthropics/claude-code/issues/1282
       keybind = [
