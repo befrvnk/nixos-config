@@ -11,6 +11,12 @@
   # Nix settings (flakes, substituters) are configured by Determinate instead
   nix.enable = false;
 
+  # Define user for home-manager integration
+  users.users.frank = {
+    name = "frank";
+    home = "/Users/frank";
+  };
+
   # Home-manager integration
   home-manager = {
     useGlobalPkgs = true;
