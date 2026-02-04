@@ -12,6 +12,9 @@
     package = null;
 
     settings = {
+      # Launch nushell via bash login shell to inherit Nix environment
+      command = "bash -l -c nu";
+
       # Follow macOS system appearance (light/dark mode)
       window-theme = "auto";
       # Conditional theme: light mode theme, dark mode theme

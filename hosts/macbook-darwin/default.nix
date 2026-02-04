@@ -12,9 +12,13 @@
   nix.enable = false;
 
   # Define user for home-manager integration
+  # knownUsers + uid required for nix-darwin to manage shell via chsh
+  users.knownUsers = [ "frank" ];
   users.users.frank = {
     name = "frank";
     home = "/Users/frank";
+    shell = pkgs.nushell;
+    uid = 501;
   };
 
   # Home-manager integration
@@ -36,7 +40,7 @@
   };
 
   environment.shells = with pkgs; [
-    bashInteractive
+    nushell
     zsh
   ];
 
@@ -55,6 +59,7 @@
       cleanup = "zap";
     };
     casks = [
+      "1password"
       "android-studio"
       "ghostty"
       "miro"

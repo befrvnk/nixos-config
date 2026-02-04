@@ -122,9 +122,11 @@ Add to `hosts/macbook-darwin/default.nix`:
 ```nix
 homebrew.casks = [ "android-studio" "ghostty" ];
 ```
-Current Homebrew-only packages (not in nixpkgs for darwin):
+Current Homebrew-only packages:
+- `1password` - Requires /Applications for security features
 - `android-studio` - Linux only in nixpkgs
 - `ghostty` - Linux only in nixpkgs
+- `miro` - Not in nixpkgs
 
 ### Shared Packages
 Modules in `shared/` (e.g., `shared/worktrunk.nix`) apply to both platforms automatically.
