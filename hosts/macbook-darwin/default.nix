@@ -47,7 +47,7 @@
     wget
   ];
 
-  # Homebrew for GUI apps not available in nixpkgs
+  # Homebrew for GUI apps not available in nixpkgs for darwin
   homebrew = {
     enable = true;
     onActivation = {

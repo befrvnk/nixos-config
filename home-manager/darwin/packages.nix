@@ -7,6 +7,10 @@
 
 {
   home.packages = with pkgs; [
+    # GUI apps
+    notion-app
+    slack
+
     # CLI tools (cross-platform)
     bat
     devenv

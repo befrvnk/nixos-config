@@ -94,15 +94,37 @@ imports = [
 
 ## Adding Packages
 
-### Homebrew Casks (GUI apps)
+### Package Source Priority
+1. **Prefer nixpkgs** for version pinning and reproducibility
+2. **Use Homebrew** only when package is unavailable in nixpkgs for aarch64-darwin
+
+### Before Adding a Package
+Always verify the package supports aarch64-darwin:
+```bash
+# Check if package exists and supported platforms
+nix eval nixpkgs#<package>.meta.platforms --json
+
+# Note: nix search can be misleading - packages may appear but not support darwin
+```
+
+### User Packages (preferred)
+Add to `darwin/packages.nix` for GUI and CLI apps:
+```nix
+home.packages = with pkgs; [
+  notion-app  # Note: notion-app, not notion (which is a window manager)
+  slack
+];
+```
+
+### Homebrew Casks (fallback)
+Only use when nixpkgs doesn't support aarch64-darwin.
 Add to `hosts/macbook-darwin/default.nix`:
 ```nix
 homebrew.casks = [ "android-studio" "ghostty" ];
 ```
-Use for: GUI apps not in nixpkgs, apps with native macOS integration
-
-### User Packages (CLI)
-Add to `darwin/packages.nix` or relevant shared module.
+Current Homebrew-only packages (not in nixpkgs for darwin):
+- `android-studio` - Linux only in nixpkgs
+- `ghostty` - Linux only in nixpkgs
 
 ### Shared Packages
 Modules in `shared/` (e.g., `shared/worktrunk.nix`) apply to both platforms automatically.
