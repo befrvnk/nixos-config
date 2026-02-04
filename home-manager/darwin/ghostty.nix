@@ -1,7 +1,8 @@
 # Darwin-specific Ghostty configuration
 #
-# On macOS, Ghostty uses automatic theme switching based on system appearance.
-# We generate both light and dark themes from our base16 color schemes.
+# On macOS, Ghostty is installed via Homebrew (not available in nixpkgs for darwin).
+# We only configure settings and themes here.
+# Ghostty uses automatic theme switching based on system appearance.
 # No Stylix dependency - themes are built directly from shared/themes.nix.
 
 { pkgs, ... }:
@@ -51,7 +52,8 @@ in
 {
   programs.ghostty = {
     enable = true;
-    package = pkgs.ghostty;
+    # Don't install package - Ghostty is installed via Homebrew on macOS
+    package = null;
 
     # Use Ghostty's automatic theme switching based on system appearance
     settings = {

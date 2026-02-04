@@ -56,6 +56,7 @@
     };
     casks = [
       "android-studio"
+      "ghostty"
     ];
   };
 
