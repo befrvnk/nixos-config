@@ -1,12 +1,16 @@
-# NixOS Configuration Agent Guidelines
+# Nix Configuration Agent Guidelines
+
+This repository supports multiple platforms: **NixOS** (Framework laptop) and **macOS/Darwin** (MacBook Pro M4).
 
 ## Build & Test Commands
 
-**Important:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild`. Always prefer `nh` commands for better output, faster builds, and visual diffs.
-
 **Note for AI Agents:** Do NOT run any commands requiring `sudo`. If a task requires sudo privileges, inform the user and ask them to run the command manually. The commands below are documented for reference only.
 
-### Primary Commands (use these)
+### NixOS Commands (Framework)
+
+**Important:** NixOS uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild`. Always prefer `nh` commands for better output, faster builds, and visual diffs.
+
+#### Primary Commands (use these)
 - **Rebuild system:** `rebuild switch` (when in devenv) or `nh os switch ~/nixos-config`
 - **Test without activating:** `nh os test ~/nixos-config` (builds but doesn't set as boot default)
 - **Update and rebuild:** `nix flake update && rebuild switch` (updates flake.lock and rebuilds)
@@ -15,15 +19,29 @@
 
 **Note:** The `rebuild` script is available when the devenv environment is active (automatic via direnv).
 
-### Additional Commands
+### Darwin Commands (MacBook)
+
+**Important:** Darwin does NOT have `nh` support. Use `darwin-rebuild` directly.
+
+#### Primary Commands
+- **Rebuild system:** `darwin-rebuild switch --flake .#macbook`
+- **Update and rebuild:** `nix flake update --accept-flake-config && darwin-rebuild switch --flake .#macbook`
+- **Initial bootstrap:** `nix run nix-darwin -- switch --flake .#macbook` (first time only)
+
+**Note:** Darwin uses Determinate Systems Nix installer, not the system's own Nix management.
+
+### Additional Commands (All Platforms)
 - **Check flake validity:** `check` (in devenv) or `nix flake check --accept-flake-config`
 - **Format code:** `nix fmt` (auto-formatted on commit via pre-commit hooks)
 - **Update flakes manually:** `nix flake update --accept-flake-config`
-- **Dry-run build:** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config`
+- **Dry-run build (NixOS):** `nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config`
+- **Dry-run build (Darwin):** `nix build .#darwinConfigurations.macbook.system --dry-run --accept-flake-config`
 
 **Note:** The `--accept-flake-config` flag trusts the flake's cachix configuration. Devenv scripts include this flag automatically.
 
-### Legacy Commands (avoid these)
+**Cross-platform check limitation:** `nix flake check` evaluates ALL configurations, so running it on Darwin will fail when evaluating NixOS configs (and vice versa). On Darwin, use the dry-run build command above to check just the darwin configuration.
+
+### Legacy Commands (avoid on NixOS)
 - ❌ `nixos-rebuild switch` → Use `nh os switch` instead
 - ❌ `nixos-rebuild test` → Use `nh os test` instead
 - ❌ `nix-collect-garbage` → Use `nh clean all` instead
@@ -43,20 +61,22 @@
 
 Agents CAN safely run these commands without sudo:
 
-- **devenv scripts (preferred):** `rebuild switch`, `rebuild`, `check`, `sysinfo`, `generations`, `flake-update`
-- **All nh commands:** `nh os switch ~/nixos-config`, `nh os test ~/nixos-config`, `nh clean all`, etc.
-- **Nix commands:** Always use `--accept-flake-config` flag:
+- **devenv scripts (preferred, NixOS):** `rebuild switch`, `rebuild`, `check`, `sysinfo`, `generations`, `flake-update`
+- **All nh commands (NixOS only):** `nh os switch ~/nixos-config`, `nh os test ~/nixos-config`, `nh clean all`, etc.
+- **darwin-rebuild (Darwin only):** `darwin-rebuild switch --flake .#macbook`
+- **Nix commands (all platforms):** Always use `--accept-flake-config` flag:
   - `nix flake check --accept-flake-config`
   - `nix flake update --accept-flake-config`
   - `nix build --accept-flake-config`
   - `nix fmt` (no flag needed)
 - **Git operations:** `git add`, `git commit`, `git push`, `git status`, etc.
-- **User systemd services:** `systemctl --user status/start/stop/restart <service>`
+- **User systemd services (NixOS):** `systemctl --user status/start/stop/restart <service>`
+- **launchctl (Darwin):** `launchctl list`, `launchctl print gui/<uid>/<service>`
 - **Development tools:** `deadnix`, `nixfmt`, `shellcheck`, `statix` (when in devenv environment)
 - **File operations:** Read, Edit, Write tools for configuration files
 - **Directory operations:** `ls`, `tree`, `fd`, file searches
 
-**Important for Agents:** Prefer devenv scripts over raw nix commands. Devenv scripts automatically include the correct flags and provide better output.
+**Important for Agents:** On NixOS, prefer devenv scripts over raw nix commands. On Darwin, use `darwin-rebuild` directly. Devenv scripts automatically include the correct flags and provide better output.
 
 ## Code Style Guidelines
 - **Formatting:** Uses `nixfmt` (RFC style) - automatically applied via pre-commit hooks
@@ -71,7 +91,8 @@ Agents CAN safely run these commands without sudo:
 - **Attribute set merging:** Prefer `lib.mkMerge` over inline merging when combining multiple attribute sets for readability
 
 ### Nushell Usage
-- User's default shell is Nushell (configured in `modules/users.nix`)
+- User's default shell is Nushell on NixOS (configured in `modules/users.nix`)
+- On Darwin, system shell is Zsh but Nushell is available via home-manager
 - When proposing commands, show both Bash and Nushell syntax to help learn Nushell
 - Key Nushell differences:
   - No `&` for backgrounding - use `bash -c "cmd &"` or run command directly (many daemons self-daemonize)
@@ -80,17 +101,27 @@ Agents CAN safely run these commands without sudo:
   - Environment variables: `$env.VAR` instead of `$VAR`
 
 ## Development Workflow
+
+### Common (All Platforms)
 - direnv automatically loads devenv environment on directory entry
 - Pre-commit hooks (via devenv) ensure all committed code is formatted
+
+### NixOS (Framework)
 - Use `rebuild switch` (from devenv) for convenient system rebuilding
 - Test changes with `nh os test ~/nixos-config` before committing to ensure they work
 - Use `nix flake update && rebuild switch` to update flakes and rebuild in one command
 - Clean old generations periodically with `nh clean all --keep 5`
 
+### Darwin (MacBook)
+- Use `darwin-rebuild switch --flake .#macbook` for system rebuilding
+- Use `nix flake update --accept-flake-config && darwin-rebuild switch --flake .#macbook` to update and rebuild
+- GUI apps may need Homebrew (Android Studio, Ghostty) - see `hosts/macbook-darwin/default.nix`
+
 ### Code Quality and Testing
 
 **Conditional testing based on file types:**
-- **Nix files modified:** Run `nh os test ~/nixos-config` or `nix flake check --accept-flake-config`
+- **Nix files modified (NixOS):** Run `nh os test ~/nixos-config` or `nix flake check --accept-flake-config`
+- **Nix files modified (Darwin):** Run `nix flake check --accept-flake-config` (no test mode available)
 - **Shell scripts only:** Skip Nix testing, just validate scripts
 - **Documentation only:** No testing needed
 
@@ -109,9 +140,13 @@ Agents CAN safely run these commands without sudo:
 ### Standard Development Process
 1. **Check existing documentation** - Review README.md and docs/ for related content
 2. **Make changes** to configuration files
-3. **Test** with `nh os test ~/nixos-config` to verify it builds
+3. **Test** build:
+   - NixOS: `nh os test ~/nixos-config`
+   - Darwin: `nix flake check --accept-flake-config`
 4. **Update documentation** (README.md and/or docs/) if needed
-5. **Apply changes** with `rebuild switch`
+5. **Apply changes**:
+   - NixOS: `rebuild switch`
+   - Darwin: `darwin-rebuild switch --flake .#macbook`
 6. **Verify** the system behaves as expected
 7. **Commit** with descriptive message explaining what and why
 8. **Push** to remote repository
@@ -127,9 +162,9 @@ Before committing, ask yourself:
 - [ ] Are there quirks or workarounds that should be documented?
 - [ ] Did I remove outdated information from documentation?
 
-## Why nh (Nix Helper)?
+## Why nh (Nix Helper)? (NixOS Only)
 
-This project uses [nh](https://github.com/nix-community/nh) as a wrapper around NixOS/home-manager commands. Benefits:
+On NixOS, this project uses [nh](https://github.com/nix-community/nh) as a wrapper around NixOS/home-manager commands. Benefits:
 
 - **Better output:** Colored, structured progress output with build summaries
 - **Faster builds:** Automatic specialization detection and optimized rebuild paths
@@ -138,7 +173,7 @@ This project uses [nh](https://github.com/nix-community/nh) as a wrapper around 
 - **Safer garbage collection:** `nh clean` provides better control over generation cleanup
 - **Unified interface:** Single tool for OS, home-manager, and package management
 
-**When to use what:**
+**When to use what (NixOS):**
 - System rebuilds: `rebuild switch` (in devenv) or `nh os switch ~/nixos-config` (not `nixos-rebuild`)
 - Flake validation: `check` (in devenv) or `nix flake check --accept-flake-config`
 - Home-manager: Integrated with system rebuild (no separate command needed)
@@ -147,18 +182,25 @@ This project uses [nh](https://github.com/nix-community/nh) as a wrapper around 
 - Flake updates: `nix flake update --accept-flake-config`
 - Formatting: `nix fmt`
 
+**Note:** `nh` is NOT available on Darwin. It wraps `nixos-rebuild` which doesn't exist on macOS. Use `darwin-rebuild` directly on Darwin.
+
 ## Project Structure
 
 ### Directory Organization
 ```
 nixos-config/
 ├── flake.nix              # Entry point - inputs, outputs, overlays
+├── lib/                   # Host builder functions
+│   ├── hosts.nix          # mkHost for NixOS systems
+│   └── darwin.nix         # mkDarwinHost for macOS systems
 ├── hosts/                 # Host-specific configurations
-│   └── framework/         # Framework laptop config
-│       ├── default.nix    # Host config
-│       ├── hardware-configuration.nix  # Auto-generated
-│       └── home.nix       # Home-manager integration
-├── modules/               # System-level NixOS modules
+│   ├── framework/         # Framework laptop (NixOS)
+│   │   ├── default.nix    # Host config
+│   │   ├── hardware-configuration.nix  # Auto-generated
+│   │   └── home.nix       # Home-manager integration
+│   └── macbook-darwin/    # MacBook Pro M4 (Darwin)
+│       └── default.nix    # Host + home-manager config
+├── modules/               # System-level NixOS modules (NixOS only)
 │   ├── default.nix        # Central import file
 │   ├── users.nix          # User account definitions
 │   ├── desktop/           # Display manager, compositor
@@ -167,30 +209,48 @@ nixos-config/
 │   ├── system/            # Core settings (boot, networking, packages)
 │   └── theming/           # System-level stylix config
 ├── home-manager/          # User-level configurations
-│   ├── frank.nix          # Main user config (imports all)
-│   ├── packages.nix       # User application packages
-│   ├── stylix.nix         # Theming with specializations
-│   ├── niri/              # Window manager (split by concern)
-│   ├── ironbar/           # Status bar (modular scripts)
-│   └── */                 # Other app configs
+│   ├── nixos/             # NixOS-specific home-manager
+│   │   ├── frank.nix      # Main user config (imports all NixOS modules)
+│   │   ├── niri/          # Window manager (Wayland, split by concern)
+│   │   ├── ironbar/       # Status bar (modular scripts)
+│   │   ├── stylix.nix     # Theming with specializations
+│   │   └── */             # Other NixOS-specific configs
+│   ├── darwin/            # Darwin-specific home-manager
+│   │   ├── frank.nix      # Main user config (imports shared + darwin modules)
+│   │   ├── ghostty.nix    # Terminal (uses Homebrew package)
+│   │   ├── nushell.nix    # Shell (no Stylix theming)
+│   │   ├── packages.nix   # Cross-platform CLI packages
+│   │   └── zen-browser.nix # Browser with extension policies
+│   └── shared/            # Shared modules (both platforms)
+│       ├── atuin.nix      # Shell history
+│       ├── git.nix        # Version control
+│       ├── starship.nix   # Prompt
+│       └── */             # Other cross-platform configs
 ├── overlays/              # Package modifications
-├── shared/                # Shared configurations (used by both system and home-manager)
+├── shared/                # Shared configurations
 │   └── themes.nix         # Central theme definitions (base16 schemes)
 └── docs/                  # Detailed documentation
+    └── macbook-darwin-setup.md  # Darwin setup guide
 ```
 
 ### Module Import Patterns
 
-**System modules:** `modules/default.nix` acts as central import point
-- Each host imports this single file
+**System modules (NixOS only):** `modules/default.nix` acts as central import point
+- Each NixOS host imports this single file
 - Organized by category: core, users, system, hardware, desktop, services, theming
+- Darwin does NOT use modules/ - all system config in host's default.nix
 
-**Home-Manager modules:** `home-manager/frank.nix` imports all user modules
-- Complex apps get directories (niri/, ironbar/, darkman/)
-- Simple configs are single files (git.nix, ssh.nix, nushell.nix)
+**Home-Manager modules:**
+- **NixOS:** `home-manager/nixos/frank.nix` imports all NixOS-specific modules
+- **Darwin:** `home-manager/darwin/frank.nix` imports shared + darwin-specific modules
+- **Shared modules:** Located in `home-manager/shared/` (git.nix, starship.nix, atuin.nix, etc.)
+- Complex apps get directories (niri/, ironbar/, darkman/) - NixOS only
+- Simple configs are single files
 - Each module is self-contained
 
 ## System vs Home-Manager Split
+
+### NixOS (Framework)
 
 **System Level** (`modules/`): Root-level, affects all users
 - Boot configuration (LUKS, TPM2, secure boot)
@@ -200,18 +260,37 @@ nixos-config/
 - Security (PAM, polkit, TPM)
 - System users and groups
 
-**Home-Manager Level** (`home-manager/`): User-specific customization
+**Home-Manager Level** (`home-manager/nixos/`): User-specific customization
 - User applications and packages
 - Shell configuration (nushell, starship, atuin, carapace)
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (ironbar, vicinae, dunst)
 - User services (swayidle, wayland-pipewire-idle-inhibit, battery notifications)
-- Theming specializations (dark/light modes)
+- Theming specializations (dark/light modes via Stylix)
 
 **Package Split:**
 - System packages: `modules/system/packages.nix` (git, vim, wget, core tools)
-- User packages: `home-manager/packages.nix` (GUI apps, dev tools, CLI tools)
+- User packages: `home-manager/nixos/packages.nix` (GUI apps, dev tools, CLI tools)
+
+### Darwin (MacBook)
+
+**System Level** (`hosts/macbook-darwin/default.nix`): All darwin system config
+- nix-darwin system defaults (dock, finder, keyboard, trackpad)
+- Homebrew casks for GUI apps not in nixpkgs (Android Studio, Ghostty)
+- Touch ID for sudo
+- User definition (required for home-manager integration)
+
+**Home-Manager Level** (`home-manager/darwin/`): User-specific customization
+- Shared modules (git, starship, atuin, ssh, etc.) - same as NixOS
+- Darwin-specific modules (ghostty, nushell, packages, zen-browser)
+- No systemd services (macOS uses launchd, but most user services not needed)
+- No Stylix theming (uses native macOS appearance)
+- No Wayland/compositor config (uses native macOS window management)
+
+**Package Split on Darwin:**
+- Homebrew casks: GUI apps not in nixpkgs or with native macOS integration (Android Studio, Ghostty)
+- User packages: `home-manager/darwin/packages.nix` (CLI tools, cross-platform apps)
 
 ## Common Configuration Patterns
 
@@ -258,7 +337,7 @@ in
 }
 ```
 
-Used in: `ironbar/default.nix`, `niri/layout.nix`
+Used in: `home-manager/nixos/ironbar/default.nix`, `home-manager/nixos/niri/layout.nix`
 
 ### Modular Splitting by Concern
 Complex configurations split into multiple files:
@@ -278,7 +357,7 @@ Complex configurations split into multiple files:
 }
 ```
 
-Examples: `home-manager/niri/`, `home-manager/ironbar/`
+Examples: `home-manager/nixos/niri/`, `home-manager/nixos/ironbar/`
 
 ### Specialization Pattern (Theme Switching)
 Enable theme switching without full rebuilds:
@@ -299,7 +378,34 @@ Enable theme switching without full rebuilds:
 }
 ```
 
-See: `home-manager/stylix.nix`
+See: `home-manager/nixos/stylix.nix`
+
+### Platform-Specific vs Shared Module Pattern
+Modules are organized by platform compatibility:
+
+**Shared modules** (work on both NixOS and Darwin):
+```nix
+# home-manager/darwin/frank.nix imports shared modules:
+imports = [
+  ../shared/atuin.nix      # Shell history - cross-platform
+  ../shared/git.nix        # Git config - cross-platform
+  ../shared/starship.nix   # Prompt - cross-platform
+  ../shared/ssh.nix        # SSH config - cross-platform
+  # ... other shared modules
+];
+```
+
+**Platform-specific modules:**
+- `home-manager/nixos/` - NixOS-only (Wayland, systemd, Stylix)
+- `home-manager/darwin/` - Darwin-only (minimal, no systemd/Wayland)
+- `home-manager/shared/` - Cross-platform (CLI tools, basic configs)
+
+**Decision criteria for shared vs platform-specific:**
+- Uses systemd services → NixOS-only
+- Uses Wayland/X11 → NixOS-only
+- Uses Stylix colors → NixOS-only (or create darwin variant)
+- Pure CLI config → Usually shared
+- Uses `config.lib.stylix` → NixOS-only
 
 ### Shared Resource Pattern
 Define shared resources once, import everywhere:
@@ -320,8 +426,8 @@ in {
 }
 ```
 
-- Themes imported in: `modules/theming/stylix.nix`, `home-manager/stylix.nix`, `ghostty.nix`, `nushell.nix`, `zen-browser/`
-- Wallpapers imported in: `stylix.nix`, `darkman/default.nix`
+- Themes imported in: `modules/theming/stylix.nix`, `home-manager/nixos/stylix.nix`, `home-manager/nixos/ghostty.nix`, `home-manager/nixos/nushell.nix`, `home-manager/nixos/zen-browser/`
+- Wallpapers imported in: `home-manager/nixos/stylix.nix`, `home-manager/nixos/darkman/default.nix`
 
 ### Event Monitoring Service Pattern
 For services that watch system events (monitor hotplug, overview mode changes):
@@ -357,7 +463,7 @@ in
 }
 ```
 
-Used in: `darkman/default.nix` (monitor-hotplug), `ironbar/modules/niri-overview-watcher/`
+Used in: `home-manager/nixos/darkman/default.nix` (monitor-hotplug), `home-manager/nixos/ironbar/modules/niri-overview-watcher/`
 
 ### Power Profile Access Pattern (tuned + Direct Sysfs)
 Power profiles are managed by tuned with tuned-ppd providing PPD API compatibility.
@@ -376,7 +482,7 @@ echo "balanced" > /sys/firmware/acpi/platform_profile
 tuned-adm active
 ```
 
-Used in: `home-manager/ironbar/modules/battery/` for manual profile switching in status bar.
+Used in: `home-manager/nixos/ironbar/modules/battery/` for manual profile switching in status bar.
 AC/battery auto-switching handled by tuned in `modules/hardware/power-management.nix`.
 
 ### ABM (Adaptive Backlight Management)
@@ -413,10 +519,19 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 2. Import in `frank.nix`: `imports = [ ./new-app ];`
 
 ### Adding Packages
+
+**NixOS:**
 - **System package:** Add to `modules/system/packages.nix`, then run `rebuild switch`
-- **User package:** If the package has a dedicated module file/directory (e.g., `home-manager/worktrunk.nix`), add `home.packages` there to keep everything bundled. Otherwise, add to `home-manager/packages.nix`. Then run `rebuild switch`
+- **User package:** If the package has a dedicated module file/directory (e.g., `home-manager/shared/worktrunk.nix`), add `home.packages` there to keep everything bundled. Otherwise, add to `home-manager/nixos/packages.nix`. Then run `rebuild switch`
 - **Custom package:** Create overlay in `overlays/`, then run `rebuild switch`
 - **Test first:** Use `nh os test ~/nixos-config` to verify the package builds before switching
+
+**Darwin:**
+- **Homebrew cask (GUI apps):** Add to `homebrew.casks` in `hosts/macbook-darwin/default.nix`
+- **User package (CLI):** Add to `home-manager/darwin/packages.nix`
+- **Shared package:** If the module is shared (e.g., `home-manager/shared/worktrunk.nix`), it applies to both platforms automatically
+- **Custom package:** Add overlay to `lib/darwin.nix`'s `darwinOverlays` list
+- **Test first:** Run `nix flake check --accept-flake-config` before switching
 
 ### Creating User Services
 ```nix
@@ -489,7 +604,9 @@ See: `docs/security-hardening.md` for full details
 
 ## Theming System
 
-### Centralized Theme Definitions
+### NixOS Theming (Stylix + Darkman)
+
+#### Centralized Theme Definitions
 All theme configuration is centralized in `shared/themes.nix`:
 ```nix
 dark = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
@@ -501,20 +618,34 @@ light = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
 - Polarity (`dark`/`light`) is automatically derived from the scheme's `variant` field
 - To change themes, edit only `shared/themes.nix` - all apps update automatically
 
-**Modules that import themes.nix:**
+**Modules that import themes.nix (NixOS):**
 - `modules/theming/stylix.nix` - System-level Stylix
-- `home-manager/stylix.nix` - Home-manager Stylix with specializations
-- `home-manager/ghostty.nix` - Terminal theme generation
-- `home-manager/nushell.nix` - Shell color configuration
-- `home-manager/zen-browser/` - Browser CSS generation
+- `home-manager/nixos/stylix.nix` - Home-manager Stylix with specializations
+- `home-manager/nixos/ghostty.nix` - Terminal theme generation
+- `home-manager/nixos/nushell.nix` - Shell color configuration
+- `home-manager/nixos/zen-browser/` - Browser userChrome CSS generation
 
-### Three-Layer Architecture
+#### Three-Layer Architecture (NixOS)
 1. **System-level Stylix** (`modules/theming/stylix.nix`): Minimal base config
-2. **Home-Manager Stylix** (`home-manager/stylix.nix`): Full theming with specializations
+2. **Home-Manager Stylix** (`home-manager/nixos/stylix.nix`): Full theming with specializations
 3. **Darkman Integration**: Time-based light/dark switching
 
+### Darwin Theming (Native macOS)
+
+Darwin does NOT use Stylix or Darkman. Instead:
+- **System appearance:** Uses native macOS dark/light mode (follows system settings)
+- **Ghostty:** Set to `window-theme = "auto"` to follow system appearance
+- **Terminal colors:** Uses system defaults, not base16 schemes
+- **Apps:** Most apps automatically follow macOS appearance settings
+
+**Key differences from NixOS:**
+- No theme specializations - macOS handles theme switching natively
+- No custom wallpaper management - use macOS System Settings
+- No Catppuccin/base16 color injection into apps
+- GTK apps (if any) may need manual dark mode configuration
+
 ### Wallpaper Management (awww)
-- awww-daemon runs continuously (started in `niri/startup.nix`)
+- awww-daemon runs continuously (started in `home-manager/nixos/niri/startup.nix`)
 - Darkman sends `awww img` command on theme change
 - 1-second fade transitions between wallpapers
 - Placed on backdrop layer (visible in Niri overview mode)
@@ -530,32 +661,76 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 
 ## Common Gotchas
 
-### Ironbar Volume Module
-- **Do NOT** use built-in volume module (crashes with PulseAudio)
-- Use custom wpctl-based script in `ironbar/modules/volume/`
+### Darwin-Specific Gotchas
 
-### Darkman Activation
+#### No nh Support
+- `nh` is NixOS-specific (wraps `nixos-rebuild`)
+- Use `darwin-rebuild switch --flake .#macbook` directly
+- No equivalent for `nh os test` on darwin
+
+#### Homebrew for GUI Apps
+- Some GUI apps require Homebrew casks (not available in nixpkgs for darwin)
+- Currently using Homebrew: `android-studio`, `ghostty`
+- Add new casks to `homebrew.casks` in `hosts/macbook-darwin/default.nix`
+- Homebrew auto-upgrades and cleans up managed by nix-darwin
+
+#### Ghostty Package
+- Ghostty is NOT available in nixpkgs for darwin
+- Must be installed via Homebrew cask
+- Set `programs.ghostty.package = null` in home-manager config
+- Configuration still managed by home-manager, just not the package
+
+#### User Definition Required
+- nix-darwin requires explicit user definition for home-manager integration
+- Must set `users.users.<name> = { name = "..."; home = "/Users/..."; }` in darwin config
+- NixOS handles this in `modules/users.nix`, darwin needs it in host config
+
+#### Determinate Systems Nix
+- Darwin uses Determinate Systems Nix installer
+- Set `nix.enable = false` in darwin config (DS manages Nix)
+- Don't configure Nix settings in nix-darwin, use DS installer's config
+
+#### Home Directory Path
+- macOS: `/Users/frank`
+- NixOS: `/home/frank`
+- Use `config.home.homeDirectory` in shared modules for portability
+
+#### No systemd Services
+- Darwin doesn't have systemd
+- User services that exist on NixOS (audio-keep-alive, battery-notifications, etc.) don't apply
+- macOS equivalents would use launchd, but most aren't needed
+
+### General Gotchas (All Platforms)
+
+#### State Versions
+- NixOS System: `25.05`, Home: `25.05`
+- Darwin System: `5` (nix-darwin uses integer versioning, not NixOS releases), Home: `25.05`
+- **Never change** after initial setup
+
+### NixOS-Specific Gotchas
+
+#### Ironbar Volume Module
+- **Do NOT** use built-in volume module (crashes with PulseAudio)
+- Use custom wpctl-based script in `home-manager/nixos/ironbar/modules/volume/`
+
+#### Darkman Activation
 - Check `DARKMAN_RUNNING` to prevent infinite loops
 - Wait for awww-daemon to be ready before sending commands
 
-### USB Autosuspend
+#### USB Autosuspend
 - Exclude `usbhid` devices to prevent input lag
 - Configured in `modules/hardware/power-management.nix`
 
-### Hardware Configuration
+#### Hardware Configuration
 - `hardware-configuration.nix` is auto-generated - don't manually edit
 - Host-specific overrides go in `hosts/framework/default.nix`
 
-### State Versions
-- System: `25.05`, Home: `25.05`
-- **Never change** after initial setup
-
-### Framework Audio pw-loopback
+#### Framework Audio pw-loopback
 - The `pw-loopback` process **must start at session startup** for volume controls to work
 - Without it, `wpctl set-volume` commands appear to work but don't change actual volume
-- Configured in `home-manager/niri/startup.nix` as spawn-at-startup
+- Configured in `home-manager/nixos/niri/startup.nix` as spawn-at-startup
 
-### Android Emulator (QEMU) Audio
+#### Android Emulator (QEMU) Audio
 - QEMU requests extremely low latency (~2.7ms) causing buffer underruns
 - This affects **all audio** (Spotify, YouTube, etc.) when the emulator is running
 - Fix uses `pulse.rules` in `pipewire-pulse.conf` to force higher latency for QEMU specifically
@@ -564,18 +739,18 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - QEMU-specific latency rules force higher quantum (4096 samples) via `pulse.rules`
 - See: https://github.com/wwmm/easyeffects/issues/2406
 
-### Android Emulator GPU (AMD Radeon 890M)
+#### Android Emulator GPU (AMD Radeon 890M)
 - Android emulator requires specific environment variables for AMD GPU hardware acceleration
 - `VK_ICD_FILENAMES` must point to system Vulkan ICD, otherwise emulator fails with `VK_ERROR_INCOMPATIBLE_DRIVER`
 - `RADV_DEBUG=zerovram` fixes gray screen issue on RDNA 3.5 GPUs (gfx1150)
-- Variables set via `systemd.user.sessionVariables` in `home-manager/android/default.nix`
+- Variables set via `systemd.user.sessionVariables` in `home-manager/nixos/android/default.nix`
 - **Important:** `home.sessionVariables` does NOT work for GUI apps launched via greetd
 - AVDs created in Android Studio use `hw.gpu.mode=auto` which doesn't work reliably
 - Run `configure-avd` after creating AVDs to set `hw.gpu.mode=host` and disable quickboot
 - Quickboot must be disabled for hardware GPU mode to work
-- Configuration in `home-manager/android/`
+- Configuration in `home-manager/nixos/android/`
 
-### PipeWire Audio Configuration
+#### PipeWire Audio Configuration
 - **Forced 48kHz sample rate** eliminates pops from rate switching (44.1kHz sources resampled)
 - **Node suspension disabled** (`session.suspend-timeout-seconds=0`) eliminates pops on pause/resume
 - Large `api.alsa.headroom` (8192) and `api.alsa.period-size` (1024) for stable playback
@@ -584,7 +759,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Configuration in `modules/services/pipewire.nix`
 - See: https://bbs.archlinux.org/viewtopic.php?id=280654
 
-### Audio Power Saving (snd_hda_intel)
+#### Audio Power Saving (snd_hda_intel)
 - **power_save=0** disables the timeout for entering low-power mode
 - **power_save_controller=N** disables the controller entirely (critical for eliminating pops)
 - `power_save_controller` must be set via **systemd service** (kernel param doesn't work, module loads too early)
@@ -593,7 +768,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Configuration in `modules/hardware/power-management.nix` (systemd service + modprobe + tuned profiles)
 - See: https://www.kernel.org/doc/html/latest/sound/designs/powersave.html
 
-### Audio Keep-Alive (amplifier pop prevention)
+#### Audio Keep-Alive (amplifier pop prevention)
 - Speaker amplifier pops when powering on/off between audio playback
 - **Cannot be fixed at driver level** - hardware limitation of portable audio subsystems
 - Solution: `audio-keep-alive` user service plays inaudible silence to keep amplifier active
@@ -601,11 +776,11 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Service starts with graphical session, restarts on failure
 - Minimal resource usage (~1.6MB memory, negligible CPU)
 - Trade-off: ~0.1-0.3W extra power consumption (amplifier stays on)
-- Configuration in `home-manager/audio-keep-alive/`
+- Configuration in `home-manager/nixos/audio-keep-alive/`
 - Check status: `systemctl --user status audio-keep-alive`
 - See: https://docs.kernel.org/sound/soc/pops-clicks.html
 
-### ALSA Master Volume (Framework)
+#### ALSA Master Volume (Framework)
 - Framework laptop ALSA defaults Master to 77% (-15 dB), leaving significant headroom unused
 - The Framework audio enhancement filter-chain maxes out at 0 dB (100% PipeWire volume)
 - Without fixing ALSA levels, max volume is -15 dB quieter than hardware capability
@@ -614,7 +789,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Check levels: `amixer -c1 scontents | grep -A2 "Master\|PCM"`
 - Configuration in `modules/services/pipewire.nix`
 
-### Power Profiles (tuned with PPD compatibility)
+#### Power Profiles (tuned with PPD compatibility)
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility
 - `powerprofilesctl` still works (talks to tuned-ppd D-Bus API)
 - **tuned handles AC/battery auto-switching** via upower events (not udev, minimal CPU overhead)
@@ -627,19 +802,19 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Audio power save disabled (causes DBUS spam with pipewire)
 - ZRAM with zstd compression enabled for memory pressure (see `modules/system/core.nix`)
 
-### ABM (Adaptive Backlight Management)
+#### ABM (Adaptive Backlight Management)
 - ABM reduces power by trading color accuracy for brightness
 - `Mod+Shift+B` toggles ABM via `toggle-abm` command
 - When disabled: ABM set to 0 (accurate colors for photo editing)
 - When enabled: ABM set to level 3 (power savings)
 - AC/battery auto-switching handled by tuned profile scripts (minimal CPU overhead)
 
-### Niri Overview Popups
+#### Niri Overview Popups
 - A dedicated watcher service closes Ironbar popups when exiting overview mode
 - Without it, popups opened during overview remain visible after returning to desktop
-- Service: `niri-overview-watcher` in `home-manager/ironbar/modules/niri-overview-watcher/`
+- Service: `niri-overview-watcher` in `home-manager/nixos/ironbar/modules/niri-overview-watcher/`
 
-### SCX Scheduler
+#### SCX Scheduler
 - Uses `scx_lavd` BPF scheduler with `--autopower` for adaptive power management
 - Autopower mode automatically switches between powersave/balanced/performance based on EPP
 - Requires `amd_pstate=active` kernel parameter to read Energy Performance Preference (EPP)
@@ -648,7 +823,7 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 - Configuration in `modules/services/scx.nix`
 - **CachyOS kernel** provides best sched_ext/scx_lavd integration (via xddxdd/nix-cachyos-kernel flake)
 
-### CachyOS-Style Optimizations
+#### CachyOS-Style Optimizations
 Sysctl and kernel parameters based on [CachyOS Settings](https://github.com/CachyOS/CachyOS-Settings):
 - **vm.swappiness = 180**: High value optimized for ZRAM (prefers compressed swap over dropping file cache)
 - **vm.vfs_cache_pressure = 50**: Preserves directory/inode cache longer for better file performance
@@ -662,7 +837,7 @@ Sysctl and kernel parameters based on [CachyOS Settings](https://github.com/Cach
 - **I/O scheduler**: `none` for NVMe (optimal), `mq-deadline` for SATA SSDs
 - Sysctl settings in `modules/system/core.nix`, kernel params in `modules/hardware/power-management.nix`
 
-### systemd-oomd (Out-of-Memory Daemon)
+#### systemd-oomd (Out-of-Memory Daemon)
 - Proactively kills processes under memory pressure before kernel OOM killer triggers
 - Works with ZRAM: high swappiness (180) fills ZRAM first, oomd acts at 90% swap usage
 - Enabled for both user slices (desktop apps) and system slice (services)
@@ -671,32 +846,34 @@ Sysctl and kernel parameters based on [CachyOS Settings](https://github.com/Cach
 - Check status: `systemctl status systemd-oomd`
 - View kills: `journalctl -u systemd-oomd`
 
-### Profile-sync-daemon (psd)
+#### Profile-sync-daemon (psd)
 - Syncs browser profiles to tmpfs (RAM) for reduced SSD writes and faster I/O
 - **Zen Browser support added via overlay** in `overlays/profile-sync-daemon.nix`
   - psd only reads browser definitions from its package directory, not user config
   - Overlay patches the package to include Zen browser definition
 - Reads profile paths from `~/.zen/profiles.ini` (same format as Firefox)
-- Resync timer runs every 10 minutes (configurable in `home-manager/profile-sync-daemon.nix`)
+- Resync timer runs every 10 minutes (configurable in `home-manager/nixos/profile-sync-daemon.nix`)
 - Crash recovery: keeps last 3 backup snapshots
 - **Close browser before first activation** to ensure clean sync
 - Check status: `systemctl --user status psd`
 - Preview sync targets: `psd preview`
-- Configuration in `home-manager/profile-sync-daemon.nix`
+- Configuration in `home-manager/nixos/profile-sync-daemon.nix`
 
-### Vicinae Configuration (v0.17+)
+#### Vicinae Configuration (v0.17+)
 - Config structure uses `theme.light` and `theme.dark` objects, NOT `theme.name`
 - Use `launcher_window` for window settings, NOT `window`
 - Stylix auto-generates `~/.local/share/vicinae/themes/stylix.toml` with current polarity colors
 - Both light/dark modes use "stylix" theme; colors come from the regenerated theme file
 - Darkman just restarts vicinae service - no need to patch settings.json
-- Configuration in `home-manager/vicinae.nix`
+- Configuration in `home-manager/nixos/vicinae.nix`
 
 ## Path References
 - **Nix store paths:** `${pkgs.tool}/bin/tool`
 - **Relative imports:** `./file.nix` (within same directory)
 - **Cross-module imports:** `../../path/to/module`
 - **Home directory:** Use `~` in scripts, `$HOME`, or `config.home.homeDirectory`
+  - NixOS: `/home/frank`
+  - Darwin: `/Users/frank`
 
 ## Module System Usage
 - **lib.mkForce** - Override with highest priority
@@ -738,7 +915,7 @@ Implement battery-monitor.sh using upower --monitor-detail for
 event-driven notifications at 5%, 20%, and 100% battery levels.
 This replaces polling approach for better efficiency.
 
-Service defined in home-manager/battery-notifications/default.nix
+Service defined in home-manager/nixos/battery-notifications/default.nix
 Script uses pkgs.writeShellScript pattern with dependency injection.
 ```
 
@@ -750,7 +927,7 @@ Replace built-in volume module with custom wpctl-based script.
 The built-in module causes crashes when PulseAudio is active.
 
 Workaround documented in Common Gotchas section of CLAUDE.md.
-Script located at home-manager/ironbar/modules/volume/
+Script located at home-manager/nixos/ironbar/modules/volume/
 ```
 
 **Too vague:**
@@ -910,10 +1087,11 @@ Update existing docs when:
 - `structure.md` - Repository organization
 - `adding-packages.md` - Package management
 - `new-host.md` - Adding machines
-- `secure-boot.md` - Secure boot setup
-- `fingerprint-setup.md` - Fingerprint authentication
-- `stylix-darkman-setup.md` - Theming deep dive
-- `ironbar-niri-overview.md` - Status bar integration
+- `secure-boot.md` - Secure boot setup (NixOS)
+- `fingerprint-setup.md` - Fingerprint authentication (NixOS)
+- `stylix-darkman-setup.md` - Theming deep dive (NixOS)
+- `ironbar-niri-overview.md` - Status bar integration (NixOS)
+- `macbook-darwin-setup.md` - Darwin/macOS setup guide
 
 **CLAUDE.md** - AI agent guidelines (this file):
 - Development workflow
@@ -936,7 +1114,7 @@ Update existing docs when:
 - Update README.md if it affects user workflow
 
 **Scenario 3: Changing keyboard shortcuts**
-- Update niri/binds.nix
+- Update home-manager/nixos/niri/binds.nix
 - Update README.md keyboard shortcuts table
 - Run `rebuild switch`
 
