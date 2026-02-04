@@ -20,7 +20,7 @@
     lf
     navi
     neofetch
-    # nh is NixOS-specific (wraps nixos-rebuild)
+    nh
     nmap
     rsync
     superfile

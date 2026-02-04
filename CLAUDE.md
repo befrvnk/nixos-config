@@ -21,12 +21,12 @@ This repository supports multiple platforms: **NixOS** (Framework laptop) and **
 
 ### Darwin Commands (MacBook)
 
-**Important:** Darwin does NOT have `nh` support. Use `darwin-rebuild` directly.
-
-#### Primary Commands
-- **Rebuild system:** `darwin-rebuild switch --flake .#macbook`
-- **Update and rebuild:** `nix flake update --accept-flake-config && darwin-rebuild switch --flake .#macbook`
+#### Primary Commands (use these)
+- **Rebuild system:** `nh darwin switch .` or `nh darwin switch ~/nixos-config`
+- **Build without activating:** `nh darwin build .`
+- **Update and rebuild:** `nix flake update --accept-flake-config && nh darwin switch .`
 - **Initial bootstrap:** `nix run nix-darwin -- switch --flake .#macbook` (first time only)
+- **Clean old generations:** `nh clean all --keep 5`
 
 **Note:** Darwin uses Determinate Systems Nix installer, not the system's own Nix management.
 
@@ -62,8 +62,8 @@ This repository supports multiple platforms: **NixOS** (Framework laptop) and **
 Agents CAN safely run these commands without sudo:
 
 - **devenv scripts (preferred, NixOS):** `rebuild switch`, `rebuild`, `check`, `sysinfo`, `generations`, `flake-update`
-- **All nh commands (NixOS only):** `nh os switch ~/nixos-config`, `nh os test ~/nixos-config`, `nh clean all`, etc.
-- **darwin-rebuild (Darwin only):** `darwin-rebuild switch --flake .#macbook`
+- **nh commands (NixOS):** `nh os switch ~/nixos-config`, `nh os test ~/nixos-config`, `nh clean all`, etc.
+- **nh commands (Darwin):** `nh darwin switch .`, `nh darwin build .`, `nh clean all`, etc.
 - **Nix commands (all platforms):** Always use `--accept-flake-config` flag:
   - `nix flake check --accept-flake-config`
   - `nix flake update --accept-flake-config`
@@ -113,8 +113,9 @@ Agents CAN safely run these commands without sudo:
 - Clean old generations periodically with `nh clean all --keep 5`
 
 ### Darwin (MacBook)
-- Use `darwin-rebuild switch --flake .#macbook` for system rebuilding
-- Use `nix flake update --accept-flake-config && darwin-rebuild switch --flake .#macbook` to update and rebuild
+- Use `nh darwin switch .` for system rebuilding
+- Use `nix flake update --accept-flake-config && nh darwin switch .` to update and rebuild
+- Clean old generations periodically with `nh clean all --keep 5`
 - GUI apps may need Homebrew (Android Studio, Ghostty) - see `hosts/macbook-darwin/default.nix`
 
 ### Code Quality and Testing
@@ -145,8 +146,8 @@ Agents CAN safely run these commands without sudo:
    - Darwin: `nix flake check --accept-flake-config`
 4. **Update documentation** (README.md and/or docs/) if needed
 5. **Apply changes**:
-   - NixOS: `rebuild switch`
-   - Darwin: `darwin-rebuild switch --flake .#macbook`
+   - NixOS: `rebuild switch` or `nh os switch .`
+   - Darwin: `nh darwin switch .`
 6. **Verify** the system behaves as expected
 7. **Commit** with descriptive message explaining what and why
 8. **Push** to remote repository
@@ -162,9 +163,9 @@ Before committing, ask yourself:
 - [ ] Are there quirks or workarounds that should be documented?
 - [ ] Did I remove outdated information from documentation?
 
-## Why nh (Nix Helper)? (NixOS Only)
+## Why nh (Nix Helper)?
 
-On NixOS, this project uses [nh](https://github.com/nix-community/nh) as a wrapper around NixOS/home-manager commands. Benefits:
+This project uses [nh](https://github.com/nix-community/nh) as a wrapper around system rebuild commands on both NixOS and Darwin. Benefits:
 
 - **Better output:** Colored, structured progress output with build summaries
 - **Faster builds:** Automatic specialization detection and optimized rebuild paths
@@ -173,16 +174,18 @@ On NixOS, this project uses [nh](https://github.com/nix-community/nh) as a wrapp
 - **Safer garbage collection:** `nh clean` provides better control over generation cleanup
 - **Unified interface:** Single tool for OS, home-manager, and package management
 
-**When to use what (NixOS):**
-- System rebuilds: `rebuild switch` (in devenv) or `nh os switch ~/nixos-config` (not `nixos-rebuild`)
-- Flake validation: `check` (in devenv) or `nix flake check --accept-flake-config`
-- Home-manager: Integrated with system rebuild (no separate command needed)
-- Package search: `nh search` (alternative to `nix search`)
-- Cleanup: `nh clean all --keep N` (not `nix-collect-garbage`)
-- Flake updates: `nix flake update --accept-flake-config`
-- Formatting: `nix fmt`
+**When to use what:**
 
-**Note:** `nh` is NOT available on Darwin. It wraps `nixos-rebuild` which doesn't exist on macOS. Use `darwin-rebuild` directly on Darwin.
+| Task | NixOS | Darwin |
+|------|-------|--------|
+| System rebuild | `nh os switch .` | `nh darwin switch .` |
+| Build only | `nh os build .` | `nh darwin build .` |
+| Test (no boot default) | `nh os test .` | N/A |
+| Cleanup | `nh clean all --keep N` | `nh clean all --keep N` |
+| Package search | `nh search <pkg>` | `nh search <pkg>` |
+| Flake validation | `nix flake check` | `nix build .#darwinConfigurations.macbook.system --dry-run` |
+| Flake updates | `nix flake update` | `nix flake update` |
+| Formatting | `nix fmt` | `nix fmt` |
 
 ## Project Structure
 
@@ -662,11 +665,6 @@ Prevents infinite loops with `DARKMAN_RUNNING` environment variable check.
 ## Common Gotchas
 
 ### Darwin-Specific Gotchas
-
-#### No nh Support
-- `nh` is NixOS-specific (wraps `nixos-rebuild`)
-- Use `darwin-rebuild switch --flake .#macbook` directly
-- No equivalent for `nh os test` on darwin
 
 #### Homebrew for GUI Apps
 - Some GUI apps require Homebrew casks (not available in nixpkgs for darwin)
