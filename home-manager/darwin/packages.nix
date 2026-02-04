@@ -9,6 +9,7 @@
   home.packages = with pkgs; [
     # GUI apps
     notion-app
+    raycast
     slack
 
     # CLI tools (cross-platform)
