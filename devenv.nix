@@ -2,7 +2,7 @@
 let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
   takeReadmeScreenshots = import ./scripts/take-readme-screenshots.nix { inherit pkgs; };
-  inherit (pkgs.stdenv) isLinux;
+  inherit (pkgs.stdenv) isLinux isDarwin;
 in
 {
   # Enable Claude Code integration
@@ -12,10 +12,10 @@ in
     # Custom slash commands for NixOS workflows
     commands = {
       rebuild = ''
-        Rebuild NixOS configuration and switch to it using nh
+        Rebuild system configuration and switch to it using nh
 
         ```bash
-        nh os switch --accept-flake-config .
+        rebuild switch
         ```
       '';
 
@@ -221,6 +221,11 @@ in
     echo "Available commands:"
     ${lib.optionalString isLinux ''
       echo "  rebuild [switch]          - Rebuild NixOS (default: boot)"
+    ''}
+    ${lib.optionalString isDarwin ''
+      echo "  rebuild                   - Rebuild Darwin and switch"
+    ''}
+    ${lib.optionalString isLinux ''
       echo "  sysinfo                   - Show system information"
       echo "  generations               - List NixOS generations"
       echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
@@ -230,8 +235,8 @@ in
     echo "  flake-update              - Update flake inputs"
     echo ""
     echo "Slash commands (Claude Code):"
+    echo "  /rebuild  - Rebuild and switch configuration"
     ${lib.optionalString isLinux ''
-      echo "  /rebuild  - Rebuild and switch configuration"
       echo "  /boot     - Rebuild and activate on next boot"
       echo "  /test     - Test configuration without persisting"
       echo "  /firewall - Analyze refused firewall connections"
@@ -260,6 +265,38 @@ in
   # Scripts - Additional helper scripts available in PATH
   # Cross-platform scripts
   scripts = {
+    # Rebuild system configuration using nh (Nix Helper)
+    # Usage: rebuild [switch] [nh-options]
+    # Default action is 'switch' on Darwin, 'boot' on NixOS
+    # Use 'rebuild switch' to activate immediately on NixOS
+    rebuild.exec =
+      if isDarwin then
+        ''
+          echo "+ ${pkgs.nh}/bin/nh darwin switch --accept-flake-config $HOME/nixos-config $@"
+          ${pkgs.nh}/bin/nh darwin switch --accept-flake-config "$HOME/nixos-config" "$@"
+        ''
+      else
+        ''
+          action="boot"
+
+          # If first arg is 'switch', change action
+          if [ "$1" = "switch" ]; then
+            action="switch"
+            shift
+          fi
+
+          echo "+ ${pkgs.nh}/bin/nh os $action --accept-flake-config $HOME/nixos-config $@"
+          ${pkgs.nh}/bin/nh os "$action" --accept-flake-config "$HOME/nixos-config" "$@"
+          exit_code=$?
+
+          # Show changelog links after successful switch
+          if [ $exit_code -eq 0 ] && [ "$action" = "switch" ]; then
+            ${showChangelogs}
+          fi
+
+          exit $exit_code
+        '';
+
     # Clean up old generations using nh
     # Usage: clean [keep-count]
     # Default keeps 5 generations
@@ -285,30 +322,6 @@ in
   }
   // lib.optionalAttrs isLinux {
     # NixOS-specific scripts
-
-    # Rebuild NixOS configuration using nh (Nix Helper)
-    # Usage: rebuild [switch] [nh-options]
-    # Default action is 'boot', use 'rebuild switch' to activate immediately
-    rebuild.exec = ''
-      action="boot"
-
-      # If first arg is 'switch', change action
-      if [ "$1" = "switch" ]; then
-        action="switch"
-        shift
-      fi
-
-      echo "+ ${pkgs.nh}/bin/nh os $action --accept-flake-config $HOME/nixos-config $@"
-      ${pkgs.nh}/bin/nh os "$action" --accept-flake-config "$HOME/nixos-config" "$@"
-      exit_code=$?
-
-      # Show changelog links after successful switch
-      if [ $exit_code -eq 0 ] && [ "$action" = "switch" ]; then
-        ${showChangelogs}
-      fi
-
-      exit $exit_code
-    '';
 
     # Quick system info
     sysinfo.exec = ''
