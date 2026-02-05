@@ -29,11 +29,10 @@
     ../shared/zed.nix
 
     # Darwin-specific modules
-    inputs.zen-browser.homeModules.beta
+    # Zen Browser moved to Homebrew for profile stability across updates
     ./ghostty.nix
     ./nushell.nix
     ./packages.nix
-    ./zen-browser.nix
   ];
 
   home = {

@@ -98,6 +98,7 @@
       "miro"
       "signal"
       "whatsapp"
+      "zen-browser"
     ];
   };
 
