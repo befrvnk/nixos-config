@@ -28,6 +28,7 @@
     neofetch
     nh
     nmap
+    opencode
     rsync
     superfile
     tree
