@@ -63,6 +63,8 @@
       "android-studio"
       "ghostty"
       "miro"
+      "signal"
+      "whatsapp"
     ];
   };
 
