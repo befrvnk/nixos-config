@@ -104,4 +104,20 @@
   # Touch ID for sudo
   security.pam.services.sudo_local.touchIdAuth = true;
 
+  # Increase file descriptor limit for Nix operations
+  # Fixes "Too many open files" errors during flake updates
+  launchd.daemons.limit-maxfiles = {
+    serviceConfig = {
+      Label = "limit.maxfiles";
+      ProgramArguments = [
+        "/bin/launchctl"
+        "limit"
+        "maxfiles"
+        "524288"
+        "524288"
+      ];
+      RunAtLoad = true;
+    };
+  };
+
 }
