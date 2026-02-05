@@ -93,8 +93,8 @@
     };
     casks = [
       "1password"
-      "android-studio"
       "ghostty"
+      "jetbrains-toolbox"
       "miro"
       "signal"
       "whatsapp"

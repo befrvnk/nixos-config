@@ -71,7 +71,7 @@ All-in-one configuration:
   # Homebrew
   homebrew = {
     enable = true;
-    casks = [ "android-studio" "ghostty" ];
+    casks = [ "jetbrains-toolbox" "ghostty" ];
     onActivation = { cleanup = "zap"; autoUpdate = true; };
   };
 

@@ -120,11 +120,11 @@ home.packages = with pkgs; [
 Only use when nixpkgs doesn't support aarch64-darwin.
 Add to `hosts/macbook-darwin/default.nix`:
 ```nix
-homebrew.casks = [ "android-studio" "ghostty" ];
+homebrew.casks = [ "jetbrains-toolbox" "ghostty" ];
 ```
 Current Homebrew-only packages:
 - `1password` - Requires /Applications for security features
-- `android-studio` - Linux only in nixpkgs
+- `jetbrains-toolbox` - Not in nixpkgs for Darwin
 - `ghostty` - Linux only in nixpkgs
 - `miro` - Not in nixpkgs
 
