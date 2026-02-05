@@ -22,6 +22,11 @@ _:
   programs.nushell = {
     enable = true;
 
+    # Set GITHUB_TOKEN for higher API rate limits (used by Nix flake updates)
+    extraEnv = ''
+      $env.GITHUB_TOKEN = (do { gh auth token } | complete | get stdout | str trim)
+    '';
+
     extraConfig = ''
       $env.config = {
         show_banner: false
