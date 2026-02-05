@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   binds = {
     "Mod+Shift+Slash".action.show-hotkey-overlay = { };
 

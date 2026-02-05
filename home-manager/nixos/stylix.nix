@@ -9,8 +9,7 @@ in
   stylix = {
     enable = true;
     autoEnable = true;
-    polarity = themes.dark.polarity;
-    base16Scheme = themes.dark.base16Scheme;
+    inherit (themes.dark) polarity base16Scheme;
     image = wallpapers.dark;
 
     # Disable version check warnings (we use nixpkgs-unstable for everything)

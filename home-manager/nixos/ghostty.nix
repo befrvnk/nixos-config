@@ -67,8 +67,10 @@ in
   };
 
   # Generate BOTH theme files in every configuration
-  home.file.".config/ghostty/themes/stylix-light".text = mkGhosttyTheme lightColors;
-  home.file.".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme darkColors;
+  home.file = {
+    ".config/ghostty/themes/stylix-light".text = mkGhosttyTheme lightColors;
+    ".config/ghostty/themes/stylix-dark".text = mkGhosttyTheme darkColors;
+  };
 
   # Force overwrite the config file to prevent conflicts
   xdg.configFile."ghostty/config".force = true;

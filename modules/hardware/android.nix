@@ -2,7 +2,7 @@
 # - KVM for emulator hardware acceleration
 # - udev rules handled by systemd's built-in uaccess rules (systemd 258+)
 # - ADB installed via android-tools package in system packages
-{ ... }:
+_:
 
 {
   # Add user to kvm group for emulator hardware acceleration

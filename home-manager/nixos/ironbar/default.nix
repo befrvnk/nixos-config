@@ -11,7 +11,7 @@ let
   '';
 
   # Get Stylix colors from the current theme
-  colors = config.lib.stylix.colors;
+  inherit (config.lib.stylix) colors;
 
   # Generate CSS with color variables prepended
   styleWithColors = ''
@@ -77,159 +77,161 @@ in
   ];
 
   # Create config directory and files
-  xdg.configFile."ironbar/config.json".source = ./config.json;
-  xdg.configFile."ironbar/style.css".text = styleWithColors;
+  xdg.configFile = {
+    "ironbar/config.json".source = ./config.json;
+    "ironbar/style.css".text = styleWithColors;
 
-  # Custom module scripts
-  xdg.configFile."ironbar/modules/wifi/wifi-status.sh" = {
-    source = ./modules/wifi/wifi-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/battery/battery-status.sh" = {
-    source = ./modules/battery/battery-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/battery/battery-details.sh" = {
-    source = ./modules/battery/battery-details.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/battery/get-profile.sh" = {
-    source = ./modules/battery/get-profile.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/battery/set-profile.sh" = {
-    source = ./modules/battery/set-profile.sh;
-    executable = true;
-  };
-  # Event-driven battery watcher (replaces polling in bar status)
-  xdg.configFile."ironbar/modules/battery/battery-watch.sh" = {
-    source = batteryWatch;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/notifications/notification-count.sh" = {
-    source = ./modules/notifications/notification-count.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/notifications/notification-history.sh" = {
-    source = ./modules/notifications/notification-history.sh;
-    executable = true;
-  };
-  # Event-driven notification watcher (replaces polling in bar status)
-  xdg.configFile."ironbar/modules/notifications/notification-count-watch.sh" = {
-    source = notificationCountWatch;
-    executable = true;
-  };
+    # Custom module scripts
+    "ironbar/modules/wifi/wifi-status.sh" = {
+      source = ./modules/wifi/wifi-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/battery/battery-status.sh" = {
+      source = ./modules/battery/battery-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/battery/battery-details.sh" = {
+      source = ./modules/battery/battery-details.sh;
+      executable = true;
+    };
+    "ironbar/modules/battery/get-profile.sh" = {
+      source = ./modules/battery/get-profile.sh;
+      executable = true;
+    };
+    "ironbar/modules/battery/set-profile.sh" = {
+      source = ./modules/battery/set-profile.sh;
+      executable = true;
+    };
+    # Event-driven battery watcher (replaces polling in bar status)
+    "ironbar/modules/battery/battery-watch.sh" = {
+      source = batteryWatch;
+      executable = true;
+    };
+    "ironbar/modules/notifications/notification-count.sh" = {
+      source = ./modules/notifications/notification-count.sh;
+      executable = true;
+    };
+    "ironbar/modules/notifications/notification-history.sh" = {
+      source = ./modules/notifications/notification-history.sh;
+      executable = true;
+    };
+    # Event-driven notification watcher (replaces polling in bar status)
+    "ironbar/modules/notifications/notification-count-watch.sh" = {
+      source = notificationCountWatch;
+      executable = true;
+    };
 
-  # Custom volume module (replacement for built-in volume module)
-  # Uses wpctl to query WirePlumber instead of PulseAudio bindings
-  # See modules/volume/README.md for full documentation
-  xdg.configFile."ironbar/modules/volume/volume-status.sh" = {
-    source = ./modules/volume/volume-status.sh;
-    executable = true;
-  };
+    # Custom volume module (replacement for built-in volume module)
+    # Uses wpctl to query WirePlumber instead of PulseAudio bindings
+    # See modules/volume/README.md for full documentation
+    "ironbar/modules/volume/volume-status.sh" = {
+      source = ./modules/volume/volume-status.sh;
+      executable = true;
+    };
 
-  # Tray visibility check
-  # Hides tray module when no StatusNotifierItems are registered
-  xdg.configFile."ironbar/modules/tray/has-tray-items.sh" = {
-    source = ./modules/tray/has-tray-items.sh;
-    executable = true;
-  };
+    # Tray visibility check
+    # Hides tray module when no StatusNotifierItems are registered
+    "ironbar/modules/tray/has-tray-items.sh" = {
+      source = ./modules/tray/has-tray-items.sh;
+      executable = true;
+    };
 
-  # Peripheral battery module
-  # Shows battery status for connected peripherals (mouse, keyboard)
-  xdg.configFile."ironbar/modules/peripheral-battery/peripheral-battery-status.sh" = {
-    source = ./modules/peripheral-battery/peripheral-battery-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/peripheral-battery/has-peripherals-connected.sh" = {
-    source = ./modules/peripheral-battery/has-peripherals-connected.sh;
-    executable = true;
-  };
+    # Peripheral battery module
+    # Shows battery status for connected peripherals (mouse, keyboard)
+    "ironbar/modules/peripheral-battery/peripheral-battery-status.sh" = {
+      source = ./modules/peripheral-battery/peripheral-battery-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/peripheral-battery/has-peripherals-connected.sh" = {
+      source = ./modules/peripheral-battery/has-peripherals-connected.sh;
+      executable = true;
+    };
 
-  # Weather module
-  # Shows current weather and forecast from wttr.in
-  # Hidden when offline/no data via show_if in config.json
-  xdg.configFile."ironbar/modules/weather/has-weather-data.sh" = {
-    source = ./modules/weather/has-weather-data.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/weather/weather-status.sh" = {
-    source = ./modules/weather/weather-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/weather/weather-forecast.sh" = {
-    source = ./modules/weather/weather-forecast.sh;
-    executable = true;
-  };
+    # Weather module
+    # Shows current weather and forecast from wttr.in
+    # Hidden when offline/no data via show_if in config.json
+    "ironbar/modules/weather/has-weather-data.sh" = {
+      source = ./modules/weather/has-weather-data.sh;
+      executable = true;
+    };
+    "ironbar/modules/weather/weather-status.sh" = {
+      source = ./modules/weather/weather-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/weather/weather-forecast.sh" = {
+      source = ./modules/weather/weather-forecast.sh;
+      executable = true;
+    };
 
-  # Removable storage module
-  # Shows mounted devices with name+capacity and separate eject buttons
-  xdg.configFile."ironbar/modules/storage/has-mounted-devices.sh" = {
-    source = ./modules/storage/has-mounted-devices.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/storage/storage-status.sh" = {
-    source = ./modules/storage/storage-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/storage/device-name.sh" = {
-    source = ./modules/storage/device-name.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/storage/device-eject.sh" = {
-    source = ./modules/storage/device-eject.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/storage/open-device.sh" = {
-    source = ./modules/storage/open-device.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/storage/eject-device.sh" = {
-    source = ./modules/storage/eject-device.sh;
-    executable = true;
-  };
+    # Removable storage module
+    # Shows mounted devices with name+capacity and separate eject buttons
+    "ironbar/modules/storage/has-mounted-devices.sh" = {
+      source = ./modules/storage/has-mounted-devices.sh;
+      executable = true;
+    };
+    "ironbar/modules/storage/storage-status.sh" = {
+      source = ./modules/storage/storage-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/storage/device-name.sh" = {
+      source = ./modules/storage/device-name.sh;
+      executable = true;
+    };
+    "ironbar/modules/storage/device-eject.sh" = {
+      source = ./modules/storage/device-eject.sh;
+      executable = true;
+    };
+    "ironbar/modules/storage/open-device.sh" = {
+      source = ./modules/storage/open-device.sh;
+      executable = true;
+    };
+    "ironbar/modules/storage/eject-device.sh" = {
+      source = ./modules/storage/eject-device.sh;
+      executable = true;
+    };
 
-  # Display module
-  # Shows display brightness, ABM controls, and idle inhibition status
-  xdg.configFile."ironbar/modules/display/display-status.sh" = {
-    source = ./modules/display/display-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/display/display-details.sh" = {
-    source = ./modules/display/display-details.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/display/get-auto-status.sh" = {
-    source = ./modules/display/get-auto-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/display/toggle-auto.sh" = {
-    source = ./modules/display/toggle-auto.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/display/toggle-stay-on.sh" = {
-    source = ./modules/display/toggle-stay-on.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/display/get-stay-on-status.sh" = {
-    source = ./modules/display/get-stay-on-status.sh;
-    executable = true;
-  };
+    # Display module
+    # Shows display brightness, ABM controls, and idle inhibition status
+    "ironbar/modules/display/display-status.sh" = {
+      source = ./modules/display/display-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/display/display-details.sh" = {
+      source = ./modules/display/display-details.sh;
+      executable = true;
+    };
+    "ironbar/modules/display/get-auto-status.sh" = {
+      source = ./modules/display/get-auto-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/display/toggle-auto.sh" = {
+      source = ./modules/display/toggle-auto.sh;
+      executable = true;
+    };
+    "ironbar/modules/display/toggle-stay-on.sh" = {
+      source = ./modules/display/toggle-stay-on.sh;
+      executable = true;
+    };
+    "ironbar/modules/display/get-stay-on-status.sh" = {
+      source = ./modules/display/get-stay-on-status.sh;
+      executable = true;
+    };
 
-  # Firewall module
-  # Shows count of refused connections and per-port breakdown in popup
-  # Hidden when no refused connections via show_if
-  xdg.configFile."ironbar/modules/firewall/has-refused.sh" = {
-    source = ./modules/firewall/has-refused.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/firewall/firewall-status.sh" = {
-    source = ./modules/firewall/firewall-status.sh;
-    executable = true;
-  };
-  xdg.configFile."ironbar/modules/firewall/firewall-details.sh" = {
-    source = ./modules/firewall/firewall-details.sh;
-    executable = true;
+    # Firewall module
+    # Shows count of refused connections and per-port breakdown in popup
+    # Hidden when no refused connections via show_if
+    "ironbar/modules/firewall/has-refused.sh" = {
+      source = ./modules/firewall/has-refused.sh;
+      executable = true;
+    };
+    "ironbar/modules/firewall/firewall-status.sh" = {
+      source = ./modules/firewall/firewall-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/firewall/firewall-details.sh" = {
+      source = ./modules/firewall/firewall-details.sh;
+      executable = true;
+    };
   };
 
   # Systemd service for ironbar with niri overview-only mode

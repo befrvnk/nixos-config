@@ -2,11 +2,183 @@
 let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
   takeReadmeScreenshots = import ./scripts/take-readme-screenshots.nix { inherit pkgs; };
-  isLinux = pkgs.stdenv.isLinux;
+  inherit (pkgs.stdenv) isLinux;
 in
 {
   # Enable Claude Code integration
-  claude.code.enable = true;
+  claude.code = {
+    enable = true;
+
+    # Custom slash commands for NixOS workflows
+    commands = {
+      rebuild = ''
+        Rebuild NixOS configuration and switch to it using nh
+
+        ```bash
+        nh os switch --accept-flake-config .
+        ```
+      '';
+
+      boot = ''
+        Rebuild NixOS configuration and activate on next boot
+
+        ```bash
+        nh os boot --accept-flake-config .
+        ```
+      '';
+
+      test = ''
+        Test NixOS configuration without persisting
+
+        ```bash
+        nh os test --accept-flake-config .
+        ```
+      '';
+
+      update = ''
+        Update all flake inputs
+
+        ```bash
+        nix flake update --accept-flake-config
+        ```
+      '';
+
+      check = ''
+        Check flake for errors
+
+        ```bash
+        nix flake check --accept-flake-config
+        ```
+      '';
+
+      format = ''
+        Format all Nix files with nixfmt
+
+        ```bash
+        nixfmt **/*.nix
+        ```
+      '';
+
+      lint = ''
+        Run statix linter on Nix files
+
+        ```bash
+        statix check .
+        ```
+      '';
+
+      clean = ''
+        Clean up old NixOS generations (keeps last 5 by default)
+
+        ```bash
+        nh clean all --keep 5
+        ```
+      '';
+
+      firewall = ''
+        Analyze refused firewall connections and identify their sources
+
+        First, get the external refused connections (filtering out local network):
+        ```bash
+        journalctl -k -b --no-pager | grep "refused" | grep -v 'SRC=192\.168\.' | grep -v 'SRC=10\.' | grep -v 'SRC=172\.1[6-9]\.' | grep -v 'SRC=172\.2[0-9]\.' | grep -v 'SRC=172\.3[0-1]\.' | tail -20
+        ```
+
+        Then for each unique external IP, look up who owns it:
+        ```bash
+        journalctl -k -b --no-pager | grep "refused" | grep -v 'SRC=192\.168\.' | grep -v 'SRC=10\.' | grep -v 'SRC=172\.1[6-9]\.' | grep -v 'SRC=172\.2[0-9]\.' | grep -v 'SRC=172\.3[0-1]\.' | grep -oP 'SRC=\K[0-9a-fA-F.:]+' | sort -u | head -10 | while read ip; do echo "=== $ip ==="; curl -s "https://ipinfo.io/$ip" 2>/dev/null | jq -r '"  Org: \(.org // "unknown")\n  City: \(.city // "unknown"), \(.country // "unknown")"'; done
+        ```
+
+        Analyze the results and explain:
+        1. How many external connections were refused
+        2. Who owns the source IPs (CDN, ISP, cloud provider, etc.)
+        3. What ports they were targeting
+        4. Whether the traffic looks malicious or benign (e.g., CDN responses, port scans)
+        5. Any recommendations
+      '';
+
+      commit = ''
+        Format, lint, and create a git commit
+
+        Follow these steps:
+        1. Stage all changed files with `git add -A`
+        2. Get list of staged .nix files: `git diff --cached --name-only --diff-filter=ACMR '*.nix'`
+        3. Run `statix check` only on staged Nix files (skip if none). Fix any warnings in those files.
+        4. Run `shellcheck` on any staged shell scripts (fix any issues found)
+        5. Stage any lint fixes with `git add -A`
+        6. Check `git status` to see all staged changes
+        7. Check `git diff --cached` to understand what will be committed
+        8. Check `git log --oneline -5` for recent commit style
+        9. Create commit with message: $ARGUMENTS (or generate appropriate message if none provided)
+
+        Note: The pre-commit hook automatically runs nixfmt on commit, so manual formatting is not needed.
+
+        Commit message format:
+        ```
+        <type>(<scope>): <short summary>
+
+        <optional detailed explanation>
+        ```
+
+        Types: feat, fix, refactor, docs, style, chore
+      '';
+    };
+
+    # Custom workflow hooks for automation
+    hooks = {
+      # Protect sensitive files from being edited
+      protect-secrets = {
+        enable = true;
+        name = "Protect sensitive files";
+        hookType = "PreToolUse";
+        matcher = "^(Edit|MultiEdit|Write)$";
+        command = ''
+          json=$(cat)
+          file_path=$(echo "$json" | ${pkgs.jq}/bin/jq -r '.file_path // empty')
+
+          # Block editing of sensitive files
+          if [[ "$file_path" =~ \.(env|secret|key|pem)$ ]]; then
+            echo "❌ Error: Cannot edit sensitive files (.env, .secret, .key, .pem)"
+            exit 1
+          fi
+
+          # Allow the operation
+          echo "$json"
+        '';
+      };
+
+      # Inform user after editing Nix files
+      nix-file-edited = {
+        enable = true;
+        name = "Nix file change notification";
+        hookType = "PostToolUse";
+        matcher = "^(Edit|MultiEdit|Write)$";
+        command = ''
+          json=$(cat)
+          file_path=$(echo "$json" | ${pkgs.jq}/bin/jq -r '.file_path // empty')
+
+          if [[ "$file_path" =~ \.nix$ ]]; then
+            echo "ℹ️  Nix file edited. Run /rebuild to apply changes or /check to validate."
+          fi
+        '';
+      };
+    };
+
+    # MCP Servers - Model Context Protocol for extended capabilities
+    mcpServers = {
+      # Context7: Documentation and code examples for libraries
+      context7 = {
+        type = "http";
+        url = "https://mcp.context7.com/mcp";
+      };
+
+      # Devenv MCP: Provides devenv-specific context and capabilities
+      devenv = {
+        type = "stdio";
+        command = "${pkgs.devenv}/bin/devenv";
+        args = [ "mcp" ];
+      };
+    };
+  };
 
   # Packages available in the development environment
   packages =
@@ -34,176 +206,6 @@ in
     # Optional: enable these for additional code quality checks
     # statix.enable = true;    # Nix linter
     # deadnix.enable = true;   # Find dead code
-  };
-
-  # Custom slash commands for NixOS workflows
-  claude.code.commands = {
-    rebuild = ''
-      Rebuild NixOS configuration and switch to it using nh
-
-      ```bash
-      nh os switch --accept-flake-config .
-      ```
-    '';
-
-    boot = ''
-      Rebuild NixOS configuration and activate on next boot
-
-      ```bash
-      nh os boot --accept-flake-config .
-      ```
-    '';
-
-    test = ''
-      Test NixOS configuration without persisting
-
-      ```bash
-      nh os test --accept-flake-config .
-      ```
-    '';
-
-    update = ''
-      Update all flake inputs
-
-      ```bash
-      nix flake update --accept-flake-config
-      ```
-    '';
-
-    check = ''
-      Check flake for errors
-
-      ```bash
-      nix flake check --accept-flake-config
-      ```
-    '';
-
-    format = ''
-      Format all Nix files with nixfmt
-
-      ```bash
-      nixfmt **/*.nix
-      ```
-    '';
-
-    lint = ''
-      Run statix linter on Nix files
-
-      ```bash
-      statix check .
-      ```
-    '';
-
-    clean = ''
-      Clean up old NixOS generations (keeps last 5 by default)
-
-      ```bash
-      nh clean all --keep 5
-      ```
-    '';
-
-    firewall = ''
-      Analyze refused firewall connections and identify their sources
-
-      First, get the external refused connections (filtering out local network):
-      ```bash
-      journalctl -k -b --no-pager | grep "refused" | grep -v 'SRC=192\.168\.' | grep -v 'SRC=10\.' | grep -v 'SRC=172\.1[6-9]\.' | grep -v 'SRC=172\.2[0-9]\.' | grep -v 'SRC=172\.3[0-1]\.' | tail -20
-      ```
-
-      Then for each unique external IP, look up who owns it:
-      ```bash
-      journalctl -k -b --no-pager | grep "refused" | grep -v 'SRC=192\.168\.' | grep -v 'SRC=10\.' | grep -v 'SRC=172\.1[6-9]\.' | grep -v 'SRC=172\.2[0-9]\.' | grep -v 'SRC=172\.3[0-1]\.' | grep -oP 'SRC=\K[0-9a-fA-F.:]+' | sort -u | head -10 | while read ip; do echo "=== $ip ==="; curl -s "https://ipinfo.io/$ip" 2>/dev/null | jq -r '"  Org: \(.org // "unknown")\n  City: \(.city // "unknown"), \(.country // "unknown")"'; done
-      ```
-
-      Analyze the results and explain:
-      1. How many external connections were refused
-      2. Who owns the source IPs (CDN, ISP, cloud provider, etc.)
-      3. What ports they were targeting
-      4. Whether the traffic looks malicious or benign (e.g., CDN responses, port scans)
-      5. Any recommendations
-    '';
-
-    commit = ''
-      Format, lint, and create a git commit
-
-      Follow these steps:
-      1. Stage all changed files with `git add -A`
-      2. Get list of staged .nix files: `git diff --cached --name-only --diff-filter=ACMR '*.nix'`
-      3. Run `statix check` only on staged Nix files (skip if none). Fix any warnings in those files.
-      4. Run `shellcheck` on any staged shell scripts (fix any issues found)
-      5. Stage any lint fixes with `git add -A`
-      6. Check `git status` to see all staged changes
-      7. Check `git diff --cached` to understand what will be committed
-      8. Check `git log --oneline -5` for recent commit style
-      9. Create commit with message: $ARGUMENTS (or generate appropriate message if none provided)
-
-      Note: The pre-commit hook automatically runs nixfmt on commit, so manual formatting is not needed.
-
-      Commit message format:
-      ```
-      <type>(<scope>): <short summary>
-
-      <optional detailed explanation>
-      ```
-
-      Types: feat, fix, refactor, docs, style, chore
-    '';
-  };
-
-  # Custom workflow hooks for automation
-  claude.code.hooks = {
-    # Protect sensitive files from being edited
-    protect-secrets = {
-      enable = true;
-      name = "Protect sensitive files";
-      hookType = "PreToolUse";
-      matcher = "^(Edit|MultiEdit|Write)$";
-      command = ''
-        json=$(cat)
-        file_path=$(echo "$json" | ${pkgs.jq}/bin/jq -r '.file_path // empty')
-
-        # Block editing of sensitive files
-        if [[ "$file_path" =~ \.(env|secret|key|pem)$ ]]; then
-          echo "❌ Error: Cannot edit sensitive files (.env, .secret, .key, .pem)"
-          exit 1
-        fi
-
-        # Allow the operation
-        echo "$json"
-      '';
-    };
-
-    # Inform user after editing Nix files
-    nix-file-edited = {
-      enable = true;
-      name = "Nix file change notification";
-      hookType = "PostToolUse";
-      matcher = "^(Edit|MultiEdit|Write)$";
-      command = ''
-        json=$(cat)
-        file_path=$(echo "$json" | ${pkgs.jq}/bin/jq -r '.file_path // empty')
-
-        if [[ "$file_path" =~ \.nix$ ]]; then
-          echo "ℹ️  Nix file edited. Run /rebuild to apply changes or /check to validate."
-        fi
-      '';
-    };
-  };
-
-  # MCP Servers - Model Context Protocol for extended capabilities
-  claude.code.mcpServers = {
-    # Context7: Documentation and code examples for libraries
-    context7 = {
-      type = "http";
-      url = "https://mcp.context7.com/mcp";
-    };
-
-    # Devenv MCP: Provides devenv-specific context and capabilities
-    devenv = {
-      type = "stdio";
-      command = "${pkgs.devenv}/bin/devenv";
-      args = [ "mcp" ];
-    };
   };
 
   # Environment variables

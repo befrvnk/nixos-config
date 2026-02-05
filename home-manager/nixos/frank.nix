@@ -46,16 +46,18 @@
     ./zen-browser
   ];
 
-  home.username = "frank";
-  home.homeDirectory = "/home/frank";
-  home.stateVersion = "25.05";
+  home = {
+    username = "frank";
+    homeDirectory = "/home/frank";
+    stateVersion = "25.05";
 
-  # Enable Wayland support for Electron apps (Discord, Slack, Anytype, etc.)
-  # This tells Electron to use the Ozone platform layer with Wayland flags:
-  # --ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true
-  # Without this, Electron apps may fall back to X11 mode causing rendering issues
-  home.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
+    # Enable Wayland support for Electron apps (Discord, Slack, Anytype, etc.)
+    # This tells Electron to use the Ozone platform layer with Wayland flags:
+    # --ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true
+    # Without this, Electron apps may fall back to X11 mode causing rendering issues
+    sessionVariables = {
+      NIXOS_OZONE_WL = "1";
+    };
   };
 
   # Enable SwayOSD for volume/brightness on-screen display

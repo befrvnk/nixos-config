@@ -9,7 +9,7 @@ in
   stylix = {
     enable = true;
     autoEnable = true;
-    base16Scheme = themes.dark.base16Scheme;
+    inherit (themes.dark) base16Scheme;
     image = ../../home-manager/wallpapers/mountain.jpg;
 
     # Disable version check warnings (we use nixpkgs-unstable for everything)

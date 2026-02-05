@@ -16,7 +16,7 @@
 # - Ctrl+G: Navi cheatsheet widget
 # - Ctrl+R: Atuin history search
 
-{ ... }:
+_:
 
 {
   programs.nushell = {

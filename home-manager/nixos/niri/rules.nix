@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   window-rules = [
     {
       draw-border-with-background = false;

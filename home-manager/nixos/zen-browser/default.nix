@@ -18,17 +18,16 @@ let
   '';
 in
 {
-  # Add our launcher script to PATH
-  home.packages = [ zenLauncher ];
+  home = {
+    # Add our launcher script to PATH
+    packages = [ zenLauncher ];
 
-  # Link generated userChrome.css with light/dark media queries
-  home.file.".zen/default/chrome/userChrome.css" = {
-    source = userChromeCSS;
-  };
-
-  # Link generated userContent.css for internal browser pages
-  home.file.".zen/default/chrome/userContent.css" = {
-    source = userContentCSS;
+    # Link generated userChrome.css with light/dark media queries
+    file = {
+      ".zen/default/chrome/userChrome.css".source = userChromeCSS;
+      # Link generated userContent.css for internal browser pages
+      ".zen/default/chrome/userContent.css".source = userContentCSS;
+    };
   };
 
   # Single desktop entry using our profile-aware launcher

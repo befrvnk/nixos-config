@@ -39,83 +39,103 @@ in
   # tuned provides event-based AC/battery switching via upower, eliminating
   # the CPU overhead of udev rules that fire on every battery status update.
 
-  # Explicitly disable conflicting power management tools
-  services.tlp.enable = false;
-  services.auto-cpufreq.enable = false;
+  services = {
+    # Explicitly disable conflicting power management tools
+    tlp.enable = false;
+    auto-cpufreq.enable = false;
 
-  services.tuned = {
-    enable = true;
+    tuned = {
+      enable = true;
 
-    # Enable power-profiles-daemon API compatibility
-    # This allows existing tools (GNOME, KDE, powerprofilesctl) to work
-    ppdSupport = true;
+      # Enable power-profiles-daemon API compatibility
+      # This allows existing tools (GNOME, KDE, powerprofilesctl) to work
+      ppdSupport = true;
 
-    # Configure automatic AC/battery profile switching
-    ppdSettings = {
-      main = {
-        default = "balanced";
-        battery_detection = true; # Auto-switch on AC/battery via upower
+      # Configure automatic AC/battery profile switching
+      ppdSettings = {
+        main = {
+          default = "balanced";
+          battery_detection = true; # Auto-switch on AC/battery via upower
+        };
+        profiles = {
+          # Use built-in powersave for explicit power-saver requests
+          power-saver = "powersave";
+          balanced = "framework-ac";
+          performance = "throughput-performance";
+        };
+        battery = {
+          # When on battery with "balanced" PPD profile, use our custom battery profile
+          # battery_detection auto-switches from balanced to this when unplugging
+          balanced = "framework-battery";
+        };
       };
+
+      # Custom tuned profiles for Framework laptop
       profiles = {
-        # Use built-in powersave for explicit power-saver requests
-        power-saver = "powersave";
-        balanced = "framework-ac";
-        performance = "throughput-performance";
-      };
-      battery = {
-        # When on battery with "balanced" PPD profile, use our custom battery profile
-        # battery_detection auto-switches from balanced to this when unplugging
-        balanced = "framework-battery";
+        # Battery profile: aggressive power savings
+        framework-battery = {
+          main = {
+            summary = "Framework laptop battery profile";
+            include = "powersave";
+          };
+          acpi = {
+            platform_profile = "low-power";
+          };
+          cpu = {
+            energy_performance_preference = "power";
+          };
+          # Disable audio power saving (causes pops on pause/resume)
+          # Override powersave profile's timeout=10 setting
+          audio = {
+            timeout = "0";
+          };
+          # Script must be in profile dir (tuned security restriction)
+          script = {
+            script = "script.sh";
+          };
+        };
+
+        # AC profile: balanced performance
+        framework-ac = {
+          main = {
+            summary = "Framework laptop AC profile";
+            include = "balanced";
+          };
+          acpi = {
+            platform_profile = "balanced";
+          };
+          cpu = {
+            energy_performance_preference = "balance_performance";
+          };
+          # Disable audio power saving (causes pops on pause/resume)
+          audio = {
+            timeout = "0";
+          };
+          # Script must be in profile dir (tuned security restriction)
+          script = {
+            script = "script.sh";
+          };
+        };
       };
     };
 
-    # Custom tuned profiles for Framework laptop
-    profiles = {
-      # Battery profile: aggressive power savings
-      framework-battery = {
-        main = {
-          summary = "Framework laptop battery profile";
-          include = "powersave";
-        };
-        acpi = {
-          platform_profile = "low-power";
-        };
-        cpu = {
-          energy_performance_preference = "power";
-        };
-        # Disable audio power saving (causes pops on pause/resume)
-        # Override powersave profile's timeout=10 setting
-        audio = {
-          timeout = "0";
-        };
-        # Script must be in profile dir (tuned security restriction)
-        script = {
-          script = "script.sh";
-        };
-      };
+    # Udev rules for device-specific power settings
+    # Note: AC/battery switching is handled by tuned via upower events
+    udev.extraRules = ''
+      # USB autosuspend - enable for all devices except HID (keyboard/mouse)
+      # This saves power by putting idle USB devices into suspend mode
+      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
+      # Keep HID devices always on to prevent input lag
+      # Match when usbhid driver binds (at interface level), then set parent device's power control
+      ACTION=="add|bind", SUBSYSTEM=="usb", DRIVERS=="usbhid", ATTR{../power/control}="on"
 
-      # AC profile: balanced performance
-      framework-ac = {
-        main = {
-          summary = "Framework laptop AC profile";
-          include = "balanced";
-        };
-        acpi = {
-          platform_profile = "balanced";
-        };
-        cpu = {
-          energy_performance_preference = "balance_performance";
-        };
-        # Disable audio power saving (causes pops on pause/resume)
-        audio = {
-          timeout = "0";
-        };
-        # Script must be in profile dir (tuned security restriction)
-        script = {
-          script = "script.sh";
-        };
-      };
-    };
+      # I/O scheduler optimization
+      # NVMe: 'none' is optimal (no scheduling overhead, direct submission)
+      # SATA SSD: 'mq-deadline' provides fair latency
+      # Note: DEVTYPE=="disk" excludes partitions and controllers which don't have schedulers
+      ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ENV{DEVTYPE}=="disk", ATTR{queue/scheduler}="none"
+      ACTION=="add|change", KERNEL=="sd[a-z]", ENV{DEVTYPE}=="disk", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+    '';
   };
 
   # Place tuned scripts in profile directories (required by tuned security policy)
@@ -130,105 +150,92 @@ in
     };
   };
 
-  # Make ABM sysfs writable by users (for toggle-abm and ironbar brightness popup)
-  systemd.services.abm-permissions = {
-    description = "Set ABM sysfs permissions for user control";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-udev-settle.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.coreutils}/bin/chmod 0666 ${abmPath}";
-      RemainAfterExit = true;
+  systemd.services = {
+    # Make ABM sysfs writable by users (for toggle-abm and ironbar brightness popup)
+    abm-permissions = {
+      description = "Set ABM sysfs permissions for user control";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-udev-settle.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.coreutils}/bin/chmod 0666 ${abmPath}";
+        RemainAfterExit = true;
+      };
+    };
+
+    # Make platform_profile writable by users (for ironbar power profile switching)
+    # Allows manual override via ironbar without going through tuned
+    platform-profile-permissions = {
+      description = "Set platform_profile sysfs permissions for user control";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-udev-settle.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.coreutils}/bin/chmod 0666 /sys/firmware/acpi/platform_profile";
+        RemainAfterExit = true;
+      };
+    };
+
+    # Disable audio codec power save controller at runtime
+    # Kernel cmdline param doesn't work (module loads too early), so set via sysfs
+    # This eliminates pops/clicks when audio streams start/stop
+    audio-power-save-controller = {
+      description = "Disable snd_hda_intel power save controller";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "sound.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.bash}/bin/bash -c 'echo N > /sys/module/snd_hda_intel/parameters/power_save_controller'";
+        RemainAfterExit = true;
+      };
     };
   };
 
-  # Make platform_profile writable by users (for ironbar power profile switching)
-  # Allows manual override via ironbar without going through tuned
-  systemd.services.platform-profile-permissions = {
-    description = "Set platform_profile sysfs permissions for user control";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-udev-settle.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.coreutils}/bin/chmod 0666 /sys/firmware/acpi/platform_profile";
-      RemainAfterExit = true;
+  boot = {
+    # Audio power saving DISABLED
+    # Enabling power_save causes pipewire/wireplumber to repeatedly handle codec wake/sleep
+    # cycles, generating excessive DBUS traffic and CPU overhead. The ~0.1-0.3W savings
+    # is offset by the increased CPU usage from constant state transitions.
+    # power_save_controller=N disables the controller entirely, preventing pop/click on
+    # audio start/stop even when power_save=0 (which only sets the timeout).
+    # See: https://www.kernel.org/doc/html/latest/sound/designs/powersave.html
+    extraModprobeConfig = ''
+      options snd_hda_intel power_save=0 power_save_controller=N
+    '';
+
+    # Kernel parameters for power optimization
+    kernelParams = [
+      # Disable NMI watchdog (saves ~1W)
+      # NMI watchdog is used for detecting hard lockups, but not needed for normal use
+      "nmi_watchdog=0"
+      # PCIe ASPM: Use powersupersave for maximum power savings
+      # Previously caused MT7925 WiFi boot failures with TLP, but tuned doesn't have
+      # aggressive early udev rules. If WiFi fails, change to "performance".
+      # See: docs/mt7925-wifi-boot-failure.md
+      "pcie_aspm.policy=powersupersave"
+      # RCU Lazy: batch RCU callbacks during idle for 5-10% power savings
+      # Allows deeper CPU sleep states at idle; no performance downside
+      "rcutree.enable_rcu_lazy=1"
+    ]
+    # AMD-specific: Use P-State active (EPP) mode for hardware-controlled frequency scaling
+    # Active mode: hardware autonomously controls frequency based on Energy Performance Preference (EPP)
+    # Required for scx_lavd --autopower to read EPP and adjust scheduling behavior
+    # Better idle efficiency and works well with sched_ext schedulers
+    ++ lib.optionals isAmd [ "amd_pstate=active" ];
+
+    # Runtime kernel settings
+    # Note: tuned also manages some sysctl settings, these are kept as system-wide defaults
+    kernel.sysctl = {
+      # VM writeback timeout
+      # Default: 500 (5 seconds)
+      # PowerTOP recommends: 1500 (15 seconds) for better battery life
+      # Delays writing dirty pages to disk, reducing disk wakeups
+      "vm.dirty_writeback_centisecs" = 1500;
+
+      # Laptop mode - aggressive power saving for disk I/O
+      # Batches disk writes to keep disk spun down longer
+      "vm.laptop_mode" = 5;
     };
   };
 
-  # Disable audio codec power save controller at runtime
-  # Kernel cmdline param doesn't work (module loads too early), so set via sysfs
-  # This eliminates pops/clicks when audio streams start/stop
-  systemd.services.audio-power-save-controller = {
-    description = "Disable snd_hda_intel power save controller";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "sound.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'echo N > /sys/module/snd_hda_intel/parameters/power_save_controller'";
-      RemainAfterExit = true;
-    };
-  };
-
-  # Audio power saving DISABLED
-  # Enabling power_save causes pipewire/wireplumber to repeatedly handle codec wake/sleep
-  # cycles, generating excessive DBUS traffic and CPU overhead. The ~0.1-0.3W savings
-  # is offset by the increased CPU usage from constant state transitions.
-  # power_save_controller=N disables the controller entirely, preventing pop/click on
-  # audio start/stop even when power_save=0 (which only sets the timeout).
-  # See: https://www.kernel.org/doc/html/latest/sound/designs/powersave.html
-  boot.extraModprobeConfig = ''
-    options snd_hda_intel power_save=0 power_save_controller=N
-  '';
-
-  # Kernel parameters for power optimization
-  boot.kernelParams = [
-    # Disable NMI watchdog (saves ~1W)
-    # NMI watchdog is used for detecting hard lockups, but not needed for normal use
-    "nmi_watchdog=0"
-    # PCIe ASPM: Use powersupersave for maximum power savings
-    # Previously caused MT7925 WiFi boot failures with TLP, but tuned doesn't have
-    # aggressive early udev rules. If WiFi fails, change to "performance".
-    # See: docs/mt7925-wifi-boot-failure.md
-    "pcie_aspm.policy=powersupersave"
-    # RCU Lazy: batch RCU callbacks during idle for 5-10% power savings
-    # Allows deeper CPU sleep states at idle; no performance downside
-    "rcutree.enable_rcu_lazy=1"
-  ]
-  # AMD-specific: Use P-State active (EPP) mode for hardware-controlled frequency scaling
-  # Active mode: hardware autonomously controls frequency based on Energy Performance Preference (EPP)
-  # Required for scx_lavd --autopower to read EPP and adjust scheduling behavior
-  # Better idle efficiency and works well with sched_ext schedulers
-  ++ lib.optionals isAmd [ "amd_pstate=active" ];
-
-  # Runtime kernel settings
-  # Note: tuned also manages some sysctl settings, these are kept as system-wide defaults
-  boot.kernel.sysctl = {
-    # VM writeback timeout
-    # Default: 500 (5 seconds)
-    # PowerTOP recommends: 1500 (15 seconds) for better battery life
-    # Delays writing dirty pages to disk, reducing disk wakeups
-    "vm.dirty_writeback_centisecs" = 1500;
-
-    # Laptop mode - aggressive power saving for disk I/O
-    # Batches disk writes to keep disk spun down longer
-    "vm.laptop_mode" = 5;
-  };
-
-  # Udev rules for device-specific power settings
-  # Note: AC/battery switching is handled by tuned via upower events
-  services.udev.extraRules = ''
-    # USB autosuspend - enable for all devices except HID (keyboard/mouse)
-    # This saves power by putting idle USB devices into suspend mode
-    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{power/control}="auto"
-    # Keep HID devices always on to prevent input lag
-    # Match when usbhid driver binds (at interface level), then set parent device's power control
-    ACTION=="add|bind", SUBSYSTEM=="usb", DRIVERS=="usbhid", ATTR{../power/control}="on"
-
-    # I/O scheduler optimization
-    # NVMe: 'none' is optimal (no scheduling overhead, direct submission)
-    # SATA SSD: 'mq-deadline' provides fair latency
-    # Note: DEVTYPE=="disk" excludes partitions and controllers which don't have schedulers
-    ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ENV{DEVTYPE}=="disk", ATTR{queue/scheduler}="none"
-    ACTION=="add|change", KERNEL=="sd[a-z]", ENV{DEVTYPE}=="disk", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
-  '';
 }

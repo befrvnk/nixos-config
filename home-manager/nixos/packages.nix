@@ -37,7 +37,7 @@
       material-symbols
     ])
     # x86_64-only packages (no ARM64 builds available)
-    ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 ([
+    ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
       pkgs.discord
       pkgs.obsidian
       pkgs.slack
@@ -45,5 +45,5 @@
       (import ./elecwhat.nix { inherit pkgs; })
       (import ./ticktick.nix { inherit pkgs; })
       (import ./upscayl.nix { inherit pkgs; })
-    ]);
+    ];
 }

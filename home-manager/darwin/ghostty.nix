@@ -3,7 +3,7 @@
 # On macOS, Ghostty is installed via Homebrew (not available in nixpkgs for darwin).
 # Uses system defaults for theming - macOS handles light/dark mode automatically.
 
-{ ... }:
+_:
 
 {
   programs.ghostty = {

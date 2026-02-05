@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # NuPhy Keyboard Support

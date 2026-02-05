@@ -1,5 +1,4 @@
-{ ... }:
-{
+_: {
   input = {
     keyboard = {
       xkb = {

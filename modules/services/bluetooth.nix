@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 {
   # Enable Bluetooth support (but off by default to save power)

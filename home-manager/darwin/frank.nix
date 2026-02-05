@@ -36,8 +36,10 @@
     ./zen-browser.nix
   ];
 
-  home.username = "frank";
-  home.homeDirectory = "/Users/frank";
-  home.stateVersion = "25.05";
+  home = {
+    username = "frank";
+    homeDirectory = "/Users/frank";
+    stateVersion = "25.05";
+  };
 
 }

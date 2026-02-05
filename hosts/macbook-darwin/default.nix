@@ -1,11 +1,44 @@
 { inputs, pkgs, ... }:
 
 {
-  system.stateVersion = 5;
-  system.primaryUser = "frank";
+  system = {
+    stateVersion = 5;
+    primaryUser = "frank";
 
-  nixpkgs.config.allowUnfree = true;
-  nixpkgs.hostPlatform = "aarch64-darwin";
+    # macOS System Defaults
+    defaults = {
+      dock = {
+        autohide = true;
+        show-recents = false;
+        tilesize = 48;
+        mru-spaces = false;
+      };
+      finder = {
+        AppleShowAllExtensions = true;
+        ShowPathbar = true;
+        ShowStatusBar = true;
+        FXEnableExtensionChangeWarning = false;
+        _FXShowPosixPathInTitle = true;
+      };
+      NSGlobalDomain = {
+        AppleKeyboardUIMode = 3; # Full keyboard access
+        InitialKeyRepeat = 15;
+        KeyRepeat = 2;
+        ApplePressAndHoldEnabled = false;
+        NSAutomaticCapitalizationEnabled = false;
+        NSAutomaticSpellingCorrectionEnabled = false;
+      };
+      trackpad = {
+        Clicking = true;
+        TrackpadRightClick = true;
+      };
+    };
+  };
+
+  nixpkgs = {
+    config.allowUnfree = true;
+    hostPlatform = "aarch64-darwin";
+  };
 
   # Let Determinate Systems installer manage Nix (don't conflict with its daemon)
   # Nix settings (flakes, substituters) are configured by Determinate instead
@@ -66,35 +99,6 @@
       "signal"
       "whatsapp"
     ];
-  };
-
-  # macOS System Defaults
-  system.defaults = {
-    dock = {
-      autohide = true;
-      show-recents = false;
-      tilesize = 48;
-      mru-spaces = false;
-    };
-    finder = {
-      AppleShowAllExtensions = true;
-      ShowPathbar = true;
-      ShowStatusBar = true;
-      FXEnableExtensionChangeWarning = false;
-      _FXShowPosixPathInTitle = true;
-    };
-    NSGlobalDomain = {
-      AppleKeyboardUIMode = 3; # Full keyboard access
-      InitialKeyRepeat = 15;
-      KeyRepeat = 2;
-      ApplePressAndHoldEnabled = false;
-      NSAutomaticCapitalizationEnabled = false;
-      NSAutomaticSpellingCorrectionEnabled = false;
-    };
-    trackpad = {
-      Clicking = true;
-      TrackpadRightClick = true;
-    };
   };
 
   # Touch ID for sudo
