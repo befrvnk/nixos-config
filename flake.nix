@@ -4,7 +4,7 @@
   inputs = {
     # Using nixpkgs-unstable as the main channel for latest packages
     # All system and user packages use this channel
-    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
