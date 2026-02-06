@@ -151,6 +151,9 @@ in
   };
 
   systemd.services = {
+    # Reduce tuned stop timeout to avoid long shutdown delays
+    tuned.serviceConfig.TimeoutStopSec = 10;
+
     # Make ABM sysfs writable by users (for toggle-abm and ironbar brightness popup)
     abm-permissions = {
       description = "Set ABM sysfs permissions for user control";

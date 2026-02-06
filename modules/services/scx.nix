@@ -14,4 +14,8 @@
     scheduler = "scx_lavd";
     extraArgs = [ "--autopower" ];
   };
+
+  # Reduce stop timeout to avoid long shutdown delays
+  # Kernel falls back to CFS automatically if forcibly killed
+  systemd.services.scx.serviceConfig.TimeoutStopSec = 10;
 }
