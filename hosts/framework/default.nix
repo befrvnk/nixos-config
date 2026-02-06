@@ -25,17 +25,6 @@
       pkiBundle = "/var/lib/sbctl";
     };
 
-    networking.hostName = "framework";
-
-    systemd.services."getty@tty1".enable = false;
-    systemd.services."autovt@tty1".enable = false;
-
-    services.fwupd = {
-      enable = true;
-    };
-
-    services.hardware.bolt.enable = false;
-
     # amdgpu.dcdebugmask=0x10: Fix kworker stuck in amdgpu display code causing high I/O
     # pressure. The amdgpu driver has a timeout issue in dmub_srv_wait_for_idle that causes
     # workqueue threads to block, triggering rescue threads and ~80-90% PSI I/O pressure.
@@ -57,6 +46,14 @@
       "typec_ucsi"
     ];
   };
+
+  networking.hostName = "framework";
+
+  systemd.services."getty@tty1".enable = false;
+  systemd.services."autovt@tty1".enable = false;
+
+  services.fwupd.enable = true;
+  services.hardware.bolt.enable = false;
 
   # Disable kmod to avoid infinite recursion with kernel packages
   hardware.framework.enableKmod = false;

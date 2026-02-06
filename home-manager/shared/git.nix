@@ -1,9 +1,12 @@
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 
 let
-  # 1Password SSH signing program path (macOS only, Linux uses agent directly)
+  # 1Password SSH signing program path
   sshSignProgram =
-    if pkgs.stdenv.isDarwin then "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" else null;
+    if pkgs.stdenv.isDarwin then
+      "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+    else
+      "/run/current-system/sw/bin/op-ssh-sign";
 in
 {
   programs.git = {
@@ -15,7 +18,7 @@ in
         signingkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ+3hhn8MHxIuaTPFR6z+OPSL9YX5sBN80bct7GVspuz";
       };
       gpg.format = "ssh";
-      gpg.ssh.program = lib.mkIf (sshSignProgram != null) sshSignProgram;
+      gpg.ssh.program = sshSignProgram;
       commit.gpgsign = true;
       init.defaultBranch = "main";
       pull = {
