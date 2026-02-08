@@ -120,6 +120,10 @@ _:
     ];
   };
 
+  # Enable acpid for ACPI event monitoring
+  # Required for lid switch detection when systemd-logind is inhibited by Happy
+  services.acpid.enable = true;
+
   # Configure systemd-logind for proper lid handling
   services.logind.settings.Login = {
     HandleLidSwitch = "suspend";

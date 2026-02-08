@@ -22,10 +22,7 @@ _: {
     # ];
     "Mod+A".action.spawn = [ "pavucontrol" ];
 
-    "Mod+Shift+S".action.spawn = [
-      "systemctl"
-      "suspend"
-    ];
+    "Mod+Shift+S".action.spawn = [ "safe-suspend" ];
     "Mod+Shift+X".action.spawn = [
       "swaylock"
       "-f"

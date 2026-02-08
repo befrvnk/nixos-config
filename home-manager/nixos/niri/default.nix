@@ -23,6 +23,17 @@
       fi
     '')
 
+    # Suspend with inhibitor check - notifies if a service is blocking sleep
+    (pkgs.writeShellScriptBin "safe-suspend" ''
+      export PATH="${pkgs.systemd}/bin:${pkgs.libnotify}/bin:${pkgs.gawk}/bin:$PATH"
+      blockers=$(systemd-inhibit --list | awk '$NF == "block" && $6 ~ /sleep|handle-lid-switch/ {print $1}')
+      if [[ -n "$blockers" ]]; then
+        notify-send -t 5000 -i dialog-warning "Suspend Blocked" "$blockers is preventing sleep."
+      else
+        systemctl suspend
+      fi
+    '')
+
     # Toggle ABM (Adaptive Backlight Management) for photo editing mode
     # ABM trades color accuracy for power savings
     (pkgs.writeShellScriptBin "toggle-abm" ''
@@ -102,6 +113,40 @@
       ) &
     '')
   ];
+
+  # Systemd service to monitor lid switch and control internal display
+  # Uses acpi_listen to detect ACPI events directly, bypassing systemd-logind
+  # This works even when Happy inhibits handle-lid-switch to prevent suspend
+  systemd.user.services.lid-switch-display = {
+    Unit = {
+      Description = "Automatic internal display control on lid switch";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.writeShellScript "lid-switch-display" (
+        builtins.readFile (
+          pkgs.replaceVars ./lid-switch-display.sh {
+            coreutils = "${pkgs.coreutils}";
+            gnugrep = "${pkgs.gnugrep}";
+            gnused = "${pkgs.gnused}";
+            gawk = "${pkgs.gawk}";
+            niri = "${pkgs.niri}";
+            acpid = "${pkgs.acpid}";
+          }
+        )
+      )}";
+      Restart = "always";
+      RestartSec = "3";
+    };
+
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+
   # Keyring is managed by PAM (see modules/desktop/greetd.nix)
   # Don't start a separate daemon here as it conflicts with PAM
   # Using mkForce to override niri-flake's default setting

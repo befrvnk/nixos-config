@@ -124,6 +124,33 @@ Ironbar battery popup uses `tuned-adm` for switching.
 - Level 3: Power savings (battery)
 - Ironbar display popup has ABM and Stay On buttons
 
+### Lid Switch and Display Management
+
+#### Happy Remote Development Integration
+- Happy inhibits `handle-lid-switch` to prevent suspend during remote sessions
+- Without Happy: lid close → system suspends (normal behavior)
+- With Happy: lid close → display turns off, system stays awake
+
+#### Automatic Display Control (lid-switch-display service)
+- **Purpose:** Turn off internal display when lid closes, even when Happy blocks suspend
+- **Mechanism:** Listens to ACPI events via `acpi_listen`, bypassing systemd-logind
+- **Implementation:** `niri/lid-switch-display.sh` + systemd user service
+- **Initial state:** Checks lid state on startup, disables display if already closed
+- **Event-driven:** No polling, responds immediately to kernel ACPI events
+- **Requires:** `services.acpid.enable = true` (system service in `modules/system/core.nix`)
+
+Check service status:
+```bash
+systemctl --user status lid-switch-display.service
+journalctl --user -u lid-switch-display.service -f  # Watch events
+```
+
+Files:
+- `niri/lid-switch-display.sh` - ACPI event monitor script
+- `niri/default.nix` - Service configuration
+- `happy/default.nix` - Happy inhibit configuration
+- `modules/system/core.nix` - acpid system service
+
 ## Desktop Gotchas
 
 ### Niri Overview Popups
@@ -150,10 +177,11 @@ Ironbar battery popup uses `tuned-adm` for switching.
 
 | Module | Purpose |
 |--------|---------|
-| `niri/` | Window manager (binds, layout, rules, startup) |
+| `niri/` | Window manager (binds, layout, rules, startup, lid-switch) |
 | `ironbar/` | Status bar with modular scripts |
 | `darkman/` | Theme switching, monitor hotplug |
 | `stylix.nix` | Theming with specializations |
+| `happy/` | Remote development daemon with suspend inhibit |
 | `android/` | Emulator environment variables |
 | `audio-keep-alive/` | Amplifier pop prevention |
 | `battery-notifications/` | Low battery alerts |

@@ -35,7 +35,7 @@
       # Suspend 5 seconds after lock
       {
         timeout = 305;
-        command = "${pkgs.systemd}/bin/systemctl suspend";
+        command = "safe-suspend";
       }
     ];
   };
