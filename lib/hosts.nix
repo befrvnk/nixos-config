@@ -7,6 +7,7 @@ let
     inputs.android-nixpkgs.overlays.default
     (import ../overlays/android-studio-canary.nix)
     (import ../overlays/claude-code.nix)
+    (import ../overlays/domain-check.nix)
     inputs.claude-code.overlays.default
     (import ../overlays/hamr.nix)
     (import ../overlays/idea-community.nix)

@@ -10,6 +10,7 @@
       chromium
       ddcutil
       devenv
+      domain-check
       eza
       fd
       fzf
