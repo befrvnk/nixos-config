@@ -26,6 +26,10 @@ _: {
       "systemctl"
       "suspend"
     ];
+    "Mod+Shift+X".action.spawn = [
+      "swaylock"
+      "-f"
+    ];
 
     # Navigation
     "Mod+Left".action.focus-column-left = { };
