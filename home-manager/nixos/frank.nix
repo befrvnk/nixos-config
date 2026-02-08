@@ -29,6 +29,7 @@
     ./gemini-cli.nix
     ./ghostty.nix
     ./hamr.nix
+    ./happy
     ./intellij
     ./ironbar
     ./niri

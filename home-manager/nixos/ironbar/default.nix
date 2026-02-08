@@ -50,6 +50,12 @@ let
     ${builtins.readFile ./modules/battery/battery-watch.sh}
   '';
 
+  # Happy status script with injected Stylix color
+  happyStatus = pkgs.writeShellScript "happy-status" ''
+    export ACTIVE_COLOR="${colors.base0B}"
+    ${builtins.readFile ./modules/happy/happy-status.sh}
+  '';
+
   # Notification count watching script with injected dependencies
   # Uses dbus-monitor to watch for notification events
   notificationCountWatch = pkgs.writeShellScript "notification-count-watch" ''
@@ -214,6 +220,17 @@ in
     };
     "ironbar/modules/display/get-stay-on-status.sh" = {
       source = ./modules/display/get-stay-on-status.sh;
+      executable = true;
+    };
+
+    # Happy module
+    # Toggle for Happy remote development daemon
+    "ironbar/modules/happy/happy-status.sh" = {
+      source = happyStatus;
+      executable = true;
+    };
+    "ironbar/modules/happy/toggle-happy.sh" = {
+      source = ./modules/happy/toggle-happy.sh;
       executable = true;
     };
 

@@ -10,6 +10,18 @@
   "start": [
     {
       "type": "custom",
+      "class": "happy",
+      "bar": [
+        {
+          "type": "button",
+          "class": "flat",
+          "label": "{{2000:~/.config/ironbar/modules/happy/happy-status.sh}}",
+          "on_click": "!~/.config/ironbar/modules/happy/toggle-happy.sh"
+        }
+      ]
+    },
+    {
+      "type": "custom",
       "class": "firewall",
       "show_if": "poll:60000:~/.config/ironbar/modules/firewall/has-refused.sh",
       "bar": [

@@ -212,6 +212,14 @@ button.flat:hover {
     color: @base03;
 }
 
+.happy {
+    font-weight: normal;
+}
+
+.happy button.flat {
+    margin-right: 4px;
+}
+
 .sysinfo {
     font-weight: normal;
 }
