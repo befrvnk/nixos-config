@@ -1,9 +1,7 @@
-# IntelliJ IDEA Community Edition - fetched from GitHub releases
-# JetBrains discontinued IDEA Community binaries on their CDN in July 2025,
-# but continues publishing pre-built binaries to GitHub releases.
-# See: https://blog.jetbrains.com/idea/2025/07/intellij-idea-unified-distribution-plan/
-#
-# Update with: ./scripts/update-idea-community.sh
+# IntelliJ IDEA (Unified Edition) - fetched from JetBrains CDN
+# Starting with 2025.3, JetBrains unified Community and Ultimate into a single product.
+# Community features remain free. EAP builds are available from the JetBrains CDN.
+# See: https://blog.jetbrains.com/idea/2025/12/intellij-idea-unified-release/
 {
   lib,
   stdenv,
@@ -47,20 +45,25 @@
   nss,
   pango,
   udev,
-  xorg,
+  libxshmfence,
+  linux-pam,
+  audit,
   zlib,
   # For desktop file
   copyDesktopItems,
   makeDesktopItem,
 }:
 
+let
+  buildNumber = "261.20362.25";
+in
 stdenv.mkDerivation rec {
   pname = "idea-community";
-  version = "2025.3.2";
+  version = "2026.1-eap3";
 
   src = fetchzip {
-    url = "https://github.com/JetBrains/intellij-community/releases/download/idea/${version}/idea-${version}.tar.gz";
-    hash = "sha256-hllhjl0AZcNzT3pvb1iNVNoQR/rUT2u/ryKdTxfGVYA=";
+    url = "https://download.jetbrains.com/idea/idea-${buildNumber}.tar.gz";
+    hash = "sha256-ds9/pUL2OfKTZ8rXmoOhDPgW/IeCiOpSsMAI2lROFOc=";
   };
 
   nativeBuildInputs = [
@@ -99,7 +102,9 @@ stdenv.mkDerivation rec {
     nss
     pango
     udev
-    xorg.libxshmfence
+    libxshmfence
+    linux-pam
+    audit
     zlib
     stdenv.cc.cc.lib
   ];
@@ -166,9 +171,9 @@ stdenv.mkDerivation rec {
       name = "idea-community";
       exec = "idea-community %U";
       icon = "idea-community";
-      desktopName = "IntelliJ IDEA Community Edition";
+      desktopName = "IntelliJ IDEA";
       genericName = "Integrated Development Environment";
-      comment = "Free Java, Kotlin, Groovy, and Scala IDE";
+      comment = "Java, Kotlin, Groovy, and Scala IDE";
       categories = [
         "Development"
         "IDE"
@@ -182,28 +187,25 @@ stdenv.mkDerivation rec {
         "text/plain"
       ];
       startupNotify = true;
-      startupWMClass = "jetbrains-idea-ce";
+      startupWMClass = "jetbrains-idea";
     })
   ];
 
   # For compatibility with jetbrains.plugins.addPlugins
   passthru = {
-    # Used by nix-jetbrains-plugins for plugin lookup
-    buildNumber = version;
+    inherit buildNumber;
   };
 
   meta = {
-    description = "Free Java, Kotlin, Groovy and Scala IDE from JetBrains";
+    description = "Java, Kotlin, Groovy and Scala IDE from JetBrains";
     longDescription = ''
-      IntelliJ IDEA Community Edition is a free and open-source IDE for Java,
-      Kotlin, Groovy, and Scala development. It provides smart code completion,
-      powerful refactoring tools, and integrated version control.
-
-      This package fetches pre-built binaries from JetBrains GitHub releases
-      since the official JetBrains CDN no longer provides Community Edition builds.
+      IntelliJ IDEA is a unified IDE for Java, Kotlin, Groovy, and Scala
+      development. It provides smart code completion, powerful refactoring
+      tools, and integrated version control. Community features are free
+      for both non-commercial and commercial use.
     '';
     homepage = "https://www.jetbrains.com/idea/";
-    changelog = "https://github.com/JetBrains/intellij-community/releases/tag/idea/${version}";
+    changelog = "https://youtrack.jetbrains.com/articles/IDEA-A-2100662619/IntelliJ-IDEA-2026.1-EAP-3-261.20362.25-build-Release-Notes";
     license = lib.licenses.asl20;
     maintainers = [ ];
     platforms = [
