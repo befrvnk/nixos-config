@@ -25,6 +25,7 @@
     htop
     imagemagick
     lf
+    marp-cli
     navi
     neofetch
     nh
