@@ -37,6 +37,7 @@
   libXfixes,
   libXi,
   libxkbcommon,
+  wayland,
   libXrandr,
   libXrender,
   libXtst,
@@ -94,6 +95,7 @@ stdenv.mkDerivation rec {
     libXfixes
     libXi
     libxkbcommon
+    wayland
     libXrandr
     libXrender
     libXtst
@@ -118,6 +120,9 @@ stdenv.mkDerivation rec {
     # Install IDE files
     mkdir -p $out/share/idea-community
     cp -r . $out/share/idea-community/
+
+    # Force native Wayland rendering (fixes blurry text with fractional scaling)
+    echo "-Dawt.toolkit.name=WLToolkit" >> $out/share/idea-community/bin/idea64.vmoptions
 
     # Use the bundled JBR (JetBrains Runtime) if available, otherwise use system JDK
     if [ -d "$out/share/idea-community/jbr" ]; then
@@ -146,8 +151,7 @@ stdenv.mkDerivation rec {
       --set IDEA_JDK "$jdk" \
       --set JAVA_HOME "$jdk" \
       --set JDK_HOME "$jdk" \
-      --set IDEA_VM_OPTIONS "$out/share/idea-community/bin/idea64.vmoptions" \
-      --add-flags "-Dawt.toolkit.name=WLToolkit"
+      --set IDEA_VM_OPTIONS "$out/share/idea-community/bin/idea64.vmoptions"
 
     # Install icons
     for size in 16 32 48 64 128 256 512; do
