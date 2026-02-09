@@ -42,6 +42,7 @@ in
         Service = {
           Type = "oneshot";
           RemainAfterExit = "yes";
+          Environment = "PATH=${pkgs.rsync}/bin:/run/wrappers/bin";
           ExecStart = "${pkgs.profile-sync-daemon}/bin/psd sync";
           ExecStop = "${pkgs.profile-sync-daemon}/bin/psd unsync";
         };
