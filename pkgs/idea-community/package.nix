@@ -146,7 +146,8 @@ stdenv.mkDerivation rec {
       --set IDEA_JDK "$jdk" \
       --set JAVA_HOME "$jdk" \
       --set JDK_HOME "$jdk" \
-      --set IDEA_VM_OPTIONS "$out/share/idea-community/bin/idea64.vmoptions"
+      --set IDEA_VM_OPTIONS "$out/share/idea-community/bin/idea64.vmoptions" \
+      --add-flags "-Dawt.toolkit.name=WLToolkit"
 
     # Install icons
     for size in 16 32 48 64 128 256 512; do
