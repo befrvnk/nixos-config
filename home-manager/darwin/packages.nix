@@ -14,6 +14,7 @@
 
     # CLI tools (cross-platform)
     bat
+    bun
     devenv
     eza
     fd
@@ -32,6 +33,7 @@
     nmap
     opencode
     rsync
+    slidev-cli
     superfile
     tree
     yazi
