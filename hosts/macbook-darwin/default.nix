@@ -32,6 +32,24 @@
         Clicking = true;
         TrackpadRightClick = true;
       };
+
+      # Disable "Search man Page Index in Terminal" service shortcut (Cmd+Shift+A)
+      # Conflicts with JetBrains IDEs "Find Action" shortcut
+      # Requires logout/login to take effect
+      CustomUserPreferences = {
+        "pbs" = {
+          NSServicesStatus = {
+            "com.apple.Terminal - Search man Page Index in Terminal - searchManPages" = {
+              "enabled_context_menu" = false;
+              "enabled_services_menu" = false;
+              "presentation_modes" = {
+                "ContextMenu" = false;
+                "ServicesMenu" = false;
+              };
+            };
+          };
+        };
+      };
     };
   };
 
