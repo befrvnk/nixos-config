@@ -111,6 +111,7 @@
     };
     casks = [
       "1password"
+      "caffeine"
       "ghostty"
       "jetbrains-toolbox"
       "miro"
