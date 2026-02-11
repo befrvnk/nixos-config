@@ -6,6 +6,8 @@ let
   darwinOverlays = [
     # Claude Code from flake
     inputs.claude-code.overlays.default
+    # opencode from flake
+    inputs.opencode.overlays.default
     # worktrunk from flake
     (final: prev: {
       worktrunk = inputs.worktrunk.packages.${prev.system}.default;
