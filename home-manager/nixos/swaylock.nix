@@ -32,9 +32,15 @@
         timeout = 300;
         command = "${pkgs.swaylock}/bin/swaylock -f";
       }
-      # Suspend 5 seconds after lock
+      # Turn off monitors 5 seconds after lock
       {
         timeout = 305;
+        command = "${pkgs.niri}/bin/niri msg action power-off-monitors";
+        resumeCommand = "${pkgs.niri}/bin/niri msg action power-on-monitors";
+      }
+      # Suspend 10 seconds after lock
+      {
+        timeout = 310;
         command = "safe-suspend";
       }
     ];
