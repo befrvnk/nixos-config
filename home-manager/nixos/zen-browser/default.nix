@@ -14,7 +14,7 @@ let
   # Create a launcher script that forces the correct profile
   # This prevents Zen from using wrong profiles when the nix store path changes
   zenLauncher = pkgs.writeShellScriptBin "zen-launch" ''
-    exec ${zenPackage}/bin/zen -P "Default Profile" "$@"
+    exec ${zenPackage}/bin/zen-beta -P "Default Profile" "$@"
   '';
 in
 {
@@ -67,7 +67,7 @@ in
   # Hide the original desktop entry from the package
   xdg.desktopEntries.zen-beta = {
     name = "Zen Browser (Beta)";
-    exec = "zen %U";
+    exec = "zen-beta %U";
     icon = "zen-browser";
     terminal = false;
     settings = {
