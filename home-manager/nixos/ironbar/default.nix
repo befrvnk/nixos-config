@@ -153,6 +153,22 @@ in
       executable = true;
     };
 
+    # Aurora module
+    # Shows aurora/northern lights activity from NOAA space weather data
+    # Hidden when Kp < 4 via show_if in config.json
+    "ironbar/modules/aurora/has-aurora-activity.sh" = {
+      source = ./modules/aurora/has-aurora-activity.sh;
+      executable = true;
+    };
+    "ironbar/modules/aurora/aurora-status.sh" = {
+      source = ./modules/aurora/aurora-status.sh;
+      executable = true;
+    };
+    "ironbar/modules/aurora/aurora-details.sh" = {
+      source = ./modules/aurora/aurora-details.sh;
+      executable = true;
+    };
+
     # Weather module
     # Shows current weather and forecast from wttr.in
     # Hidden when offline/no data via show_if in config.json

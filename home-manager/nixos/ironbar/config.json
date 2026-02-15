@@ -60,6 +60,32 @@
   "center": [
     {
       "type": "custom",
+      "class": "aurora",
+      "show_if": "poll:300000:~/.config/ironbar/modules/aurora/has-aurora-activity.sh",
+      "bar": [
+        {
+          "type": "button",
+          "class": "flat",
+          "label": "{{600000:~/.config/ironbar/modules/aurora/aurora-status.sh}}",
+          "on_click": "popup:toggle"
+        }
+      ],
+      "popup": [
+        {
+          "type": "box",
+          "orientation": "vertical",
+          "widgets": [
+            {
+              "type": "label",
+              "class": "aurora-details",
+              "label": "{{600000:~/.config/ironbar/modules/aurora/aurora-details.sh}}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "custom",
       "class": "weather",
       "show_if": "poll:300000:~/.config/ironbar/modules/weather/has-weather-data.sh",
       "bar": [
