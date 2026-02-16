@@ -117,6 +117,7 @@
       "miro"
       "signal"
       "whatsapp"
+      "zed"
       "zen"
     ];
   };

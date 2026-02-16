@@ -29,8 +29,8 @@
     ../shared/zed.nix
 
     # Darwin-specific modules
-    # Zen Browser moved to Homebrew for profile stability across updates
     ./ghostty.nix
+    ./zed.nix
     ./nushell.nix
     ./packages.nix
   ];
