@@ -26,6 +26,7 @@
     ./darkman
     ./dunst.nix
     ./emacs.nix
+    ./gammastep.nix
     ./gemini-cli.nix
     ./ghostty.nix
     ./hamr.nix
