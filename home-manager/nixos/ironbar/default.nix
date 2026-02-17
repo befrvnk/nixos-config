@@ -238,6 +238,14 @@ in
       source = ./modules/display/get-stay-on-status.sh;
       executable = true;
     };
+    "ironbar/modules/display/toggle-redlight.sh" = {
+      source = ./modules/display/toggle-redlight.sh;
+      executable = true;
+    };
+    "ironbar/modules/display/get-redlight-status.sh" = {
+      source = ./modules/display/get-redlight-status.sh;
+      executable = true;
+    };
 
     # Happy module
     # Toggle for Happy remote development daemon

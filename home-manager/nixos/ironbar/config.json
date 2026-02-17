@@ -280,6 +280,12 @@
               "class": "display-toggle",
               "label": "{{2000:~/.config/ironbar/modules/display/get-stay-on-status.sh}}",
               "on_click": "!~/.config/ironbar/modules/display/toggle-stay-on.sh"
+            },
+            {
+              "type": "button",
+              "class": "display-toggle",
+              "label": "{{2000:~/.config/ironbar/modules/display/get-redlight-status.sh}}",
+              "on_click": "!~/.config/ironbar/modules/display/toggle-redlight.sh"
             }
           ]
         }
