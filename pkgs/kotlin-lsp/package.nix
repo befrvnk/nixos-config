@@ -12,6 +12,12 @@
   alsa-lib,
   fontconfig,
   freetype,
+  libX11,
+  libXext,
+  libXi,
+  libXrender,
+  libXtst,
+  wayland,
   zlib,
 }:
 
@@ -60,8 +66,14 @@ stdenv.mkDerivation {
     alsa-lib
     fontconfig
     freetype
-    zlib
+    libX11
+    libXext
+    libXi
+    libXrender
+    libXtst
     stdenv.cc.cc.lib
+    wayland
+    zlib
   ];
 
   sourceRoot = ".";
