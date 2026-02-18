@@ -36,6 +36,28 @@ in
     # They are version controlled with the project, not managed by Nix
   };
 
-  # Global Claude Code skills (available in all projects)
-  home.file.".claude/skills/remember/SKILL.md".source = ./skills/remember.md;
+  home = {
+    # Kotlin LSP for Claude Code intelligence
+    packages = [ pkgs.kotlin-lsp ];
+
+    file = {
+      # LSP plugins (local, no marketplace needed)
+      ".claude/plugins/kotlin-lsp/.claude-plugin/plugin.json".text = builtins.toJSON {
+        name = "kotlin-lsp";
+        description = "Kotlin language server integration";
+      };
+      ".claude/plugins/kotlin-lsp/.lsp.json".text = builtins.toJSON {
+        kotlin = {
+          command = "${pkgs.kotlin-lsp}/bin/kotlin-lsp";
+          extensionToLanguage = {
+            ".kt" = "kotlin";
+            ".kts" = "kotlin";
+          };
+        };
+      };
+
+      # Global Claude Code skills (available in all projects)
+      ".claude/skills/remember/SKILL.md".source = ./skills/remember.md;
+    };
+  };
 }

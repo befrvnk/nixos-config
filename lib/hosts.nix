@@ -11,6 +11,7 @@ let
     inputs.claude-code.overlays.default
     (import ../overlays/hamr.nix)
     (import ../overlays/idea-community.nix)
+    (import ../overlays/kotlin-lsp.nix)
     inputs.niri.overlays.niri
     (import ../overlays/niri.nix)
     inputs.nix-cachyos-kernel.overlays.pinned
