@@ -16,6 +16,7 @@
     ../shared/starship.nix
     ../shared/worktrunk.nix
     ../shared/zed.nix
+    ../shared/zoxide.nix
 
     # NixOS-specific modules
     inputs.zen-browser.homeModules.beta
