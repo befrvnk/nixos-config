@@ -115,6 +115,7 @@
       "ghostty"
       "jetbrains-toolbox"
       "miro"
+      "opencode-desktop"
       "signal"
       "whatsapp"
       "zed"
