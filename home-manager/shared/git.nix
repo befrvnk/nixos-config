@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 let
   # 1Password SSH signing program path
@@ -11,6 +11,25 @@ in
 {
   programs.git = {
     enable = true;
+    includes =
+      let
+        homeDir = config.home.homeDirectory;
+        workEmail = {
+          contents.user.email = "frank.hermann@egym.com";
+        };
+      in
+      builtins.concatMap
+        (dir: [
+          (workEmail // { condition = "gitdir:${homeDir}/projects/${dir}/"; })
+          (workEmail // { condition = "gitdir:${homeDir}/projects/${dir}.*/"; })
+        ])
+        [
+          "egym-docs"
+          "galaxy-android-app"
+          "galaxy-backend"
+          "mobile-api"
+          "mwa-bma-features"
+        ];
     settings = {
       user = {
         name = "Frank Hermann";
