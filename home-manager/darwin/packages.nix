@@ -11,6 +11,7 @@
     notion-app
     raycast
     slack
+    spotify
 
     # CLI tools (cross-platform)
     bat
