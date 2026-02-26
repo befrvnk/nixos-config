@@ -8,8 +8,15 @@ let
     inputs.claude-code.overlays.default
     # Kotlin LSP from JetBrains CDN
     (import ../overlays/kotlin-lsp.nix)
-    # opencode from flake
-    inputs.opencode.overlays.default
+    # opencode from flake (patch bun version check - upstream nixpkgs has bun 1.3.9, opencode requires ^1.3.10)
+    (final: prev: {
+      opencode = (inputs.opencode.packages.${prev.system}.default).overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace packages/script/src/index.ts \
+            --replace-fail "if (!semver.satisfies(process.versions.bun, expectedBunVersionRange))" "if (false)"
+        '';
+      });
+    })
     # worktrunk from flake
     (final: prev: {
       worktrunk = inputs.worktrunk.packages.${prev.system}.default;

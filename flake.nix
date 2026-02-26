@@ -56,7 +56,6 @@
     # TUI for AI coding agents
     opencode = {
       url = "github:anomalyco/opencode";
-      inputs.nixpkgs.follows = "nixpkgs";
     };
     # Git worktree management CLI
     worktrunk = {

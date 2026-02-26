@@ -708,6 +708,22 @@
     },
     "nixpkgs_4": {
       "locked": {
+        "lastModified": 1770812194,
+        "narHash": "sha256-OH+lkaIKAvPXR3nITO7iYZwew2nW9Y7Xxq0yfM/UcUU=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "8482c7ded03bae7550f3d69884f1e611e3bd19e8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_5": {
+      "locked": {
         "lastModified": 1762111121,
         "narHash": "sha256-4vhDuZ7OZaZmKKrnDpxLZZpGIJvAeMtK6FKLJYUtAdw=",
         "owner": "NixOS",
@@ -722,7 +738,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_5": {
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1768564909,
         "narHash": "sha256-Kell/SpJYVkHWMvnhqJz/8DqQg2b6PguxVWOuadbHCc=",
@@ -765,16 +781,14 @@
     },
     "opencode": {
       "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
-        "lastModified": 1772095195,
-        "narHash": "sha256-rZzlxnmAc/THGzUQeNqgKiSKQH4+57FcT5bt/8kbfjA=",
+        "lastModified": 1772111121,
+        "narHash": "sha256-h5gWdvuk7R31hM/RJs8fvQ2bCLtN8n3HQYrhp0Bw0bA=",
         "owner": "anomalyco",
         "repo": "opencode",
-        "rev": "6b021658ad514255c7398983b088c1636caaa5e4",
+        "rev": "bb8a1718a63c2caae9e40c85dd4bdfe34f8012d7",
         "type": "github"
       },
       "original": {
@@ -1112,15 +1126,15 @@
     },
     "vicinae": {
       "inputs": {
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_5",
         "systems": "systems_5"
       },
       "locked": {
-        "lastModified": 1772072784,
-        "narHash": "sha256-Kdw8ZJbpq8KEaLQXe2uOs+6ksX3Y7E2T5PC4+Y2Bt5s=",
+        "lastModified": 1772112191,
+        "narHash": "sha256-PffszILh9F2YyCmTnJSfxwaEnqjBN93F7SiYgIqI3FQ=",
         "owner": "vicinaehq",
         "repo": "vicinae",
-        "rev": "d065b15e2933b10a1e4814689da0061ac436e1fb",
+        "rev": "5e2b117e83685315e86619b4fb9cf8847fd9b0d0",
         "type": "github"
       },
       "original": {
@@ -1131,7 +1145,7 @@
     },
     "vicinae-extensions": {
       "inputs": {
-        "nixpkgs": "nixpkgs_5",
+        "nixpkgs": "nixpkgs_6",
         "systems": "systems_6",
         "vicinae": [
           "vicinae"

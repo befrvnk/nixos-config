@@ -127,3 +127,4 @@ Detailed guides in docs/:
 
 - **State versions:** Never change (NixOS: `25.05`, Darwin system: `5`)
 - **Home directory:** Use `config.home.homeDirectory` for portability
+- **opencode bun version:** The opencode flake has an overly strict bun version check (`^1.3.10`) that fails with nixpkgs' bun 1.3.9. Workaround in `lib/darwin.nix` patches it out via `overrideAttrs`. Remove once [anomalyco/opencode#8469](https://github.com/anomalyco/opencode/issues/8469) is fixed upstream.
