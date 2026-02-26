@@ -16,6 +16,7 @@ _:
       command = "bash -l -c nu";
 
       # Follow macOS system appearance (light/dark mode)
+      macos-titlebar-style = "hidden";
       window-theme = "auto";
       # Conditional theme: light mode theme, dark mode theme
       theme = "light:Catppuccin Latte,dark:Catppuccin Mocha";
