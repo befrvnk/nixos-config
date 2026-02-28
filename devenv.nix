@@ -228,6 +228,7 @@ in
     ${lib.optionalString isLinux ''
       echo "  sysinfo                   - Show system information"
       echo "  generations               - List NixOS generations"
+      echo "  tpm-rekey                 - Re-enroll TPM key for LUKS auto-unlock"
       echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
       echo "  take-readme-screenshots   - Capture screenshots for README"
     ''}
@@ -373,6 +374,16 @@ in
       ${pkgs.coreutils}/bin/ls -la "$output_dir"
       echo ""
       echo "💡 Share these files when reporting WiFi issues."
+    '';
+
+    # Re-enroll TPM key for LUKS auto-unlock after kernel/bootloader updates
+    # Run this after rebuilding if boot asks for the encryption password
+    tpm-rekey.exec = ''
+      echo "Re-enrolling TPM key for LUKS auto-unlock..."
+      echo "This is needed after kernel or bootloader updates change PCR measurements."
+      echo ""
+      echo "+ sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+2+7+12 --wipe-slot=tpm2 /dev/nvme0n1p2"
+      sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+2+7+12 --wipe-slot=tpm2 /dev/nvme0n1p2
     '';
 
     # Take README screenshots in light/dark and normal/overview modes
