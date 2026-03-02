@@ -108,6 +108,26 @@ in
         OfferToSaveLogins = false; # Using 1Password instead
         PasswordManagerEnabled = false; # Using 1Password instead
 
+        # Lock password manager preferences via about:config
+        Preferences = {
+          "signon.rememberSignons" = {
+            Value = false;
+            Status = "locked";
+          };
+          "signon.autofillForms" = {
+            Value = false;
+            Status = "locked";
+          };
+          "signon.formlessCapture.enabled" = {
+            Value = false;
+            Status = "locked";
+          };
+          "signon.generation.enabled" = {
+            Value = false;
+            Status = "locked";
+          };
+        };
+
         # Privacy settings
         EnableTrackingProtection = {
           Value = true;
