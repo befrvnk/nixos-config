@@ -112,6 +112,7 @@
     enable = true;
     onActivation = {
       autoUpdate = true;
+      upgrade = true;
       cleanup = "zap";
     };
     casks = [
@@ -124,7 +125,10 @@
       "signal"
       "whatsapp"
       "zed"
-      "zen"
+      {
+        name = "zen";
+        greedy = true;
+      }
     ];
   };
 
