@@ -16,10 +16,13 @@ _:
       command = "bash -l -c nu";
 
       # Follow macOS system appearance (light/dark mode)
-      macos-titlebar-style = "hidden";
       window-theme = "auto";
-      # Conditional theme: light mode theme, dark mode theme
-      theme = "light:Catppuccin Latte,dark:Catppuccin Mocha";
+
+      # Allow sidebar to extend to the top of the window (used by Ghostree)
+      macos-titlebar-style = "transparent";
+
+      # macOS-like minimal theme, follows system light/dark mode
+      theme = "light:Apple System Colors Light,dark:Apple System Colors";
 
       # Fix Shift+Enter for Claude Code
       # https://github.com/anthropics/claude-code/issues/1282

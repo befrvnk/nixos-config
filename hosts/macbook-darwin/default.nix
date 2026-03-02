@@ -128,6 +128,21 @@
     ];
   };
 
+  # Expose Nix-managed binaries to GUI apps (Dock/Spotlight launched apps only
+  # get launchd's minimal PATH and can't find tools like git, gh, etc.)
+  # Runs at login and sets PATH for the entire user launchd session.
+  launchd.user.agents."nix-path" = {
+    serviceConfig = {
+      Label = "nix.path";
+      ProgramArguments = [
+        "/bin/sh"
+        "-c"
+        "/bin/launchctl setenv PATH /etc/profiles/per-user/frank/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      ];
+      RunAtLoad = true;
+    };
+  };
+
   # Touch ID for sudo
   security.pam.services.sudo_local.touchIdAuth = true;
 

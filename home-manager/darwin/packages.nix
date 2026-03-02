@@ -8,11 +8,11 @@
 {
   home.packages = with pkgs; [
     # GUI apps
+    ghostree # sidequery/ghostree - Ghostty terminal with native git worktrees
     notion-app
     raycast
     slack
     spotify
-
     # CLI tools (cross-platform)
     bat
     bun
