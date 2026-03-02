@@ -10,10 +10,12 @@ let
     (import ../overlays/kotlin-lsp.nix)
     # opencode from flake (patch bun version check - upstream nixpkgs has bun 1.3.9, opencode requires ^1.3.10)
     (final: prev: {
-      opencode = (inputs.opencode.packages.${prev.system}.default).overrideAttrs (old: {
+      opencode = inputs.opencode.packages.${prev.system}.default.overrideAttrs (old: {
         postPatch = (old.postPatch or "") + ''
           substituteInPlace packages/script/src/index.ts \
             --replace-fail "if (!semver.satisfies(process.versions.bun, expectedBunVersionRange))" "if (false)"
+          mkdir -p .github
+          touch .github/TEAM_MEMBERS
         '';
       });
     })

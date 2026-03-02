@@ -37,6 +37,11 @@
       # Conflicts with JetBrains IDEs "Find Action" shortcut
       # Requires logout/login to take effect
       CustomUserPreferences = {
+        # Enable Cmd+Ctrl+drag to move windows from anywhere (not just title bar)
+        # Requires logout/login to take effect
+        "NSGlobalDomain" = {
+          NSWindowShouldDragOnGesture = true;
+        };
         "pbs" = {
           NSServicesStatus = {
             "com.apple.Terminal - Search man Page Index in Terminal - searchManPages" = {
