@@ -15,3 +15,6 @@ result
 # Claude Code - Nix-managed symlinks (regenerated on rebuild)
 .claude/commands/
 .claude/settings.json
+
+# Claude Code - project .lsp.json doesn't work (use local marketplace instead)
+.claude/.lsp.json

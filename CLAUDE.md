@@ -128,3 +128,7 @@ Detailed guides in docs/:
 - **State versions:** Never change (NixOS: `25.05`, Darwin system: `5`)
 - **Home directory:** Use `config.home.homeDirectory` for portability
 - **opencode bun version:** The opencode flake has an overly strict bun version check (`^1.3.10`) that fails with nixpkgs' bun 1.3.9. Workaround in `lib/darwin.nix` patches it out via `overrideAttrs`. Remove once [anomalyco/opencode#8469](https://github.com/anomalyco/opencode/issues/8469) is fixed upstream.
+- **Claude Code plugin marketplace schema:** `extraKnownMarketplaces` requires a nested object, not a plain string path — `{ "local": { "source": { "source": "directory", "path": "/abs/path" } } }`. A plain string crashes Claude Code on startup with no error message.
+- **Claude Code marketplace.json schema:** Requires `owner: { name: "..." }` at top level and `author: { name: "..." }` per plugin entry. Missing `owner` causes parse failure. `lspServers` lives inline in marketplace.json (not in a separate plugin.json), matching the official marketplace pattern.
+- **Claude Code plugin source directory:** The `source` path in marketplace.json (e.g. `./plugins/nix-lsp`) must physically exist on disk. A README.md file is sufficient to satisfy this check.
+- **Claude Code installed_plugins.json:** Write declaratively (full file replacement) rather than jq-merging, so removed plugins are cleaned up automatically on rebuild.
