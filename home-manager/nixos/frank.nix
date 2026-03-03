@@ -12,6 +12,7 @@
     ../shared/lazygit.nix
     ../shared/navi
     ../shared/nil.nix
+    ../shared/opencode.nix
     ../shared/ssh.nix
     ../shared/starship.nix
     ../shared/worktrunk.nix

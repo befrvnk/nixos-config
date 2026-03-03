@@ -31,7 +31,7 @@
     neofetch
     nh
     nmap
-    opencode
+
     rsync
     slidev-cli
     superfile
