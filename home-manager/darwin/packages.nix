@@ -22,7 +22,6 @@
     fzf
     gh
     github-copilot-cli
-    goose-cli
     helix
     htop
     imagemagick
