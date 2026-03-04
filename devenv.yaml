@@ -7,11 +7,11 @@ inputs:
   # Use the same nixpkgs as the flake for consistency
   nixpkgs:
     url: github:NixOS/nixpkgs/nixpkgs-unstable
-  # Devenv modules pinned to v1.11.1 - devenv.cli.version refactor (Jan 2026)
-  # broke evaluation for non-CLI users. Fixed on main (commit 5793ac94, Feb 9 2026)
-  # but not yet in a stable release (latest is v1.11.2). Unpin once v1.12+ is released.
   devenv:
-    url: github:cachix/devenv/v1.11.1?dir=src/modules
+    url: github:cachix/devenv
+  # Required explicitly since devenv 2.0 removed it from defaults
+  git-hooks:
+    url: github:cachix/git-hooks.nix
 
 # Allow unfree packages (e.g., some development tools)
 allowUnfree: true
