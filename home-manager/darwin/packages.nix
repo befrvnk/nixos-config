@@ -18,6 +18,7 @@
     bun
     devenv
     eza
+    fastfetch
     fd
     fzf
     gh
@@ -28,7 +29,6 @@
     lf
     marp-cli
     navi
-    neofetch
     nh
     nmap
 

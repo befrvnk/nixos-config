@@ -377,6 +377,7 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **ghostty** - GPU-accelerated terminal
 - **bat** - Syntax-highlighted cat
 - **eza** - Modern ls replacement
+- **fastfetch** - System info display
 - **fd** - Fast find alternative
 - **fzf** - Fuzzy finder
 - **htop** - Process viewer
@@ -384,7 +385,6 @@ Installed via home-manager in `home-manager/packages.nix`:
 - **yazi** - Terminal file manager
 - **superfile** - Terminal file manager with preview
 - **lf** - Terminal file manager
-- **neofetch** - System info display
 - **powertop** - Monitor system power usage
 
 #### File Management

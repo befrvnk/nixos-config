@@ -12,6 +12,7 @@
       devenv
       domain-check
       eza
+      fastfetch
       fd
       fzf
       gh
@@ -23,7 +24,6 @@
       nautilus
       gnome-disk-utility
       navi
-      neofetch
       nh
       nmap
       powertop

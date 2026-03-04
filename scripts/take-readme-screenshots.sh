@@ -20,9 +20,9 @@ echo "Switching to workspace 1..."
 niri msg action focus-workspace 1
 "$sleep" 0.5
 
-# Launch ghostty with neofetch
-echo "Launching Ghostty with neofetch..."
-ghostty -e sh -c 'neofetch; exec zsh' &
+# Launch ghostty with fastfetch
+echo "Launching Ghostty with fastfetch..."
+ghostty -e sh -c 'fastfetch; exec zsh' &
 GHOSTTY_PID=$!
 "$sleep" 2  # Wait for window to appear and render
 

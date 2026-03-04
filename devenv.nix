@@ -387,7 +387,7 @@ in
     '';
 
     # Take README screenshots in light/dark and normal/overview modes
-    # Opens Ghostty with neofetch and captures all combinations
+    # Opens Ghostty with fastfetch and captures all combinations
     take-readme-screenshots.exec = ''
       ${takeReadmeScreenshots}
     '';
