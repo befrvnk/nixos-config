@@ -22,7 +22,7 @@ niri msg action focus-workspace 1
 
 # Launch ghostty with fastfetch
 echo "Launching Ghostty with fastfetch..."
-ghostty -e sh -c 'fastfetch; exec zsh' &
+ghostty -e sh -c 'fastfetch; exec nu' &
 GHOSTTY_PID=$!
 "$sleep" 2  # Wait for window to appear and render
 

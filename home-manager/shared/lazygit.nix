@@ -1,6 +1,6 @@
 {
   programs.lazygit = {
     enable = true;
-    enableZshIntegration = true;
+    enableNushellIntegration = true;
   };
 }
