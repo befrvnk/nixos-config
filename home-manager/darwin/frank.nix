@@ -35,6 +35,7 @@
     ./zed.nix
     ./nushell.nix
     ./packages.nix
+    ./zellij.nix
   ];
 
   home = {
