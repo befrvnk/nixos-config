@@ -38,5 +38,8 @@ _:
     # Disable "is taking a while to execute" warning
     # Nix/devenv shells can take a few seconds on first load
     config.global.warn_timeout = "0s";
+
+    # Hide the noisy "direnv: export +VAR1 +VAR2 ..." line
+    config.global.hide_env_diff = true;
   };
 }

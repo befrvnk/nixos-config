@@ -214,7 +214,7 @@ in
     NIXFMT_STYLE = "rfc";
   };
 
-  # Shell initialization
+  # Shell initialization — runs via both direnv and devenv shell/test
   enterShell = ''
     echo "🚀 Nix Config Development Environment"
     echo ""
