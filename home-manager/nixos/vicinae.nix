@@ -49,7 +49,7 @@ in
     };
 
     extensions = with inputs.vicinae-extensions.packages.${pkgs.stdenv.hostPlatform.system}; [
-      bluetooth
+      # bluetooth # TODO: re-enable once usocket builds with Node.js 24
       nix
       wifi-commander
     ];
