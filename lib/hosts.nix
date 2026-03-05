@@ -17,6 +17,10 @@ let
     inputs.nix-cachyos-kernel.overlays.pinned
     (import ../overlays/profile-sync-daemon.nix)
     (import ../overlays/user-scanner.nix)
+    # devenv from flake (latest version, nixpkgs lags behind)
+    (final: prev: {
+      devenv = inputs.devenv.packages.${prev.system}.devenv;
+    })
     # worktrunk from flake
     (final: prev: {
       worktrunk = inputs.worktrunk.packages.${prev.system}.default;

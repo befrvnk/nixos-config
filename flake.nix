@@ -57,6 +57,8 @@
     opencode = {
       url = "github:anomalyco/opencode";
     };
+    # Development environment manager
+    devenv.url = "github:cachix/devenv";
     # Git worktree management CLI
     worktrunk = {
       url = "github:max-sixty/worktrunk";
