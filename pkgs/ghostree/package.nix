@@ -11,11 +11,11 @@
 
 stdenvNoCC.mkDerivation rec {
   pname = "ghostree";
-  version = "0.3.18";
+  version = "0.3.19";
 
   src = fetchurl {
     url = "https://github.com/sidequery/ghostree/releases/download/v${version}/Ghostree.dmg";
-    hash = "sha256-Z1m4ZMAP00X4RiwYZVzFOUXb69arqnQCHr+ZElCM4SE=";
+    hash = "sha256-pBBOR9dsNUGZU/6CWV0RwBT/F2mbEhQahYzqgOm9kkk=";
   };
 
   # undmg only supports HFS; use hdiutil for the APFS-format DMG

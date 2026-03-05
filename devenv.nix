@@ -318,6 +318,10 @@ in
       echo ""
       echo "Updating Android Studio Canary package..."
       ./scripts/update-android-studio-canary.sh || echo "⚠️  Android Studio Canary update failed (may already be up to date)"
+
+      echo ""
+      echo "Updating Ghostree package..."
+      ./scripts/update-ghostree.sh || echo "⚠️  Ghostree update failed (may already be up to date)"
     '';
 
   }
