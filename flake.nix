@@ -57,8 +57,9 @@
     opencode = {
       url = "github:anomalyco/opencode";
     };
-    # Development environment manager
-    devenv.url = "github:cachix/devenv";
+    # Don't use inputs.nixpkgs.follows here - devenv cachix has builds
+    # for the flake's own nixpkgs version, and its nix fork requires matching nixpkgs
+    devenv.url = "github:cachix/devenv/v2.0";
     # Git worktree management CLI
     worktrunk = {
       url = "github:max-sixty/worktrunk";

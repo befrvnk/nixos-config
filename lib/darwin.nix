@@ -21,7 +21,7 @@ let
         '';
       });
     })
-    # devenv from flake (latest version, nixpkgs lags behind)
+    # devenv from flake (latest version, ahead of nixpkgs)
     (final: prev: {
       devenv = inputs.devenv.packages.${prev.system}.devenv;
     })
