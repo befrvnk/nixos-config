@@ -78,7 +78,6 @@ in
   programs.zen-browser = {
     enable = true;
     package = zenPackage;
-    suppressXdgMigrationWarning = true;
 
     # Declarative extension management using policies
     # Extensions are auto-installed and force-enabled
