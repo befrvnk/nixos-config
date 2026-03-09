@@ -14,6 +14,7 @@
 {
   imports = [
     # Shared modules (cross-platform)
+    ../shared/agent-of-empires.nix
     ../shared/atuin.nix
     ../shared/btop.nix
     ../shared/claude-code

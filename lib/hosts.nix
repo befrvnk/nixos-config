@@ -25,6 +25,10 @@ let
     (final: prev: {
       worktrunk = inputs.worktrunk.packages.${prev.system}.default;
     })
+    # agent-of-empires from flake
+    (final: prev: {
+      agent-of-empires = inputs.agent-of-empires.packages.${prev.system}.default;
+    })
   ];
 in
 {

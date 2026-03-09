@@ -60,6 +60,11 @@
     # Don't use inputs.nixpkgs.follows here - devenv cachix has builds
     # for the flake's own nixpkgs version, and its nix fork requires matching nixpkgs
     devenv.url = "github:cachix/devenv/v2.0";
+    # Terminal session manager for AI coding agents
+    agent-of-empires = {
+      url = "github:njbrake/agent-of-empires";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Git worktree management CLI
     worktrunk = {
       url = "github:max-sixty/worktrunk";
