@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 {
   home.packages = [
@@ -6,8 +6,12 @@
     pkgs.tmux
   ];
 
-  home.file.".agent-of-empires/config.toml".text = ''
+  home.activation.agent-of-empires-config = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        mkdir -p "$HOME/.agent-of-empires"
+        rm -f "$HOME/.agent-of-empires/config.toml"
+        cat > "$HOME/.agent-of-empires/config.toml" << 'AOEEOF'
     [worktree]
     path_template = "../{repo-name}.{branch}"
+    AOEEOF
   '';
 }
