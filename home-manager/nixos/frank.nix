@@ -8,6 +8,7 @@
     ../shared/btop.nix
     ../shared/claude-code
     ../shared/direnv.nix
+    ../shared/gh.nix
     ../shared/git.nix
     ../shared/jujutsu.nix
     ../shared/lazygit.nix

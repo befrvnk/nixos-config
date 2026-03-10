@@ -15,7 +15,7 @@
       fastfetch
       fd
       fzf
-      gh
+
       helix
       htop
       imagemagick

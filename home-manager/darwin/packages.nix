@@ -20,7 +20,7 @@
     fastfetch
     fd
     fzf
-    gh
+
     github-copilot-cli
     helix
     htop
