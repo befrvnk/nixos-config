@@ -121,7 +121,10 @@
       "ghostty"
       "jetbrains-toolbox"
       "miro"
-      "opencode-desktop"
+      {
+        name = "opencode-desktop";
+        greedy = true;
+      }
       "signal"
       "whatsapp"
       "zed"
