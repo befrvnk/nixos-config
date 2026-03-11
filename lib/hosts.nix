@@ -18,9 +18,9 @@ let
     inputs.nix-cachyos-kernel.overlays.pinned
     (import ../overlays/profile-sync-daemon.nix)
     (import ../overlays/user-scanner.nix)
-    # devenv from flake (latest version, ahead of nixpkgs)
+    # devenv from flake (latest version, ahead of nixpkgs, skip tests during build)
     (final: prev: {
-      devenv = inputs.devenv.packages.${prev.system}.devenv;
+      devenv = inputs.devenv.packages.${prev.system}.devenv.overrideAttrs { doCheck = false; };
     })
     # worktrunk from flake
     (final: prev: {
