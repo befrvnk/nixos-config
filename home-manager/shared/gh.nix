@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 let
-  # Shared gh-dash configuration (everything except theme colors)
+  # gh-dash config shared across light/dark (everything except theme, keybindings, pager)
   ghDashBaseConfig = ''
     prSections:
         - title: My Pull Requests
@@ -81,11 +81,27 @@ let
                     width: 20
                     hidden: true
         refetchIntervalMinutes: 30
+    repoPaths: {}
+  '';
+
+  # Diffnav wrapper scripts (gh-dash runs pager commands via $SHELL -c,
+  # and nushell doesn't support VAR=value command syntax)
+  diffnavDark = pkgs.writeShellScript "diffnav-dark" ''
+    export DELTA_FEATURES=dark
+    exec ${pkgs.diffnav}/bin/diffnav "$@"
+  '';
+
+  diffnavLight = pkgs.writeShellScript "diffnav-light" ''
+    export DELTA_FEATURES=light
+    exec ${pkgs.diffnav}/bin/diffnav "$@"
+  '';
+
+  # Keybindings (shared across light/dark - enhance lacks proper light theme support)
+  keybindingsConfig = ''
     keybindings:
         prs:
             - key: T
               command: gh enhance -R {{.RepoName}} {{.PrNumber}}
-    repoPaths: {}
   '';
 
   # Catppuccin Mocha (dark) theme colors for gh-dash
@@ -136,9 +152,18 @@ let
                 faint: "#e6e9ef"
   '';
 
-  commonSuffix = ''
+  darkSuffix = ''
     pager:
-        diff: ${pkgs.diffnav}/bin/diffnav
+        diff: ${diffnavDark}
+    confirmQuit: false
+    showAuthorIcons: true
+    smartFilteringAtLaunch: true
+    includeReadNotifications: true
+  '';
+
+  lightSuffix = ''
+    pager:
+        diff: ${diffnavLight}
     confirmQuit: false
     showAuthorIcons: true
     smartFilteringAtLaunch: true
@@ -168,6 +193,7 @@ let
 
     MODE=$(detect_mode)
     CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/gh-dash"
+
     exec ${pkgs.gh}/bin/gh dash --config "$CONFIG_DIR/config-$MODE.yml" "$@"
   '';
 in
@@ -191,11 +217,11 @@ in
   xdg.configFile = {
     "gh/config.yml".force = true;
     "gh-dash/config-dark.yml" = {
-      text = ghDashBaseConfig + darkTheme + commonSuffix;
+      text = ghDashBaseConfig + keybindingsConfig + darkTheme + darkSuffix;
       force = true;
     };
     "gh-dash/config-light.yml" = {
-      text = ghDashBaseConfig + lightTheme + commonSuffix;
+      text = ghDashBaseConfig + keybindingsConfig + lightTheme + lightSuffix;
       force = true;
     };
   };
