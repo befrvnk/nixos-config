@@ -8,6 +8,7 @@ let
     (import ../overlays/android-studio-canary.nix)
     (import ../overlays/claude-code.nix)
     (import ../overlays/domain-check.nix)
+    (import ../overlays/gh-enhance.nix)
     inputs.claude-code.overlays.default
     (import ../overlays/hamr.nix)
     (import ../overlays/idea-community.nix)

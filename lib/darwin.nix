@@ -6,6 +6,8 @@ let
   darwinOverlays = [
     # Claude Code from flake
     inputs.claude-code.overlays.default
+    # gh-enhance: GitHub Actions TUI (companion to gh-dash)
+    (import ../overlays/gh-enhance.nix)
     # Kotlin LSP from JetBrains CDN
     (import ../overlays/kotlin-lsp.nix)
     # opencode from flake (patch bun version check - upstream nixpkgs has bun 1.3.9, opencode requires ^1.3.10)

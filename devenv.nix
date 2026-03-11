@@ -319,6 +319,10 @@ in
       echo "Updating Android Studio Canary package..."
       ./scripts/update-android-studio-canary.sh || echo "⚠️  Android Studio Canary update failed (may already be up to date)"
 
+      echo ""
+      echo "Updating gh-enhance package..."
+      ./scripts/update-gh-enhance.sh || echo "⚠️  gh-enhance update failed (may already be up to date)"
+
     '';
 
   }

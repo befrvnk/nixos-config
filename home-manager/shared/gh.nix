@@ -81,7 +81,10 @@ let
                     width: 20
                     hidden: true
         refetchIntervalMinutes: 30
-    keybindings: {}
+    keybindings:
+        prs:
+            - key: T
+              command: gh enhance -R {{.RepoName}} {{.PrNumber}}
     repoPaths: {}
   '';
 
@@ -135,7 +138,7 @@ let
 
   commonSuffix = ''
     pager:
-        diff: ""
+        diff: ${pkgs.diffnav}/bin/diffnav
     confirmQuit: false
     showAuthorIcons: true
     smartFilteringAtLaunch: true
@@ -171,7 +174,10 @@ in
 {
   programs.gh = {
     enable = true;
-    extensions = [ pkgs.gh-dash ];
+    extensions = [
+      pkgs.gh-dash
+      pkgs.gh-enhance
+    ];
     settings = {
       git_protocol = "ssh";
       prompt = "enabled";
@@ -193,6 +199,9 @@ in
       force = true;
     };
   };
+
+  # diffnav: git diff pager with file tree (used by gh-dash and standalone)
+  home.packages = [ pkgs.diffnav ];
 
   # Add ghd alias that auto-detects appearance
   home.shellAliases.ghd = toString ghDashWrapper;
