@@ -115,24 +115,24 @@
       upgrade = true;
       cleanup = "zap";
     };
-    casks = [
-      "1password"
-      "caffeine"
-      "ghostty"
-      "jetbrains-toolbox"
-      "miro"
-      {
-        name = "opencode-desktop";
-        greedy = true;
-      }
-      "signal"
-      "whatsapp"
-      "zed"
-      {
-        name = "zen";
-        greedy = true;
-      }
-    ];
+    casks =
+      map
+        (name: {
+          inherit name;
+          greedy = true;
+        })
+        [
+          "1password"
+          "caffeine"
+          "ghostty"
+          "jetbrains-toolbox"
+          "miro"
+          "opencode-desktop"
+          "signal"
+          "whatsapp"
+          "zed"
+          "zen"
+        ];
   };
 
   # Expose Nix-managed binaries to GUI apps (Dock/Spotlight launched apps only
