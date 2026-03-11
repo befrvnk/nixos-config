@@ -353,7 +353,10 @@
       "inputs": {
         "devenv": "devenv",
         "git-hooks": "git-hooks_2",
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": "nixpkgs_3",
+        "pre-commit-hooks": [
+          "git-hooks"
+        ]
       }
     },
     "treefmt-nix": {
