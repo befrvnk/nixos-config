@@ -9,7 +9,7 @@
 # - No Linux-specific services (ironbar, darkman, battery-notifications, etc.)
 # - No systemd user services
 
-{ inputs, ... }:
+_:
 
 {
   imports = [
@@ -25,6 +25,7 @@
     ../shared/lazygit.nix
     ../shared/navi
     ../shared/nil.nix
+    ../shared/nushell.nix
     ../shared/opencode.nix
     ../shared/ssh.nix
     ../shared/starship.nix
