@@ -39,6 +39,7 @@ _:
     ./nushell.nix
     ./packages.nix
     ./zellij.nix
+    ./zen-browser.nix
   ];
 
   home = {

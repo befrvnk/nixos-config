@@ -73,8 +73,10 @@ programs.ghostty.settings = {
 darwin/
 ├── frank.nix        # Main config - imports shared + darwin modules
 ├── ghostty.nix      # Terminal (Homebrew package, no Stylix)
-├── nushell.nix      # Shell (no Stylix theming)
+├── nushell.nix      # Shell (Nix PATH setup, no Stylix)
 ├── packages.nix     # CLI packages
+├── zed.nix          # Zed editor (Darwin-specific settings)
+├── zellij.nix       # Terminal multiplexer
 └── zen-browser.nix  # Browser with extension policies
 ```
 

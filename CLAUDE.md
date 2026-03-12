@@ -66,9 +66,11 @@ nixos-config/
 ├── home-manager/
 │   ├── nixos/             # NixOS-specific (niri/, ironbar/, stylix.nix)
 │   ├── darwin/            # Darwin-specific (ghostty, packages)
-│   └── shared/            # Cross-platform (git, starship, atuin, ssh)
+│   ├── shared/            # Cross-platform (git, starship, atuin, ssh)
+│   └── mcp/               # MCP server configurations
 ├── overlays/              # Package modifications
 ├── shared/themes.nix      # Central base16 theme definitions
+├── scripts/               # Maintenance and update scripts
 └── docs/                  # Detailed guides
 ```
 

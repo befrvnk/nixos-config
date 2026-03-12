@@ -19,12 +19,15 @@ home-manager/
 │   ├── nushell.nix    # Shell (no Stylix)
 │   ├── packages.nix   # CLI packages
 │   └── zen-browser.nix
-└── shared/            # Cross-platform modules
-    ├── atuin.nix      # Shell history
-    ├── git.nix        # Version control
-    ├── starship.nix   # Prompt
-    ├── ssh.nix        # SSH config
-    └── */             # Other shared configs
+├── shared/            # Cross-platform modules
+│   ├── nushell.nix    # Shell (shared config, keybindings, carapace)
+│   ├── atuin.nix      # Shell history
+│   ├── git.nix        # Version control
+│   ├── starship.nix   # Prompt
+│   ├── ssh.nix        # SSH config
+│   └── */             # Other shared configs
+└── mcp/               # MCP server configurations
+    └── anytype.nix    # Anytype MCP server
 ```
 
 ## Platform Decision Criteria
