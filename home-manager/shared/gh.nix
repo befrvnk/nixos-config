@@ -172,29 +172,8 @@ let
 
   # Wrapper script that detects system appearance and launches gh-dash
   ghDashWrapper = pkgs.writeShellScript "gh-dash-wrapper" ''
-    detect_mode() {
-      case "$(uname)" in
-        Darwin)
-          if defaults read -g AppleInterfaceStyle 2>/dev/null | grep -q Dark; then
-            echo "dark"
-          else
-            echo "light"
-          fi
-          ;;
-        *)
-          if command -v darkman >/dev/null 2>&1; then
-            darkman get 2>/dev/null || echo "dark"
-          else
-            echo "dark"
-          fi
-          ;;
-      esac
-    }
-
-    MODE=$(detect_mode)
-    CONFIG_DIR="''${XDG_CONFIG_HOME:-$HOME/.config}/gh-dash"
-
-    exec ${pkgs.gh}/bin/gh dash --config "$CONFIG_DIR/config-$MODE.yml" "$@"
+    export PATH="${pkgs.gh}/bin:$PATH"
+    ${builtins.readFile ./gh-dash-wrapper.sh}
   '';
 in
 {
