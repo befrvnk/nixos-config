@@ -9,7 +9,7 @@
 # - No Linux-specific services (ironbar, darkman, battery-notifications, etc.)
 # - No systemd user services
 
-_:
+{ inputs, ... }:
 
 {
   imports = [
@@ -34,6 +34,7 @@ _:
     ../shared/zoxide.nix
 
     # Darwin-specific modules
+    inputs.zen-browser.homeModules.beta
     ./ghostty.nix
     ./zed.nix
     ./nushell.nix
