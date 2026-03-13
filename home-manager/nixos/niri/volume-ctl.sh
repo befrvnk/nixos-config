@@ -11,7 +11,9 @@ update_cache() {
   sink_id=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -oP 'id \K\d+' | head -1)
 
   if [ -z "$sink_id" ]; then
-    echo "󰖁 N/A" > "$CACHE_FILE"
+    tmp=$(mktemp "$CACHE_FILE.XXXXXX")
+    echo "󰖁 N/A" > "$tmp"
+    mv -f "$tmp" "$CACHE_FILE"
     return
   fi
 
@@ -29,7 +31,9 @@ update_cache() {
   else
     icon="󰕾"
   fi
-  echo "$icon ${volume}%" > "$CACHE_FILE"
+  tmp=$(mktemp "$CACHE_FILE.XXXXXX")
+  echo "$icon ${volume}%" > "$tmp"
+  mv -f "$tmp" "$CACHE_FILE"
 }
 
 case "${1:-}" in

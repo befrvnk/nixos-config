@@ -2,7 +2,13 @@
 
 let
   alsaMixerInitScript = pkgs.writeShellScript "alsa-mixer-init" ''
-    ${pkgs.alsa-utils}/bin/amixer -c1 sset Master 100%
+    CARD=$(${pkgs.alsa-utils}/bin/aplay -l 2>/dev/null | ${pkgs.gnugrep}/bin/grep -oP 'card \K\d+(?=:.*HD-Audio Generic_1)' | head -1)
+    if [ -n "$CARD" ]; then
+      ${pkgs.alsa-utils}/bin/amixer -c"$CARD" sset Master 100%
+    else
+      # Fallback to card 1 if name lookup fails
+      ${pkgs.alsa-utils}/bin/amixer -c1 sset Master 100%
+    fi
   '';
 in
 {
