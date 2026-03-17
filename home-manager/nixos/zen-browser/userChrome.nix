@@ -47,10 +47,16 @@ let
         --zen-themed-toolbar-bg: ${base00} !important;
         --zen-main-browser-background: ${base00} !important;
         --toolbox-bgcolor-inactive: ${base01} !important;
+        --zen-themed-toolbar-bg-transparent: ${base01} !important;
       }
 
       #permissions-granted-icon {
         color: ${base05} !important;
+      }
+
+      #historySwipeAnimationPreviousArrow,#historySwipeAnimationNextArrow {
+        --swipe-nav-icon-primary-color: ${base0D} !important;
+        --swipe-nav-icon-accent-color: ${base00} !important;
       }
 
       .sidebar-placesTree {
@@ -148,12 +154,20 @@ let
         --identity-icon-color: ${base0F} !important;
       }
 
-      hbox#titlebar {
-        background-color: ${base00} !important;
+      #zen-toolbar-background {
+        --zen-main-browser-background-toolbar: ${base00} !important;
       }
 
       #zen-appcontent-navbar-container {
         background-color: ${base00} !important;
+      }
+
+      #commonDialog {
+        background-color: ${base00} !important;
+      }
+
+      #zen-browser-background {
+        --zen-main-browser-background: ${base00} !important;
       }
 
       /* Menu text colors only (Zen Browser handles backgrounds) */
