@@ -10,19 +10,9 @@ let
     (import ../overlays/gh-enhance.nix)
     # Kotlin LSP from JetBrains CDN
     (import ../overlays/kotlin-lsp.nix)
-    # opencode from flake (patch bun version check + fix stale node_modules hash)
+    # opencode from flake (pinned to last working version, see upstream regression in d178d82+)
     (final: prev: {
-      opencode = inputs.opencode.packages.${prev.system}.default.overrideAttrs (old: {
-        node_modules = old.node_modules.overrideAttrs {
-          outputHash = "sha256-kZGUAE0fxFkFYrarWLQ6e40r5ZAF+GkRF2oZM8/erOM=";
-        };
-        postPatch = (old.postPatch or "") + ''
-          substituteInPlace packages/script/src/index.ts \
-            --replace-fail "if (!semver.satisfies(process.versions.bun, expectedBunVersionRange))" "if (false)"
-          mkdir -p .github
-          touch .github/TEAM_MEMBERS
-        '';
-      });
+      opencode = inputs.opencode.packages.${prev.system}.default;
     })
     # devenv from flake (latest version, ahead of nixpkgs, skip tests during build)
     (final: prev: {
