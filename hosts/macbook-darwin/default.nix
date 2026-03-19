@@ -115,6 +115,9 @@
       upgrade = true;
       cleanup = "zap";
     };
+    taps = [
+      "BarutSRB/tap"
+    ];
     casks =
       map
         (name: {
@@ -127,6 +130,7 @@
           "ghostty"
           "jetbrains-toolbox"
           "miro"
+          "omniwm"
           "opencode-desktop"
           "signal"
           "whatsapp"
