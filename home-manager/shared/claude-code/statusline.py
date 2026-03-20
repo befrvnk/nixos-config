@@ -93,6 +93,25 @@ def get_color_for_percent(percent: int) -> str:
         return "\033[1;31m"  # Bold red for critical
 
 
+def format_rate_limits(data: dict) -> str:
+    """Format rate limit info from Claude Code."""
+    rate_limits = data.get('rate_limits')
+    if not rate_limits:
+        return ""
+
+    parts = []
+    for key, label in [('five_hour', '5h'), ('seven_day', '7d')]:
+        window = rate_limits.get(key)
+        if window and window.get('used_percentage') is not None:
+            pct = int(window['used_percentage'])
+            color = get_color_for_percent(pct)
+            parts.append(f"{color}{label}:{pct}%{RESET}")
+
+    if not parts:
+        return ""
+    return " " + " ".join(parts)
+
+
 def main():
     # Read JSON from stdin
     try:
@@ -124,10 +143,10 @@ def main():
     git_info = get_git_info(git_path)
 
     # Format output
-    # folder (blue) | git branch | model (magenta) | tokens/max (colored) | percent (colored)
     tokens_str = f"{format_tokens(current_tokens)}/{format_tokens(context_size)}"
+    rate_str = format_rate_limits(input_data)
 
-    print(f"{BLUE}{folder}{RESET}{git_info} {MAGENTA}{model}{RESET} {percent_color}{tokens_str} ({percent}%){RESET}")
+    print(f"{BLUE}{folder}{RESET}{git_info} {MAGENTA}{model}{RESET} {percent_color}{tokens_str} ({percent}%){RESET}{rate_str}")
 
 
 if __name__ == '__main__':
