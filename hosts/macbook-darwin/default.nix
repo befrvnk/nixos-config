@@ -79,6 +79,7 @@
 
   # Home-manager integration
   home-manager = {
+    backupFileExtension = "backup";
     useGlobalPkgs = true;
     useUserPackages = true;
     users.frank = ../../home-manager/darwin/frank.nix;
