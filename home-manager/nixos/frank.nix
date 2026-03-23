@@ -34,7 +34,7 @@
     ./gammastep.nix
     ./gemini-cli.nix
     ./ghostty.nix
-    ./hamr.nix
+
     ./happy
     ./intellij
     ./ironbar

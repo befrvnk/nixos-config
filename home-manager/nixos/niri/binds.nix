@@ -15,11 +15,7 @@ _: {
       "vicinae"
       "toggle"
     ];
-    # Hamr launcher disabled - uncomment to re-enable
-    # "Mod+Shift+Space".action.spawn = [
-    #   "hamr"
-    #   "toggle"
-    # ];
+
     "Mod+A".action.spawn = [ "pavucontrol" ];
 
     "Mod+Shift+S".action.spawn = [ "safe-suspend" ];

@@ -123,7 +123,7 @@ overlays/
 ├── claude-code.nix          # Claude Code customizations
 ├── profile-sync-daemon.nix  # PSD with Zen Browser support
 ├── gh-enhance.nix           # GitHub enhance extension
-├── hamr.nix                 # Hamr package
+
 └── */                       # Other overlays
 ```
 
