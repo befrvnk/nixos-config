@@ -18,6 +18,14 @@ let
     inputs.nix-cachyos-kernel.overlays.pinned
     (import ../overlays/profile-sync-daemon.nix)
     (import ../overlays/user-scanner.nix)
+    # opencode from flake (patch bun version check - upstream requires ^1.3.11 but nixpkgs has 1.3.10)
+    (final: prev: {
+      opencode = inputs.opencode.packages.${prev.system}.default.overrideAttrs (old: {
+        postConfigure = (old.postConfigure or "") + ''
+          sed -i 's/"packageManager": "bun@[^"]*"/"packageManager": "bun@${prev.bun.version}"/' package.json
+        '';
+      });
+    })
     # devenv from flake (latest version, ahead of nixpkgs, skip tests during build)
     (final: prev: {
       devenv = inputs.devenv.packages.${prev.system}.devenv.overrideAttrs { doCheck = false; };

@@ -55,7 +55,7 @@
     };
     # TUI for AI coding agents
     opencode = {
-      url = "github:anomalyco/opencode/e14e874e513178ac056cec7be5bac4ff5fd842ef";
+      url = "github:anomalyco/opencode";
     };
     # Don't use inputs.nixpkgs.follows here - devenv cachix has builds
     # for the flake's own nixpkgs version, and its nix fork requires matching nixpkgs
