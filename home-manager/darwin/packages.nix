@@ -9,6 +9,7 @@
   home.packages = with pkgs; [
     # GUI apps
     notion-app
+    openchamber
     raycast
     slack
     spotify

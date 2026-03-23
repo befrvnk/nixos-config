@@ -30,6 +30,8 @@ let
     (final: prev: {
       agent-of-empires = inputs.agent-of-empires.packages.${prev.system}.default;
     })
+    # OpenChamber: desktop GUI for OpenCode AI agent
+    (import ../overlays/openchamber.nix)
   ];
 in
 {
