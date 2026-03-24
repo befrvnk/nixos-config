@@ -30,6 +30,14 @@ let
     (final: prev: {
       agent-of-empires = inputs.agent-of-empires.packages.${prev.system}.default;
     })
+    # direnv: fix cgo required for -linkmode=external on Darwin
+    (final: prev: {
+      direnv = prev.direnv.overrideAttrs (old: {
+        env = (old.env or { }) // {
+          CGO_ENABLED = "1";
+        };
+      });
+    })
     # OpenChamber: desktop GUI for OpenCode AI agent
     (import ../overlays/openchamber.nix)
   ];
