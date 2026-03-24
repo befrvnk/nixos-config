@@ -131,7 +131,6 @@
           "ghostty"
           "jetbrains-toolbox"
           "miro"
-          "omniwm"
           "opencode-desktop"
           "signal"
           "whatsapp"
