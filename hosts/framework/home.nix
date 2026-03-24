@@ -5,6 +5,7 @@
 
 {
   home-manager = {
+    backupFileExtension = "hm-backup";
     useGlobalPkgs = true;
     useUserPackages = true;
     users.frank = ../../home-manager/nixos/frank.nix;

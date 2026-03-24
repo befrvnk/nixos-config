@@ -57,6 +57,7 @@ in
 
   # GTK icon theme (which Qt/vicinae will respect)
   gtk = {
+    gtk4.theme = null;
     iconTheme = {
       package = pkgs.papirus-icon-theme;
       name = "Papirus";
