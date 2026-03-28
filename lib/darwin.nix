@@ -13,8 +13,11 @@ let
     # opencode from flake (patch bun version check - upstream requires ^1.3.11 but nixpkgs has 1.3.10)
     (final: prev: {
       opencode = inputs.opencode.packages.${prev.system}.default.overrideAttrs (old: {
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.nodejs ];
         postConfigure = (old.postConfigure or "") + ''
           sed -i 's/"packageManager": "bun@[^"]*"/"packageManager": "bun@${prev.bun.version}"/' package.json
+          chmod -R u+w node_modules packages
+          patchShebangs node_modules packages/*/node_modules
         '';
       });
     })
