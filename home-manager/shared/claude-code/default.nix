@@ -147,6 +147,9 @@ in
         Managed by Nix via home-manager.
       '';
 
+      # Global context (applied to all projects)
+      ".claude/CLAUDE.md".source = ../global-agent-context.md;
+
       # Global Claude Code skills (available in all projects)
       ".claude/skills/remember/SKILL.md".source = ./skills/remember.md;
     };

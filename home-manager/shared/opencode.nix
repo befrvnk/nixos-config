@@ -10,4 +10,6 @@
       "@simonwjackson/opencode-direnv"
     ];
   };
+
+  xdg.configFile."opencode/AGENTS.md".source = ./global-agent-context.md;
 }
