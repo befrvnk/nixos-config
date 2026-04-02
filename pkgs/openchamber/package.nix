@@ -6,11 +6,11 @@
 
 stdenvNoCC.mkDerivation rec {
   pname = "openchamber";
-  version = "1.9.2";
+  version = "1.9.3";
 
   src = fetchurl {
     url = "https://github.com/openchamber/openchamber/releases/download/v${version}/OpenChamber.app-darwin-aarch64.tar.gz";
-    hash = "sha256-/tL1F0SGRiRYKRAQFUQNXnVuakjVzPMYyne9kGNVGX4=";
+    hash = "sha256-gcVWFJCmqKLoCr3B4EH2KGLGBxm9krGveE3/RWr+bqA=";
   };
 
   sourceRoot = ".";
