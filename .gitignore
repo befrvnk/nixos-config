@@ -11,6 +11,7 @@ result
 .devenv/
 .devenv.flake.nix
 .mcp.json
+.opencode/
 
 # Claude Code - Nix-managed symlinks (regenerated on rebuild)
 .claude/commands/
