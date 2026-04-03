@@ -26,6 +26,7 @@
       navi
       nh
       nmap
+      opencode-desktop
       powertop
       rsync # Required by profile-sync-daemon for browser profile syncing
       superfile
