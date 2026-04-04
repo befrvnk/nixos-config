@@ -27,6 +27,7 @@
     ../shared/nil.nix
     ../shared/nushell.nix
     ../shared/opencode.nix
+    ../shared/pi.nix
     ../shared/ssh.nix
     ../shared/starship.nix
     ../shared/worktrunk.nix

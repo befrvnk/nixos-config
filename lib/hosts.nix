@@ -13,6 +13,7 @@ let
 
     (import ../overlays/idea-community.nix)
     (import ../overlays/kotlin-lsp.nix)
+    (import ../overlays/pi-coding-agent.nix)
     inputs.niri.overlays.niri
     (import ../overlays/niri.nix)
     inputs.nix-cachyos-kernel.overlays.pinned

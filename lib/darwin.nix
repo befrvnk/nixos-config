@@ -10,6 +10,8 @@ let
     (import ../overlays/gh-enhance.nix)
     # Kotlin LSP from JetBrains CDN
     (import ../overlays/kotlin-lsp.nix)
+    # Pi coding agent pinned ahead of nixpkgs
+    (import ../overlays/pi-coding-agent.nix)
     # opencode from flake (patch bun version check - upstream requires ^1.3.11 but nixpkgs has 1.3.10)
     (final: prev: {
       opencode = inputs.opencode.packages.${prev.system}.default.overrideAttrs (old: {
