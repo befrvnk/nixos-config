@@ -5,5 +5,5 @@
     pkgs.pi-coding-agent
   ];
 
-  xdg.configFile."pi/agent/AGENTS.md".source = ./global-agent-context.md;
+  home.file.".pi/agent/AGENTS.md".source = ./global-agent-context.md;
 }
