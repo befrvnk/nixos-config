@@ -1,20 +1,10 @@
 { pkgs, ... }:
 let
-  piSubagents = pkgs.fetchFromGitHub {
-    owner = "nicobailon";
-    repo = "pi-subagents";
-    rev = "b5148abe4a81133658480fc1789efb78612eb0fa";
-    sha256 = "10zmj461gnhypbsvc9mij65gli31inipn3ky2sj4cgf17gygx772";
-  };
-
   piSettings = {
     defaultModel = "gpt-5.4";
     defaultProvider = "github-copilot";
     defaultThinkingLevel = "medium";
     hideThinkingBlock = true;
-    packages = [
-      "${piSubagents}"
-    ];
   };
 
   piLspConfig = {
@@ -51,6 +41,7 @@ in
   ];
 
   home.file.".pi/agent/AGENTS.md".source = ../global-agent-context.md;
+  home.file.".pi/agent/extensions/explore-subagent".source = ./extensions/explore-subagent;
   home.file.".pi/agent/extensions/pi-lsp".source = ./extensions/pi-lsp;
   home.file.".pi/agent/extensions/system-theme-sync".source = ./extensions/system-theme-sync;
   home.file.".pi/agent/pi-lsp.json".text = builtins.toJSON piLspConfig;
