@@ -57,39 +57,6 @@
     '')
   ];
 
-  # Systemd service to monitor lid switch and control internal display
-  # Uses acpi_listen to detect ACPI events directly, bypassing systemd-logind
-  # This works even when Happy inhibits handle-lid-switch to prevent suspend
-  systemd.user.services.lid-switch-display = {
-    Unit = {
-      Description = "Automatic internal display control on lid switch";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-    };
-
-    Service = {
-      Type = "simple";
-      ExecStart = "${pkgs.writeShellScript "lid-switch-display" (
-        builtins.readFile (
-          pkgs.replaceVars ./lid-switch-display.sh {
-            coreutils = "${pkgs.coreutils}";
-            gnugrep = "${pkgs.gnugrep}";
-            gnused = "${pkgs.gnused}";
-            gawk = "${pkgs.gawk}";
-            niri = "${pkgs.niri}";
-            acpid = "${pkgs.acpid}";
-          }
-        )
-      )}";
-      Restart = "always";
-      RestartSec = "3";
-    };
-
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
-  };
-
   # Keyring is managed by PAM (see modules/desktop/greetd.nix)
   # Don't start a separate daemon here as it conflicts with PAM
   # Using mkForce to override niri-flake's default setting

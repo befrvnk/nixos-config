@@ -36,7 +36,6 @@
     ./gemini-cli.nix
     ./ghostty.nix
 
-    ./happy
     ./intellij
     ./ironbar
     ./niri

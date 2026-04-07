@@ -81,28 +81,15 @@ The hinge cover blocks the exhaust at 180° (fully closed). Opening even slightl
 These settings are already optimal in this configuration:
 
 ### Lid Behavior
-- **Normal mode (no Happy):** `HandleLidSwitch = "suspend"` - Lid close suspends the system
-- **Docked mode:** `HandleLidSwitchDocked = "ignore"` - Lid close with external monitor doesn't suspend
-- **Happy active:** Inhibits `handle-lid-switch` to prevent suspend during remote development
-
-### Display Management
-The internal display (eDP-1) is automatically disabled when the lid is closed via a dedicated service:
-
-- **Service:** `lid-switch-display.service` (systemd user service)
-- **Mechanism:** Listens to ACPI events via `acpi_listen` (bypasses systemd-logind)
-- **Works with Happy:** Functions even when Happy inhibits systemd-logind's lid handling
-- **Initial state:** Checks lid state on startup and disables display if already closed
-- **Event-driven:** No polling, responds immediately to lid open/close events
+- `HandleLidSwitch = "suspend"` - Lid close suspends the system
+- `HandleLidSwitchDocked = "ignore"` - Lid close with an external monitor doesn't suspend
 
 ### Power Management
 TLP with appropriate settings for Framework laptops.
 
 ### Relevant Files
-- `modules/system/core.nix` - Lid handling, acpid service
+- `modules/system/core.nix` - Lid handling
 - `modules/hardware/power-management.nix` - TLP configuration
-- `home-manager/nixos/niri/lid-switch-display.sh` - Display control script
-- `home-manager/nixos/niri/default.nix` - lid-switch-display service
-- `home-manager/nixos/happy/default.nix` - Happy inhibit configuration
 
 ## Framework Community References
 
