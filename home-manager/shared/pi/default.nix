@@ -52,6 +52,7 @@ in
 
   home.file.".pi/agent/AGENTS.md".source = ../global-agent-context.md;
   home.file.".pi/agent/extensions/pi-lsp".source = ./extensions/pi-lsp;
+  home.file.".pi/agent/extensions/system-theme-sync".source = ./extensions/system-theme-sync;
   home.file.".pi/agent/pi-lsp.json".text = builtins.toJSON piLspConfig;
   home.file.".pi/agent/settings.json".text = builtins.toJSON piSettings;
   home.file.".pi/agent/skills/exa-search".source = ./skills/exa-search;
