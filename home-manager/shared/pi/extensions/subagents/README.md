@@ -6,6 +6,9 @@ It currently exposes two read-only workflows built on the same subagent runtime:
 - `explore` / `explore_status`
 - `review` / `review_status`
 
+It also adds a session-local command:
+- `/subagent <id>` — show detailed history for one subagent task from the current session
+
 ## Shared runtime
 
 Both workflows share the same subagent engine for:
@@ -63,9 +66,11 @@ It gathers:
 - diff stat
 - diff preview (truncated when large)
 
-Default reviewers:
+Fixed review models:
 - `github-copilot/claude-opus-4.6`
 - `github-copilot/gemini-3.1-pro-preview`
+
+These are enforced by the tool. The calling agent cannot choose different review models.
 
 It returns structured markdown with:
 - `## Summary`
@@ -100,5 +105,9 @@ Child runs are started with extensions and themes disabled through the resource 
 
 - `explore_status` shows only explore runs
 - `review_status` shows only review runs
+- `/subagent <id>` shows the detailed per-task history for a specific subagent task
 
-Run tracking is session-local and not persisted across sessions.
+Task IDs are shown in the widget and result rendering using a short form such as `abc123/1`.
+The command accepts either the full task id or the displayed short id, as long as it is unambiguous.
+
+Run tracking and subagent history are session-local and not persisted across sessions.

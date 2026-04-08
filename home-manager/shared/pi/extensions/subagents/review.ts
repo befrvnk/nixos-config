@@ -1,24 +1,11 @@
 import { Text } from "@mariozechner/pi-tui";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { parseBullets, splitMarkdownSections, shortenPath } from "./formatting.js";
+import { parseBullets, splitMarkdownSections, shortenPath, shortTaskId } from "./formatting.js";
+import { DEFAULT_REVIEWERS } from "./review-config.js";
 import type { ParsedSubagentOutput, SubagentTaskInput, SubagentTaskResult } from "./types.js";
-import { COPILOT_PROVIDER } from "./types.js";
 import type { Theme } from "./ui.js";
 
 const MAX_DIFF_CHARS = 60_000;
-
-export const DEFAULT_REVIEWERS = [
-  {
-    label: "Opus 4.6",
-    model: `${COPILOT_PROVIDER}/claude-opus-4.6`,
-    focus: "correctness, regressions, hidden bugs, and edge cases",
-  },
-  {
-    label: "Gemini 3.1",
-    model: `${COPILOT_PROVIDER}/gemini-3.1-pro-preview`,
-    focus: "maintainability, clarity, test gaps, and surprising behavior",
-  },
-] as const;
 
 type ReviewParams = {
   prompt?: string;
@@ -26,11 +13,6 @@ type ReviewParams = {
   target?: "working-tree" | "staged";
   baseRef?: string;
   files?: string[];
-  reviewers?: Array<{
-    label?: string;
-    model: string;
-    focus?: string;
-  }>;
 };
 
 type ReviewContext = {
@@ -202,11 +184,11 @@ export async function createReviewTasks(
 ): Promise<{ tasks: SubagentTaskInput[]; context: ReviewContext }> {
   const cwd = params.cwd?.trim() || defaultCwd;
   const context = await collectReviewContext(pi, cwd, params, signal);
-  const reviewers = params.reviewers?.length ? params.reviewers : [...DEFAULT_REVIEWERS];
+  const reviewers = [...DEFAULT_REVIEWERS];
 
   return {
     context,
-    tasks: reviewers.map((reviewer: { label?: string; model: string; focus?: string }) => ({
+    tasks: reviewers.map((reviewer) => ({
       task: buildReviewTask(context, reviewer, params.prompt),
       label: reviewer.label?.trim() || reviewer.model,
       model: reviewer.model.trim(),
@@ -268,6 +250,7 @@ export function renderFinalReviewResults(
 
     lines.push(`## Reviewer ${i + 1}`);
     lines.push(`- Status: ${result.status}`);
+    lines.push(`- Task ID: ${result.taskId} (${shortTaskId(result.taskId)})`);
     lines.push(`- Reviewer: ${result.label ?? result.model ?? result.task}`);
     if (result.model) lines.push(`- Model: ${result.model}`);
     if (focus) lines.push(`- Focus: ${focus}`);
@@ -324,6 +307,7 @@ function renderFinalTaskBlock(result: SubagentTaskResult, expanded: boolean, the
   const shouldShowModelLine = Boolean(model && result.label?.trim() && result.label.trim() !== model);
 
   let block = `${icon} ${theme.bold(title)} ${theme.fg("dim", statusText)}`;
+  block += `\n  ${theme.fg("dim", `ID: ${shortTaskId(result.taskId)}`)}`;
   if (shouldShowModelLine) block += `\n  ${theme.fg("dim", `Model: ${model}`)}`;
   if (focus) block += `\n  ${theme.fg("dim", `Focus: ${focus}`)}`;
 
@@ -346,14 +330,13 @@ function renderFinalTaskBlock(result: SubagentTaskResult, expanded: boolean, the
 }
 
 export function renderReviewToolCall(
-  args: { target?: string; reviewers?: Array<{ label?: string; model: string }> },
+  args: { target?: string },
   theme: Theme,
 ) {
-  const reviewers = Array.isArray(args.reviewers) && args.reviewers.length > 0 ? args.reviewers : [...DEFAULT_REVIEWERS];
-  const count = reviewers.length;
+  const count = DEFAULT_REVIEWERS.length;
   const target = args.target ?? "working-tree";
   let text = `${theme.fg("toolTitle", theme.bold("Review"))} `;
-  text += theme.fg("accent", `${count} reviewer${count === 1 ? "" : "s"}`);
+  text += theme.fg("accent", `${count} reviewers`);
   text += theme.fg("muted", ` (${target})`);
   return new Text(text, 0, 0);
 }

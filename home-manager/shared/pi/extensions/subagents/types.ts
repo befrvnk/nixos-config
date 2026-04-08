@@ -4,6 +4,7 @@ export const MAX_PARALLEL_TASKS = 4;
 export const MAX_RECENT_RUNS = 10;
 export const MAX_RECENT_TOOLS = 6;
 export const MAX_RECENT_OUTPUT_LINES = 8;
+export const MAX_HISTORY_ITEMS = 120;
 
 export type SubagentWorkflow = "explore" | "review";
 export type SubagentRunMode = "single" | "parallel";
@@ -23,12 +24,19 @@ export type SubagentProgressItem = {
   done: boolean;
 };
 
+export type SubagentHistoryEntry = {
+  timestamp: number;
+  kind: "lifecycle" | "progress" | "tool" | "tool_result" | "assistant" | "error";
+  text: string;
+};
+
 export type ParsedSubagentOutput = {
   summary: string;
   data?: Record<string, unknown>;
 };
 
 export type SubagentTaskResult = {
+  taskId: string;
   task: string;
   label?: string;
   model?: string;
@@ -57,6 +65,7 @@ export type SubagentTaskState = {
   tokenCount: number;
   responseText: string;
   progressItems?: SubagentProgressItem[];
+  history: SubagentHistoryEntry[];
   recentTools: string[];
   recentOutputLines: string[];
   summary?: string;

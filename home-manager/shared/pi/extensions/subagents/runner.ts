@@ -13,6 +13,7 @@ import type {
 } from "./types.js";
 import {
   COPILOT_PROVIDER,
+  MAX_HISTORY_ITEMS,
   MAX_RECENT_OUTPUT_LINES,
   MAX_RECENT_TOOLS,
 } from "./types.js";
@@ -47,10 +48,42 @@ function extractTextFromContent(content: unknown): string {
   return parts.join("\n").trim();
 }
 
+function describeContentTypes(content: unknown): string {
+  if (!Array.isArray(content)) return typeof content;
+  const types = content
+    .map((part) => (part && typeof part === "object" ? String((part as { type?: unknown }).type ?? "unknown") : typeof part))
+    .filter(Boolean);
+  return types.length > 0 ? types.join(",") : "none";
+}
+
 function pushLimited(items: string[], value: string, limit: number): void {
   if (!value.trim()) return;
   items.push(value.trim());
   if (items.length > limit) items.splice(0, items.length - limit);
+}
+
+function truncateForHistory(text: string, max = 400): string {
+  const normalized = text.trim();
+  if (normalized.length <= max) return normalized;
+  return `${normalized.slice(0, max)}…`;
+}
+
+function pushHistory(taskState: SubagentTaskState, kind: SubagentTaskState["history"][number]["kind"], text: string): void {
+  const normalized = truncateForHistory(text);
+  if (!normalized) return;
+  taskState.history.push({ timestamp: Date.now(), kind, text: normalized });
+  if (taskState.history.length > MAX_HISTORY_ITEMS) {
+    taskState.history.splice(0, taskState.history.length - MAX_HISTORY_ITEMS);
+  }
+}
+
+function hasMeaningfulParsedOutput(parsed: ParsedSubagentOutput): boolean {
+  if (parsed.summary.trim()) return true;
+  return Object.values(parsed.data ?? {}).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === "string") return value.trim().length > 0;
+    return Boolean(value);
+  });
 }
 
 function previewTool(toolName: string, args: Record<string, unknown> | undefined): string {
@@ -173,6 +206,7 @@ export async function runSingleTask(
   let fallbackAssistantText = "";
   let streamingAssistantText = "";
   let promptError: string | undefined;
+  let lastProgressSignature = "";
 
   const finish = (result: SubagentTaskResult) => {
     if (settled) return result;
@@ -183,12 +217,29 @@ export async function runSingleTask(
     taskState.error = result.error;
     taskState.state = result.status;
     taskState.currentTool = undefined;
+
+    const hasAssistantHistory = taskState.history.some((entry) => entry.kind === "assistant");
+    if (!hasAssistantHistory) {
+      if (result.summary.trim()) {
+        pushHistory(taskState, "assistant", result.summary);
+      } else if (taskState.workflow === "review" && result.status === "success") {
+        pushHistory(taskState, "assistant", "No actionable findings.");
+      }
+    }
+
+    if (taskState.workflow === "review" && result.status === "success") {
+      const findings = Array.isArray(result.data?.findings) ? (result.data.findings as string[]) : [];
+      pushHistory(taskState, "assistant", findings.length > 0 ? `Findings:\n${findings.join("\n")}` : "Findings:\n- None");
+    }
+
+    pushHistory(taskState, result.status === "success" ? "lifecycle" : "error", `finished with status: ${result.status}`);
     emitRunUpdate();
     return result;
   };
 
   try {
     const model = await resolveModel(taskState.model, parentCtx);
+    pushHistory(taskState, "lifecycle", `started ${taskState.workflow} task`);
     const repositoryRoot = taskState.cwd ?? process.cwd();
     const resourceLoader = new DefaultResourceLoader({
       cwd: repositoryRoot,
@@ -220,10 +271,17 @@ export async function runSingleTask(
       }
 
       if (event.type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
-        streamingAssistantText = `${streamingAssistantText}${String(event.assistantMessageEvent.delta ?? "")}`.slice(-4000);
+        streamingAssistantText = `${streamingAssistantText}${String(event.assistantMessageEvent.delta ?? "")}`.slice(-12000);
         taskState.responseText = stripProgressBlocks(streamingAssistantText).slice(-600);
         const progressItems = extractLatestProgress(streamingAssistantText);
-        if (progressItems) taskState.progressItems = progressItems;
+        if (progressItems) {
+          const signature = JSON.stringify(progressItems);
+          taskState.progressItems = progressItems;
+          if (signature !== lastProgressSignature) {
+            lastProgressSignature = signature;
+            pushHistory(taskState, "progress", progressItems.map((item) => `- [${item.done ? "x" : " "}] ${item.text}`).join("\n"));
+          }
+        }
         emitRunUpdate();
         return;
       }
@@ -239,6 +297,7 @@ export async function runSingleTask(
       if (event.type === "tool_execution_start") {
         taskState.currentTool = previewTool(event.toolName ?? "tool", event.args ?? event.input ?? {});
         pushLimited(taskState.recentTools, taskState.currentTool, MAX_RECENT_TOOLS);
+        pushHistory(taskState, "tool", taskState.currentTool);
         emitRunUpdate();
         return;
       }
@@ -248,9 +307,9 @@ export async function runSingleTask(
         taskState.toolUses += 1;
         const toolText = extractTextFromContent(event.result?.content);
         if (toolText) {
-          for (const line of toolText.split("\n").map((item) => item.trim()).filter(Boolean).slice(-4)) {
-            pushLimited(taskState.recentOutputLines, line, MAX_RECENT_OUTPUT_LINES);
-          }
+          const lines = toolText.split("\n").map((item) => item.trim()).filter(Boolean).slice(-4);
+          for (const line of lines) pushLimited(taskState.recentOutputLines, line, MAX_RECENT_OUTPUT_LINES);
+          pushHistory(taskState, "tool_result", lines.join("\n"));
         }
         emitRunUpdate();
         return;
@@ -268,11 +327,29 @@ export async function runSingleTask(
           if (typeof message.usage?.totalTokens === "number") taskState.tokenCount = message.usage.totalTokens;
           if (text) {
             bestAssistantText = text;
-            taskState.responseText = stripProgressBlocks(text).slice(-600);
+            const cleanedText = stripProgressBlocks(text);
+            taskState.responseText = cleanedText.slice(-600);
             const progressItems = extractLatestProgress(text);
-            if (progressItems) taskState.progressItems = progressItems;
+            if (progressItems) {
+              const signature = JSON.stringify(progressItems);
+              taskState.progressItems = progressItems;
+              if (signature !== lastProgressSignature) {
+                lastProgressSignature = signature;
+                pushHistory(taskState, "progress", progressItems.map((item) => `- [${item.done ? "x" : " "}] ${item.text}`).join("\n"));
+              }
+            }
+            if (cleanedText) pushHistory(taskState, "assistant", cleanedText);
+          } else {
+            pushHistory(
+              taskState,
+              "assistant",
+              `[no text assistant message] stopReason=${String(message.stopReason ?? "unknown")} contentTypes=${describeContentTypes(message.content)}`,
+            );
           }
-          if (message.stopReason === "error" && message.errorMessage) taskState.error = message.errorMessage;
+          if (message.stopReason === "error") {
+            taskState.error = message.errorMessage
+              || `Assistant stopped with error and no message (contentTypes=${describeContentTypes(message.content)})`;
+          }
           if (message.stopReason === "aborted") aborted = true;
         }
         emitRunUpdate();
@@ -305,6 +382,7 @@ export async function runSingleTask(
 
     if (aborted) {
       return finish({
+        taskId: taskState.taskId,
         task: taskState.task,
         label: taskState.label,
         model: model ? `${model.provider}/${model.id}` : taskState.model,
@@ -320,6 +398,7 @@ export async function runSingleTask(
 
     if (promptError) {
       return finish({
+        taskId: taskState.taskId,
         task: taskState.task,
         label: taskState.label,
         model: model ? `${model.provider}/${model.id}` : taskState.model,
@@ -333,7 +412,28 @@ export async function runSingleTask(
       });
     }
 
+    if (!bestResponse.trim() || !hasMeaningfulParsedOutput(parsed)) {
+      const error = taskState.error
+        ? `Subagent returned no structured content. ${taskState.error}`
+        : "Subagent returned no structured content.";
+      pushHistory(taskState, "error", error);
+      return finish({
+        taskId: taskState.taskId,
+        task: taskState.task,
+        label: taskState.label,
+        model: model ? `${model.provider}/${model.id}` : taskState.model,
+        cwd: taskState.cwd,
+        status: "error",
+        summary: parsed.summary,
+        data: parsed.data,
+        error,
+        rawResponse: bestResponse,
+        metadata: taskState.metadata,
+      });
+    }
+
     return finish({
+      taskId: taskState.taskId,
       task: taskState.task,
       label: taskState.label,
       model: model ? `${model.provider}/${model.id}` : taskState.model,
@@ -348,7 +448,9 @@ export async function runSingleTask(
     const response = stripProgressBlocks(bestAssistantText || fallbackAssistantText);
     const parsed = cleanParsedOutput(parseOutput(response));
     const message = error instanceof Error ? error.message : String(error);
+    pushHistory(taskState, "error", message);
     return finish({
+      taskId: taskState.taskId,
       task: taskState.task,
       label: taskState.label,
       model: taskState.model,

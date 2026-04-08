@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { renderRunMarkdown, serializeRun } from "./formatting.js";
+import { Text } from "@mariozechner/pi-tui";
+import { renderRunMarkdown, renderTaskHistoryMarkdown, serializeRun, shortTaskId } from "./formatting.js";
 import {
   parseExploreOutput,
   renderExploreToolCall,
@@ -33,6 +34,7 @@ import {
 import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
 
 const SUBAGENT_TASK_MESSAGE_TYPE = "subagent-task";
+const SUBAGENT_HISTORY_MESSAGE_TYPE = "subagent-history";
 
 function createRunId(): string {
   return `sub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -48,6 +50,31 @@ function filterRuns(
   recentRuns: SubagentRunState[],
 ): SubagentRunState[] {
   return [...activeRuns.values(), ...recentRuns].filter((run) => run.workflow === workflow);
+}
+
+function getAllRuns(activeRuns: Map<string, SubagentRunState>, recentRuns: SubagentRunState[]): SubagentRunState[] {
+  return [...activeRuns.values(), ...recentRuns];
+}
+
+function findTaskById(
+  query: string,
+  activeRuns: Map<string, SubagentRunState>,
+  recentRuns: SubagentRunState[],
+): { run: SubagentRunState; task: SubagentRunState["tasks"][number] } | { error: string } {
+  const trimmed = query.trim();
+  if (!trimmed) return { error: "Usage: /subagent <task-id>" };
+
+  const matches = getAllRuns(activeRuns, recentRuns)
+    .flatMap((run) => run.tasks.map((task) => ({ run, task })))
+    .filter(({ task }) => task.taskId === trimmed || shortTaskId(task.taskId) === trimmed || task.taskId.startsWith(trimmed));
+
+  if (matches.length === 0) return { error: `No subagent found for id: ${trimmed}` };
+  if (matches.length > 1) {
+    const ids = matches.slice(0, 8).map(({ task }) => shortTaskId(task.taskId)).join(", ");
+    return { error: `Ambiguous subagent id: ${trimmed}. Matches: ${ids}` };
+  }
+
+  return matches[0]!;
 }
 
 export default function subagentExtension(pi: ExtensionAPI) {
@@ -92,6 +119,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
         turnCount: 0,
         tokenCount: 0,
         responseText: "",
+        history: [],
         recentTools: [],
         recentOutputLines: [],
       })),
@@ -221,6 +249,32 @@ export default function subagentExtension(pi: ExtensionAPI) {
     return renderSubagentTaskMessage(details, expanded, theme);
   });
 
+  pi.registerMessageRenderer(SUBAGENT_HISTORY_MESSAGE_TYPE, (message) => {
+    const details = message.details as { markdown?: string } | undefined;
+    if (!details?.markdown) return undefined;
+    return new Text(details.markdown, 0, 0);
+  });
+
+  pi.registerCommand("subagent", {
+    description: "Show detailed history for a subagent task by ID",
+    handler: async (args, ctx) => {
+      const result = findTaskById(args ?? "", activeRuns, recentRuns);
+      if ("error" in result) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
+
+      pi.sendMessage({
+        customType: SUBAGENT_HISTORY_MESSAGE_TYPE,
+        content: `Subagent history ${shortTaskId(result.task.taskId)}`,
+        display: true,
+        details: {
+          markdown: renderTaskHistoryMarkdown(result.task, result.run),
+        },
+      });
+    },
+  });
+
   pi.registerTool({
     name: "explore",
     label: "Explore",
@@ -328,7 +382,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       "Use multiple isolated review subagents to inspect the current git changes with different GitHub Copilot models or review focuses.",
     promptGuidelines: [
       "Use this after implementation when you want independent model opinions on the current git changes.",
-      "Prefer multiple reviewers with complementary focus areas, such as correctness and maintainability.",
+      "This tool always uses the fixed default reviewers: GitHub Copilot Claude Opus 4.6 and Gemini 3.1 Pro Preview.",
       "Subagents only support GitHub Copilot models.",
       "Reviewers receive the current git diff and changed files, and may inspect those files directly for surrounding context.",
       "Synthesize reviewer findings into consensus or reviewer-specific notes instead of dumping the raw tool output unchanged.",

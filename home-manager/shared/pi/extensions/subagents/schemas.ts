@@ -28,12 +28,6 @@ export const statusSchema = Type.Object({
   runId: Type.Optional(Type.String({ description: 'Run id for action="get".' })),
 });
 
-export const reviewReviewerSchema = Type.Object({
-  label: Type.Optional(Type.String({ description: "Optional display label for this reviewer." })),
-  model: Type.String({ description: "GitHub Copilot model to run for this reviewer." }),
-  focus: Type.Optional(Type.String({ description: "Optional review focus area for this reviewer." })),
-});
-
 export const reviewParamsSchema = Type.Object({
   prompt: Type.Optional(Type.String({ description: "Optional extra review instructions to apply to every reviewer." })),
   cwd: Type.Optional(Type.String({ description: "Working directory. Must be inside the repository to review." })),
@@ -49,13 +43,6 @@ export const reviewParamsSchema = Type.Object({
       description: "Optional file subset to review.",
       minItems: 1,
       maxItems: 100,
-    }),
-  ),
-  reviewers: Type.Optional(
-    Type.Array(reviewReviewerSchema, {
-      description: "Parallel review subagents to run. Defaults to Opus 4.6 and Gemini 3.1 on GitHub Copilot.",
-      minItems: 1,
-      maxItems: MAX_PARALLEL_TASKS,
     }),
   ),
 });

@@ -3,6 +3,7 @@ import {
   parseBullets,
   splitMarkdownSections,
   shortenPath,
+  shortTaskId,
 } from "./formatting.js";
 import type { ParsedSubagentOutput, SubagentTaskResult } from "./types.js";
 import type { Theme } from "./ui.js";
@@ -45,6 +46,7 @@ export function renderFinalExploreResults(
 
     lines.push(`## Task ${i + 1}`);
     lines.push(`- Status: ${result.status}`);
+    lines.push(`- Task ID: ${result.taskId} (${shortTaskId(result.taskId)})`);
     lines.push(`- Label: ${result.label ?? result.task}`);
     lines.push(`- Task: ${result.task}`);
     if (result.model) lines.push(`- Model: ${result.model}`);
@@ -102,6 +104,7 @@ function renderFinalTaskBlock(result: SubagentTaskResult, expanded: boolean, the
     : undefined;
 
   let block = `${icon} ${theme.bold(result.label ?? result.task)} ${theme.fg("dim", statusText)}`;
+  block += `\n  ${theme.fg("dim", `ID: ${shortTaskId(result.taskId)}`)}`;
 
   if (expanded) {
     const sections: string[] = [];

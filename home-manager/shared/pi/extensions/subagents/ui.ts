@@ -1,5 +1,5 @@
 import { Text, truncateToWidth } from "@mariozechner/pi-tui";
-import { formatDuration, workflowDisplayName } from "./formatting.js";
+import { formatDuration, shortTaskId, workflowDisplayName } from "./formatting.js";
 import type {
   SubagentProgressItem,
   SubagentRunState,
@@ -134,7 +134,7 @@ function renderFinishedLine(task: SubagentTaskState, theme: Theme): string {
   if (task.tokenCount > 0) parts.push(formatTokens(task.tokenCount));
   if (duration) parts.push(duration);
 
-  return `${icon} ${theme.fg("dim", workflowName)}  ${theme.fg("dim", taskLabel(task))} ${theme.fg("dim", "·")} ${theme.fg("dim", parts.join(" · "))}${statusText}`;
+  return `${icon} ${theme.fg("dim", workflowName)}  ${theme.fg("dim", taskLabel(task))} ${theme.fg("dim", "·")} ${theme.fg("dim", `id:${shortTaskId(task.taskId)}`)} ${theme.fg("dim", "·")} ${theme.fg("dim", parts.join(" · "))}${statusText}`;
 }
 
 function buildWidgetLines(runs: SubagentRunState[], frame: number, theme: Theme, width: number): string[] {
@@ -164,7 +164,7 @@ function buildWidgetLines(runs: SubagentRunState[], frame: number, theme: Theme,
     const lines = [
       truncate(
         theme.fg("dim", "├─") +
-          ` ${theme.fg("accent", spinner)} ${theme.bold(workflowName)}  ${theme.fg("muted", taskLabel(task))} ${theme.fg("dim", "·")} ${theme.fg("dim", stats.join(" · "))}`,
+          ` ${theme.fg("accent", spinner)} ${theme.bold(workflowName)}  ${theme.fg("muted", taskLabel(task))} ${theme.fg("dim", "·")} ${theme.fg("dim", `id:${shortTaskId(task.taskId)}`)} ${theme.fg("dim", "·")} ${theme.fg("dim", stats.join(" · "))}`,
       ),
     ];
 

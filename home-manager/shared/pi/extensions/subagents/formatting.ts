@@ -1,5 +1,5 @@
 import * as os from "node:os";
-import type { SubagentRunState } from "./types.js";
+import type { SubagentHistoryEntry, SubagentRunState, SubagentTaskState } from "./types.js";
 import { MAX_RECENT_OUTPUT_LINES, MAX_RECENT_TOOLS } from "./types.js";
 
 export function workflowDisplayName(workflow: SubagentRunState["workflow"]): string {
@@ -60,6 +60,61 @@ export function splitMarkdownSections(markdown: string): Map<string, string> {
   return sections;
 }
 
+export function shortTaskId(taskId: string): string {
+  const match = taskId.match(/^sub_[^_]+_([a-z0-9]+)_task_(\d+)$/i);
+  if (match) return `${match[1]}/${match[2]}`;
+  return taskId.length > 14 ? taskId.slice(-14) : taskId;
+}
+
+function formatHistoryEntry(entry: SubagentHistoryEntry): string {
+  const time = new Date(entry.timestamp).toLocaleTimeString();
+  const kind = entry.kind.padEnd(11, " ");
+  return `${time}  ${kind} ${entry.text}`;
+}
+
+export function renderTaskHistoryMarkdown(task: SubagentTaskState, run: SubagentRunState): string {
+  const lines: string[] = [];
+  lines.push(`# Subagent ${shortTaskId(task.taskId)}`);
+  lines.push("");
+  lines.push(`- Task ID: ${task.taskId}`);
+  lines.push(`- Workflow: ${task.workflow}`);
+  lines.push(`- Run ID: ${run.runId}`);
+  lines.push(`- State: ${task.state}`);
+  lines.push(`- Label: ${task.label}`);
+  if (task.model) lines.push(`- Model: ${task.model}`);
+  if (task.cwd) lines.push(`- CWD: ${shortenPath(task.cwd)}`);
+  if (task.turnCount > 0) lines.push(`- Turns: ${task.turnCount}`);
+  if (task.toolUses > 0) lines.push(`- Tool uses: ${task.toolUses}`);
+  if (task.tokenCount > 0) lines.push(`- Tokens: ${task.tokenCount}`);
+  if (task.startedAt) lines.push(`- Elapsed: ${formatDuration(task.startedAt, task.endedAt)}`);
+  lines.push("");
+  lines.push("## Task");
+  lines.push(task.task);
+  lines.push("");
+  if (task.summary) {
+    lines.push("## Summary");
+    lines.push(task.summary);
+    lines.push("");
+  }
+  if (task.progressItems?.length) {
+    lines.push("## Latest Progress");
+    for (const item of task.progressItems) lines.push(`- [${item.done ? "x" : " "}] ${item.text}`);
+    lines.push("");
+  }
+  lines.push("## History");
+  if (task.history.length === 0) {
+    lines.push("- No history recorded.");
+  } else {
+    for (const entry of task.history) lines.push(`- ${formatHistoryEntry(entry)}`);
+  }
+  if (task.error) {
+    lines.push("");
+    lines.push("## Error");
+    lines.push(task.error);
+  }
+  return lines.join("\n").trim();
+}
+
 export function renderRunMarkdown(run: SubagentRunState): string {
   const lines: string[] = [];
   const workflowName = workflowDisplayName(run.workflow);
@@ -74,6 +129,7 @@ export function renderRunMarkdown(run: SubagentRunState): string {
 
   for (const task of run.tasks) {
     lines.push(`## Task ${task.index + 1} — ${task.state}`);
+    lines.push(`- Task ID: ${task.taskId} (${shortTaskId(task.taskId)})`);
     lines.push(`- Label: ${task.label}`);
     lines.push(`- Task: ${task.task}`);
     if (task.model) lines.push(`- Model: ${task.model}`);
@@ -128,6 +184,7 @@ export function serializeRun(run: SubagentRunState) {
       tokenCount: task.tokenCount,
       responseText: task.responseText,
       progressItems: task.progressItems ? [...task.progressItems] : undefined,
+      history: task.history ? [...task.history] : [],
       recentTools: [...task.recentTools],
       recentOutputLines: [...task.recentOutputLines],
       summary: task.summary,
