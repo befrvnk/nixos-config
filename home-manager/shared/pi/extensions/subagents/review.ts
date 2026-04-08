@@ -206,7 +206,7 @@ export async function createReviewTasks(
 
   return {
     context,
-    tasks: reviewers.map((reviewer) => ({
+    tasks: reviewers.map((reviewer: { label?: string; model: string; focus?: string }) => ({
       task: buildReviewTask(context, reviewer, params.prompt),
       label: reviewer.label?.trim() || reviewer.model,
       model: reviewer.model.trim(),
@@ -305,7 +305,7 @@ function summarizeReviewResult(result: SubagentTaskResult): string {
   if (findings.length > 0) return findings[0]!;
   if (result.summary?.trim()) return result.summary.split("\n")[0]!.trim();
   if (result.error?.trim()) return result.error.split("\n")[0]!.trim();
-  return "No findings returned.";
+  return "No actionable findings.";
 }
 
 function renderFinalTaskBlock(result: SubagentTaskResult, expanded: boolean, theme: Theme): string {
@@ -319,8 +319,12 @@ function renderFinalTaskBlock(result: SubagentTaskResult, expanded: boolean, the
   const suggestedNextSteps = Array.isArray(result.data?.suggestedNextSteps)
     ? (result.data?.suggestedNextSteps as string[])
     : [];
+  const model = result.model?.trim();
+  const title = result.label?.trim() || model || result.task;
+  const shouldShowModelLine = Boolean(model && result.label?.trim() && result.label.trim() !== model);
 
-  let block = `${icon} ${theme.bold(result.label ?? result.model ?? result.task)} ${theme.fg("dim", statusText)}`;
+  let block = `${icon} ${theme.bold(title)} ${theme.fg("dim", statusText)}`;
+  if (shouldShowModelLine) block += `\n  ${theme.fg("dim", `Model: ${model}`)}`;
   if (focus) block += `\n  ${theme.fg("dim", `Focus: ${focus}`)}`;
 
   if (expanded) {
