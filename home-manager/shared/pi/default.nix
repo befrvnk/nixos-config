@@ -41,7 +41,7 @@ in
   ];
 
   home.file.".pi/agent/AGENTS.md".source = ../global-agent-context.md;
-  home.file.".pi/agent/extensions/explore-subagent".source = ./extensions/explore-subagent;
+  home.file.".pi/agent/extensions/subagents".source = ./extensions/subagents;
   home.file.".pi/agent/extensions/pi-lsp".source = ./extensions/pi-lsp;
   home.file.".pi/agent/extensions/system-theme-sync".source = ./extensions/system-theme-sync;
   home.file.".pi/agent/pi-lsp.json".text = builtins.toJSON piLspConfig;

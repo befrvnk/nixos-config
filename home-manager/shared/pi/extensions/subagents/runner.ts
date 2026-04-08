@@ -4,14 +4,16 @@ import {
   DefaultResourceLoader,
   SessionManager,
 } from "@mariozechner/pi-coding-agent";
-import { parseStructuredOutput } from "./formatting.js";
 import { createGuardedExplorationTools } from "./child-guard.js";
-import { EXPLORER_PROMPT } from "./prompt.js";
+import type {
+  ParsedSubagentOutput,
+  SubagentTaskResult,
+  SubagentTaskState,
+} from "./types.js";
 import {
+  COPILOT_PROVIDER,
   MAX_RECENT_OUTPUT_LINES,
   MAX_RECENT_TOOLS,
-  type ExploreTaskResult,
-  type ExploreTaskState,
 } from "./types.js";
 
 type ModelRegistryLike = {
@@ -24,6 +26,14 @@ type ParentContextLike = {
   modelRegistry?: ModelRegistryLike;
 };
 
+type RunTaskOptions = {
+  parentCtx: ParentContextLike;
+  emitRunUpdate: () => void;
+  signal?: AbortSignal;
+  systemPrompt: string;
+  parseOutput: (markdown: string) => ParsedSubagentOutput;
+};
+
 function extractTextFromContent(content: unknown): string {
   if (typeof content === "string") return content.trim();
   if (!Array.isArray(content)) return "";
@@ -34,13 +44,6 @@ function extractTextFromContent(content: unknown): string {
     }
   }
   return parts.join("\n").trim();
-}
-
-function looksLikeStructuredExploreResult(text: string): boolean {
-  return /^##\s+Summary\b/m.test(text)
-    && /^##\s+Sources\b/m.test(text)
-    && /^##\s+Key Findings\b/m.test(text)
-    && /^##\s+Next Steps\b/m.test(text);
 }
 
 function pushLimited(items: string[], value: string, limit: number): void {
@@ -82,32 +85,44 @@ async function resolveModel(
   requestedModel: string | undefined,
   parentCtx: ParentContextLike,
 ): Promise<Model<any> | undefined> {
-  if (!requestedModel?.trim()) return parentCtx.model;
-
-  const parsed = parseModelRef(requestedModel);
-  if (!parsed) return parentCtx.model;
-
-  if (parsed.provider) {
-    const resolved = parentCtx.modelRegistry?.find(parsed.provider, parsed.id);
-    if (!resolved) {
-      throw new Error(`Unknown model: ${parsed.provider}/${parsed.id}`);
-    }
-    return resolved;
+  if (!requestedModel?.trim()) {
+    if (parentCtx.model?.provider === COPILOT_PROVIDER) return parentCtx.model;
+    const fallback = parentCtx.modelRegistry?.find(COPILOT_PROVIDER, "gpt-5.4");
+    if (fallback) return fallback;
+    const current = parentCtx.model ? `${parentCtx.model.provider}/${parentCtx.model.id}` : "none";
+    throw new Error(
+      `Subagents only support GitHub Copilot models. Current model: ${current}. Pass a GitHub Copilot model explicitly.`,
+    );
   }
 
-  if (parentCtx.model?.id === parsed.id) {
+  const parsed = parseModelRef(requestedModel);
+  if (!parsed) return undefined;
+
+  if (parsed.provider && parsed.provider !== COPILOT_PROVIDER) {
+    throw new Error(`Subagents only support ${COPILOT_PROVIDER} models. Requested provider: ${parsed.provider}`);
+  }
+
+  if (parentCtx.model?.provider === COPILOT_PROVIDER && parentCtx.model.id === parsed.id) {
     return parentCtx.model;
   }
 
+  if (parsed.provider) {
+    const resolved = parentCtx.modelRegistry?.find(COPILOT_PROVIDER, parsed.id);
+    if (!resolved) throw new Error(`Unknown GitHub Copilot model: ${COPILOT_PROVIDER}/${parsed.id}`);
+    return resolved;
+  }
+
   const available = await parentCtx.modelRegistry?.getAvailable?.();
-  const matches = available?.filter((model) => model.id === parsed.id) ?? [];
+  const matches = (available ?? []).filter(
+    (model) => model.provider === COPILOT_PROVIDER && model.id === parsed.id,
+  );
   if (matches.length === 1) return matches[0];
   if (matches.length > 1) {
     const refs = matches.map((model) => `${model.provider}/${model.id}`).join(", ");
-    throw new Error(`Ambiguous model "${parsed.id}". Matches: ${refs}`);
+    throw new Error(`Ambiguous GitHub Copilot model "${parsed.id}". Matches: ${refs}`);
   }
 
-  throw new Error(`Unknown model: ${parsed.id}`);
+  throw new Error(`Unknown GitHub Copilot model: ${parsed.id}`);
 }
 
 function getLastAssistantText(messages: Array<{ role?: string; content?: unknown }> | undefined): string {
@@ -133,8 +148,6 @@ export async function mapWithConcurrencyLimit<TIn, TOut>(
   await Promise.all(
     new Array(concurrency).fill(null).map(async () => {
       while (true) {
-        // JavaScript runs this synchronous increment without interleaving, so
-        // each worker claims a unique index before awaiting the task body.
         const index = next++;
         if (index >= items.length) return;
         results[index] = await fn(items[index]!, index);
@@ -145,46 +158,28 @@ export async function mapWithConcurrencyLimit<TIn, TOut>(
 }
 
 export async function runSingleTask(
-  taskState: ExploreTaskState,
-  parentCtx: ParentContextLike,
-  emitRunUpdate: () => void,
-  signal?: AbortSignal,
-): Promise<ExploreTaskResult> {
+  taskState: SubagentTaskState,
+  options: RunTaskOptions,
+): Promise<SubagentTaskResult> {
+  const { parentCtx, emitRunUpdate, signal, systemPrompt, parseOutput } = options;
   taskState.state = "running";
   taskState.startedAt = Date.now();
   emitRunUpdate();
 
-  const repositoryRoot = taskState.cwd ?? process.cwd();
-  const scopedTask = [
-    `Working directory: ${repositoryRoot}`,
-    `Repository root for local inspection: ${repositoryRoot}`,
-    `For repository-local investigation, only inspect paths under ${repositoryRoot}.`,
-    "Do not inspect absolute paths outside that repository unless the task explicitly requires external investigation or upstream source lookup.",
-    `Task: ${taskState.task}`,
-  ].join("\n");
-
   let settled = false;
   let aborted = false;
-  let bestStructuredAssistantText = "";
-  let finalAssistantText = "";
+  let bestAssistantText = "";
   let fallbackAssistantText = "";
   let promptError: string | undefined;
 
-  const finish = (result: ExploreTaskResult) => {
+  const finish = (result: SubagentTaskResult) => {
     if (settled) return result;
     settled = true;
     taskState.endedAt = Date.now();
     taskState.summary = result.summary;
-    taskState.sources = result.sources;
-    taskState.keyFindings = result.keyFindings;
-    taskState.suggestedNextSteps = result.suggestedNextSteps;
+    taskState.data = result.data;
     taskState.error = result.error;
-    taskState.state =
-      result.status === "success"
-        ? "success"
-        : result.status === "aborted"
-          ? "aborted"
-          : "error";
+    taskState.state = result.status;
     taskState.currentTool = undefined;
     emitRunUpdate();
     return result;
@@ -192,11 +187,12 @@ export async function runSingleTask(
 
   try {
     const model = await resolveModel(taskState.model, parentCtx);
+    const repositoryRoot = taskState.cwd ?? process.cwd();
     const resourceLoader = new DefaultResourceLoader({
       cwd: repositoryRoot,
       noExtensions: true,
       noThemes: true,
-      appendSystemPromptOverride: (base) => [...base, EXPLORER_PROMPT],
+      appendSystemPromptOverride: (base) => [...base, systemPrompt],
     });
     await resourceLoader.reload();
 
@@ -261,21 +257,10 @@ export async function runSingleTask(
           }
         }
         if (message.role === "assistant") {
-          if (typeof message.usage?.totalTokens === "number") {
-            taskState.tokenCount = message.usage.totalTokens;
-          }
-          if (text && looksLikeStructuredExploreResult(text)) {
-            bestStructuredAssistantText = text;
-          }
-          if (text && message.stopReason === "stop") {
-            finalAssistantText = text;
-          }
-          if (message.stopReason === "error" && message.errorMessage) {
-            taskState.error = message.errorMessage;
-          }
-          if (message.stopReason === "aborted") {
-            aborted = true;
-          }
+          if (typeof message.usage?.totalTokens === "number") taskState.tokenCount = message.usage.totalTokens;
+          if (text) bestAssistantText = text;
+          if (message.stopReason === "error" && message.errorMessage) taskState.error = message.errorMessage;
+          if (message.stopReason === "aborted") aborted = true;
         }
         emitRunUpdate();
       }
@@ -292,7 +277,7 @@ export async function runSingleTask(
     }
 
     try {
-      await session.prompt(scopedTask);
+      await session.prompt(taskState.task);
     } catch (error) {
       promptError = error instanceof Error ? error.message : String(error);
     } finally {
@@ -302,60 +287,65 @@ export async function runSingleTask(
       session.dispose();
     }
 
-    const bestAnswerText = bestStructuredAssistantText || finalAssistantText || fallbackAssistantText;
-    const parsed = parseStructuredOutput(bestAnswerText);
+    const bestResponse = bestAssistantText || fallbackAssistantText;
+    const parsed = parseOutput(bestResponse);
 
     if (aborted) {
       return finish({
         task: taskState.task,
-        model: taskState.model,
+        label: taskState.label,
+        model: model ? `${model.provider}/${model.id}` : taskState.model,
         cwd: taskState.cwd,
         status: "aborted",
         summary: parsed.summary,
-        sources: parsed.sources,
-        keyFindings: parsed.keyFindings,
-        suggestedNextSteps: parsed.suggestedNextSteps,
+        data: parsed.data,
         error: taskState.error || promptError || "Subagent aborted",
+        rawResponse: bestResponse,
+        metadata: taskState.metadata,
       });
     }
 
     if (promptError) {
       return finish({
         task: taskState.task,
-        model: taskState.model,
+        label: taskState.label,
+        model: model ? `${model.provider}/${model.id}` : taskState.model,
         cwd: taskState.cwd,
         status: "error",
         summary: parsed.summary,
-        sources: parsed.sources,
-        keyFindings: parsed.keyFindings,
-        suggestedNextSteps: parsed.suggestedNextSteps,
+        data: parsed.data,
         error: promptError,
+        rawResponse: bestResponse,
+        metadata: taskState.metadata,
       });
     }
 
     return finish({
       task: taskState.task,
-      model: taskState.model,
+      label: taskState.label,
+      model: model ? `${model.provider}/${model.id}` : taskState.model,
       cwd: taskState.cwd,
       status: "success",
       summary: parsed.summary,
-      sources: parsed.sources,
-      keyFindings: parsed.keyFindings,
-      suggestedNextSteps: parsed.suggestedNextSteps,
+      data: parsed.data,
+      rawResponse: bestResponse,
+      metadata: taskState.metadata,
     });
   } catch (error) {
-    const parsed = parseStructuredOutput(bestStructuredAssistantText || finalAssistantText);
+    const response = bestAssistantText || fallbackAssistantText;
+    const parsed = parseOutput(response);
     const message = error instanceof Error ? error.message : String(error);
     return finish({
       task: taskState.task,
+      label: taskState.label,
       model: taskState.model,
       cwd: taskState.cwd,
       status: aborted ? "aborted" : "error",
       summary: parsed.summary,
-      sources: parsed.sources,
-      keyFindings: parsed.keyFindings,
-      suggestedNextSteps: parsed.suggestedNextSteps,
+      data: parsed.data,
       error: message,
+      rawResponse: response,
+      metadata: taskState.metadata,
     });
   }
 }
