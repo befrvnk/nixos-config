@@ -82,6 +82,12 @@ export function renderRunMarkdown(run: SubagentRunState): string {
     if (task.turnCount > 0) lines.push(`- Turns: ${task.turnCount}`);
     if (task.toolUses > 0) lines.push(`- Tool uses: ${task.toolUses}`);
     if (task.tokenCount > 0) lines.push(`- Tokens: ${task.tokenCount}`);
+    if (task.progressItems && task.progressItems.length > 0) {
+      lines.push("- Progress:");
+      for (const item of task.progressItems.slice(0, 6)) {
+        lines.push(`  - [${item.done ? "x" : " "}] ${item.text}`);
+      }
+    }
     if (task.recentTools.length > 0) {
       lines.push("- Recent tools:");
       for (const tool of task.recentTools.slice(-MAX_RECENT_TOOLS)) lines.push(`  - ${tool}`);
@@ -121,6 +127,7 @@ export function serializeRun(run: SubagentRunState) {
       turnCount: task.turnCount,
       tokenCount: task.tokenCount,
       responseText: task.responseText,
+      progressItems: task.progressItems ? [...task.progressItems] : undefined,
       recentTools: [...task.recentTools],
       recentOutputLines: [...task.recentOutputLines],
       summary: task.summary,

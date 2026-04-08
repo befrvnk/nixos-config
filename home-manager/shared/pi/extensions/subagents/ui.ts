@@ -1,8 +1,13 @@
 import { Text, truncateToWidth } from "@mariozechner/pi-tui";
 import { formatDuration, workflowDisplayName } from "./formatting.js";
-import type { SubagentRunState, SubagentTaskResult, SubagentTaskState } from "./types.js";
+import type {
+  SubagentProgressItem,
+  SubagentRunState,
+  SubagentTaskResult,
+  SubagentTaskState,
+} from "./types.js";
 
-const MAX_WIDGET_LINES = 12;
+const MAX_WIDGET_LINES = 14;
 const FINISHED_LINGER_MS = 6_000;
 const ERROR_LINGER_MS = 12_000;
 
@@ -52,7 +57,34 @@ function taskLabel(task: Pick<SubagentTaskState | SubagentTaskResult, "label" | 
   return truncateLine(task.label || task.task, 42) || "Subagent task";
 }
 
+function getCurrentProgressItem(progressItems: SubagentProgressItem[] | undefined): SubagentProgressItem | undefined {
+  if (!progressItems || progressItems.length === 0) return undefined;
+  return progressItems.find((item) => !item.done) ?? progressItems[progressItems.length - 1];
+}
+
+function getProgressPreviewLines(task: SubagentTaskState, maxItems = 3): string[] {
+  const items = task.progressItems;
+  if (!items || items.length === 0) return [];
+  const current = getCurrentProgressItem(items);
+  const visible = items.slice(0, maxItems);
+  const lines = visible.map((item) => ({
+    text: item.text,
+    done: item.done,
+    isCurrent: current ? current.text === item.text && current.done === item.done : false,
+  }));
+  if (items.length > maxItems) {
+    lines.push({ text: `+${items.length - maxItems} more`, done: false, isCurrent: false });
+  }
+  return lines.map((line) => {
+    if (line.text.startsWith("+")) return line.text;
+    return `${line.done ? "[x]" : line.isCurrent ? "[>]" : "[ ]"} ${line.text}`;
+  });
+}
+
 function describeActivity(task: SubagentTaskState): string {
+  const currentProgress = getCurrentProgressItem(task.progressItems);
+  if (currentProgress) return currentProgress.text;
+
   const currentTool = task.currentTool?.trim();
   if (currentTool) {
     if (currentTool.startsWith("$ ")) return "running command…";
@@ -129,13 +161,21 @@ function buildWidgetLines(runs: SubagentRunState[], frame: number, theme: Theme,
     if (task.tokenCount > 0) stats.push(formatTokens(task.tokenCount));
     if (task.startedAt) stats.push(formatDuration(task.startedAt));
 
-    return [
+    const lines = [
       truncate(
         theme.fg("dim", "├─") +
           ` ${theme.fg("accent", spinner)} ${theme.bold(workflowName)}  ${theme.fg("muted", taskLabel(task))} ${theme.fg("dim", "·")} ${theme.fg("dim", stats.join(" · "))}`,
       ),
-      truncate(theme.fg("dim", "│  ") + theme.fg("dim", `  ⎿  ${describeActivity(task)}`)),
     ];
+
+    const progressLines = getProgressPreviewLines(task, 3);
+    if (progressLines.length > 0) {
+      for (const progressLine of progressLines) {
+        lines.push(truncate(theme.fg("dim", "│  ") + theme.fg("dim", `  ${progressLine}`)));
+      }
+    }
+
+    return lines;
   });
 
   const queuedLine =
@@ -144,20 +184,22 @@ function buildWidgetLines(runs: SubagentRunState[], frame: number, theme: Theme,
       : undefined;
 
   const maxBody = MAX_WIDGET_LINES - 1;
-  const totalBody = finishedLines.length + runningLines.length * 2 + (queuedLine ? 1 : 0);
+  const totalBody = finishedLines.length + runningLines.reduce((sum, lines) => sum + lines.length, 0) + (queuedLine ? 1 : 0);
 
   if (totalBody <= maxBody) {
     lines.push(...finishedLines);
-    for (const pair of runningLines) lines.push(...pair);
+    for (const taskLines of runningLines) lines.push(...taskLines);
     if (queuedLine) lines.push(queuedLine);
 
     if (lines.length > 1) {
       const last = lines.length - 1;
       lines[last] = lines[last]!.replace("├─", "└─");
       if (runningLines.length > 0 && !queuedLine) {
-        if (last >= 2) {
-          lines[last - 1] = lines[last - 1]!.replace("├─", "└─");
-          lines[last] = lines[last]!.replace("│  ", "   ");
+        const lastTaskLines = runningLines[runningLines.length - 1] ?? [];
+        const headerIndex = last - (lastTaskLines.length - 1);
+        if (headerIndex >= 1) lines[headerIndex] = lines[headerIndex]!.replace("├─", "└─");
+        for (let i = headerIndex + 1; i <= last; i++) {
+          lines[i] = lines[i]!.replace("│  ", "   ");
         }
       }
     }
@@ -169,10 +211,10 @@ function buildWidgetLines(runs: SubagentRunState[], frame: number, theme: Theme,
   let hiddenRunning = 0;
   let hiddenFinished = 0;
 
-  for (const pair of runningLines) {
-    if (budget >= 2) {
-      lines.push(...pair);
-      budget -= 2;
+  for (const taskLines of runningLines) {
+    if (budget >= taskLines.length) {
+      lines.push(...taskLines);
+      budget -= taskLines.length;
     } else {
       hiddenRunning++;
     }
@@ -260,6 +302,10 @@ export class SubagentWidget {
       if (pendingTasks.length > 0) statusParts.push(`${pendingTasks.length} queued`);
       const total = activeTasks.length + pendingTasks.length;
       newStatusText = `${statusParts.join(", ")} subagent${total === 1 ? "" : "s"}`;
+      if (activeTasks.length === 1 && activeTasks[0]!.progressItems?.length) {
+        const current = describeActivity(activeTasks[0]!);
+        if (current) newStatusText += ` · ${truncateLine(current, 48)}`;
+      }
     }
 
     if (newStatusText !== this.lastStatusText) {
@@ -284,7 +330,7 @@ export class SubagentWidget {
       );
       this.widgetRegistered = true;
     } else {
-      this.tui?.requestRender();
+      this.tui?.requestRender?.();
     }
   }
 

@@ -5,6 +5,7 @@ import {
   SessionManager,
 } from "@mariozechner/pi-coding-agent";
 import { createGuardedExplorationTools } from "./child-guard.js";
+import { cleanParsedOutput, extractLatestProgress, stripProgressBlocks } from "./progress.js";
 import type {
   ParsedSubagentOutput,
   SubagentTaskResult,
@@ -170,6 +171,7 @@ export async function runSingleTask(
   let aborted = false;
   let bestAssistantText = "";
   let fallbackAssistantText = "";
+  let streamingAssistantText = "";
   let promptError: string | undefined;
 
   const finish = (result: SubagentTaskResult) => {
@@ -210,12 +212,18 @@ export async function runSingleTask(
     const unsubscribe = session.subscribe((event: any) => {
       if (event.type === "message_start") {
         const role = event.message?.role;
-        if (role === "assistant") taskState.responseText = "";
+        if (role === "assistant") {
+          streamingAssistantText = "";
+          taskState.responseText = "";
+        }
         return;
       }
 
       if (event.type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
-        taskState.responseText = `${taskState.responseText}${String(event.assistantMessageEvent.delta ?? "")}`.slice(-600);
+        streamingAssistantText = `${streamingAssistantText}${String(event.assistantMessageEvent.delta ?? "")}`.slice(-4000);
+        taskState.responseText = stripProgressBlocks(streamingAssistantText).slice(-600);
+        const progressItems = extractLatestProgress(streamingAssistantText);
+        if (progressItems) taskState.progressItems = progressItems;
         emitRunUpdate();
         return;
       }
@@ -258,7 +266,12 @@ export async function runSingleTask(
         }
         if (message.role === "assistant") {
           if (typeof message.usage?.totalTokens === "number") taskState.tokenCount = message.usage.totalTokens;
-          if (text) bestAssistantText = text;
+          if (text) {
+            bestAssistantText = text;
+            taskState.responseText = stripProgressBlocks(text).slice(-600);
+            const progressItems = extractLatestProgress(text);
+            if (progressItems) taskState.progressItems = progressItems;
+          }
           if (message.stopReason === "error" && message.errorMessage) taskState.error = message.errorMessage;
           if (message.stopReason === "aborted") aborted = true;
         }
@@ -287,8 +300,8 @@ export async function runSingleTask(
       session.dispose();
     }
 
-    const bestResponse = bestAssistantText || fallbackAssistantText;
-    const parsed = parseOutput(bestResponse);
+    const bestResponse = stripProgressBlocks(bestAssistantText || fallbackAssistantText);
+    const parsed = cleanParsedOutput(parseOutput(bestResponse));
 
     if (aborted) {
       return finish({
@@ -332,8 +345,8 @@ export async function runSingleTask(
       metadata: taskState.metadata,
     });
   } catch (error) {
-    const response = bestAssistantText || fallbackAssistantText;
-    const parsed = parseOutput(response);
+    const response = stripProgressBlocks(bestAssistantText || fallbackAssistantText);
+    const parsed = cleanParsedOutput(parseOutput(response));
     const message = error instanceof Error ? error.message : String(error);
     return finish({
       task: taskState.task,

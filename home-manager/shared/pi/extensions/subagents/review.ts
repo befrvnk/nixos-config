@@ -151,6 +151,7 @@ function buildReviewTask(
     "Only report actionable issues that are reasonably likely to be real.",
     "Do not report style-only nits unless the prompt explicitly asks for them.",
     "If you think there are no actionable issues, say so clearly.",
+    "Emit one short [[progress]] block early in the review, then update it only if your plan materially changes.",
   ];
 
   if (extraPrompt?.trim()) {

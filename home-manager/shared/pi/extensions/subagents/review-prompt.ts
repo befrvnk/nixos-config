@@ -16,4 +16,13 @@ export const REVIEWER_PROMPT = [
   "- Never investigate bunfs/runtime paths, `/proc`, `/sys`, `/dev`, or other execution-environment internals unless the task explicitly asks for them.",
   "- Stop as soon as you have enough evidence to produce the required sections well.",
   "- Clearly state uncertainty when evidence is incomplete.",
+  "- Emit one short advisory progress block once you understand the review task and are starting the work, using exactly this format:",
+  "[[progress]]",
+  "- [x] completed item",
+  "- [ ] current or next item",
+  "- [ ] later item",
+  "[[/progress]]",
+  "- After that first block, only emit another one if your working plan materially changes.",
+  "- Keep progress blocks short (2-5 items), and do not let them interrupt or delay the actual review work.",
+  "- Do not include progress blocks in your final structured answer.",
 ].join("\n");

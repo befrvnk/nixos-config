@@ -18,6 +18,11 @@ export type SubagentTaskInput = {
   metadata?: Record<string, unknown>;
 };
 
+export type SubagentProgressItem = {
+  text: string;
+  done: boolean;
+};
+
 export type ParsedSubagentOutput = {
   summary: string;
   data?: Record<string, unknown>;
@@ -51,6 +56,7 @@ export type SubagentTaskState = {
   turnCount: number;
   tokenCount: number;
   responseText: string;
+  progressItems?: SubagentProgressItem[];
   recentTools: string[];
   recentOutputLines: string[];
   summary?: string;
