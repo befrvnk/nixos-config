@@ -1,0 +1,33 @@
+import { COPILOT_PROVIDER } from "./types.js";
+
+export const ALLOWED_SUBAGENT_MODELS = [
+	`${COPILOT_PROVIDER}/claude-opus-4.6`,
+	`${COPILOT_PROVIDER}/claude-sonnet-4.6`,
+	`${COPILOT_PROVIDER}/gemini-3.1-pro-preview`,
+	`${COPILOT_PROVIDER}/gpt-5.4-mini`,
+	`${COPILOT_PROVIDER}/gpt-5.4`,
+] as const;
+
+export type AllowedSubagentModel = (typeof ALLOWED_SUBAGENT_MODELS)[number];
+
+export const DEFAULT_EXPLORE_MODEL =
+	`${COPILOT_PROVIDER}/gpt-5.4-mini` as AllowedSubagentModel;
+
+export const FIXED_REVIEWERS = [
+	{
+		label: "Opus 4.6",
+		model: `${COPILOT_PROVIDER}/claude-opus-4.6` as AllowedSubagentModel,
+		focus: "correctness, regressions, hidden bugs, and edge cases",
+	},
+	{
+		label: "Gemini 3.1",
+		model: `${COPILOT_PROVIDER}/gemini-3.1-pro-preview` as AllowedSubagentModel,
+		focus: "maintainability, clarity, test gaps, and surprising behavior",
+	},
+] as const;
+
+export function isAllowedSubagentModel(
+	model: string,
+): model is AllowedSubagentModel {
+	return (ALLOWED_SUBAGENT_MODELS as readonly string[]).includes(model);
+}

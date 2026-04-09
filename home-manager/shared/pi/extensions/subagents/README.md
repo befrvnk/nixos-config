@@ -2,16 +2,25 @@
 
 Shared subagent extension for pi.
 
-It currently exposes two read-only workflows built on the same subagent runtime:
-- `explore` / `explore_status`
-- `review` / `review_status`
+It currently exposes:
 
-It also adds a session-local command:
+## Agent-facing tools
+
+- `explore`
+- `explore_status`
+
+## User-facing commands
+
+- `/review` — run the fixed review pair against:
+  - uncommitted changes
+  - staged changes
+  - a selected base branch
 - `/subagent <id>` — show detailed history for one subagent task from the current session
 
 ## Shared runtime
 
 Both workflows share the same subagent engine for:
+
 - isolated child agent sessions
 - parallel task execution
 - GitHub Copilot model resolution
@@ -26,6 +35,7 @@ Any runtime fix or improvement applies to both explore and review.
 ## Tooling and model constraints
 
 Child runs are intentionally read-only and use guarded versions of:
+
 - `read`
 - `grep`
 - `find`
@@ -34,20 +44,37 @@ Child runs are intentionally read-only and use guarded versions of:
 
 The bash tool is restricted to read-only inspection commands and blocks shell output redirection, command substitution, and write-capable git subcommands.
 
-Subagents only support models available through **GitHub Copilot**.
-- If you omit `model`, the subagent inherits the current session model when it is a GitHub Copilot model.
-- If the current model is not from GitHub Copilot, the subagent falls back to `github-copilot/gpt-5.4` when available.
-- Explicit model overrides must also resolve to `github-copilot/...`.
+Subagents only support these **GitHub Copilot** models:
+
+- `github-copilot/claude-opus-4.6`
+- `github-copilot/claude-sonnet-4.6`
+- `github-copilot/gemini-3.1-pro-preview`
+- `github-copilot/gpt-5.4-mini`
+- `github-copilot/gpt-5.4`
 
 ## Explore workflow
 
-`explore` is optimized for:
+`explore` is agent-controlled and optimized for:
+
 - repository investigation
 - docs/source lookup
 - compressed context gathering
 - parallel information collection
 
+The agent may choose one allowed model per task. If omitted, the default is:
+
+- `github-copilot/gpt-5.4-mini`
+
+Examples:
+
+- one explore task with an explicit model
+- multiple parallel tasks with mixed models
+- repo scan + docs lookup + upstream inspection in parallel
+
+It is not for formal audits or severity-ranked bug finding; `/review` is user-triggered.
+
 It returns structured markdown with:
+
 - `## Summary`
 - `## Sources`
 - `## Key Findings`
@@ -55,29 +82,41 @@ It returns structured markdown with:
 
 ## Review workflow
 
-`review` is optimized for:
-- reviewing the current git changes
-- running multiple reviewer models in parallel
-- collecting independent reviewer opinions
-- surfacing actionable findings
+Review is user-controlled via `/review` and always runs the fixed reviewer pair:
 
-It gathers:
+- `github-copilot/claude-opus-4.6`
+- `github-copilot/gemini-3.1-pro-preview`
+
+Current command forms:
+
+- `/review`
+- `/review uncommitted`
+- `/review staged`
+- `/review branch main`
+
+Interactive `/review` currently supports:
+
+1. review uncommitted changes
+2. review staged changes
+3. review against a base branch
+
+Interactive review runs use a cancellable loader UI; press `Esc` to abort an in-progress review.
+
+Base-branch review compares the current working tree against the merge base with the selected branch.
+
+Review gathers:
+
 - repository root
 - changed files
 - `git status --short`
 - diff stat
 - diff preview (truncated when large)
-- untracked working-tree files when reviewing the working tree
+- untracked working-tree files when relevant
 
-When a repository has an unborn `HEAD`, review falls back to diffing against the empty tree so first-commit changes can still be inspected.
-
-Fixed review models:
-- `github-copilot/claude-opus-4.6`
-- `github-copilot/gemini-3.1-pro-preview`
-
-These are enforced by the tool. The calling agent cannot choose different review models.
+When a repository has an unborn `HEAD`, uncommitted/staged review falls back to diffing against the empty tree so first-commit changes can still be inspected.
 
 It returns structured markdown with:
+
 - `## Summary`
 - `## Findings`
 - `## Next Steps`
@@ -86,6 +125,7 @@ It returns structured markdown with:
 
 The child tool guard is intentionally small and pragmatic.
 It blocks obviously irrelevant runtime/system paths such as:
+
 - `/$bunfs`
 - `/proc`
 - `/sys`
@@ -94,6 +134,7 @@ It blocks obviously irrelevant runtime/system paths such as:
 Path validation normalizes both absolute paths and relative traversals such as `../../proc/...` before applying the denylist.
 
 This is not a full sandbox. Focus still primarily comes from:
+
 - the workflow prompt
 - the task body
 - read-only tool selection
@@ -102,6 +143,7 @@ This is not a full sandbox. Focus still primarily comes from:
 ## Runtime assumptions
 
 This extension is built against pi's in-process agent-session APIs:
+
 - `createAgentSession`
 - `DefaultResourceLoader`
 - `SessionManager.inMemory`
@@ -111,8 +153,7 @@ Child runs are started with extensions and themes disabled through the resource 
 ## Status inspection
 
 - `explore_status` shows only explore runs
-- `review_status` shows only review runs
-- `/subagent <id>` shows the detailed per-task history for a specific subagent task
+- `/subagent <id>` shows the detailed per-task history for any subagent task from the current session
 
 Task IDs are shown in the widget and result rendering using a short form such as `abc123/1`.
 The command accepts either the full task id or the displayed short id, as long as it is unambiguous.
