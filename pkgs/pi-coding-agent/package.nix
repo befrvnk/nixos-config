@@ -7,7 +7,7 @@
 }:
 
 let
-  version = "0.65.2";
+  version = "0.66.1";
   sources = {
     x86_64-linux = {
       url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-linux-x64.tar.gz";
