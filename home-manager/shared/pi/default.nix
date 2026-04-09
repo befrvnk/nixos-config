@@ -32,19 +32,24 @@ let
   };
 in
 {
-  home.packages = [
-    pkgs.jdt-language-server
-    pkgs.kotlin-lsp
-    pkgs.nodejs
-    pkgs.pi-coding-agent
-    pkgs.typescript-language-server
-  ];
+  home = {
+    packages = [
+      pkgs.jdt-language-server
+      pkgs.kotlin-lsp
+      pkgs.nodejs
+      pkgs.pi-coding-agent
+      pkgs.typescript-language-server
+    ];
 
-  home.file.".pi/agent/AGENTS.md".source = ../global-agent-context.md;
-  home.file.".pi/agent/extensions/subagents".source = ./extensions/subagents;
-  home.file.".pi/agent/extensions/pi-lsp".source = ./extensions/pi-lsp;
-  home.file.".pi/agent/extensions/system-theme-sync".source = ./extensions/system-theme-sync;
-  home.file.".pi/agent/pi-lsp.json".text = builtins.toJSON piLspConfig;
-  home.file.".pi/agent/settings.json".text = builtins.toJSON piSettings;
-  home.file.".pi/agent/skills/exa-search".source = ./skills/exa-search;
+    file = {
+      ".pi/agent/AGENTS.md".source = ../global-agent-context.md;
+      ".pi/agent/extensions/nix-shell-fallback".source = ./extensions/nix-shell-fallback;
+      ".pi/agent/extensions/pi-lsp".source = ./extensions/pi-lsp;
+      ".pi/agent/extensions/subagents".source = ./extensions/subagents;
+      ".pi/agent/extensions/system-theme-sync".source = ./extensions/system-theme-sync;
+      ".pi/agent/pi-lsp.json".text = builtins.toJSON piLspConfig;
+      ".pi/agent/settings.json".text = builtins.toJSON piSettings;
+      ".pi/agent/skills/exa-search".source = ./skills/exa-search;
+    };
+  };
 }
