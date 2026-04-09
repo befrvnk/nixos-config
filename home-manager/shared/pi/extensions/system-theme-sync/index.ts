@@ -38,7 +38,7 @@ function parseLinuxTheme(output: string): ThemeMode | undefined {
   const normalized = output.trim().toLowerCase();
   if (!normalized) return undefined;
   if (normalized.includes("dark")) return "dark";
-  if (normalized.includes("light")) return "light";
+  if (normalized.includes("light") || normalized.includes("default")) return "light";
   return undefined;
 }
 
