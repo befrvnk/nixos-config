@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Text } from "@mariozechner/pi-tui";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { parseBullets, splitMarkdownSections, shortenPath, shortTaskId } from "./formatting.js";
@@ -6,6 +8,9 @@ import type { ParsedSubagentOutput, SubagentTaskInput, SubagentTaskResult } from
 import type { Theme } from "./ui.js";
 
 const MAX_DIFF_CHARS = 60_000;
+const MAX_UNTRACKED_PREVIEW_BYTES = 16_000;
+const MAX_UNTRACKED_PREVIEW_LINES = 160;
+const EMPTY_TREE_HASH = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 
 type ReviewParams = {
   prompt?: string;
@@ -26,12 +31,23 @@ type ReviewContext = {
   diffWasTruncated: boolean;
 };
 
+type GitCommandResult = {
+  stdout: string;
+  stderr: string;
+  code: number;
+};
+
+type ResolvedBaseRef = {
+  displayBaseRef: string;
+  diffBaseRef: string;
+};
+
 async function runGit(
   pi: ExtensionAPI,
   cwd: string,
   args: string[],
   signal?: AbortSignal,
-): Promise<{ stdout: string; stderr: string; code: number }> {
+): Promise<GitCommandResult> {
   const result = await pi.exec("git", args, { cwd, signal } as any);
   return {
     stdout: result.stdout ?? "",
@@ -44,16 +60,117 @@ function normalizeList(list: string[] | undefined): string[] {
   return (list ?? []).map((item) => item.trim()).filter(Boolean);
 }
 
-async function validateBaseRef(
+function uniqueStrings(items: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of items) {
+    if (seen.has(item)) continue;
+    seen.add(item);
+    result.push(item);
+  }
+  return result;
+}
+
+async function resolveBaseRef(
   pi: ExtensionAPI,
   repoRoot: string,
   baseRef: string,
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<ResolvedBaseRef> {
   const result = await runGit(pi, repoRoot, ["rev-parse", "--verify", "--quiet", `${baseRef}^{commit}`], signal);
-  if (result.code !== 0) {
-    throw new Error(`Invalid or unknown baseRef: ${baseRef}`);
+  if (result.code === 0) {
+    return {
+      diffBaseRef: baseRef,
+      displayBaseRef: baseRef,
+    };
   }
+
+  if (baseRef === "HEAD") {
+    return {
+      diffBaseRef: EMPTY_TREE_HASH,
+      displayBaseRef: "HEAD (unborn; empty tree)",
+    };
+  }
+
+  throw new Error(`Invalid or unknown baseRef: ${baseRef}`);
+}
+
+function formatUntrackedDiffStat(untrackedFiles: string[]): string | undefined {
+  if (untrackedFiles.length === 0) return undefined;
+  return [
+    "Untracked files:",
+    ...untrackedFiles.map((file) => `- ${file} (untracked)`),
+  ].join("\n");
+}
+
+function readUntrackedPreview(absolutePath: string): { sample: Buffer; truncated: boolean } {
+  const fd = fs.openSync(absolutePath, "r");
+  try {
+    const sample = Buffer.alloc(MAX_UNTRACKED_PREVIEW_BYTES + 1);
+    const bytesRead = fs.readSync(fd, sample, 0, sample.length, 0);
+    return {
+      sample: sample.subarray(0, bytesRead),
+      truncated: bytesRead > MAX_UNTRACKED_PREVIEW_BYTES,
+    };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function buildUntrackedFilePreview(repoRoot: string, file: string): string {
+  const absolutePath = path.join(repoRoot, file);
+
+  try {
+    const { sample, truncated: truncatedByBytes } = readUntrackedPreview(absolutePath);
+    const previewSample = sample.subarray(0, MAX_UNTRACKED_PREVIEW_BYTES);
+    if (previewSample.includes(0)) {
+      return [
+        `diff --git a/${file} b/${file}`,
+        "new file mode 100644",
+        "--- /dev/null",
+        `+++ b/${file}`,
+        "Binary file preview omitted for untracked file.",
+      ].join("\n");
+    }
+
+    const previewText = previewSample.toString("utf8").replace(/\r\n/g, "\n");
+    const allPreviewLines = previewText.split("\n");
+    const previewLines = allPreviewLines.slice(0, MAX_UNTRACKED_PREVIEW_LINES);
+    const truncated = truncatedByBytes || allPreviewLines.length > MAX_UNTRACKED_PREVIEW_LINES;
+
+    const bodyLines = previewLines.map((line) => `+${line}`);
+    if (truncated) bodyLines.push("+[... truncated]");
+
+    return [
+      `diff --git a/${file} b/${file}`,
+      "new file mode 100644",
+      "--- /dev/null",
+      `+++ b/${file}`,
+      `@@ -0,0 +1,${Math.max(previewLines.length, 1)} @@`,
+      ...bodyLines,
+    ].join("\n");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return [
+      `diff --git a/${file} b/${file}`,
+      "new file mode 100644",
+      "--- /dev/null",
+      `+++ b/${file}`,
+      `Unable to read untracked file preview: ${message}`,
+    ].join("\n");
+  }
+}
+
+function buildUntrackedDiffPreview(repoRoot: string, untrackedFiles: string[]): string | undefined {
+  if (untrackedFiles.length === 0) return undefined;
+  return untrackedFiles.map((file) => buildUntrackedFilePreview(repoRoot, file)).join("\n\n");
+}
+
+function buildCombinedDiffPreview(repoRoot: string, diffText: string, untrackedFiles: string[]): string {
+  const sections = [diffText.trim(), buildUntrackedDiffPreview(repoRoot, untrackedFiles)]
+    .map((section) => section?.trim())
+    .filter(Boolean);
+  return sections.join("\n\n");
 }
 
 async function collectReviewContext(
@@ -69,47 +186,60 @@ async function collectReviewContext(
 
   const repoRoot = repoResult.stdout.trim();
   const target = params.target ?? "working-tree";
-  const baseRef = params.baseRef?.trim() || "HEAD";
+  const requestedBaseRef = params.baseRef?.trim() || "HEAD";
   const files = normalizeList(params.files);
   const diffBaseArgs = ["diff", ...(target === "staged" ? ["--cached"] : [])];
   const diffTail = files.length > 0 ? ["--", ...files] : [];
+  const { diffBaseRef, displayBaseRef } = await resolveBaseRef(pi, repoRoot, requestedBaseRef, signal);
 
-  await validateBaseRef(pi, repoRoot, baseRef, signal);
+  const statusArgs = ["status", "--short", "--untracked-files=all", ...(files.length > 0 ? ["--", ...files] : [])];
+  const untrackedPromise = target === "working-tree"
+    ? runGit(pi, repoRoot, ["ls-files", "--others", "--exclude-standard", ...diffTail], signal)
+    : Promise.resolve({ stdout: "", stderr: "", code: 0 });
 
-  const [statusResult, statResult, filesResult, diffResult] = await Promise.all([
-    runGit(pi, repoRoot, ["status", "--short"], signal),
-    runGit(pi, repoRoot, [...diffBaseArgs, "--stat", baseRef, ...diffTail], signal),
-    runGit(pi, repoRoot, [...diffBaseArgs, "--name-only", baseRef, ...diffTail], signal),
-    runGit(pi, repoRoot, [...diffBaseArgs, "--unified=3", baseRef, ...diffTail], signal),
+  const [statusResult, statResult, filesResult, diffResult, untrackedResult] = await Promise.all([
+    runGit(pi, repoRoot, statusArgs, signal),
+    runGit(pi, repoRoot, [...diffBaseArgs, "--stat", diffBaseRef, ...diffTail], signal),
+    runGit(pi, repoRoot, [...diffBaseArgs, "--name-only", diffBaseRef, ...diffTail], signal),
+    runGit(pi, repoRoot, [...diffBaseArgs, "--unified=3", diffBaseRef, ...diffTail], signal),
+    untrackedPromise,
   ]);
 
-  if (statResult.code !== 0 || filesResult.code !== 0 || diffResult.code !== 0) {
-    const errorText = [statResult.stderr, filesResult.stderr, diffResult.stderr]
+  if (statResult.code !== 0 || filesResult.code !== 0 || diffResult.code !== 0 || untrackedResult.code !== 0) {
+    const errorText = [statResult.stderr, filesResult.stderr, diffResult.stderr, untrackedResult.stderr]
       .map((part) => part.trim())
       .filter(Boolean)
       .join("\n");
     throw new Error(errorText || "Failed to collect git diff for review.");
   }
 
-  const changedFiles = filesResult.stdout
+  const diffFiles = filesResult.stdout
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+  const untrackedFiles = untrackedResult.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const changedFiles = uniqueStrings([...diffFiles, ...untrackedFiles]);
 
   if (changedFiles.length === 0) {
     throw new Error("No matching changes to review.");
   }
 
-  const fullDiff = diffResult.stdout.trim();
+  const diffStat = [statResult.stdout.trim(), formatUntrackedDiffStat(untrackedFiles)]
+    .filter(Boolean)
+    .join("\n\n");
+  const fullDiff = buildCombinedDiffPreview(repoRoot, diffResult.stdout.trim(), untrackedFiles);
   const diffWasTruncated = fullDiff.length > MAX_DIFF_CHARS;
   const diffPreview = diffWasTruncated ? `${fullDiff.slice(0, MAX_DIFF_CHARS)}\n\n[diff truncated]` : fullDiff;
 
   return {
     repoRoot,
     target,
-    baseRef,
+    baseRef: displayBaseRef,
     statusShort: statusResult.stdout.trim(),
-    diffStat: statResult.stdout.trim(),
+    diffStat,
     changedFiles,
     diffPreview,
     diffWasTruncated,
@@ -130,6 +260,7 @@ function buildReviewTask(
     `Review focus: ${focus}`,
     "Review only the code changes described below.",
     "Use the diff as the primary review target, and inspect changed files directly when you need surrounding context.",
+    "The changed files list may include untracked working-tree files, which are also included in the review context below.",
     "Only report actionable issues that are reasonably likely to be real.",
     "Do not report style-only nits unless the prompt explicitly asks for them.",
     "If you think there are no actionable issues, say so clearly.",

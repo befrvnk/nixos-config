@@ -32,6 +32,8 @@ Child runs are intentionally read-only and use guarded versions of:
 - `ls`
 - `bash`
 
+The bash tool is restricted to read-only inspection commands and blocks shell output redirection, command substitution, and write-capable git subcommands.
+
 Subagents only support models available through **GitHub Copilot**.
 - If you omit `model`, the subagent inherits the current session model when it is a GitHub Copilot model.
 - If the current model is not from GitHub Copilot, the subagent falls back to `github-copilot/gpt-5.4` when available.
@@ -65,6 +67,9 @@ It gathers:
 - `git status --short`
 - diff stat
 - diff preview (truncated when large)
+- untracked working-tree files when reviewing the working tree
+
+When a repository has an unborn `HEAD`, review falls back to diffing against the empty tree so first-commit changes can still be inspected.
 
 Fixed review models:
 - `github-copilot/claude-opus-4.6`
@@ -85,6 +90,8 @@ It blocks obviously irrelevant runtime/system paths such as:
 - `/proc`
 - `/sys`
 - `/dev`
+
+Path validation normalizes both absolute paths and relative traversals such as `../../proc/...` before applying the denylist.
 
 This is not a full sandbox. Focus still primarily comes from:
 - the workflow prompt
