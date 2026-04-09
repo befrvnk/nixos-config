@@ -23,8 +23,8 @@ export function detectLanguage(filePath: string, explicit?: SupportedLanguage): 
   return match.language;
 }
 
-export function detectProjectRoot(filePath: string, language: SupportedLanguage, cwd: string): string {
-  const startDir = fs.statSync(filePath).isDirectory() ? filePath : path.dirname(filePath);
+export function detectProjectRoot(filePath: string, language: SupportedLanguage, _cwd: string): string {
+  const startDir = fs.realpathSync.native(fs.statSync(filePath).isDirectory() ? filePath : path.dirname(filePath));
   const markers = ROOT_MARKERS[language];
 
   for (const dir of walkParents(startDir)) {
@@ -35,7 +35,7 @@ export function detectProjectRoot(filePath: string, language: SupportedLanguage,
     if (fs.existsSync(path.join(dir, ".git"))) return dir;
   }
 
-  return fs.existsSync(cwd) ? fs.realpathSync.native(cwd) : startDir;
+  return startDir;
 }
 
 export function* walkParents(startDir: string): Generator<string> {
@@ -49,13 +49,13 @@ export function* walkParents(startDir: string): Generator<string> {
 }
 
 export function toZeroIndexedPosition(line: number | undefined, character: number | undefined): Position {
-  if (!line || !character) {
-    throw new Error("This action requires both line and character (1-indexed).");
+  if (!Number.isInteger(line) || !Number.isInteger(character) || line < 1 || character < 1) {
+    throw new Error("This action requires both line and character as positive 1-indexed integers.");
   }
 
   return {
-    line: Math.max(0, line - 1),
-    character: Math.max(0, character - 1),
+    line: line - 1,
+    character: character - 1,
   };
 }
 
