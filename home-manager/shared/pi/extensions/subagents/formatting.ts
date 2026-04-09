@@ -103,6 +103,8 @@ export function renderTaskHistoryMarkdown(
 	lines.push(`- State: ${task.state}`);
 	lines.push(`- Label: ${task.label}`);
 	if (task.model) lines.push(`- Model: ${task.model}`);
+	if (task.thinkingLevel)
+		lines.push(`- Thinking level: ${task.thinkingLevel}`);
 	if (task.cwd) lines.push(`- CWD: ${shortenPath(task.cwd)}`);
 	if (task.turnCount > 0) lines.push(`- Turns: ${task.turnCount}`);
 	if (task.toolUses > 0) lines.push(`- Tool uses: ${task.toolUses}`);
@@ -157,6 +159,8 @@ export function renderRunMarkdown(run: SubagentRunState): string {
 		lines.push(`- Label: ${task.label}`);
 		lines.push(`- Task: ${task.task}`);
 		if (task.model) lines.push(`- Model: ${task.model}`);
+		if (task.thinkingLevel)
+			lines.push(`- Thinking level: ${task.thinkingLevel}`);
 		if (task.cwd) lines.push(`- CWD: ${shortenPath(task.cwd)}`);
 		if (task.currentTool) lines.push(`- Current tool: ${task.currentTool}`);
 		if (task.turnCount > 0) lines.push(`- Turns: ${task.turnCount}`);
@@ -201,6 +205,7 @@ export function serializeRun(run: SubagentRunState) {
 			task: task.task,
 			label: task.label,
 			model: task.model,
+			thinkingLevel: task.thinkingLevel,
 			cwd: task.cwd,
 			metadata: task.metadata,
 			state: task.state,

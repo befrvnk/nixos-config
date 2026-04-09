@@ -7,13 +7,14 @@ import {
 	shortTaskId,
 	splitMarkdownSections,
 	uniqueNonEmptyStrings,
-} from "./formatting.js";
-import { DEFAULT_REVIEWERS } from "./review-config.js";
+} from "../../formatting.js";
+import { DEFAULT_REVIEWERS } from "./config.js";
+import type { ReviewerConfig } from "../../model-policy.js";
 import type {
 	ParsedSubagentOutput,
 	SubagentTaskInput,
 	SubagentTaskResult,
-} from "./types.js";
+} from "../../types.js";
 
 const MAX_DIFF_CHARS = 60_000;
 const MAX_UNTRACKED_PREVIEW_BYTES = 16_000;
@@ -444,15 +445,34 @@ async function collectReviewContextForTarget(
 	}
 }
 
+function buildReviewerDiffPreview(
+	context: ReviewContext,
+	reviewer: ReviewerConfig,
+): { preview: string; wasTruncated: boolean } {
+	const maxDiffChars = reviewer.maxDiffChars ?? MAX_DIFF_CHARS;
+	if (context.diffPreview.length <= maxDiffChars) {
+		return {
+			preview: context.diffPreview,
+			wasTruncated: context.diffWasTruncated,
+		};
+	}
+
+	return {
+		preview: `${context.diffPreview.slice(0, maxDiffChars)}\n\n[diff truncated for reviewer prompt budget]`,
+		wasTruncated: true,
+	};
+}
+
 function buildReviewTask(
 	context: ReviewContext,
-	reviewer: { label?: string; model: string; focus?: string },
+	reviewer: ReviewerConfig,
 	extraPrompt?: string,
 ): string {
 	const changedFilesText = context.changedFiles
 		.map((file) => `- ${file}`)
 		.join("\n");
 	const focus = reviewer.focus?.trim() || "general code review";
+	const reviewerDiff = buildReviewerDiffPreview(context, reviewer);
 	const lines: string[] = [
 		`Working directory: ${context.repoRoot}`,
 		`Repository root for local inspection: ${context.repoRoot}`,
@@ -460,6 +480,7 @@ function buildReviewTask(
 		`Review focus: ${focus}`,
 		"Review only the code changes described below.",
 		"Use the diff as the primary review target, and inspect changed files directly when you need surrounding context.",
+		"If the diff preview is truncated, use repo-local inspection tools to verify the exact hunk before reporting a finding.",
 		"The changed files list may include untracked working-tree files, which are also included in the review context below.",
 		"Only report actionable issues that are reasonably likely to be real.",
 		"Do not report style-only nits unless the prompt explicitly asks for them.",
@@ -489,7 +510,7 @@ function buildReviewTask(
 		`- Target: ${context.target}`,
 		`- Base ref: ${context.baseRef}`,
 		`- Repo root: ${context.repoRoot}`,
-		`- Diff truncated: ${context.diffWasTruncated ? "yes" : "no"}`,
+		`- Diff truncated: ${reviewerDiff.wasTruncated ? "yes" : "no"}`,
 		"",
 		"Changed files:",
 		changedFilesText,
@@ -501,7 +522,7 @@ function buildReviewTask(
 		context.diffStat || "(no diff stat)",
 		"",
 		"Diff preview:",
-		context.diffPreview || "(no diff)",
+		reviewerDiff.preview || "(no diff)",
 	);
 
 	return lines.join("\n");
@@ -528,10 +549,13 @@ export async function createReviewTasks(
 			task: buildReviewTask(context, reviewer, params.prompt),
 			label: reviewer.label?.trim() || reviewer.model,
 			model: reviewer.model.trim(),
+			thinkingLevel: reviewer.thinkingLevel,
 			cwd: context.repoRoot,
 			metadata: {
 				focus: reviewer.focus?.trim() || undefined,
 				reviewerLabel: reviewer.label?.trim() || reviewer.model.trim(),
+				thinkingLevel: reviewer.thinkingLevel,
+				maxDiffChars: reviewer.maxDiffChars,
 			},
 		})),
 	};
@@ -596,6 +620,8 @@ export function renderFinalReviewResults(
 		lines.push(`- Task ID: ${result.taskId} (${shortTaskId(result.taskId)})`);
 		lines.push(`- Reviewer: ${result.label ?? result.model ?? result.task}`);
 		if (result.model) lines.push(`- Model: ${result.model}`);
+		if (result.thinkingLevel)
+			lines.push(`- Thinking level: ${result.thinkingLevel}`);
 		if (focus) lines.push(`- Focus: ${focus}`);
 		lines.push("");
 		lines.push("### Summary");

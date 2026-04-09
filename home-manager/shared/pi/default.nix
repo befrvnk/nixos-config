@@ -3,7 +3,7 @@ let
   piSettings = {
     defaultModel = "gpt-5.4";
     defaultProvider = "github-copilot";
-    defaultThinkingLevel = "medium";
+    defaultThinkingLevel = "high";
     hideThinkingBlock = true;
   };
 

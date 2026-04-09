@@ -32,6 +32,13 @@ Both workflows share the same subagent engine for:
 
 Any runtime fix or improvement applies to both explore and review.
 
+## Layout
+
+- `index.ts` wires commands, tools, and shared orchestration
+- `workflows/explore/` contains the explore prompt, schema, and rendering/parsing logic
+- `workflows/review/` contains the review prompt, config, and rendering/parsing logic
+- the top-level shared files remain the reusable subagent runtime used by both workflows
+
 ## Tooling and model constraints
 
 Child runs are intentionally read-only and use guarded versions of:

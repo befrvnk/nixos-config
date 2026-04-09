@@ -1,6 +1,6 @@
 import { StringEnum } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
-import { MAX_LOGICAL_EXPLORE_TASKS } from "./types.js";
+import { MAX_LOGICAL_EXPLORE_TASKS } from "../../types.js";
 
 const exploreModelDescription =
 	"Optional GitHub Copilot model override. Must resolve to one of the allowed subagent models.";

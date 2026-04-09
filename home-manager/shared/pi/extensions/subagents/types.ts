@@ -8,6 +8,13 @@ export const MAX_RECENT_OUTPUT_LINES = 8;
 export const MAX_HISTORY_ITEMS = 120;
 
 export type SubagentWorkflow = "explore" | "review";
+export type SubagentThinkingLevel =
+	| "off"
+	| "minimal"
+	| "low"
+	| "medium"
+	| "high"
+	| "xhigh";
 export type SubagentRunMode = "single" | "parallel";
 export type SubagentTaskStatus = "success" | "error" | "aborted";
 export type SubagentRunStatus = "running" | SubagentTaskStatus;
@@ -16,6 +23,7 @@ export type SubagentTaskInput = {
 	task: string;
 	label?: string;
 	model?: string;
+	thinkingLevel?: SubagentThinkingLevel;
 	cwd?: string;
 	metadata?: Record<string, unknown>;
 };
@@ -47,6 +55,7 @@ export type SubagentTaskResult = {
 	task: string;
 	label?: string;
 	model?: string;
+	thinkingLevel?: SubagentThinkingLevel;
 	cwd?: string;
 	status: SubagentTaskStatus;
 	summary: string;
@@ -63,6 +72,7 @@ export type SubagentTaskState = {
 	task: string;
 	label: string;
 	model?: string;
+	thinkingLevel?: SubagentThinkingLevel;
 	cwd?: string;
 	metadata?: Record<string, unknown>;
 	state: "pending" | "running" | SubagentTaskStatus;

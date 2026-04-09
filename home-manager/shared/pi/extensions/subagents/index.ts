@@ -10,8 +10,8 @@ import {
 	renderExploreToolCall,
 	renderExploreToolResult,
 	renderFinalExploreResults,
-} from "./explore.js";
-import { EXPLORER_PROMPT } from "./explore-prompt.js";
+} from "./workflows/explore/index.js";
+import { EXPLORER_PROMPT } from "./workflows/explore/prompt.js";
 import {
 	renderRunMarkdown,
 	renderTaskHistoryMarkdown,
@@ -19,16 +19,22 @@ import {
 	shortTaskId,
 	uniqueNonEmptyStrings,
 } from "./formatting.js";
-import { DEFAULT_EXPLORE_MODEL } from "./model-policy.js";
+import {
+	DEFAULT_EXPLORE_MODEL,
+	DEFAULT_EXPLORE_THINKING_LEVEL,
+} from "./model-policy.js";
 import {
 	createReviewTasks,
 	parseReviewOutput,
 	renderFinalReviewResults,
 	type ReviewCommandRequest,
-} from "./review.js";
-import { REVIEWER_PROMPT } from "./review-prompt.js";
+} from "./workflows/review/index.js";
+import { REVIEWER_PROMPT } from "./workflows/review/prompt.js";
 import { mapWithConcurrencyLimit, runSingleTask } from "./runner.js";
-import { exploreParamsSchema, statusSchema } from "./schemas.js";
+import {
+	exploreParamsSchema,
+	statusSchema,
+} from "./workflows/explore/schema.js";
 import {
 	MAX_PARALLEL_TASKS,
 	MAX_RECENT_RUNS,
@@ -319,6 +325,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 				task: task.task,
 				label: task.label?.trim() || task.task.trim(),
 				model: task.model,
+				thinkingLevel: task.thinkingLevel,
 				cwd: task.cwd,
 				metadata: task.metadata,
 				state: "pending",
@@ -683,6 +690,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 								task: taskText,
 								label: taskText,
 								model: params.model?.trim() || DEFAULT_EXPLORE_MODEL,
+								thinkingLevel: DEFAULT_EXPLORE_THINKING_LEVEL,
 								cwd: params.cwd?.trim() || ctx.cwd,
 							},
 						];
@@ -691,6 +699,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 						task: task.task.trim(),
 						label: task.task.trim(),
 						model: task.model?.trim() || DEFAULT_EXPLORE_MODEL,
+						thinkingLevel: DEFAULT_EXPLORE_THINKING_LEVEL,
 						cwd: task.cwd?.trim() || ctx.cwd,
 					}));
 

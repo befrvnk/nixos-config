@@ -310,6 +310,8 @@ export async function runSingleTask(
 			sessionManager: SessionManager.inMemory(repositoryRoot),
 		};
 		if (model) createSessionOptions.model = model;
+		if (taskState.thinkingLevel)
+			createSessionOptions.thinkingLevel = taskState.thinkingLevel;
 		if (parentCtx.modelRegistry)
 			createSessionOptions.modelRegistry = parentCtx.modelRegistry;
 
@@ -493,6 +495,7 @@ export async function runSingleTask(
 				task: taskState.task,
 				label: taskState.label,
 				model: model ? `${model.provider}/${model.id}` : taskState.model,
+				thinkingLevel: taskState.thinkingLevel,
 				cwd: taskState.cwd,
 				status: "aborted",
 				summary: parsed.summary,
@@ -509,6 +512,7 @@ export async function runSingleTask(
 				task: taskState.task,
 				label: taskState.label,
 				model: model ? `${model.provider}/${model.id}` : taskState.model,
+				thinkingLevel: taskState.thinkingLevel,
 				cwd: taskState.cwd,
 				status: "error",
 				summary: parsed.summary,
@@ -520,15 +524,14 @@ export async function runSingleTask(
 		}
 
 		if (!bestResponse.trim() || !hasMeaningfulParsedOutput(parsed)) {
-			const error = taskState.error
-				? `Subagent returned no structured content. ${taskState.error}`
-				: "Subagent returned no structured content.";
+			const error = taskState.error || "Subagent returned no structured content.";
 			pushHistory(taskState, "error", error);
 			return finish({
 				taskId: taskState.taskId,
 				task: taskState.task,
 				label: taskState.label,
 				model: model ? `${model.provider}/${model.id}` : taskState.model,
+				thinkingLevel: taskState.thinkingLevel,
 				cwd: taskState.cwd,
 				status: "error",
 				summary: parsed.summary,
@@ -544,6 +547,7 @@ export async function runSingleTask(
 			task: taskState.task,
 			label: taskState.label,
 			model: model ? `${model.provider}/${model.id}` : taskState.model,
+			thinkingLevel: taskState.thinkingLevel,
 			cwd: taskState.cwd,
 			status: "success",
 			summary: parsed.summary,
@@ -563,6 +567,7 @@ export async function runSingleTask(
 			task: taskState.task,
 			label: taskState.label,
 			model: taskState.model,
+			thinkingLevel: taskState.thinkingLevel,
 			cwd: taskState.cwd,
 			status: aborted ? "aborted" : "error",
 			summary: parsed.summary,

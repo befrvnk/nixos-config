@@ -4,9 +4,12 @@ import {
 	shortTaskId,
 	shortenPath,
 	splitMarkdownSections,
-} from "./formatting.js";
-import type { ParsedSubagentOutput, SubagentTaskResult } from "./types.js";
-import type { Theme } from "./ui.js";
+} from "../../formatting.js";
+import type {
+	ParsedSubagentOutput,
+	SubagentTaskResult,
+} from "../../types.js";
+import type { Theme } from "../../ui.js";
 
 function asStringArray(value: unknown): string[] {
 	return Array.isArray(value)
