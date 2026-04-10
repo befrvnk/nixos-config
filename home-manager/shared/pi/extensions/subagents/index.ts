@@ -3,8 +3,11 @@ import type {
 	ExtensionCommandContext,
 	ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
-import { BorderedLoader } from "@mariozechner/pi-coding-agent";
-import { Text } from "@mariozechner/pi-tui";
+import {
+	BorderedLoader,
+	getMarkdownTheme,
+} from "@mariozechner/pi-coding-agent";
+import { Markdown, Text } from "@mariozechner/pi-tui";
 import {
 	parseExploreOutput,
 	renderExploreToolCall,
@@ -53,6 +56,14 @@ import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
 
 const SUBAGENT_TASK_MESSAGE_TYPE = "subagent-task";
 const SUBAGENT_MARKDOWN_MESSAGE_TYPE = "subagent-markdown";
+const MARKDOWN_PREVIEW_LINES = 8;
+
+function renderMarkdownPreview(markdown: string, theme: { fg(color: string, text: string): string }) {
+	const lines = markdown.trim().split("\n");
+	const preview = lines.slice(0, MARKDOWN_PREVIEW_LINES).join("\n").trim();
+	if (lines.length <= MARKDOWN_PREVIEW_LINES) return preview;
+	return `${preview}\n${theme.fg("muted", "(expand to view full formatted markdown)")}`;
+}
 
 type ReviewExecutionResult =
 	| { status: "success" }
@@ -482,11 +493,17 @@ export default function subagentExtension(pi: ExtensionAPI) {
 		},
 	);
 
-	pi.registerMessageRenderer(SUBAGENT_MARKDOWN_MESSAGE_TYPE, (message) => {
-		const details = message.details as { markdown?: string } | undefined;
-		if (!details?.markdown) return undefined;
-		return new Text(details.markdown, 0, 0);
-	});
+	pi.registerMessageRenderer(
+		SUBAGENT_MARKDOWN_MESSAGE_TYPE,
+		(message, { expanded }, theme) => {
+			const details = message.details as { markdown?: string } | undefined;
+			if (!details?.markdown) return undefined;
+			if (!expanded) {
+				return new Text(renderMarkdownPreview(details.markdown, theme), 0, 0);
+			}
+			return new Markdown(details.markdown, 0, 0, getMarkdownTheme());
+		},
+	);
 
 	pi.registerCommand("subagent", {
 		description: "Show detailed history for a subagent task by ID",
