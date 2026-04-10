@@ -28,14 +28,14 @@ export const FIXED_REVIEWERS: readonly ReviewerConfig[] = [
 		label: "Opus 4.6",
 		model: `${COPILOT_PROVIDER}/claude-opus-4.6` as AllowedSubagentModel,
 		focus: "correctness, regressions, hidden bugs, and edge cases",
-		thinkingLevel: "medium",
+		thinkingLevel: "high",
 		maxDiffChars: 50_000,
 	},
 	{
 		label: "Gemini 3.1",
 		model: `${COPILOT_PROVIDER}/gemini-3.1-pro-preview` as AllowedSubagentModel,
 		focus: "maintainability, clarity, test gaps, and surprising behavior",
-		thinkingLevel: "medium",
+		thinkingLevel: "high",
 		maxDiffChars: 24_000,
 	},
 ] as const;
