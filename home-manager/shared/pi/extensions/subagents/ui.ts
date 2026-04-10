@@ -44,7 +44,7 @@ function formatTokens(count: number): string {
 }
 
 function formatTurns(turnCount: number): string {
-	return `⟳${Math.max(1, turnCount)}`;
+	return `⟳ ${Math.max(1, turnCount)}`;
 }
 
 function truncateLine(text: string, len = 64): string {
