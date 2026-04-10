@@ -43,6 +43,7 @@ in
 
     file = {
       ".pi/agent/AGENTS.md".source = ../global-agent-context.md;
+      ".pi/agent/extensions/answer".source = ./extensions/answer;
       ".pi/agent/extensions/nix-shell-fallback".source = ./extensions/nix-shell-fallback;
       ".pi/agent/extensions/pi-lsp".source = ./extensions/pi-lsp;
       ".pi/agent/extensions/subagents".source = ./extensions/subagents;
