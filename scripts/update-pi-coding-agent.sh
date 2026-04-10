@@ -36,7 +36,15 @@ declare -A assets=(
 tmp_file=$(mktemp)
 cp "$PACKAGE_FILE" "$tmp_file"
 
-sed -i "s|version = \".*\";|version = \"$version\";|" "$tmp_file"
+sed_in_place() {
+  if sed --version >/dev/null 2>&1; then
+    sed -i "$@"
+  else
+    sed -i '' "$@"
+  fi
+}
+
+sed_in_place "s|version = \".*\";|version = \"$version\";|" "$tmp_file"
 
 for system in x86_64-linux aarch64-linux x86_64-darwin aarch64-darwin; do
   asset="${assets[$system]}"
@@ -48,7 +56,7 @@ for system in x86_64-linux aarch64-linux x86_64-darwin aarch64-darwin; do
     exit 1
   fi
 
-  sed -i "/$system = {/,/};/ s|hash = \"sha256-.*\";|hash = \"$digest\";|" "$tmp_file"
+  sed_in_place "/$system = {/,/};/ s|hash = \"[^\"]*\";|hash = \"$digest\";|" "$tmp_file"
 done
 
 mv "$tmp_file" "$PACKAGE_FILE"
