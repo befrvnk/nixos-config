@@ -36,19 +36,27 @@ SRC_SRI=$(nix hash convert --hash-algo sha256 --to sri "$SRC_HASH" 2>/dev/null)
 
 echo "New source hash: $SRC_SRI"
 
+sed_in_place() {
+    if sed --version >/dev/null 2>&1; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
+}
+
 # Update version and source hash
-sed -i '' "s|version = \".*\"|version = \"$VERSION\"|" "$PACKAGE_FILE"
-sed -i '' "/src = fetchFromGitHub/,/};/{s|hash = \"sha256-.*\"|hash = \"$SRC_SRI\"|;}" "$PACKAGE_FILE"
+sed_in_place "s|version = \".*\"|version = \"$VERSION\"|" "$PACKAGE_FILE"
+sed_in_place "/src = fetchFromGitHub/,/};/{s|hash = \"sha256-.*\"|hash = \"$SRC_SRI\"|;}" "$PACKAGE_FILE"
 
 # Clear vendor hash to force recalculation
-sed -i '' "s|vendorHash = \"sha256-.*\"|vendorHash = \"\"|" "$PACKAGE_FILE"
+sed_in_place "s|vendorHash = \"sha256-.*\"|vendorHash = \"\"|" "$PACKAGE_FILE"
 
 echo "Building to get new vendor hash..."
 VENDOR_OUTPUT=$(nix-build -E "with import <nixpkgs> {}; callPackage ./$PACKAGE_FILE {}" 2>&1 || true)
 VENDOR_GOT=$(echo "$VENDOR_OUTPUT" | grep "got:" | tail -1 | awk '{print $2}')
 
 if [[ -n "$VENDOR_GOT" ]]; then
-    sed -i '' "s|vendorHash = \".*\"|vendorHash = \"$VENDOR_GOT\"|" "$PACKAGE_FILE"
+    sed_in_place "s|vendorHash = \".*\"|vendorHash = \"$VENDOR_GOT\"|" "$PACKAGE_FILE"
     echo "New vendor hash: $VENDOR_GOT"
 else
     echo "⚠️  Could not determine vendor hash. Manual fix needed."
