@@ -47,6 +47,15 @@ test("does not rewrite nix shell commands", () => {
 	);
 });
 
+test("ignores comments and path-like executables", () => {
+	assert.deepEqual(
+		getMappedPackagesForCommand("./scripts/check.sh # python", {
+			isCommandAvailable: unavailableCommands("python"),
+		}),
+		[],
+	);
+});
+
 test("leaves commands alone when they already exist", () => {
 	assert.equal(
 		rewriteCommandForNixShell("python3 -c 'print(1)'", {

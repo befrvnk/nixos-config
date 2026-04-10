@@ -463,7 +463,7 @@ function buildReviewerDiffPreview(
 	};
 }
 
-function buildReviewTask(
+export function buildReviewTask(
 	context: ReviewContext,
 	reviewer: ReviewerConfig,
 	extraPrompt?: string,

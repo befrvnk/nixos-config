@@ -34,7 +34,7 @@ async function getMacTheme(): Promise<ThemeMode | undefined> {
   return undefined;
 }
 
-function parseLinuxTheme(output: string): ThemeMode | undefined {
+export function parseLinuxTheme(output: string): ThemeMode | undefined {
   const normalized = output.trim().toLowerCase();
   if (!normalized) return undefined;
   if (normalized.includes("dark")) return "dark";
@@ -73,7 +73,7 @@ async function detectTheme(): Promise<ThemeMode | undefined> {
   }
 }
 
-function applyTheme(ctx: ExtensionContext, mode: ThemeMode): ThemeMode {
+export function applyTheme(ctx: ExtensionContext, mode: ThemeMode): ThemeMode {
   const result = ctx.ui.setTheme(THEMES[mode]);
   if (!result.success) {
     throw new Error(result.error ?? `Failed to set ${mode} theme.`);

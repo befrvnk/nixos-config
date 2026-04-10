@@ -28,7 +28,7 @@ type DiagnosticsWaiter = {
   timer: ReturnType<typeof setTimeout>;
 };
 
-class JsonRpcStreamParser {
+export class JsonRpcStreamParser {
   private buffer = Buffer.alloc(0);
 
   push(chunk: Buffer): any[] {
