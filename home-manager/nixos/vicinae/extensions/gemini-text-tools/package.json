@@ -1,0 +1,163 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "gemini-text-tools",
+  "title": "Gemini Text Tools",
+  "description": "Rewrite selected text with Gemini using quick commands for better writing, grammar fixes, tone changes, and custom prompts.",
+  "categories": [
+    "Productivity",
+    "Developer Tools"
+  ],
+  "license": "MIT",
+  "author": "frank",
+  "contributors": [],
+  "pastContributors": [],
+  "icon": "extension_icon.svg",
+  "commands": [
+    {
+      "name": "rewrite-text",
+      "title": "Rewrite Text",
+      "description": "Preview rewrite presets for the selected text or clipboard contents",
+      "mode": "view",
+      "keywords": ["rewrite", "text", "improve", "writing", "gemini"]
+    },
+    {
+      "name": "custom-rewrite",
+      "title": "Custom Rewrite",
+      "description": "Run a custom Gemini prompt against selected text or manually entered text",
+      "mode": "view",
+      "keywords": ["custom", "prompt", "rewrite", "text", "gemini"]
+    },
+    {
+      "name": "improve-writing",
+      "title": "Improve Writing",
+      "description": "Preview an improved rewrite with highlighted additions and deletions",
+      "mode": "view",
+      "keywords": ["improve", "writing", "grammar", "rewrite"]
+    },
+    {
+      "name": "fix-spelling-and-grammar",
+      "title": "Fix Spelling and Grammar",
+      "description": "Preview a grammar-fixed rewrite with highlighted changes",
+      "mode": "view",
+      "keywords": ["grammar", "spelling", "proofread", "rewrite"]
+    },
+    {
+      "name": "make-shorter",
+      "title": "Make Shorter",
+      "description": "Preview a shorter rewrite with highlighted changes",
+      "mode": "view",
+      "keywords": ["shorter", "concise", "summarize", "rewrite"]
+    },
+    {
+      "name": "make-longer",
+      "title": "Make Longer",
+      "description": "Preview a longer rewrite with highlighted changes",
+      "mode": "view",
+      "keywords": ["longer", "expand", "elaborate", "rewrite"]
+    },
+    {
+      "name": "professional-tone",
+      "title": "Professional Tone",
+      "description": "Preview a professional rewrite with highlighted changes",
+      "mode": "view",
+      "keywords": ["professional", "tone", "formal", "rewrite"]
+    },
+    {
+      "name": "friendly-tone",
+      "title": "Friendly Tone",
+      "description": "Preview a friendlier rewrite with highlighted changes",
+      "mode": "view",
+      "keywords": ["friendly", "tone", "casual", "rewrite"]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "apiKey",
+      "type": "password",
+      "title": "Gemini API Key",
+      "description": "Google AI Studio API key used to call the Gemini Generative Language API.",
+      "required": true
+    },
+    {
+      "name": "model",
+      "type": "dropdown",
+      "title": "Model",
+      "description": "Gemini model to use for rewrite requests.",
+      "data": [
+        {
+          "title": "Gemini 2.5 Flash",
+          "value": "gemini-2.5-flash"
+        },
+        {
+          "title": "Gemini 2.5 Flash Lite",
+          "value": "gemini-2.5-flash-lite"
+        },
+        {
+          "title": "Gemini 2.5 Pro",
+          "value": "gemini-2.5-pro"
+        }
+      ],
+      "default": "gemini-2.5-flash",
+      "required": false
+    },
+    {
+      "name": "source",
+      "type": "dropdown",
+      "title": "Preferred Source",
+      "description": "Prefer selected text or clipboard when reading input. The other source is used as a fallback.",
+      "data": [
+        {
+          "title": "Selected Text",
+          "value": "selected"
+        },
+        {
+          "title": "Clipboard",
+          "value": "clipboard"
+        }
+      ],
+      "default": "selected",
+      "required": false
+    },
+    {
+      "name": "action",
+      "type": "dropdown",
+      "title": "Default Quick Action",
+      "description": "Choose whether quick commands paste back into the active app or copy the result.",
+      "data": [
+        {
+          "title": "Paste",
+          "value": "paste"
+        },
+        {
+          "title": "Copy",
+          "value": "copy"
+        }
+      ],
+      "default": "paste",
+      "required": false
+    },
+    {
+      "name": "customInstructions",
+      "type": "textfield",
+      "title": "Additional Instructions",
+      "description": "Optional extra guidance appended to every rewrite request, such as style rules or preferred spelling.",
+      "default": "",
+      "placeholder": "Use British spelling, avoid em dashes, ...",
+      "required": false
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop"
+  },
+  "dependencies": {
+    "@vicinae/api": "^0.15.5",
+    "diff": "^7.0.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.10",
+    "typescript": "^5.9.3"
+  }
+}

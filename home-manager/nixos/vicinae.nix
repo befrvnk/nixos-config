@@ -18,6 +18,14 @@ let
       EOF
     ''
   );
+
+  localGeminiTextTools =
+    inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.mkVicinaeExtension
+      {
+        pname = "vicinae-extension-gemini-text-tools";
+        version = "0";
+        src = ./vicinae/extensions/gemini-text-tools;
+      };
 in
 {
   services.vicinae = {
@@ -50,6 +58,7 @@ in
 
     extensions = with inputs.vicinae-extensions.packages.${pkgs.stdenv.hostPlatform.system}; [
       # bluetooth # TODO: re-enable once usocket builds with Node.js 24
+      localGeminiTextTools
       nix
       wifi-commander
     ];
