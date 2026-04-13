@@ -6,7 +6,6 @@ Supported languages:
 - TypeScript
 - Nix
 - Kotlin
-- Java
 
 All dedicated semantic tools (`workspace_symbols`, `document_symbols`, `definition`, `references`, `hover`, `diagnostics`) support Kotlin through the configured `kotlin-lsp` server.
 

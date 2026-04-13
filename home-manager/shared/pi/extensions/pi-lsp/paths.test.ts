@@ -34,7 +34,8 @@ test("detectLanguage prefers explicit override and otherwise uses file suffix", 
   assert.equal(detectLanguage("/tmp/example.ts"), "typescript");
   assert.equal(detectLanguage("/tmp/example.kt"), "kotlin");
   assert.equal(detectLanguage("/tmp/example.kts"), "kotlin");
-  assert.equal(detectLanguage("/tmp/example.any", "java"), "java");
+  assert.equal(detectLanguage("/tmp/example.any", "nix"), "nix");
+  assert.throws(() => detectLanguage("/tmp/example.java"), /Unsupported language/);
   assert.throws(() => detectLanguage("/tmp/example.txt"), /Unsupported language/);
 });
 

@@ -415,9 +415,9 @@ export default function piLspExtension(pi: ExtensionAPI) {
     name: "lsp_query",
     label: "LSP Query",
     description:
-      "Query language servers for TypeScript, Nix, Kotlin, and Java. Supports hover, definition, references, diagnostics, document symbols, and workspace symbol search.",
+      "Query language servers for TypeScript, Nix, and Kotlin. Supports hover, definition, references, diagnostics, document symbols, and workspace symbol search.",
     promptSnippet:
-      "Use LSP for type information, go-to-definition, references, diagnostics, and symbol discovery in TypeScript, Nix, Kotlin, and Java.",
+      "Use LSP for type information, go-to-definition, references, diagnostics, and symbol discovery in TypeScript, Nix, and Kotlin.",
     promptGuidelines: [
       "Use this tool on demand when you need semantic code intelligence such as types, definitions, references, or diagnostics.",
       "Do not assume it runs automatically after edits; call it explicitly when verification is useful.",
@@ -449,7 +449,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
     description: "List semantic symbols inside a supported-language file.",
     promptSnippet: "Inspect file structure before reading large supported-language files.",
     promptGuidelines: [
-      "Use this before reading a large TypeScript, Nix, Kotlin, or Java file when you need a structural overview.",
+      "Use this before reading a large TypeScript, Nix, or Kotlin file when you need a structural overview.",
     ],
     parameters: DocumentSymbolsParams,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {

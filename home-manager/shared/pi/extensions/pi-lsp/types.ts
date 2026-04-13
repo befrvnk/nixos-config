@@ -1,4 +1,4 @@
-export type SupportedLanguage = "typescript" | "nix" | "kotlin" | "java";
+export type SupportedLanguage = "typescript" | "nix" | "kotlin";
 
 export type QueryAction =
   | "hover"

@@ -1,9 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { createHash } from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { getCacheRoot } from "./config.js";
 import { LANGUAGE_IDS } from "./constants.js";
 import type {
   Diagnostic,
@@ -177,12 +173,7 @@ export class LspServer {
 
     this.unsupportedMethods.clear();
 
-    const args = [...(this.config.args ?? [])];
-    if (this.language === "java") {
-      args.push("-data", this.getJavaWorkspaceDir());
-    }
-
-    const child = spawn(this.config.command, args, {
+    const child = spawn(this.config.command, this.config.args ?? [], {
       cwd: this.root,
       env: process.env,
       stdio: ["pipe", "pipe", "pipe"],
@@ -537,13 +528,6 @@ export class LspServer {
     else this.diagnosticWaiters.delete(uri);
   }
 
-  private getJavaWorkspaceDir(): string {
-    const cacheRoot = getCacheRoot();
-    const hash = createHash("sha1").update(this.root).digest("hex");
-    const dir = path.join(cacheRoot, "jdtls", hash);
-    fs.mkdirSync(dir, { recursive: true });
-    return dir;
-  }
 }
 
 export class ServerManager {

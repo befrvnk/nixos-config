@@ -9,10 +9,6 @@ let
 
   piLspConfig = {
     servers = {
-      java = {
-        command = "${pkgs.jdt-language-server}/bin/jdtls";
-        startupTimeoutMs = 60000;
-      };
       kotlin = {
         args = [ "--stdio" ];
         command = "${pkgs.kotlin-lsp}/bin/kotlin-lsp";
@@ -34,7 +30,6 @@ in
 {
   home = {
     packages = [
-      pkgs.jdt-language-server
       pkgs.kotlin-lsp
       pkgs.nodejs
       pkgs.pi-coding-agent

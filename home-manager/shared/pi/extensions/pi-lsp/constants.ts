@@ -9,10 +9,9 @@ export const ACTIONS = [
   "workspace_symbols",
 ] as const;
 
-export const LANGUAGES = ["typescript", "nix", "kotlin", "java"] as const;
+export const LANGUAGES = ["typescript", "nix", "kotlin"] as const;
 
 export const LANGUAGE_IDS: Record<SupportedLanguage, string> = {
-  java: "java",
   kotlin: "kotlin",
   nix: "nix",
   typescript: "typescript",
@@ -22,11 +21,9 @@ export const LANGUAGE_EXTENSIONS: Array<{ suffixes: string[]; language: Supporte
   { suffixes: [".ts", ".tsx", ".js", ".jsx", ".mts", ".cts"], language: "typescript" },
   { suffixes: [".nix"], language: "nix" },
   { suffixes: [".kt", ".kts"], language: "kotlin" },
-  { suffixes: [".java"], language: "java" },
 ];
 
 export const ROOT_MARKERS: Record<SupportedLanguage, string[]> = {
-  java: ["settings.gradle", "settings.gradle.kts", "build.gradle", "build.gradle.kts", "pom.xml", ".git"],
   kotlin: ["settings.gradle.kts", "settings.gradle", "build.gradle.kts", "build.gradle", "pom.xml", ".git"],
   nix: ["flake.nix", "default.nix", "shell.nix", ".git"],
   typescript: ["tsconfig.json", "tsconfig.base.json", "jsconfig.json", "package.json", "pnpm-workspace.yaml", ".git"],

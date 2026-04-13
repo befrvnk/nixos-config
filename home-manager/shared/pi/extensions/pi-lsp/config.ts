@@ -18,7 +18,3 @@ export function loadConfig(): ExtensionConfig {
   return parsed;
 }
 
-export function getCacheRoot(): string {
-  if (process.platform === "darwin") return path.join(os.homedir(), "Library", "Caches", "pi-lsp");
-  return path.join(os.homedir(), ".cache", "pi-lsp");
-}
