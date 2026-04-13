@@ -38,6 +38,7 @@ import {
 	parseReviewOutput,
 	renderFinalReviewResults,
 } from "./workflows/review/index.js";
+import { buildReviewContextSystemPrompt } from "./review-context.js";
 import { REVIEWER_PROMPT } from "./workflows/review/prompt.js";
 import { mapWithConcurrencyLimit, runSingleTask } from "./runner.js";
 import {
@@ -186,6 +187,7 @@ function showCommandMessage(
 export default function subagentExtension(pi: ExtensionAPI) {
 	const activeRuns = new Map<string, SubagentRunState>();
 	const recentRuns: SubagentRunState[] = [];
+	const pendingReviewContexts: string[] = [];
 	const widget = new SubagentWidget(() => [
 		...activeRuns.values(),
 		...recentRuns,
@@ -367,11 +369,18 @@ export default function subagentExtension(pi: ExtensionAPI) {
 				return { status: "aborted" };
 			}
 
+			const reviewMarkdown = renderFinalReviewResults(
+				run.runId,
+				run.mode,
+				results,
+				context,
+			);
 			showCommandMessage(
 				pi,
-				renderFinalReviewResults(run.runId, run.mode, results, context),
+				reviewMarkdown,
 				`Review ${selection.label}`,
 			);
+			pendingReviewContexts.push(reviewMarkdown);
 
 			if (run.state === "success") {
 				return { status: "success" };
@@ -449,13 +458,19 @@ export default function subagentExtension(pi: ExtensionAPI) {
 
 		switch (result.status) {
 			case "success":
-				ctx.ui.notify(`Review finished for ${selection.label}.`, "info");
+				ctx.ui.notify(
+					`Review finished for ${selection.label}. Findings will be added to the next agent turn.`,
+					"info",
+				);
 				return;
 			case "aborted":
 				ctx.ui.notify(`Review cancelled for ${selection.label}.`, "info");
 				return;
 			case "partial":
-				ctx.ui.notify(result.message, "warning");
+				ctx.ui.notify(
+					`${result.message} Findings will be added to the next agent turn.`,
+					"warning",
+				);
 				return;
 			case "error":
 				ctx.ui.notify(`Review failed: ${result.message}`, "error");
@@ -467,6 +482,18 @@ export default function subagentExtension(pi: ExtensionAPI) {
 		if (!ctx.hasUI) return;
 		widget.setUICtx(ctx.ui);
 		widget.update();
+	});
+
+	pi.on("before_agent_start", (event) => {
+		const reviewContext = buildReviewContextSystemPrompt(
+			pendingReviewContexts,
+		);
+		if (!reviewContext) return undefined;
+
+		pendingReviewContexts.length = 0;
+		return {
+			systemPrompt: `${event.systemPrompt}\n\n${reviewContext}`,
+		};
 	});
 
 	pi.on("agent_end", () => {

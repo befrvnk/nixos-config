@@ -109,6 +109,8 @@ Interactive `/review` currently supports:
 
 Interactive review runs use a cancellable loader UI; press `Esc` to abort an in-progress review.
 
+After a successful or partial review, the rendered findings are queued into the main agent's next turn as additional context so you can immediately ask it to apply or address the review.
+
 Base-branch review compares the current working tree against the merge base with the selected branch.
 
 Review gathers:
