@@ -38,7 +38,7 @@
     # for the flake's own nixpkgs version, using follows causes cache misses
     niri.url = "github:sodiboo/niri-flake";
     awww = {
-      url = "git+https://codeberg.org/LGFae/awww";
+      url = "git+https://codeberg.org/LGFae/awww?ref=refs/tags/v0.12.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     claude-code = {

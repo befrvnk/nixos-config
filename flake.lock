@@ -54,15 +54,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1776026467,
-        "narHash": "sha256-OxQHyQe+mcyJPbOalPhtdBFT5hcLS2FkrKomSne75E4=",
-        "ref": "refs/heads/main",
-        "rev": "5e94382b5d39fbea13dcc4d873f418d4b2723ec4",
-        "revCount": 1352,
+        "lastModified": 1774191766,
+        "narHash": "sha256-bvO+gfuUOVUiBEwAJ5A2RjpysPzCfyXD+DM8piOa1+4=",
+        "ref": "refs/tags/v0.12.0",
+        "rev": "7a8fc2e646b97e5ae508a44d3449e3b41345d456",
+        "revCount": 1336,
         "type": "git",
         "url": "https://codeberg.org/LGFae/awww"
       },
       "original": {
+        "ref": "refs/tags/v0.12.0",
         "type": "git",
         "url": "https://codeberg.org/LGFae/awww"
       }
