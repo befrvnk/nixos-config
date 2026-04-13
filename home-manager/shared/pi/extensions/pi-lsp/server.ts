@@ -5,11 +5,19 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { getCacheRoot } from "./config.js";
 import { LANGUAGE_IDS } from "./constants.js";
-import type { Diagnostic, ExtensionConfig, OpenDocument, ServerConfig, SupportedLanguage } from "./types.js";
+import type {
+  Diagnostic,
+  ExtensionConfig,
+  OpenDocument,
+  ServerConfig,
+  ServerStatus,
+  SupportedLanguage,
+} from "./types.js";
 
 const DEFAULT_DIAGNOSTICS_TIMEOUT_MS = 5_000;
 
 type PendingRequest = {
+  method: string;
   resolve: (value: any) => void;
   reject: (error: Error) => void;
 };
@@ -72,13 +80,85 @@ function formatExitSuffix(code: number | null, signal: NodeJS.Signals | null): s
   return parts.length > 0 ? ` (${parts.join(", ")})` : "";
 }
 
+function getServerLabel(command: string): string {
+  return path.basename(command) || command;
+}
+
+export function isMethodNotSupportedResponse(method: string, error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const payload = error as { code?: unknown; message?: unknown; data?: unknown };
+  const message = typeof payload.message === "string" ? payload.message : "";
+  const data = typeof payload.data === "string" ? payload.data : "";
+  const combined = `${message}\n${data}`.toLowerCase();
+
+  if (payload.code === -32601) return true;
+  if (combined.includes("method not found")) return true;
+  if (combined.includes("no such method")) return true;
+  return false;
+}
+
+export class UnsupportedLspMethodError extends Error {
+  readonly method: string;
+  readonly language: SupportedLanguage;
+  readonly root: string;
+  readonly serverName: string;
+
+  constructor(method: string, language: SupportedLanguage, root: string, serverName: string) {
+    super(`${language}: ${serverName} does not support ${method}`);
+    this.name = "UnsupportedLspMethodError";
+    this.method = method;
+    this.language = language;
+    this.root = root;
+    this.serverName = serverName;
+  }
+}
+
+export function isUnsupportedLspMethodError(error: unknown, method?: string): error is UnsupportedLspMethodError {
+  if (!(error instanceof UnsupportedLspMethodError)) return false;
+  return method ? error.method === method : true;
+}
+
+export function isNoProjectResponse(method: string, error: unknown): boolean {
+  if (method !== "workspace/symbol" || !error || typeof error !== "object") return false;
+
+  const payload = error as { message?: unknown; data?: unknown };
+  const message = typeof payload.message === "string" ? payload.message : "";
+  const data = typeof payload.data === "string" ? payload.data : "";
+  const combined = `${message}\n${data}`.toLowerCase();
+  return combined.includes("no project");
+}
+
+export class LspNoProjectError extends Error {
+  readonly method: string;
+  readonly language: SupportedLanguage;
+  readonly root: string;
+  readonly serverName: string;
+
+  constructor(method: string, language: SupportedLanguage, root: string, serverName: string) {
+    super(`${language}: ${serverName} has no project for ${method}`);
+    this.name = "LspNoProjectError";
+    this.method = method;
+    this.language = language;
+    this.root = root;
+    this.serverName = serverName;
+  }
+}
+
+export function isLspNoProjectError(error: unknown, method?: string): error is LspNoProjectError {
+  if (!(error instanceof LspNoProjectError)) return false;
+  return method ? error.method === method : true;
+}
+
 export class LspServer {
   private process: ChildProcessWithoutNullStreams | undefined;
   private parser = new JsonRpcStreamParser();
   private requestId = 1;
   private started = false;
+  private startedAt: number | undefined;
   private lastProcessError: Error | undefined;
   private readonly pendingRequests = new Map<number, PendingRequest>();
+  private readonly unsupportedMethods = new Set<string>();
   private readonly documents = new Map<string, OpenDocument>();
   private readonly diagnostics = new Map<string, DiagnosticEntry>();
   private readonly diagnosticWaiters = new Map<string, DiagnosticsWaiter[]>();
@@ -94,6 +174,8 @@ export class LspServer {
 
   async start(): Promise<void> {
     if (this.started) return;
+
+    this.unsupportedMethods.clear();
 
     const args = [...(this.config.args ?? [])];
     if (this.language === "java") {
@@ -172,6 +254,7 @@ export class LspServer {
       );
       await this.notify("initialized", {});
       this.started = true;
+      this.startedAt = Date.now();
     } catch (error) {
       if (error instanceof Error) this.lastProcessError = error;
       this.terminateProcess();
@@ -196,9 +279,15 @@ export class LspServer {
 
     this.terminateProcess();
     this.started = false;
+    this.startedAt = undefined;
+    this.unsupportedMethods.clear();
   }
 
   async request(method: string, params: unknown, timeoutMs = 15_000): Promise<any> {
+    if (this.unsupportedMethods.has(method)) {
+      throw new UnsupportedLspMethodError(method, this.language, this.root, getServerLabel(this.config.command));
+    }
+
     if (!this.process?.stdin.writable) {
       throw this.lastProcessError ?? new Error(`LSP server is not running for ${this.language}`);
     }
@@ -218,6 +307,7 @@ export class LspServer {
       }, timeoutMs);
 
       this.pendingRequests.set(id, {
+        method,
         reject: (error) => {
           clearTimeout(timer);
           reject(error);
@@ -309,7 +399,28 @@ export class LspServer {
       this.pendingRequests.delete(message.id);
 
       if (message.error) {
-        pending.reject(new Error(message.error.message ?? `LSP request failed: ${message.id}`));
+        if (isMethodNotSupportedResponse(pending.method, message.error)) {
+          this.unsupportedMethods.add(pending.method);
+          pending.reject(
+            new UnsupportedLspMethodError(
+              pending.method,
+              this.language,
+              this.root,
+              getServerLabel(this.config.command),
+            ),
+          );
+        } else if (isNoProjectResponse(pending.method, message.error)) {
+          pending.reject(
+            new LspNoProjectError(
+              pending.method,
+              this.language,
+              this.root,
+              getServerLabel(this.config.command),
+            ),
+          );
+        } else {
+          pending.reject(new Error(message.error.message ?? `LSP request failed: ${message.id}`));
+        }
       } else {
         pending.resolve(message.result);
       }
@@ -330,11 +441,22 @@ export class LspServer {
     this.process = undefined;
   }
 
+  getStatus(): ServerStatus {
+    return {
+      language: this.language,
+      root: this.root,
+      pid: this.process?.pid,
+      startedAt: this.startedAt,
+      openDocuments: this.documents.size,
+    };
+  }
+
   private handleProcessFailure(error: Error): void {
     if (!this.lastProcessError) this.lastProcessError = error;
     this.rejectPendingRequests(this.lastProcessError);
     this.rejectDiagnosticWaiters(this.lastProcessError);
     this.started = false;
+    this.startedAt = undefined;
     this.process = undefined;
   }
 
@@ -459,6 +581,19 @@ export class ServerManager {
     } finally {
       this.starting.delete(key);
     }
+  }
+
+  getConfiguredLanguages(): SupportedLanguage[] {
+    return Object.entries(this.config.servers)
+      .filter(([, serverConfig]) => serverConfig)
+      .map(([language]) => language as SupportedLanguage);
+  }
+
+  getStatus(): ServerStatus[] {
+    return Array.from(this.servers.values(), (server) => server.getStatus()).sort((left, right) => {
+      if (left.language === right.language) return left.root.localeCompare(right.root);
+      return left.language.localeCompare(right.language);
+    });
   }
 
   async shutdown(): Promise<void> {

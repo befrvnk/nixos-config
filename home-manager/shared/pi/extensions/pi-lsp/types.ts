@@ -66,3 +66,11 @@ export type OpenDocument = {
   version: number;
   text: string;
 };
+
+export type ServerStatus = {
+  language: SupportedLanguage;
+  root: string;
+  pid?: number;
+  startedAt?: number;
+  openDocuments: number;
+};

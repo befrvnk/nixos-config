@@ -8,16 +8,25 @@ Add fast unit tests for every existing pi extension in this repo so regressions 
 
 Existing extensions:
 
-1. `nix-shell-fallback`
-2. `pi-lsp`
-3. `subagents`
-4. `system-theme-sync`
+1. `nav-tools`
+2. `nix-shell-fallback`
+3. `pi-lsp`
+4. `subagents`
+5. `system-theme-sync`
 
 The focus is **pure logic and small deterministic helpers**. We intentionally avoid interactive TUI and live pi runtime tests in this phase.
 
 ## Test Strategy
 
-### 1. nix-shell-fallback
+### 1. nav-tools
+
+**Primary risk:** accidentally failing to register the extra navigation tools for the current cwd.
+
+**Unit-test targets**
+- none for now; the extension is a thin wrapper around pi's built-in tool factories
+- rely on flake evaluation plus interactive smoke testing after rebuild
+
+### 2. nix-shell-fallback
 
 **Primary risk:** shell command parsing and package rewrite mistakes.
 
@@ -32,7 +41,7 @@ The focus is **pure logic and small deterministic helpers**. We intentionally av
 - Existing `rewrite.test.mjs` kept
 - Expanded with another parser edge case
 
-### 2. pi-lsp
+### 3. pi-lsp
 
 **Primary risk:** path resolution, root detection, LSP output formatting, JSON-RPC framing.
 
@@ -55,7 +64,7 @@ The focus is **pure logic and small deterministic helpers**. We intentionally av
 - mocked `ServerManager` lifecycle tests
 - config loading failure cases via isolated module reloads
 
-### 3. system-theme-sync
+### 4. system-theme-sync
 
 **Primary risk:** theme detection parsing and bad UI state application.
 
@@ -67,7 +76,7 @@ The focus is **pure logic and small deterministic helpers**. We intentionally av
 - polling lifecycle smoke tests with mocked timers
 - platform-specific detector tests via command stubs
 
-### 4. subagents
+### 5. subagents
 
 **Primary risk:** unsafe command filtering, result parsing, markdown formatting, command parsing, and model gating.
 
