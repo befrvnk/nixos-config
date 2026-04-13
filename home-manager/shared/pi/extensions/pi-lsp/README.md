@@ -8,6 +8,8 @@ Supported languages:
 - Kotlin
 - Java
 
+All dedicated semantic tools (`workspace_symbols`, `document_symbols`, `definition`, `references`, `hover`, `diagnostics`) support Kotlin through the configured `kotlin-lsp` server.
+
 Semantic tools exposed to the agent:
 - `lsp_query` - compatibility umbrella tool
 - `workspace_symbols`

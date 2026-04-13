@@ -33,6 +33,7 @@ test("resolveFilePath resolves paths relative to cwd and strips @", () => {
 test("detectLanguage prefers explicit override and otherwise uses file suffix", () => {
   assert.equal(detectLanguage("/tmp/example.ts"), "typescript");
   assert.equal(detectLanguage("/tmp/example.kt"), "kotlin");
+  assert.equal(detectLanguage("/tmp/example.kts"), "kotlin");
   assert.equal(detectLanguage("/tmp/example.any", "java"), "java");
   assert.throws(() => detectLanguage("/tmp/example.txt"), /Unsupported language/);
 });
@@ -56,6 +57,18 @@ test("detectProjectRoot walks up to language markers before .git fallback", () =
     fs.realpathSync.native(path.join(root, "packages", "app")),
     fs.realpathSync.native(path.join(root, "packages")),
   ]);
+});
+
+test("detectProjectRoot recognizes Kotlin Gradle projects", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-root-"));
+  const nested = path.join(root, "app", "src", "main", "kotlin", "example");
+  const file = path.join(nested, "App.kt");
+  fs.mkdirSync(nested, { recursive: true });
+  fs.writeFileSync(path.join(root, "settings.gradle.kts"), "rootProject.name = \"sample\"\n");
+  fs.writeFileSync(path.join(root, "build.gradle.kts"), "plugins { kotlin(\"jvm\") version \"2.1.0\" }\n");
+  fs.writeFileSync(file, "fun main() = println(\"hi\")\n");
+
+  assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
 });
 
 test("toZeroIndexedPosition validates positive 1-indexed values", () => {
