@@ -100,6 +100,7 @@ Current command forms:
 - `/review uncommitted`
 - `/review staged`
 - `/review branch main`
+- `/review commit abc1234`
 - `/review staged --extra "focus on rollback safety"`
 - `/review branch main --extra "look for dependency churn"`
 
@@ -108,6 +109,7 @@ Interactive `/review` currently supports:
 1. review uncommitted changes
 2. review staged changes
 3. review against a base branch
+4. review a commit
 
 Interactive review runs use a cancellable loader UI; press `Esc` to abort an in-progress review.
 

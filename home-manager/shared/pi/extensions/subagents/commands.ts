@@ -8,6 +8,7 @@ export const REVIEW_COMMAND_USAGE = [
   "/review uncommitted [--extra \"focus\"]",
   "/review staged [--extra \"focus\"]",
   "/review branch <name> [--extra \"focus\"]",
+  "/review commit <sha> [--extra \"focus\"]",
 ].join("\n");
 
 export type ReviewSelection = {
@@ -115,6 +116,15 @@ export function parseReviewCommandArgs(
     return {
       label: `base branch ${branch}`,
       request: { target: { type: "baseBranch", branch }, prompt },
+    };
+  }
+
+  if (normalized === "commit") {
+    const sha = rest[0]?.trim();
+    if (!sha || rest.length > 1) return { error: REVIEW_COMMAND_USAGE };
+    return {
+      label: `commit ${sha}`,
+      request: { target: { type: "commit", sha }, prompt },
     };
   }
 

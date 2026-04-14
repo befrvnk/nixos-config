@@ -28,7 +28,8 @@ const EMPTY_TREE_HASH = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 export type ReviewTarget =
 	| { type: "uncommitted" }
 	| { type: "staged" }
-	| { type: "baseBranch"; branch: string };
+	| { type: "baseBranch"; branch: string }
+	| { type: "commit"; sha: string };
 
 export type ReviewRequest = {
 	prompt?: string;
@@ -390,6 +391,91 @@ async function collectDiffReviewContext(
 	};
 }
 
+async function resolveCommitRef(
+	pi: ExtensionAPI,
+	repoRoot: string,
+	sha: string,
+	signal?: AbortSignal,
+): Promise<{ sha: string; title?: string }> {
+	const trimmedSha = sha.trim();
+	if (!trimmedSha) throw new Error("Commit sha is required.");
+
+	const commitResult = await runGit(
+		pi,
+		repoRoot,
+		["rev-parse", "--verify", "--quiet", `${trimmedSha}^{commit}`],
+		signal,
+	);
+	if (commitResult.code !== 0) {
+		throw new Error(`Invalid or unknown commit: ${trimmedSha}`);
+	}
+
+	const resolvedSha = commitResult.stdout.trim();
+	const titleResult = await runGit(
+		pi,
+		repoRoot,
+		["show", "-s", "--format=%s", resolvedSha],
+		signal,
+	);
+
+	return {
+		sha: resolvedSha,
+		title: titleResult.code === 0 ? titleResult.stdout.trim() || undefined : undefined,
+	};
+}
+
+async function collectCommitReviewContext(
+	pi: ExtensionAPI,
+	repoRoot: string,
+	sha: string,
+	signal?: AbortSignal,
+): Promise<ReviewContext> {
+	const commit = await resolveCommitRef(pi, repoRoot, sha, signal);
+	const [statResult, filesResult, diffResult] = await Promise.all([
+		runGit(pi, repoRoot, ["show", "--stat", "--format=", commit.sha], signal),
+		runGit(pi, repoRoot, ["show", "--name-only", "--format=", commit.sha], signal),
+		runGit(pi, repoRoot, ["show", "--unified=3", "--format=", commit.sha], signal),
+	]);
+
+	if (
+		statResult.code !== 0 ||
+		filesResult.code !== 0 ||
+		diffResult.code !== 0
+	) {
+		const errorText = [statResult.stderr, filesResult.stderr, diffResult.stderr]
+			.map((part) => part.trim())
+			.filter(Boolean)
+			.join("\n");
+		throw new Error(errorText || `Failed to collect commit diff for review: ${sha}`);
+	}
+
+	const changedFiles = uniqueNonEmptyStrings(filesResult.stdout.split("\n"));
+	if (changedFiles.length === 0) {
+		throw new Error(`Commit has no file changes to review: ${commit.sha}`);
+	}
+
+	const fullDiff = diffResult.stdout.trim();
+	const diffWasTruncated = fullDiff.length > MAX_DIFF_CHARS;
+	const diffPreview = diffWasTruncated
+		? `${fullDiff.slice(0, MAX_DIFF_CHARS)}\n\n[diff truncated]`
+		: fullDiff;
+	const shortSha = commit.sha.slice(0, 12);
+	const targetLabel = commit.title
+		? `commit ${shortSha}: ${commit.title}`
+		: `commit ${shortSha}`;
+
+	return {
+		repoRoot,
+		target: targetLabel,
+		baseRef: commit.sha,
+		statusShort: "(not applicable: commit review)",
+		diffStat: statResult.stdout.trim(),
+		changedFiles,
+		diffPreview,
+		diffWasTruncated,
+	};
+}
+
 async function collectReviewContextForTarget(
 	pi: ExtensionAPI,
 	cwd: string,
@@ -446,6 +532,8 @@ async function collectReviewContextForTarget(
 				signal,
 			);
 		}
+		case "commit":
+			return collectCommitReviewContext(pi, repoRoot, target.sha, signal);
 	}
 }
 

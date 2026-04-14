@@ -80,6 +80,12 @@ function createTaskId(runId: string, index: number): string {
 	return `${runId}_task_${index + 1}`;
 }
 
+type ReviewCommitSelection = {
+	sha: string;
+	title: string;
+	label: string;
+};
+
 async function listReviewBranches(
 	pi: ExtensionAPI,
 	cwd: string,
@@ -129,6 +135,37 @@ async function listReviewBranches(
 	);
 }
 
+async function listReviewCommits(
+	pi: ExtensionAPI,
+	cwd: string,
+): Promise<ReviewCommitSelection[]> {
+	const result = await pi.exec(
+		"git",
+		["log", "--format=%H%x09%s", "-n", "20"],
+		{ cwd },
+	);
+	if ((result.code ?? 1) !== 0) {
+		throw new Error(
+			result.stderr?.trim() ||
+				result.stdout?.trim() ||
+				"Failed to list recent commits.",
+		);
+	}
+
+	return uniqueNonEmptyStrings((result.stdout ?? "").split("\n")).map((line) => {
+		const [sha = "", title = ""] = line.split("\t");
+		const trimmedSha = sha.trim();
+		const trimmedTitle = title.trim();
+		return {
+			sha: trimmedSha,
+			title: trimmedTitle,
+			label: trimmedTitle
+				? `${trimmedSha.slice(0, 12)} ${trimmedTitle}`
+				: trimmedSha,
+		};
+	});
+}
+
 async function promptForReviewSelection(
 	pi: ExtensionAPI,
 	ctx: ExtensionCommandContext,
@@ -139,6 +176,7 @@ async function promptForReviewSelection(
 		"Review uncommitted changes",
 		"Review staged changes",
 		"Review against a base branch",
+		"Review a commit",
 	]);
 	if (!choice) return undefined;
 
@@ -156,18 +194,39 @@ async function promptForReviewSelection(
 		};
 	}
 
-	const branches = await listReviewBranches(pi, ctx.cwd);
-	if (branches.length === 0) {
-		ctx.ui.notify("No branches available for base-branch review.", "warning");
+	if (choice === "Review against a base branch") {
+		const branches = await listReviewBranches(pi, ctx.cwd);
+		if (branches.length === 0) {
+			ctx.ui.notify("No branches available for base-branch review.", "warning");
+			return undefined;
+		}
+
+		const branch = await ctx.ui.select("Select base branch", branches);
+		if (!branch) return undefined;
+
+		return {
+			label: `base branch ${branch}`,
+			request: { target: { type: "baseBranch", branch } },
+		};
+	}
+
+	const commits = await listReviewCommits(pi, ctx.cwd);
+	if (commits.length === 0) {
+		ctx.ui.notify("No commits available for review.", "warning");
 		return undefined;
 	}
 
-	const branch = await ctx.ui.select("Select base branch", branches);
-	if (!branch) return undefined;
+	const commitLabel = await ctx.ui.select(
+		"Select commit",
+		commits.map((commit) => commit.label),
+	);
+	if (!commitLabel) return undefined;
+	const commit = commits.find((item) => item.label === commitLabel);
+	if (!commit) return undefined;
 
 	return {
-		label: `base branch ${branch}`,
-		request: { target: { type: "baseBranch", branch } },
+		label: `commit ${commit.sha.slice(0, 12)}`,
+		request: { target: { type: "commit", sha: commit.sha } },
 	};
 }
 
@@ -551,7 +610,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 
 	pi.registerCommand("review", {
 		description:
-			"Run the fixed review pair against uncommitted changes, staged changes, or a base branch",
+			"Run the fixed review pair against uncommitted changes, staged changes, a base branch, or a commit",
 		handler: async (args, ctx) => {
 			await executeReviewCommand(args, ctx);
 		},

@@ -51,7 +51,7 @@ test("tokenizeCommandArgs preserves quoted segments", () => {
   );
 });
 
-test("parseReviewCommandArgs supports uncommitted, staged, and branch targets", () => {
+test("parseReviewCommandArgs supports uncommitted, staged, branch, and commit targets", () => {
   assert.equal(parseReviewCommandArgs(undefined), undefined);
   assert.deepEqual(parseReviewCommandArgs("uncommitted"), {
     label: "uncommitted changes",
@@ -65,6 +65,13 @@ test("parseReviewCommandArgs supports uncommitted, staged, and branch targets", 
     label: "base branch origin/main",
     request: {
       target: { type: "baseBranch", branch: "origin/main" },
+      prompt: undefined,
+    },
+  });
+  assert.deepEqual(parseReviewCommandArgs("commit abc1234"), {
+    label: "commit abc1234",
+    request: {
+      target: { type: "commit", sha: "abc1234" },
       prompt: undefined,
     },
   });
