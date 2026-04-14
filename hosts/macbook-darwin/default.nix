@@ -131,6 +131,7 @@
           "caffeine"
           "ghostty"
           "jetbrains-toolbox"
+          "lunar"
           "miro"
           "notion"
           "opencode-desktop"
