@@ -104,6 +104,8 @@ test("renderFinalReviewResults includes reviewer metadata, findings, and context
   const markdown = renderFinalReviewResults("run-1", "parallel", results, context);
   assert.match(markdown, /# Review Results/);
   assert.match(markdown, /- Target: uncommitted changes/);
+  assert.match(markdown, /## Consensus/);
+  assert.match(markdown, /### Suggested Fix Queue\n- Add a unit test/);
   assert.match(markdown, /- Focus: correctness and regressions/);
   assert.match(markdown, /### Verdict\nneeds attention/);
   assert.match(markdown, /Human Reviewer Callouts/);

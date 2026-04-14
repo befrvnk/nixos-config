@@ -140,6 +140,8 @@ It returns structured markdown with:
 - `## Human Reviewer Callouts`
 - `## Next Steps`
 
+Rendered review results include a top-level consensus section with a rolled-up verdict, deduplicated findings, human reviewer callouts, and a suggested fix queue, followed by per-reviewer details.
+
 ## Guarding and scope discipline
 
 The child tool guard is intentionally small and pragmatic.

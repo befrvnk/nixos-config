@@ -9,6 +9,7 @@ import {
 	uniqueNonEmptyStrings,
 } from "../../formatting.js";
 import { DEFAULT_REVIEWERS } from "./config.js";
+import { buildReviewConsensus } from "./consensus.js";
 import {
 	composeAdditionalReviewInstructions,
 	loadProjectReviewGuidelines,
@@ -727,6 +728,35 @@ export function renderFinalReviewResults(
 		lines.push(`- Base ref: ${context.baseRef}`);
 		lines.push(`- Repo root: ${shortenPath(context.repoRoot)}`);
 		lines.push(`- Changed files: ${context.changedFiles.length}`);
+	}
+	lines.push("");
+
+	const consensus = buildReviewConsensus(results);
+	lines.push("## Consensus");
+	lines.push("");
+	lines.push("### Verdict");
+	lines.push(consensus.verdict);
+	lines.push("");
+	lines.push("### Findings");
+	if (consensus.findings.length > 0) {
+		for (const finding of consensus.findings) lines.push(`- ${finding}`);
+	} else {
+		lines.push("- None");
+	}
+	lines.push("");
+	lines.push("### Human Reviewer Callouts");
+	if (consensus.humanReviewerCallouts.length > 0) {
+		for (const callout of consensus.humanReviewerCallouts)
+			lines.push(`- ${callout}`);
+	} else {
+		lines.push("- None");
+	}
+	lines.push("");
+	lines.push("### Suggested Fix Queue");
+	if (consensus.suggestedFixQueue.length > 0) {
+		for (const step of consensus.suggestedFixQueue) lines.push(`- ${step}`);
+	} else {
+		lines.push("- None");
 	}
 	lines.push("");
 
