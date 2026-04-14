@@ -33,6 +33,8 @@ test("buildReviewTask includes focus, diff context, and prompt-budget truncation
 
   assert.match(task, /Review focus: correctness and regressions/);
   assert.match(task, /Additional review instructions:\nPrioritize database changes\./);
+  assert.match(task, /## Verdict/);
+  assert.match(task, /## Human Reviewer Callouts/);
   assert.match(task, /Changed files:\n- src\/index\.ts/);
   assert.match(task, /\[diff truncated for reviewer prompt budget\]/);
 });
@@ -42,7 +44,13 @@ test("parseReviewOutput normalizes None bullets away from structured findings", 
     "## Summary",
     "Looks safe overall.",
     "",
+    "## Verdict",
+    "correct",
+    "",
     "## Findings",
+    "- None",
+    "",
+    "## Human Reviewer Callouts",
     "- None",
     "",
     "## Next Steps",
@@ -51,7 +59,9 @@ test("parseReviewOutput normalizes None bullets away from structured findings", 
 
   assert.equal(parsed.summary, "Looks safe overall.");
   assert.deepEqual(parsed.data, {
+    verdict: "correct",
     findings: [],
+    humanReviewerCallouts: [],
     suggestedNextSteps: ["Add a regression test"],
   });
 });
@@ -68,8 +78,12 @@ test("renderFinalReviewResults includes reviewer metadata, findings, and context
       status: "success",
       summary: "One bug found.",
       data: {
+        verdict: "needs attention",
         findings: [
           "[severity: medium][confidence: high][path: src/index.ts:10] issue | evidence | recommendation",
+        ],
+        humanReviewerCallouts: [
+          "**This change changes configuration defaults:** src/index.ts",
         ],
         suggestedNextSteps: ["Add a unit test"],
       },
@@ -82,7 +96,7 @@ test("renderFinalReviewResults includes reviewer metadata, findings, and context
       model: "github-copilot/gemini-3.1-pro-preview",
       status: "error",
       summary: "",
-      data: { findings: [] },
+      data: { verdict: "correct", findings: [], humanReviewerCallouts: [] },
       error: "Timed out",
     },
   ];
@@ -91,6 +105,9 @@ test("renderFinalReviewResults includes reviewer metadata, findings, and context
   assert.match(markdown, /# Review Results/);
   assert.match(markdown, /- Target: uncommitted changes/);
   assert.match(markdown, /- Focus: correctness and regressions/);
+  assert.match(markdown, /### Verdict\nneeds attention/);
+  assert.match(markdown, /Human Reviewer Callouts/);
+  assert.match(markdown, /This change changes configuration defaults/);
   assert.match(markdown, /Add a unit test/);
   assert.match(markdown, /### Error\nTimed out/);
 });

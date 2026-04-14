@@ -135,7 +135,9 @@ When a repository has an unborn `HEAD`, uncommitted/staged review falls back to 
 It returns structured markdown with:
 
 - `## Summary`
+- `## Verdict`
 - `## Findings`
+- `## Human Reviewer Callouts`
 - `## Next Steps`
 
 ## Guarding and scope discipline

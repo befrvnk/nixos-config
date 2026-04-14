@@ -586,14 +586,29 @@ export function buildReviewTask(
 
 	lines.push(
 		"",
+		"Review standards:",
+		"- Flag only actionable issues the author would likely fix if they knew about them.",
+		"- Prefer correctness, regressions, hidden bugs, safety issues, and meaningful maintainability concerns over style nits.",
+		"- Do not speculate beyond the evidence available in the diff and surrounding code.",
+		"- Treat silent fallback behavior, swallowed errors, and best-effort recovery as high-signal findings unless the boundary explicitly justifies them.",
+		"- Surface informational human-reviewer callouts separately from actionable findings.",
+		"",
 		"Return markdown with exactly these sections:",
 		"## Summary",
 		"A short paragraph describing the overall review conclusion.",
+		"",
+		"## Verdict",
+		"Write exactly one of: `correct` or `needs attention`.",
 		"",
 		"## Findings",
 		"- One bullet per actionable finding.",
 		"- Format each bullet as: `[severity: high|medium|low][confidence: high|medium|low][path: <file or file:line>] issue | evidence | recommendation`",
 		"- If there are no actionable findings, write `- None`.",
+		"",
+		"## Human Reviewer Callouts",
+		"- Use bullets for non-blocking informational callouts such as migrations, dependency or lockfile changes, auth/permission changes, config-default changes, backwards-incompatible contract/schema/API updates, and destructive operations.",
+		"- Do not repeat actionable findings here.",
+		"- If there are no applicable callouts, write `- None`.",
 		"",
 		"## Next Steps",
 		"- Optional follow-up suggestions. Use bullets. If there are none, write `- None`.",
@@ -658,22 +673,39 @@ export async function createReviewTasks(
 	};
 }
 
+function normalizeOptionalBullets(sectionBody: string | undefined): string[] {
+	return (parseBullets(sectionBody) ?? []).filter(
+		(item) => item.toLowerCase() !== "none",
+	);
+}
+
+function parseVerdict(sectionBody: string | undefined): string | undefined {
+	const line = sectionBody
+		?.split("\n")
+		.map((item) => item.trim())
+		.find(Boolean)
+		?.toLowerCase();
+	return line === "correct" || line === "needs attention" ? line : undefined;
+}
+
 export function parseReviewOutput(markdown: string): ParsedSubagentOutput {
 	const normalized = markdown.trim();
 	if (!normalized) return { summary: "" };
 
 	const sections = splitMarkdownSections(normalized);
-	const findings = (parseBullets(sections.get("findings")) ?? []).filter(
-		(item) => item.toLowerCase() !== "none",
+	const findings = normalizeOptionalBullets(sections.get("findings"));
+	const humanReviewerCallouts = normalizeOptionalBullets(
+		sections.get("human reviewer callouts"),
 	);
-	const suggestedNextSteps = (
-		parseBullets(sections.get("next steps")) ?? []
-	).filter((item) => item.toLowerCase() !== "none");
+	const suggestedNextSteps = normalizeOptionalBullets(sections.get("next steps"));
+	const verdict = parseVerdict(sections.get("verdict"));
 
 	return {
 		summary: sections.get("summary") ?? normalized,
 		data: {
+			verdict,
 			findings,
+			humanReviewerCallouts,
 			suggestedNextSteps,
 		},
 	};
@@ -707,6 +739,11 @@ export function renderFinalReviewResults(
 		const suggestedNextSteps = Array.isArray(data.suggestedNextSteps)
 			? (data.suggestedNextSteps as string[])
 			: [];
+		const humanReviewerCallouts = Array.isArray(data.humanReviewerCallouts)
+			? (data.humanReviewerCallouts as string[])
+			: [];
+		const verdict =
+			typeof data.verdict === "string" ? data.verdict : undefined;
 		const focus =
 			typeof result.metadata?.focus === "string"
 				? result.metadata.focus
@@ -725,9 +762,21 @@ export function renderFinalReviewResults(
 		lines.push(result.summary || "No summary returned.");
 		lines.push("");
 
+		lines.push("### Verdict");
+		lines.push(verdict ?? "Not provided.");
+		lines.push("");
+
 		lines.push("### Findings");
 		if (findings.length > 0) {
 			for (const finding of findings) lines.push(`- ${finding}`);
+		} else {
+			lines.push("- None");
+		}
+		lines.push("");
+
+		lines.push("### Human Reviewer Callouts");
+		if (humanReviewerCallouts.length > 0) {
+			for (const callout of humanReviewerCallouts) lines.push(`- ${callout}`);
 		} else {
 			lines.push("- None");
 		}

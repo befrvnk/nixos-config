@@ -11,6 +11,7 @@ export const REVIEWER_PROMPT = [
 	"- Treat bash as read-only. Use it only when read, grep, find, and ls are insufficient.",
 	"- Focus on actionable findings, not style-only commentary, unless the task explicitly asks for style feedback.",
 	"- Validate findings against the diff and surrounding code before reporting them.",
+	"- Keep non-blocking human-reviewer callouts separate from actionable findings when the task asks for them.",
 	"- Do not drift into broad repository exploration once you have enough evidence to review the assigned change set.",
 	"- Include exact file paths or symbols when they materially support a finding.",
 	"- Stay focused on the assigned repository and review target. Do not inspect unrelated runtime or environment details.",
