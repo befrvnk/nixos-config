@@ -100,6 +100,8 @@ Current command forms:
 - `/review uncommitted`
 - `/review staged`
 - `/review branch main`
+- `/review staged --extra "focus on rollback safety"`
+- `/review branch main --extra "look for dependency churn"`
 
 Interactive `/review` currently supports:
 
@@ -110,6 +112,10 @@ Interactive `/review` currently supports:
 Interactive review runs use a cancellable loader UI; press `Esc` to abort an in-progress review.
 
 After a successful or partial review, the rendered findings are queued into the main agent's next turn as additional context so you can immediately ask it to apply or address the review.
+
+`/review ... --extra "..."` appends one-off review focus instructions to the fixed reviewer pair.
+
+If a `REVIEW_GUIDELINES.md` file exists next to the repository's `.pi/` directory, its contents are appended to each review task as project-specific review guidance.
 
 Base-branch review compares the current working tree against the merge base with the selected branch.
 

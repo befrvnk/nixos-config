@@ -45,28 +45,65 @@ test("tokenizeCommandArgs preserves quoted segments", () => {
     "base",
     "origin/main",
   ]);
+  assert.deepEqual(
+    tokenizeCommandArgs('staged --extra="focus on rollback safety"'),
+    ["staged", "--extra=focus on rollback safety"],
+  );
 });
 
 test("parseReviewCommandArgs supports uncommitted, staged, and branch targets", () => {
   assert.equal(parseReviewCommandArgs(undefined), undefined);
   assert.deepEqual(parseReviewCommandArgs("uncommitted"), {
     label: "uncommitted changes",
-    request: { target: { type: "uncommitted" } },
+    request: { target: { type: "uncommitted" }, prompt: undefined },
   });
   assert.deepEqual(parseReviewCommandArgs("staged"), {
     label: "staged changes",
-    request: { target: { type: "staged" } },
+    request: { target: { type: "staged" }, prompt: undefined },
   });
   assert.deepEqual(parseReviewCommandArgs("branch origin/main"), {
     label: "base branch origin/main",
-    request: { target: { type: "baseBranch", branch: "origin/main" } },
+    request: {
+      target: { type: "baseBranch", branch: "origin/main" },
+      prompt: undefined,
+    },
   });
+});
+
+test("parseReviewCommandArgs supports --extra instructions", () => {
+  assert.deepEqual(
+    parseReviewCommandArgs('staged --extra "focus on rollback safety"'),
+    {
+      label: "staged changes",
+      request: {
+        target: { type: "staged" },
+        prompt: "focus on rollback safety",
+      },
+    },
+  );
+
+  assert.deepEqual(
+    parseReviewCommandArgs('branch origin/main --extra="check dependency updates"'),
+    {
+      label: "base branch origin/main",
+      request: {
+        target: { type: "baseBranch", branch: "origin/main" },
+        prompt: "check dependency updates",
+      },
+    },
+  );
 });
 
 test("parseReviewCommandArgs returns usage for invalid invocations", () => {
   assert.deepEqual(parseReviewCommandArgs("help"), { error: REVIEW_COMMAND_USAGE });
   assert.deepEqual(parseReviewCommandArgs("branch"), { error: REVIEW_COMMAND_USAGE });
   assert.deepEqual(parseReviewCommandArgs("wat"), { error: REVIEW_COMMAND_USAGE });
+  assert.deepEqual(parseReviewCommandArgs("staged --extra"), {
+    error: REVIEW_COMMAND_USAGE,
+  });
+  assert.deepEqual(parseReviewCommandArgs("--extra focused"), {
+    error: REVIEW_COMMAND_USAGE,
+  });
 });
 
 test("findTaskById matches exact ids and compact ids", () => {

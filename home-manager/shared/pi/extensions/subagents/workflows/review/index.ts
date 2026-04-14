@@ -9,6 +9,10 @@ import {
 	uniqueNonEmptyStrings,
 } from "../../formatting.js";
 import { DEFAULT_REVIEWERS } from "./config.js";
+import {
+	composeAdditionalReviewInstructions,
+	loadProjectReviewGuidelines,
+} from "./guidelines.js";
 import type { ReviewerConfig } from "../../model-policy.js";
 import type {
 	ParsedSubagentOutput,
@@ -489,7 +493,7 @@ export function buildReviewTask(
 	];
 
 	if (extraPrompt?.trim()) {
-		lines.push(`Additional instructions: ${extraPrompt.trim()}`);
+		lines.push("", "Additional review instructions:", extraPrompt.trim());
 	}
 
 	lines.push(
@@ -542,11 +546,16 @@ export async function createReviewTasks(
 		signal,
 	);
 	const reviewers = [...DEFAULT_REVIEWERS];
+	const projectGuidelines = await loadProjectReviewGuidelines(cwd);
+	const additionalInstructions = composeAdditionalReviewInstructions({
+		extraPrompt: params.prompt,
+		projectGuidelines,
+	});
 
 	return {
 		context,
 		tasks: reviewers.map((reviewer) => ({
-			task: buildReviewTask(context, reviewer, params.prompt),
+			task: buildReviewTask(context, reviewer, additionalInstructions),
 			label: reviewer.label?.trim() || reviewer.model,
 			model: reviewer.model.trim(),
 			thinkingLevel: reviewer.thinkingLevel,

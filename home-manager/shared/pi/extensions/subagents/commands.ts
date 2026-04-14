@@ -5,9 +5,9 @@ import type { ReviewCommandRequest } from "./workflows/review/index.js";
 export const REVIEW_COMMAND_USAGE = [
   "Usage:",
   "/review",
-  "/review uncommitted",
-  "/review staged",
-  "/review branch <name>",
+  "/review uncommitted [--extra \"focus\"]",
+  "/review staged [--extra \"focus\"]",
+  "/review branch <name> [--extra \"focus\"]",
 ].join("\n");
 
 export type ReviewSelection = {
@@ -26,10 +26,54 @@ export function trimWrappedQuotes(value: string): string {
 }
 
 export function tokenizeCommandArgs(input: string): string[] {
-  const matches = input.match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
+  const matches =
+    input.match(/[^\s"'=]+=(?:"[^"]*"|'[^']*')|"[^"]*"|'[^']*'|\S+/g) ?? [];
   return matches
-    .map((token) => trimWrappedQuotes(token).trim())
+    .map((token) => {
+      const equalsIndex = token.indexOf("=");
+      if (equalsIndex > 0) {
+        const value = token.slice(equalsIndex + 1);
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          return `${token.slice(0, equalsIndex + 1)}${trimWrappedQuotes(value)}`.trim();
+        }
+      }
+      return trimWrappedQuotes(token).trim();
+    })
     .filter(Boolean);
+}
+
+function extractReviewPrompt(tokens: string[]): {
+  positional: string[];
+  prompt?: string;
+  error?: string;
+} {
+  const positional: string[] = [];
+  let prompt: string | undefined;
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index]!;
+    if (token === "--extra") {
+      const next = tokens[index + 1]?.trim();
+      if (!next) return { positional, error: REVIEW_COMMAND_USAGE };
+      prompt = next;
+      index += 1;
+      continue;
+    }
+
+    if (token.startsWith("--extra=")) {
+      const inlinePrompt = token.slice("--extra=".length).trim();
+      if (!inlinePrompt) return { positional, error: REVIEW_COMMAND_USAGE };
+      prompt = inlinePrompt;
+      continue;
+    }
+
+    positional.push(token);
+  }
+
+  return { positional, prompt };
 }
 
 export function parseReviewCommandArgs(
@@ -38,7 +82,11 @@ export function parseReviewCommandArgs(
   const tokens = tokenizeCommandArgs(args ?? "");
   if (tokens.length === 0) return undefined;
 
-  const [command, ...rest] = tokens;
+  const { positional, prompt, error } = extractReviewPrompt(tokens);
+  if (error) return { error };
+  if (positional.length === 0) return prompt ? { error: REVIEW_COMMAND_USAGE } : undefined;
+
+  const [command, ...rest] = positional;
   const normalized = command?.toLowerCase();
 
   if (normalized === "help" || normalized === "--help" || normalized === "-h") {
@@ -49,7 +97,7 @@ export function parseReviewCommandArgs(
     if (rest.length > 0) return { error: REVIEW_COMMAND_USAGE };
     return {
       label: "uncommitted changes",
-      request: { target: { type: "uncommitted" } },
+      request: { target: { type: "uncommitted" }, prompt },
     };
   }
 
@@ -57,7 +105,7 @@ export function parseReviewCommandArgs(
     if (rest.length > 0) return { error: REVIEW_COMMAND_USAGE };
     return {
       label: "staged changes",
-      request: { target: { type: "staged" } },
+      request: { target: { type: "staged" }, prompt },
     };
   }
 
@@ -66,7 +114,7 @@ export function parseReviewCommandArgs(
     if (!branch) return { error: REVIEW_COMMAND_USAGE };
     return {
       label: `base branch ${branch}`,
-      request: { target: { type: "baseBranch", branch } },
+      request: { target: { type: "baseBranch", branch }, prompt },
     };
   }
 

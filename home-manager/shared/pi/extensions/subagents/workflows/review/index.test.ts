@@ -32,7 +32,7 @@ test("buildReviewTask includes focus, diff context, and prompt-budget truncation
   const task = buildReviewTask(context, reviewer, "Prioritize database changes.");
 
   assert.match(task, /Review focus: correctness and regressions/);
-  assert.match(task, /Additional instructions: Prioritize database changes\./);
+  assert.match(task, /Additional review instructions:\nPrioritize database changes\./);
   assert.match(task, /Changed files:\n- src\/index\.ts/);
   assert.match(task, /\[diff truncated for reviewer prompt budget\]/);
 });
