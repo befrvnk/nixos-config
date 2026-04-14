@@ -7,7 +7,7 @@ This guide covers setting up nix-darwin with home-manager on a MacBook Pro (M4 P
 The darwin configuration provides:
 - **nix-darwin** for macOS system configuration
 - **home-manager** for user-level configuration (shell, tools, apps)
-- **Homebrew** for GUI apps not available in nixpkgs (Android Studio)
+- **Homebrew** for GUI apps not available in nixpkgs or that need native macOS update behavior (for example, Raycast)
 - Shared dotfiles and tooling with the Framework laptop (NixOS)
 
 ## Prerequisites
@@ -33,7 +33,7 @@ After installation, restart your terminal or source the nix profile:
 
 ### 2. Install Homebrew
 
-Homebrew is used for GUI apps that aren't available in nixpkgs:
+Homebrew is used for GUI apps that aren't available in nixpkgs or that need native macOS update behavior:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -116,10 +116,13 @@ CLI tools that work cross-platform:
 - **Development**: Helix, Zed, Claude Code, git, gh, lazygit, jujutsu
 - **Utilities**: bat, eza, fd, fzf, htop, yazi, navi
 
+GUI apps that stay in nixpkgs are the exceptions, used only when there isn't a suitable Homebrew cask.
+
 ### From Homebrew
 
-GUI apps configured via nix-darwin:
-- Android Studio (native ARM64 macOS build)
+Selected GUI apps configured via nix-darwin:
+- Raycast, Notion, Slack, and Spotify (Homebrew casks so in-app updates keep working)
+- Ghostty, JetBrains Toolbox, 1Password, Signal, WhatsApp, Zed, Zen, and others
 
 ### macOS System Defaults
 

@@ -108,7 +108,8 @@
     wget
   ];
 
-  # Homebrew for GUI apps not available in nixpkgs for darwin
+  # Homebrew for GUI apps that either are missing from nixpkgs on darwin
+  # or need native macOS install/update behavior (for example Raycast).
   homebrew = {
     enable = true;
     onActivation = {
@@ -131,8 +132,12 @@
           "ghostty"
           "jetbrains-toolbox"
           "miro"
+          "notion"
           "opencode-desktop"
+          "raycast"
           "signal"
+          "slack"
+          "spotify"
           "whatsapp"
           "zed"
           "zen"

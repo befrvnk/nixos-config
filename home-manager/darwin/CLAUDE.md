@@ -98,7 +98,8 @@ imports = [
 
 ### Package Source Priority
 1. **Prefer nixpkgs** for version pinning and reproducibility
-2. **Use Homebrew** only when package is unavailable in nixpkgs for aarch64-darwin
+2. **Use Homebrew** when a package is unavailable in nixpkgs for aarch64-darwin
+3. **Also use Homebrew** for macOS apps that need native self-update behavior (for example, Raycast)
 
 ### Before Adding a Package
 Always verify the package supports aarch64-darwin:
@@ -110,25 +111,30 @@ nix eval nixpkgs#<package>.meta.platforms --json
 ```
 
 ### User Packages (preferred)
-Add to `darwin/packages.nix` for GUI and CLI apps:
+Add to `darwin/packages.nix` for CLI apps and GUI apps that do not need native macOS self-updates:
 ```nix
 home.packages = with pkgs; [
-  notion-app  # Note: notion-app, not notion (which is a window manager)
-  slack
+  openchamber
+  bat
+  fd
 ];
 ```
 
 ### Homebrew Casks (fallback)
-Only use when nixpkgs doesn't support aarch64-darwin.
+Use when nixpkgs doesn't support aarch64-darwin, or when the app needs native macOS install/update behavior.
 Add to `hosts/macbook-darwin/default.nix`:
 ```nix
 homebrew.casks = [ "jetbrains-toolbox" "ghostty" ];
 ```
-Current Homebrew-only packages:
+Current Homebrew-managed packages/exceptions:
 - `1password` - Requires /Applications for security features
 - `jetbrains-toolbox` - Not in nixpkgs for Darwin
 - `ghostty` - Linux only in nixpkgs
 - `miro` - Not in nixpkgs
+- `notion` - Needs native macOS self-update support
+- `raycast` - Needs native macOS self-update support
+- `slack` - Needs native macOS self-update support
+- `spotify` - Needs native macOS self-update support
 
 ### Shared Packages
 Modules in `shared/` (e.g., `shared/worktrunk.nix`) apply to both platforms automatically.
