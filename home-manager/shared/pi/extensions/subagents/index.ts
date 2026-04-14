@@ -5,9 +5,19 @@ import type {
 } from "@mariozechner/pi-coding-agent";
 import {
 	BorderedLoader,
+	DynamicBorder,
 	getMarkdownTheme,
 } from "@mariozechner/pi-coding-agent";
-import { Markdown, Text } from "@mariozechner/pi-tui";
+import {
+	Container,
+	fuzzyFilter,
+	Input,
+	Markdown,
+	type SelectItem,
+	SelectList,
+	Spacer,
+	Text,
+} from "@mariozechner/pi-tui";
 import {
 	parseExploreOutput,
 	renderExploreToolCall,
@@ -40,6 +50,10 @@ import {
 } from "./workflows/review/index.js";
 import { buildReviewContextSystemPrompt } from "./review-context.js";
 import { REVIEWER_PROMPT } from "./workflows/review/prompt.js";
+import {
+	chooseSmartReviewTarget,
+	sortReviewBranches,
+} from "./workflows/review/selection.js";
 import { mapWithConcurrencyLimit, runSingleTask } from "./runner.js";
 import {
 	exploreParamsSchema,
@@ -86,23 +100,35 @@ type ReviewCommitSelection = {
 	label: string;
 };
 
-async function listReviewBranches(
+type ReviewTargetChoice =
+	| "uncommitted"
+	| "staged"
+	| "baseBranch"
+	| "commit";
+
+async function getCurrentBranch(
+	pi: ExtensionAPI,
+	cwd: string,
+): Promise<string | undefined> {
+	const result = await pi.exec("git", ["branch", "--show-current"], { cwd });
+	if ((result.code ?? 1) !== 0) return undefined;
+	return result.stdout?.trim() || undefined;
+}
+
+async function listAllReviewBranches(
 	pi: ExtensionAPI,
 	cwd: string,
 ): Promise<string[]> {
-	const [refsResult, currentBranchResult] = await Promise.all([
-		pi.exec(
-			"git",
-			[
-				"for-each-ref",
-				"--format=%(refname:short)",
-				"refs/heads",
-				"refs/remotes",
-			],
-			{ cwd },
-		),
-		pi.exec("git", ["branch", "--show-current"], { cwd }),
-	]);
+	const refsResult = await pi.exec(
+		"git",
+		[
+			"for-each-ref",
+			"--format=%(refname:short)",
+			"refs/heads",
+			"refs/remotes",
+		],
+		{ cwd },
+	);
 
 	if ((refsResult.code ?? 1) !== 0) {
 		throw new Error(
@@ -112,27 +138,60 @@ async function listReviewBranches(
 		);
 	}
 
-	const currentBranch = currentBranchResult.stdout?.trim() ?? "";
-	const allBranches = uniqueNonEmptyStrings(
-		(refsResult.stdout ?? "").split("\n"),
-	).filter((branch) => !branch.endsWith("/HEAD"));
-	const preferredBranches = allBranches.filter(
-		(branch) => branch !== currentBranch,
-	);
-	const branches =
-		preferredBranches.length > 0 ? preferredBranches : allBranches;
+	return uniqueNonEmptyStrings((refsResult.stdout ?? "").split("\n"));
+}
 
-	const priority = (branch: string): number => {
-		if (branch === "main") return 0;
-		if (branch === "master") return 1;
-		if (branch === "origin/main") return 2;
-		if (branch === "origin/master") return 3;
-		return 10;
-	};
-
-	return [...branches].sort(
-		(a, b) => priority(a) - priority(b) || a.localeCompare(b),
+async function getDefaultBranch(
+	pi: ExtensionAPI,
+	cwd: string,
+): Promise<string | undefined> {
+	const remoteHeadResult = await pi.exec(
+		"git",
+		["symbolic-ref", "refs/remotes/origin/HEAD", "--short"],
+		{ cwd },
 	);
+	if ((remoteHeadResult.code ?? 1) === 0) {
+		const remoteHead = remoteHeadResult.stdout?.trim();
+		if (remoteHead?.startsWith("origin/")) {
+			return remoteHead.slice("origin/".length);
+		}
+	}
+
+	const branches = await listAllReviewBranches(pi, cwd);
+	for (const branch of ["main", "master", "origin/main", "origin/master"]) {
+		if (branches.includes(branch)) {
+			return branch.startsWith("origin/") ? branch.slice("origin/".length) : branch;
+		}
+	}
+	return undefined;
+}
+
+async function getReviewStatusShort(
+	pi: ExtensionAPI,
+	cwd: string,
+): Promise<string> {
+	const result = await pi.exec("git", ["status", "--short", "--untracked-files=all"], {
+		cwd,
+	});
+	if ((result.code ?? 1) !== 0) {
+		throw new Error(
+			result.stderr?.trim() ||
+				result.stdout?.trim() ||
+				"Failed to inspect git status for review defaults.",
+		);
+	}
+	return result.stdout ?? "";
+}
+
+async function listReviewBranches(
+	pi: ExtensionAPI,
+	cwd: string,
+): Promise<string[]> {
+	const [branches, currentBranch] = await Promise.all([
+		listAllReviewBranches(pi, cwd),
+		getCurrentBranch(pi, cwd),
+	]);
+	return sortReviewBranches(branches, currentBranch);
 }
 
 async function listReviewCommits(
@@ -166,68 +225,248 @@ async function listReviewCommits(
 	});
 }
 
+async function showSelectableList(
+	ctx: ExtensionCommandContext,
+	options: {
+		title: string;
+		items: SelectItem[];
+		filterPrompt?: string;
+		helpText: string;
+		selectedIndex?: number;
+	};
+): Promise<string | undefined> {
+	return ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
+		const container = new Container();
+		container.addChild(new DynamicBorder((text) => theme.fg("accent", text)));
+		container.addChild(new Text(theme.fg("accent", theme.bold(options.title))));
+
+		const searchInput = new Input();
+		const hasFilter = Boolean(options.filterPrompt);
+		if (hasFilter) {
+			container.addChild(
+				new Text(theme.fg("muted", options.filterPrompt ?? "Filter")),
+			);
+			container.addChild(searchInput);
+			container.addChild(new Spacer(1));
+		}
+
+		const listContainer = new Container();
+		container.addChild(listContainer);
+		container.addChild(new Text(theme.fg("dim", options.helpText)));
+		container.addChild(new DynamicBorder((text) => theme.fg("accent", text)));
+
+		let filteredItems = options.items;
+		let selectList: SelectList | null = null;
+
+		const updateList = () => {
+			listContainer.clear();
+			if (filteredItems.length === 0) {
+				listContainer.addChild(new Text(theme.fg("warning", "  No matching items")));
+				selectList = null;
+				return;
+			}
+
+			selectList = new SelectList(filteredItems, Math.min(filteredItems.length, 10), {
+				selectedPrefix: (text) => theme.fg("accent", text),
+				selectedText: (text) => theme.fg("accent", text),
+				description: (text) => theme.fg("muted", text),
+				scrollInfo: (text) => theme.fg("dim", text),
+				noMatch: (text) => theme.fg("warning", text),
+			});
+			if (typeof options.selectedIndex === "number") {
+				selectList.setSelectedIndex(
+					Math.max(0, Math.min(options.selectedIndex, filteredItems.length - 1)),
+				);
+			}
+			selectList.onSelect = (item) => done(String(item.value));
+			selectList.onCancel = () => done(undefined);
+			listContainer.addChild(selectList);
+		};
+
+		const applyFilter = () => {
+			if (!hasFilter) {
+				filteredItems = options.items;
+				updateList();
+				return;
+			}
+			const query = searchInput.getValue();
+			filteredItems = query
+				? fuzzyFilter(
+						options.items,
+						query,
+						(item) => `${item.label} ${item.value} ${item.description ?? ""}`,
+					)
+				: options.items;
+			updateList();
+		};
+
+		applyFilter();
+
+		return {
+			render(width: number) {
+				return container.render(width);
+			},
+			invalidate() {
+				container.invalidate();
+			},
+			handleInput(data: string) {
+				if (
+					keybindings.matches(data, "tui.select.up") ||
+					keybindings.matches(data, "tui.select.down") ||
+					keybindings.matches(data, "tui.select.confirm") ||
+					keybindings.matches(data, "tui.select.cancel")
+				) {
+					if (selectList) {
+						selectList.handleInput(data);
+					} else if (keybindings.matches(data, "tui.select.cancel")) {
+						done(undefined);
+					}
+					tui.requestRender();
+					return;
+				}
+
+				if (hasFilter) {
+					searchInput.handleInput(data);
+					applyFilter();
+					tui.requestRender();
+				}
+			},
+		};
+	});
+}
+
+async function promptForOptionalReviewInstructions(
+	ctx: ExtensionCommandContext,
+	selection: ReviewSelection,
+): Promise<ReviewSelection> {
+	const choice = await ctx.ui.select("Add extra review instructions?", [
+		"Skip",
+		"Add instructions",
+	]);
+	if (choice !== "Add instructions") return selection;
+
+	const value = await ctx.ui.editor("Enter additional review instructions:", "");
+	const prompt = value?.trim();
+	if (!prompt) return selection;
+	return {
+		...selection,
+		request: {
+			...selection.request,
+			prompt,
+		},
+	};
+}
+
 async function promptForReviewSelection(
 	pi: ExtensionAPI,
 	ctx: ExtensionCommandContext,
 ): Promise<ReviewSelection | undefined> {
 	if (!ctx.hasUI) return undefined;
 
-	const choice = await ctx.ui.select("Select review target", [
-		"Review uncommitted changes",
-		"Review staged changes",
-		"Review against a base branch",
-		"Review a commit",
+	const [statusShort, currentBranch, defaultBranch] = await Promise.all([
+		getReviewStatusShort(pi, ctx.cwd),
+		getCurrentBranch(pi, ctx.cwd),
+		getDefaultBranch(pi, ctx.cwd),
 	]);
-	if (!choice) return undefined;
+	const smartDefault = chooseSmartReviewTarget({
+		statusShort,
+		currentBranch,
+		defaultBranch,
+	});
+	const targetItems: Array<SelectItem & { value: ReviewTargetChoice }> = [
+		{
+			value: "uncommitted",
+			label: "Review uncommitted changes",
+			description: "unstaged and untracked files",
+		},
+		{
+			value: "staged",
+			label: "Review staged changes",
+			description: "index only",
+		},
+		{
+			value: "baseBranch",
+			label: "Review against a base branch",
+			description: defaultBranch ? `(default branch: ${defaultBranch})` : "",
+		},
+		{
+			value: "commit",
+			label: "Review a commit",
+			description: "recent commit diff",
+		},
+	];
+	const selectedValue = await showSelectableList(ctx, {
+		title: "Select review target",
+		items: targetItems,
+		helpText: "Enter to confirm • esc to cancel",
+		selectedIndex: Math.max(
+			0,
+			targetItems.findIndex((item) => item.value === smartDefault),
+		),
+	});
+	if (!selectedValue) return undefined;
 
-	if (choice === "Review uncommitted changes") {
-		return {
+	let selection: ReviewSelection | undefined;
+	if (selectedValue === "uncommitted") {
+		selection = {
 			label: "uncommitted changes",
 			request: { target: { type: "uncommitted" } },
 		};
-	}
-
-	if (choice === "Review staged changes") {
-		return {
+	} else if (selectedValue === "staged") {
+		selection = {
 			label: "staged changes",
 			request: { target: { type: "staged" } },
 		};
-	}
-
-	if (choice === "Review against a base branch") {
+	} else if (selectedValue === "baseBranch") {
 		const branches = await listReviewBranches(pi, ctx.cwd);
 		if (branches.length === 0) {
 			ctx.ui.notify("No branches available for base-branch review.", "warning");
 			return undefined;
 		}
-
-		const branch = await ctx.ui.select("Select base branch", branches);
+		const branch = await showSelectableList(ctx, {
+			title: "Select base branch",
+			items: branches.map((branchName) => ({
+				value: branchName,
+				label: branchName,
+				description:
+					defaultBranch && branchName === defaultBranch ? "(default)" : "",
+			})),
+			filterPrompt: "Filter branches",
+			helpText: "Type to filter • enter to select • esc to cancel",
+			selectedIndex: Math.max(
+				0,
+				branches.findIndex((branchName) => branchName === defaultBranch),
+			),
+		});
 		if (!branch) return undefined;
-
-		return {
+		selection = {
 			label: `base branch ${branch}`,
 			request: { target: { type: "baseBranch", branch } },
 		};
+	} else {
+		const commits = await listReviewCommits(pi, ctx.cwd);
+		if (commits.length === 0) {
+			ctx.ui.notify("No commits available for review.", "warning");
+			return undefined;
+		}
+		const commitSha = await showSelectableList(ctx, {
+			title: "Select commit",
+			items: commits.map((commit) => ({
+				value: commit.sha,
+				label: commit.label,
+				description: "",
+			})),
+			filterPrompt: "Filter commits",
+			helpText: "Type to filter • enter to select • esc to cancel",
+		});
+		if (!commitSha) return undefined;
+		selection = {
+			label: `commit ${commitSha.slice(0, 12)}`,
+			request: { target: { type: "commit", sha: commitSha } },
+		};
 	}
 
-	const commits = await listReviewCommits(pi, ctx.cwd);
-	if (commits.length === 0) {
-		ctx.ui.notify("No commits available for review.", "warning");
-		return undefined;
-	}
-
-	const commitLabel = await ctx.ui.select(
-		"Select commit",
-		commits.map((commit) => commit.label),
-	);
-	if (!commitLabel) return undefined;
-	const commit = commits.find((item) => item.label === commitLabel);
-	if (!commit) return undefined;
-
-	return {
-		label: `commit ${commit.sha.slice(0, 12)}`,
-		request: { target: { type: "commit", sha: commit.sha } },
-	};
+	return promptForOptionalReviewInstructions(ctx, selection);
 }
 
 function showCommandMessage(
