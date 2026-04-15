@@ -13,6 +13,7 @@
     ./nil.nix
     ./nushell.nix
     ./opencode.nix
+    ./packages.nix
     ./pi
     ./ssh.nix
     ./starship.nix

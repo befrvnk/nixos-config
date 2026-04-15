@@ -12,28 +12,10 @@
     # GUI apps
     openchamber
 
-    # CLI tools (cross-platform)
-    bat
+    # CLI tools (cross-platform + Darwin-specific)
     bun
-    devenv
-    eza
-    fastfetch
-    fd
-    fzf
-
-    helix
-    htop
-    imagemagick
-    lf
     marp-cli
-    nh
-    nmap
-
-    rsync
     slidev-cli
-    superfile
-    tree
-    yazi
 
     # Fonts
     material-symbols

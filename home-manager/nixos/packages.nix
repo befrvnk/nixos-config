@@ -5,33 +5,17 @@
     (with pkgs; [
       adw-bluetooth
       anytype
-      bat
       celluloid
       chromium
       ddcutil
-      devenv
       domain-check
-      eza
-      fastfetch
-      fd
-      fzf
 
-      helix
-      htop
-      imagemagick
-      lf
       mission-center
       nautilus
       gnome-disk-utility
-      nh
-      nmap
       opencode-desktop
       powertop
-      rsync # Required by profile-sync-daemon for browser profile syncing
-      superfile
       sushi # nautilus preview
-      tree
-      yazi
       # Icon theme for ironbar
       papirus-icon-theme
 
