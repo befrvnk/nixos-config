@@ -1,4 +1,4 @@
-_:
+{ hostConfig, ... }:
 
 {
   boot.initrd.systemd.enable = true;
@@ -98,7 +98,7 @@ _:
     # Allow the user to configure binary caches (needed for devenv)
     trusted-users = [
       "root"
-      "frank"
+      hostConfig.primaryUser
     ];
 
     # Binary caches for flake inputs (avoids rebuilding from source)

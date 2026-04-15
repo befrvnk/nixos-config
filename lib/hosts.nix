@@ -49,6 +49,8 @@ in
     {
       hostname,
       system ? "x86_64-linux",
+      primaryUser ? "frank",
+      homeDirectory ? "/home/${primaryUser}",
       # Host capability flags
       cpuVendor ? "intel", # "amd" or "intel"
       hasFingerprint ? false,
@@ -61,6 +63,9 @@ in
         hostConfig = {
           inherit
             hostname
+            system
+            primaryUser
+            homeDirectory
             cpuVendor
             hasFingerprint
             hasTouchscreen

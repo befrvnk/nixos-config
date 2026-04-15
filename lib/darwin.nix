@@ -52,11 +52,21 @@ in
     {
       hostname,
       system ? "aarch64-darwin",
+      primaryUser ? "frank",
+      homeDirectory ? "/Users/${primaryUser}",
     }:
     inputs.nix-darwin.lib.darwinSystem {
       inherit system;
       specialArgs = {
         inherit inputs;
+        hostConfig = {
+          inherit
+            hostname
+            system
+            primaryUser
+            homeDirectory
+            ;
+        };
       };
       modules = [
         # Apply darwin-compatible overlays

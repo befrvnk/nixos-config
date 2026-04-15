@@ -112,6 +112,8 @@
         # MacBook Pro 14" (2024) - M4 Pro
         macbook = darwinLib.mkDarwinHost {
           hostname = "macbook-darwin";
+          primaryUser = "frank";
+          homeDirectory = "/Users/frank";
         };
       };
 
@@ -119,6 +121,8 @@
         # Framework Laptop 13 (AMD AI 300 series)
         framework = hostLib.mkHost {
           hostname = "framework";
+          primaryUser = "frank";
+          homeDirectory = "/home/frank";
           cpuVendor = "amd";
           hasFingerprint = true;
           hasTouchscreen = false;

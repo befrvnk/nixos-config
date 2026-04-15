@@ -1,7 +1,11 @@
-{ pkgs, ... }:
+{
+  pkgs,
+  hostConfig,
+  ...
+}:
 
 {
-  users.users.frank = {
+  users.users.${hostConfig.primaryUser} = {
     isNormalUser = true;
     description = "Frank Hermann";
     extraGroups = [

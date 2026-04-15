@@ -1,9 +1,14 @@
-{ inputs, pkgs, ... }:
+{
+  inputs,
+  pkgs,
+  hostConfig,
+  ...
+}:
 
 {
   system = {
     stateVersion = 5;
-    primaryUser = "frank";
+    primaryUser = hostConfig.primaryUser;
 
     # macOS System Defaults
     defaults = {
@@ -69,10 +74,10 @@
 
   # Define user for home-manager integration
   # knownUsers + uid required for nix-darwin to manage shell via chsh
-  users.knownUsers = [ "frank" ];
-  users.users.frank = {
-    name = "frank";
-    home = "/Users/frank";
+  users.knownUsers = [ hostConfig.primaryUser ];
+  users.users.${hostConfig.primaryUser} = {
+    name = hostConfig.primaryUser;
+    home = hostConfig.homeDirectory;
     shell = pkgs.nushell;
     uid = 501;
   };
@@ -82,7 +87,7 @@
     backupFileExtension = "backup";
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.frank = ../../home-manager/darwin/frank.nix;
+    users.${hostConfig.primaryUser} = ../../home-manager/darwin/frank.nix;
     extraSpecialArgs = { inherit inputs; };
   };
 
@@ -154,7 +159,7 @@
       ProgramArguments = [
         "/bin/sh"
         "-c"
-        "/bin/launchctl setenv PATH /etc/profiles/per-user/frank/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        "/bin/launchctl setenv PATH /etc/profiles/per-user/${hostConfig.primaryUser}/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
       ];
       RunAtLoad = true;
     };

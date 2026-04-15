@@ -1,5 +1,6 @@
 {
   inputs,
+  hostConfig,
   ...
 }:
 
@@ -8,7 +9,7 @@
     backupFileExtension = "hm-backup";
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.frank = ../../home-manager/nixos/frank.nix;
+    users.${hostConfig.primaryUser} = ../../home-manager/nixos/frank.nix;
     sharedModules = [
       inputs.stylix.homeModules.stylix
       inputs.vicinae.homeManagerModules.default

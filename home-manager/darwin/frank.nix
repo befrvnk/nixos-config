@@ -9,7 +9,7 @@
 # - No Linux-specific services (ironbar, darkman, battery-notifications, etc.)
 # - No systemd user services
 
-{ inputs, ... }:
+{ inputs, hostConfig, ... }:
 
 {
   imports = [
@@ -27,8 +27,8 @@
   ];
 
   home = {
-    username = "frank";
-    homeDirectory = "/Users/frank";
+    username = hostConfig.primaryUser;
+    homeDirectory = hostConfig.homeDirectory;
     stateVersion = "25.05";
   };
 

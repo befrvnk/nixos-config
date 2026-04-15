@@ -4,7 +4,7 @@
 # This file handles Nix PATH setup on Darwin and provides an opt-in helper for
 # populating GITHUB_TOKEN when a command actually needs it.
 
-_:
+{ hostConfig, ... }:
 
 {
   programs.nushell = {
@@ -30,7 +30,7 @@ _:
     extraEnv = ''
       let nix_paths = [
         $"($env.HOME)/.nix-profile/bin"
-        "/etc/profiles/per-user/frank/bin"
+        "/etc/profiles/per-user/${hostConfig.primaryUser}/bin"
         "/run/current-system/sw/bin"
         "/nix/var/nix/profiles/default/bin"
       ]

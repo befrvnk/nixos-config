@@ -1,4 +1,4 @@
-{ inputs, ... }:
+{ inputs, hostConfig, ... }:
 
 {
   imports = [
@@ -36,8 +36,8 @@
   ];
 
   home = {
-    username = "frank";
-    homeDirectory = "/home/frank";
+    username = hostConfig.primaryUser;
+    homeDirectory = hostConfig.homeDirectory;
     stateVersion = "25.05";
 
     # Enable Wayland support for Electron apps (Discord, Slack, Anytype, etc.)
