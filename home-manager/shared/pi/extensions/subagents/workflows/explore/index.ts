@@ -31,6 +31,7 @@ function renderExploreTaskBlock(
 
 	let block = `${icon} ${theme.bold(title)} ${theme.fg("dim", statusText)}`;
 	block += `\n  ${theme.fg("dim", `ID: ${shortTaskId(result.taskId)}`)}`;
+	if (result.intent) block += `\n  ${theme.fg("dim", `Intent: ${result.intent}`)}`;
 	if (result.model) block += `\n  ${theme.fg("dim", `Model: ${result.model}`)}`;
 	if (result.cwd)
 		block += `\n  ${theme.fg("dim", `CWD: ${shortenPath(result.cwd)}`)}`;
@@ -62,8 +63,8 @@ function renderExploreTaskBlock(
 export function renderExploreToolCall(
 	args: {
 		task?: string;
-		model?: string;
-		tasks?: Array<{ task: string; model?: string }>;
+		intent?: string;
+		tasks?: Array<{ task: string; intent?: string }>;
 	},
 	theme: Theme,
 ) {
@@ -74,8 +75,8 @@ export function renderExploreToolCall(
 		"accent",
 		count > 1 ? `${count} tasks` : firstTask?.split("\n")[0]?.trim() || "task",
 	);
-	if (!Array.isArray(args.tasks) && args.model?.trim()) {
-		text += theme.fg("muted", ` (${args.model.trim()})`);
+	if (!Array.isArray(args.tasks) && args.intent?.trim()) {
+		text += theme.fg("muted", ` (${args.intent.trim()})`);
 	}
 	return new Text(text, 0, 0);
 }

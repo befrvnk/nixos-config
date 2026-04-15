@@ -4,6 +4,7 @@ import {
 	shortTaskId,
 	workflowDisplayName,
 } from "./formatting.js";
+import { describeTaskExecutionProfile } from "./task-profile.js";
 import type {
 	SubagentProgressItem,
 	SubagentRunState,
@@ -201,6 +202,8 @@ function renderFinishedLine(task: SubagentTaskState, theme: Theme): string {
 	}
 
 	const parts: string[] = [];
+	const profile = describeTaskExecutionProfile(task);
+	if (profile) parts.push(profile);
 	if (task.turnCount > 0) parts.push(formatTurns(task.turnCount));
 	if (task.toolUses > 0)
 		parts.push(`${task.toolUses} tool use${task.toolUses === 1 ? "" : "s"}`);
@@ -248,6 +251,7 @@ function buildWidgetLines(
 	const runningLines = activeTasks.map((task) => {
 		const stats: string[] = [];
 		const workflowName = workflowDisplayName(task.workflow);
+		const profile = describeTaskExecutionProfile(task);
 		stats.push(formatTurns(task.turnCount));
 		if (task.toolUses > 0)
 			stats.push(`${task.toolUses} tool use${task.toolUses === 1 ? "" : "s"}`);
@@ -260,6 +264,14 @@ function buildWidgetLines(
 					` ${theme.fg("accent", spinner)} ${theme.bold(workflowName)}  ${theme.fg("muted", taskLabel(task))} ${theme.fg("dim", "·")} ${theme.fg("dim", `id:${shortTaskId(task.taskId)}`)} ${theme.fg("dim", "·")} ${theme.fg("dim", stats.join(" · "))}`,
 			),
 		];
+
+		if (profile) {
+			lines.push(
+				truncate(
+					theme.fg("dim", "│  ") + theme.fg("muted", `  ${profile}`),
+				),
+			);
+		}
 
 		const progressLines = getProgressPreviewLines(task, 3);
 		if (progressLines.length > 0) {
@@ -422,9 +434,12 @@ export class SubagentWidget {
 				statusParts.push(`${pendingTasks.length} queued`);
 			const total = activeTasks.length + pendingTasks.length;
 			newStatusText = `${statusParts.join(", ")} subagent${total === 1 ? "" : "s"}`;
-			if (activeTasks.length === 1 && activeTasks[0]!.progressItems?.length) {
-				const current = describeActivity(activeTasks[0]!);
-				if (current) newStatusText += ` · ${truncateLine(current, 48)}`;
+			if (activeTasks.length === 1) {
+				const task = activeTasks[0]!;
+				const profile = describeTaskExecutionProfile(task);
+				if (profile) newStatusText += ` · ${profile}`;
+				const current = describeActivity(task);
+				if (current) newStatusText += ` · ${truncateLine(current, 36)}`;
 			}
 		}
 

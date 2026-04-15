@@ -102,6 +102,7 @@ export function renderTaskHistoryMarkdown(
 	lines.push(`- Run ID: ${run.runId}`);
 	lines.push(`- State: ${task.state}`);
 	lines.push(`- Label: ${task.label}`);
+	if (task.intent) lines.push(`- Intent: ${task.intent}`);
 	if (task.model) lines.push(`- Model: ${task.model}`);
 	if (task.thinkingLevel)
 		lines.push(`- Thinking level: ${task.thinkingLevel}`);
@@ -158,6 +159,7 @@ export function renderRunMarkdown(run: SubagentRunState): string {
 		lines.push(`- Task ID: ${task.taskId} (${shortTaskId(task.taskId)})`);
 		lines.push(`- Label: ${task.label}`);
 		lines.push(`- Task: ${task.task}`);
+		if (task.intent) lines.push(`- Intent: ${task.intent}`);
 		if (task.model) lines.push(`- Model: ${task.model}`);
 		if (task.thinkingLevel)
 			lines.push(`- Thinking level: ${task.thinkingLevel}`);
@@ -204,6 +206,7 @@ export function serializeRun(run: SubagentRunState) {
 			taskId: task.taskId,
 			task: task.task,
 			label: task.label,
+			intent: task.intent,
 			model: task.model,
 			thinkingLevel: task.thinkingLevel,
 			cwd: task.cwd,

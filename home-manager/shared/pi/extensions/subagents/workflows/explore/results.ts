@@ -57,6 +57,7 @@ export function renderFinalExploreResults(
     lines.push(`- Status: ${result.status}`);
     lines.push(`- Task ID: ${result.taskId} (${shortTaskId(result.taskId)})`);
     lines.push(`- Label: ${result.label ?? result.task}`);
+    if (result.intent) lines.push(`- Intent: ${result.intent}`);
     if (result.model) lines.push(`- Model: ${result.model}`);
     if (result.cwd) lines.push(`- CWD: ${shortenPath(result.cwd)}`);
     lines.push("");

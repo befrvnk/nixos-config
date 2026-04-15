@@ -1,4 +1,8 @@
-import { COPILOT_PROVIDER, type SubagentThinkingLevel } from "./types.js";
+import {
+	COPILOT_PROVIDER,
+	type ExploreIntent,
+	type SubagentThinkingLevel,
+} from "./types.js";
 
 export const ALLOWED_SUBAGENT_MODELS = [
 	`${COPILOT_PROVIDER}/claude-opus-4.6`,
@@ -10,10 +14,48 @@ export const ALLOWED_SUBAGENT_MODELS = [
 
 export type AllowedSubagentModel = (typeof ALLOWED_SUBAGENT_MODELS)[number];
 
-export const DEFAULT_EXPLORE_MODEL =
-	`${COPILOT_PROVIDER}/gpt-5.4-mini` as AllowedSubagentModel;
-export const DEFAULT_EXPLORE_THINKING_LEVEL: SubagentThinkingLevel =
-	"medium";
+export const ALLOWED_EXPLORE_INTENTS = ["fast", "balanced", "deep"] as const;
+export const DEFAULT_EXPLORE_INTENT: ExploreIntent = "balanced";
+
+export type ExploreExecutionProfile = {
+	intent: ExploreIntent;
+	model: AllowedSubagentModel;
+	thinkingLevel: SubagentThinkingLevel;
+};
+
+export const EXPLORE_INTENT_PROFILES: Readonly<
+	Record<ExploreIntent, ExploreExecutionProfile>
+> = {
+	fast: {
+		intent: "fast",
+		model: `${COPILOT_PROVIDER}/gpt-5.4-mini` as AllowedSubagentModel,
+		thinkingLevel: "medium",
+	},
+	balanced: {
+		intent: "balanced",
+		model: `${COPILOT_PROVIDER}/gpt-5.4` as AllowedSubagentModel,
+		thinkingLevel: "medium",
+	},
+	deep: {
+		intent: "deep",
+		model: `${COPILOT_PROVIDER}/gpt-5.4` as AllowedSubagentModel,
+		thinkingLevel: "high",
+	},
+} as const;
+
+export function normalizeExploreIntent(intent: string | undefined): ExploreIntent {
+	const normalized = intent?.trim().toLowerCase();
+	if (normalized === "fast" || normalized === "balanced" || normalized === "deep") {
+		return normalized;
+	}
+	return DEFAULT_EXPLORE_INTENT;
+}
+
+export function resolveExploreExecutionProfile(
+	intent: string | undefined,
+): ExploreExecutionProfile {
+	return EXPLORE_INTENT_PROFILES[normalizeExploreIntent(intent)];
+}
 
 export type ReviewerConfig = {
 	label: string;

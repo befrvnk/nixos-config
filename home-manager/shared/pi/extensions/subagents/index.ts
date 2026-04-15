@@ -1,71 +1,71 @@
 import type {
-	ExtensionAPI,
-	ExtensionCommandContext,
-	ExtensionContext,
+  ExtensionAPI,
+  ExtensionCommandContext,
+  ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
 import {
-	BorderedLoader,
-	DynamicBorder,
-	getMarkdownTheme,
+  BorderedLoader,
+  DynamicBorder,
+  getMarkdownTheme,
 } from "@mariozechner/pi-coding-agent";
 import {
-	Container,
-	fuzzyFilter,
-	Input,
-	Markdown,
-	type SelectItem,
-	SelectList,
-	Spacer,
-	Text,
+  Container,
+  fuzzyFilter,
+  Input,
+  Markdown,
+  type SelectItem,
+  SelectList,
+  Spacer,
+  Text,
 } from "@mariozechner/pi-tui";
 import {
-	parseExploreOutput,
-	renderExploreToolCall,
-	renderExploreToolResult,
-	renderFinalExploreResults,
+  parseExploreOutput,
+  renderExploreToolCall,
+  renderExploreToolResult,
+  renderFinalExploreResults,
 } from "./workflows/explore/index.js";
 import { EXPLORER_PROMPT } from "./workflows/explore/prompt.js";
 import {
-	renderRunMarkdown,
-	renderTaskHistoryMarkdown,
-	serializeRun,
-	shortTaskId,
-	uniqueNonEmptyStrings,
+  renderRunMarkdown,
+  renderTaskHistoryMarkdown,
+  serializeRun,
+  shortTaskId,
+  uniqueNonEmptyStrings,
 } from "./formatting.js";
 import {
-	filterRuns,
-	findTaskById,
-	parseReviewCommandArgs,
-	REVIEW_COMMAND_USAGE,
-	type ReviewSelection,
+  filterRuns,
+  findTaskById,
+  parseReviewCommandArgs,
+  REVIEW_COMMAND_USAGE,
+  type ReviewSelection,
 } from "./commands.js";
 import {
-	DEFAULT_EXPLORE_MODEL,
-	DEFAULT_EXPLORE_THINKING_LEVEL,
+  DEFAULT_EXPLORE_INTENT,
+  resolveExploreExecutionProfile,
 } from "./model-policy.js";
 import {
-	createReviewTasks,
-	parseReviewOutput,
-	renderFinalReviewResults,
+  createReviewTasks,
+  parseReviewOutput,
+  renderFinalReviewResults,
 } from "./workflows/review/index.js";
 import { buildReviewContextSystemPrompt } from "./review-context.js";
 import { REVIEWER_PROMPT } from "./workflows/review/prompt.js";
 import {
-	chooseSmartReviewTarget,
-	sortReviewBranches,
+  chooseSmartReviewTarget,
+  sortReviewBranches,
 } from "./workflows/review/selection.js";
 import { mapWithConcurrencyLimit, runSingleTask } from "./runner.js";
 import {
-	exploreParamsSchema,
-	statusSchema,
+  exploreParamsSchema,
+  statusSchema,
 } from "./workflows/explore/schema.js";
 import {
-	MAX_PARALLEL_TASKS,
-	MAX_RECENT_RUNS,
-	type ParsedSubagentOutput,
-	type SubagentRunState,
-	type SubagentTaskInput,
-	type SubagentWorkflow,
+  MAX_PARALLEL_TASKS,
+  MAX_RECENT_RUNS,
+  type ParsedSubagentOutput,
+  type SubagentRunState,
+  type SubagentTaskInput,
+  type SubagentWorkflow,
 } from "./types.js";
 import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
 
@@ -73,922 +73,930 @@ const SUBAGENT_TASK_MESSAGE_TYPE = "subagent-task";
 const SUBAGENT_MARKDOWN_MESSAGE_TYPE = "subagent-markdown";
 const MARKDOWN_PREVIEW_LINES = 8;
 
-function renderMarkdownPreview(markdown: string, theme: { fg(color: string, text: string): string }) {
-	const lines = markdown.trim().split("\n");
-	const preview = lines.slice(0, MARKDOWN_PREVIEW_LINES).join("\n").trim();
-	if (lines.length <= MARKDOWN_PREVIEW_LINES) return preview;
-	return `${preview}\n${theme.fg("muted", "(expand to view full formatted markdown)")}`;
+function renderMarkdownPreview(
+  markdown: string,
+  theme: { fg(color: string, text: string): string },
+) {
+  const lines = markdown.trim().split("\n");
+  const preview = lines.slice(0, MARKDOWN_PREVIEW_LINES).join("\n").trim();
+  if (lines.length <= MARKDOWN_PREVIEW_LINES) return preview;
+  return `${preview}\n${theme.fg("muted", "(expand to view full formatted markdown)")}`;
 }
 
 type ReviewExecutionResult =
-	| { status: "success" }
-	| { status: "aborted" }
-	| { status: "partial"; message: string }
-	| { status: "error"; message: string };
+  | { status: "success" }
+  | { status: "aborted" }
+  | { status: "partial"; message: string }
+  | { status: "error"; message: string };
 
 function createRunId(): string {
-	return `sub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  return `sub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function createTaskId(runId: string, index: number): string {
-	return `${runId}_task_${index + 1}`;
+  return `${runId}_task_${index + 1}`;
 }
 
 type ReviewCommitSelection = {
-	sha: string;
-	title: string;
-	label: string;
+  sha: string;
+  title: string;
+  label: string;
 };
 
-type ReviewTargetChoice =
-	| "uncommitted"
-	| "staged"
-	| "baseBranch"
-	| "commit";
+type ReviewTargetChoice = "uncommitted" | "staged" | "baseBranch" | "commit";
 
 async function getCurrentBranch(
-	pi: ExtensionAPI,
-	cwd: string,
+  pi: ExtensionAPI,
+  cwd: string,
 ): Promise<string | undefined> {
-	const result = await pi.exec("git", ["branch", "--show-current"], { cwd });
-	if ((result.code ?? 1) !== 0) return undefined;
-	return result.stdout?.trim() || undefined;
+  const result = await pi.exec("git", ["branch", "--show-current"], { cwd });
+  if ((result.code ?? 1) !== 0) return undefined;
+  return result.stdout?.trim() || undefined;
 }
 
 async function listAllReviewBranches(
-	pi: ExtensionAPI,
-	cwd: string,
+  pi: ExtensionAPI,
+  cwd: string,
 ): Promise<string[]> {
-	const refsResult = await pi.exec(
-		"git",
-		[
-			"for-each-ref",
-			"--format=%(refname:short)",
-			"refs/heads",
-			"refs/remotes",
-		],
-		{ cwd },
-	);
+  const refsResult = await pi.exec(
+    "git",
+    ["for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"],
+    { cwd },
+  );
 
-	if ((refsResult.code ?? 1) !== 0) {
-		throw new Error(
-			refsResult.stderr?.trim() ||
-				refsResult.stdout?.trim() ||
-				"Failed to list git branches.",
-		);
-	}
+  if ((refsResult.code ?? 1) !== 0) {
+    throw new Error(
+      refsResult.stderr?.trim() ||
+        refsResult.stdout?.trim() ||
+        "Failed to list git branches.",
+    );
+  }
 
-	return uniqueNonEmptyStrings((refsResult.stdout ?? "").split("\n"));
+  return uniqueNonEmptyStrings((refsResult.stdout ?? "").split("\n"));
 }
 
 async function getDefaultBranch(
-	pi: ExtensionAPI,
-	cwd: string,
+  pi: ExtensionAPI,
+  cwd: string,
 ): Promise<string | undefined> {
-	const remoteHeadResult = await pi.exec(
-		"git",
-		["symbolic-ref", "refs/remotes/origin/HEAD", "--short"],
-		{ cwd },
-	);
-	if ((remoteHeadResult.code ?? 1) === 0) {
-		const remoteHead = remoteHeadResult.stdout?.trim();
-		if (remoteHead?.startsWith("origin/")) {
-			return remoteHead.slice("origin/".length);
-		}
-	}
+  const remoteHeadResult = await pi.exec(
+    "git",
+    ["symbolic-ref", "refs/remotes/origin/HEAD", "--short"],
+    { cwd },
+  );
+  if ((remoteHeadResult.code ?? 1) === 0) {
+    const remoteHead = remoteHeadResult.stdout?.trim();
+    if (remoteHead?.startsWith("origin/")) {
+      return remoteHead.slice("origin/".length);
+    }
+  }
 
-	const branches = await listAllReviewBranches(pi, cwd);
-	for (const branch of ["main", "master", "origin/main", "origin/master"]) {
-		if (branches.includes(branch)) {
-			return branch.startsWith("origin/") ? branch.slice("origin/".length) : branch;
-		}
-	}
-	return undefined;
+  const branches = await listAllReviewBranches(pi, cwd);
+  for (const branch of ["main", "master", "origin/main", "origin/master"]) {
+    if (branches.includes(branch)) {
+      return branch.startsWith("origin/")
+        ? branch.slice("origin/".length)
+        : branch;
+    }
+  }
+  return undefined;
 }
 
 async function getReviewStatusShort(
-	pi: ExtensionAPI,
-	cwd: string,
+  pi: ExtensionAPI,
+  cwd: string,
 ): Promise<string> {
-	const result = await pi.exec("git", ["status", "--short", "--untracked-files=all"], {
-		cwd,
-	});
-	if ((result.code ?? 1) !== 0) {
-		throw new Error(
-			result.stderr?.trim() ||
-				result.stdout?.trim() ||
-				"Failed to inspect git status for review defaults.",
-		);
-	}
-	return result.stdout ?? "";
+  const result = await pi.exec(
+    "git",
+    ["status", "--short", "--untracked-files=all"],
+    {
+      cwd,
+    },
+  );
+  if ((result.code ?? 1) !== 0) {
+    throw new Error(
+      result.stderr?.trim() ||
+        result.stdout?.trim() ||
+        "Failed to inspect git status for review defaults.",
+    );
+  }
+  return result.stdout ?? "";
 }
 
 async function listReviewBranches(
-	pi: ExtensionAPI,
-	cwd: string,
+  pi: ExtensionAPI,
+  cwd: string,
 ): Promise<string[]> {
-	const [branches, currentBranch] = await Promise.all([
-		listAllReviewBranches(pi, cwd),
-		getCurrentBranch(pi, cwd),
-	]);
-	return sortReviewBranches(branches, currentBranch);
+  const [branches, currentBranch] = await Promise.all([
+    listAllReviewBranches(pi, cwd),
+    getCurrentBranch(pi, cwd),
+  ]);
+  return sortReviewBranches(branches, currentBranch);
 }
 
 async function listReviewCommits(
-	pi: ExtensionAPI,
-	cwd: string,
+  pi: ExtensionAPI,
+  cwd: string,
 ): Promise<ReviewCommitSelection[]> {
-	const result = await pi.exec(
-		"git",
-		["log", "--format=%H%x09%s", "-n", "20"],
-		{ cwd },
-	);
-	if ((result.code ?? 1) !== 0) {
-		throw new Error(
-			result.stderr?.trim() ||
-				result.stdout?.trim() ||
-				"Failed to list recent commits.",
-		);
-	}
+  const result = await pi.exec(
+    "git",
+    ["log", "--format=%H%x09%s", "-n", "20"],
+    { cwd },
+  );
+  if ((result.code ?? 1) !== 0) {
+    throw new Error(
+      result.stderr?.trim() ||
+        result.stdout?.trim() ||
+        "Failed to list recent commits.",
+    );
+  }
 
-	return uniqueNonEmptyStrings((result.stdout ?? "").split("\n")).map((line) => {
-		const [sha = "", title = ""] = line.split("\t");
-		const trimmedSha = sha.trim();
-		const trimmedTitle = title.trim();
-		return {
-			sha: trimmedSha,
-			title: trimmedTitle,
-			label: trimmedTitle
-				? `${trimmedSha.slice(0, 12)} ${trimmedTitle}`
-				: trimmedSha,
-		};
-	});
+  return uniqueNonEmptyStrings((result.stdout ?? "").split("\n")).map(
+    (line) => {
+      const [sha = "", title = ""] = line.split("\t");
+      const trimmedSha = sha.trim();
+      const trimmedTitle = title.trim();
+      return {
+        sha: trimmedSha,
+        title: trimmedTitle,
+        label: trimmedTitle
+          ? `${trimmedSha.slice(0, 12)} ${trimmedTitle}`
+          : trimmedSha,
+      };
+    },
+  );
 }
 
 async function showSelectableList(
-	ctx: ExtensionCommandContext,
-	options: {
-		title: string;
-		items: SelectItem[];
-		filterPrompt?: string;
-		helpText: string;
-		selectedIndex?: number;
-	};
+  ctx: ExtensionCommandContext,
+  options: {
+    title: string;
+    items: SelectItem[];
+    filterPrompt?: string;
+    helpText: string;
+    selectedIndex?: number;
+  },
 ): Promise<string | undefined> {
-	return ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
-		const container = new Container();
-		container.addChild(new DynamicBorder((text) => theme.fg("accent", text)));
-		container.addChild(new Text(theme.fg("accent", theme.bold(options.title))));
+  return ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
+    const container = new Container();
+    container.addChild(new DynamicBorder((text) => theme.fg("accent", text)));
+    container.addChild(new Text(theme.fg("accent", theme.bold(options.title))));
 
-		const searchInput = new Input();
-		const hasFilter = Boolean(options.filterPrompt);
-		if (hasFilter) {
-			container.addChild(
-				new Text(theme.fg("muted", options.filterPrompt ?? "Filter")),
-			);
-			container.addChild(searchInput);
-			container.addChild(new Spacer(1));
-		}
+    const searchInput = new Input();
+    const hasFilter = Boolean(options.filterPrompt);
+    if (hasFilter) {
+      container.addChild(
+        new Text(theme.fg("muted", options.filterPrompt ?? "Filter")),
+      );
+      container.addChild(searchInput);
+      container.addChild(new Spacer(1));
+    }
 
-		const listContainer = new Container();
-		container.addChild(listContainer);
-		container.addChild(new Text(theme.fg("dim", options.helpText)));
-		container.addChild(new DynamicBorder((text) => theme.fg("accent", text)));
+    const listContainer = new Container();
+    container.addChild(listContainer);
+    container.addChild(new Text(theme.fg("dim", options.helpText)));
+    container.addChild(new DynamicBorder((text) => theme.fg("accent", text)));
 
-		let filteredItems = options.items;
-		let selectList: SelectList | null = null;
+    let filteredItems = options.items;
+    let selectList: SelectList | null = null;
 
-		const updateList = () => {
-			listContainer.clear();
-			if (filteredItems.length === 0) {
-				listContainer.addChild(new Text(theme.fg("warning", "  No matching items")));
-				selectList = null;
-				return;
-			}
+    const updateList = () => {
+      listContainer.clear();
+      if (filteredItems.length === 0) {
+        listContainer.addChild(
+          new Text(theme.fg("warning", "  No matching items")),
+        );
+        selectList = null;
+        return;
+      }
 
-			selectList = new SelectList(filteredItems, Math.min(filteredItems.length, 10), {
-				selectedPrefix: (text) => theme.fg("accent", text),
-				selectedText: (text) => theme.fg("accent", text),
-				description: (text) => theme.fg("muted", text),
-				scrollInfo: (text) => theme.fg("dim", text),
-				noMatch: (text) => theme.fg("warning", text),
-			});
-			if (typeof options.selectedIndex === "number") {
-				selectList.setSelectedIndex(
-					Math.max(0, Math.min(options.selectedIndex, filteredItems.length - 1)),
-				);
-			}
-			selectList.onSelect = (item) => done(String(item.value));
-			selectList.onCancel = () => done(undefined);
-			listContainer.addChild(selectList);
-		};
+      selectList = new SelectList(
+        filteredItems,
+        Math.min(filteredItems.length, 10),
+        {
+          selectedPrefix: (text) => theme.fg("accent", text),
+          selectedText: (text) => theme.fg("accent", text),
+          description: (text) => theme.fg("muted", text),
+          scrollInfo: (text) => theme.fg("dim", text),
+          noMatch: (text) => theme.fg("warning", text),
+        },
+      );
+      if (typeof options.selectedIndex === "number") {
+        selectList.setSelectedIndex(
+          Math.max(
+            0,
+            Math.min(options.selectedIndex, filteredItems.length - 1),
+          ),
+        );
+      }
+      selectList.onSelect = (item) => done(String(item.value));
+      selectList.onCancel = () => done(undefined);
+      listContainer.addChild(selectList);
+    };
 
-		const applyFilter = () => {
-			if (!hasFilter) {
-				filteredItems = options.items;
-				updateList();
-				return;
-			}
-			const query = searchInput.getValue();
-			filteredItems = query
-				? fuzzyFilter(
-						options.items,
-						query,
-						(item) => `${item.label} ${item.value} ${item.description ?? ""}`,
-					)
-				: options.items;
-			updateList();
-		};
+    const applyFilter = () => {
+      if (!hasFilter) {
+        filteredItems = options.items;
+        updateList();
+        return;
+      }
+      const query = searchInput.getValue();
+      filteredItems = query
+        ? fuzzyFilter(
+            options.items,
+            query,
+            (item) => `${item.label} ${item.value} ${item.description ?? ""}`,
+          )
+        : options.items;
+      updateList();
+    };
 
-		applyFilter();
+    applyFilter();
 
-		return {
-			render(width: number) {
-				return container.render(width);
-			},
-			invalidate() {
-				container.invalidate();
-			},
-			handleInput(data: string) {
-				if (
-					keybindings.matches(data, "tui.select.up") ||
-					keybindings.matches(data, "tui.select.down") ||
-					keybindings.matches(data, "tui.select.confirm") ||
-					keybindings.matches(data, "tui.select.cancel")
-				) {
-					if (selectList) {
-						selectList.handleInput(data);
-					} else if (keybindings.matches(data, "tui.select.cancel")) {
-						done(undefined);
-					}
-					tui.requestRender();
-					return;
-				}
+    return {
+      render(width: number) {
+        return container.render(width);
+      },
+      invalidate() {
+        container.invalidate();
+      },
+      handleInput(data: string) {
+        if (
+          keybindings.matches(data, "tui.select.up") ||
+          keybindings.matches(data, "tui.select.down") ||
+          keybindings.matches(data, "tui.select.confirm") ||
+          keybindings.matches(data, "tui.select.cancel")
+        ) {
+          if (selectList) {
+            selectList.handleInput(data);
+          } else if (keybindings.matches(data, "tui.select.cancel")) {
+            done(undefined);
+          }
+          tui.requestRender();
+          return;
+        }
 
-				if (hasFilter) {
-					searchInput.handleInput(data);
-					applyFilter();
-					tui.requestRender();
-				}
-			},
-		};
-	});
+        if (hasFilter) {
+          searchInput.handleInput(data);
+          applyFilter();
+          tui.requestRender();
+        }
+      },
+    };
+  });
 }
 
 async function promptForOptionalReviewInstructions(
-	ctx: ExtensionCommandContext,
-	selection: ReviewSelection,
+  ctx: ExtensionCommandContext,
+  selection: ReviewSelection,
 ): Promise<ReviewSelection> {
-	const choice = await ctx.ui.select("Add extra review instructions?", [
-		"Skip",
-		"Add instructions",
-	]);
-	if (choice !== "Add instructions") return selection;
+  const choice = await ctx.ui.select("Add extra review instructions?", [
+    "Skip",
+    "Add instructions",
+  ]);
+  if (choice !== "Add instructions") return selection;
 
-	const value = await ctx.ui.editor("Enter additional review instructions:", "");
-	const prompt = value?.trim();
-	if (!prompt) return selection;
-	return {
-		...selection,
-		request: {
-			...selection.request,
-			prompt,
-		},
-	};
+  const value = await ctx.ui.editor(
+    "Enter additional review instructions:",
+    "",
+  );
+  const prompt = value?.trim();
+  if (!prompt) return selection;
+  return {
+    ...selection,
+    request: {
+      ...selection.request,
+      prompt,
+    },
+  };
 }
 
 async function promptForReviewSelection(
-	pi: ExtensionAPI,
-	ctx: ExtensionCommandContext,
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
 ): Promise<ReviewSelection | undefined> {
-	if (!ctx.hasUI) return undefined;
+  if (!ctx.hasUI) return undefined;
 
-	const [statusShort, currentBranch, defaultBranch] = await Promise.all([
-		getReviewStatusShort(pi, ctx.cwd),
-		getCurrentBranch(pi, ctx.cwd),
-		getDefaultBranch(pi, ctx.cwd),
-	]);
-	const smartDefault = chooseSmartReviewTarget({
-		statusShort,
-		currentBranch,
-		defaultBranch,
-	});
-	const targetItems: Array<SelectItem & { value: ReviewTargetChoice }> = [
-		{
-			value: "uncommitted",
-			label: "Review uncommitted changes",
-			description: "unstaged and untracked files",
-		},
-		{
-			value: "staged",
-			label: "Review staged changes",
-			description: "index only",
-		},
-		{
-			value: "baseBranch",
-			label: "Review against a base branch",
-			description: defaultBranch ? `(default branch: ${defaultBranch})` : "",
-		},
-		{
-			value: "commit",
-			label: "Review a commit",
-			description: "recent commit diff",
-		},
-	];
-	const selectedValue = await showSelectableList(ctx, {
-		title: "Select review target",
-		items: targetItems,
-		helpText: "Enter to confirm • esc to cancel",
-		selectedIndex: Math.max(
-			0,
-			targetItems.findIndex((item) => item.value === smartDefault),
-		),
-	});
-	if (!selectedValue) return undefined;
+  const [statusShort, currentBranch, defaultBranch] = await Promise.all([
+    getReviewStatusShort(pi, ctx.cwd),
+    getCurrentBranch(pi, ctx.cwd),
+    getDefaultBranch(pi, ctx.cwd),
+  ]);
+  const smartDefault = chooseSmartReviewTarget({
+    statusShort,
+    currentBranch,
+    defaultBranch,
+  });
+  const targetItems: Array<SelectItem & { value: ReviewTargetChoice }> = [
+    {
+      value: "uncommitted",
+      label: "Review uncommitted changes",
+      description: "unstaged and untracked files",
+    },
+    {
+      value: "staged",
+      label: "Review staged changes",
+      description: "index only",
+    },
+    {
+      value: "baseBranch",
+      label: "Review against a base branch",
+      description: defaultBranch ? `(default branch: ${defaultBranch})` : "",
+    },
+    {
+      value: "commit",
+      label: "Review a commit",
+      description: "recent commit diff",
+    },
+  ];
+  const selectedValue = await showSelectableList(ctx, {
+    title: "Select review target",
+    items: targetItems,
+    helpText: "Enter to confirm • esc to cancel",
+    selectedIndex: Math.max(
+      0,
+      targetItems.findIndex((item) => item.value === smartDefault),
+    ),
+  });
+  if (!selectedValue) return undefined;
 
-	let selection: ReviewSelection | undefined;
-	if (selectedValue === "uncommitted") {
-		selection = {
-			label: "uncommitted changes",
-			request: { target: { type: "uncommitted" } },
-		};
-	} else if (selectedValue === "staged") {
-		selection = {
-			label: "staged changes",
-			request: { target: { type: "staged" } },
-		};
-	} else if (selectedValue === "baseBranch") {
-		const branches = await listReviewBranches(pi, ctx.cwd);
-		if (branches.length === 0) {
-			ctx.ui.notify("No branches available for base-branch review.", "warning");
-			return undefined;
-		}
-		const branch = await showSelectableList(ctx, {
-			title: "Select base branch",
-			items: branches.map((branchName) => ({
-				value: branchName,
-				label: branchName,
-				description:
-					defaultBranch && branchName === defaultBranch ? "(default)" : "",
-			})),
-			filterPrompt: "Filter branches",
-			helpText: "Type to filter • enter to select • esc to cancel",
-			selectedIndex: Math.max(
-				0,
-				branches.findIndex((branchName) => branchName === defaultBranch),
-			),
-		});
-		if (!branch) return undefined;
-		selection = {
-			label: `base branch ${branch}`,
-			request: { target: { type: "baseBranch", branch } },
-		};
-	} else {
-		const commits = await listReviewCommits(pi, ctx.cwd);
-		if (commits.length === 0) {
-			ctx.ui.notify("No commits available for review.", "warning");
-			return undefined;
-		}
-		const commitSha = await showSelectableList(ctx, {
-			title: "Select commit",
-			items: commits.map((commit) => ({
-				value: commit.sha,
-				label: commit.label,
-				description: "",
-			})),
-			filterPrompt: "Filter commits",
-			helpText: "Type to filter • enter to select • esc to cancel",
-		});
-		if (!commitSha) return undefined;
-		selection = {
-			label: `commit ${commitSha.slice(0, 12)}`,
-			request: { target: { type: "commit", sha: commitSha } },
-		};
-	}
+  let selection: ReviewSelection | undefined;
+  if (selectedValue === "uncommitted") {
+    selection = {
+      label: "uncommitted changes",
+      request: { target: { type: "uncommitted" } },
+    };
+  } else if (selectedValue === "staged") {
+    selection = {
+      label: "staged changes",
+      request: { target: { type: "staged" } },
+    };
+  } else if (selectedValue === "baseBranch") {
+    const branches = await listReviewBranches(pi, ctx.cwd);
+    if (branches.length === 0) {
+      ctx.ui.notify("No branches available for base-branch review.", "warning");
+      return undefined;
+    }
+    const branch = await showSelectableList(ctx, {
+      title: "Select base branch",
+      items: branches.map((branchName) => ({
+        value: branchName,
+        label: branchName,
+        description:
+          defaultBranch && branchName === defaultBranch ? "(default)" : "",
+      })),
+      filterPrompt: "Filter branches",
+      helpText: "Type to filter • enter to select • esc to cancel",
+      selectedIndex: Math.max(
+        0,
+        branches.findIndex((branchName) => branchName === defaultBranch),
+      ),
+    });
+    if (!branch) return undefined;
+    selection = {
+      label: `base branch ${branch}`,
+      request: { target: { type: "baseBranch", branch } },
+    };
+  } else {
+    const commits = await listReviewCommits(pi, ctx.cwd);
+    if (commits.length === 0) {
+      ctx.ui.notify("No commits available for review.", "warning");
+      return undefined;
+    }
+    const commitSha = await showSelectableList(ctx, {
+      title: "Select commit",
+      items: commits.map((commit) => ({
+        value: commit.sha,
+        label: commit.label,
+        description: "",
+      })),
+      filterPrompt: "Filter commits",
+      helpText: "Type to filter • enter to select • esc to cancel",
+    });
+    if (!commitSha) return undefined;
+    selection = {
+      label: `commit ${commitSha.slice(0, 12)}`,
+      request: { target: { type: "commit", sha: commitSha } },
+    };
+  }
 
-	return promptForOptionalReviewInstructions(ctx, selection);
+  return promptForOptionalReviewInstructions(ctx, selection);
 }
 
 function showCommandMessage(
-	pi: ExtensionAPI,
-	markdown: string,
-	content: string,
+  pi: ExtensionAPI,
+  markdown: string,
+  content: string,
 ) {
-	pi.sendMessage({
-		customType: SUBAGENT_MARKDOWN_MESSAGE_TYPE,
-		content,
-		display: true,
-		details: { markdown },
-	});
+  pi.sendMessage({
+    customType: SUBAGENT_MARKDOWN_MESSAGE_TYPE,
+    content,
+    display: true,
+    details: { markdown },
+  });
 }
 
 export default function subagentExtension(pi: ExtensionAPI) {
-	const activeRuns = new Map<string, SubagentRunState>();
-	const recentRuns: SubagentRunState[] = [];
-	const pendingReviewContexts: string[] = [];
-	const widget = new SubagentWidget(() => [
-		...activeRuns.values(),
-		...recentRuns,
-	]);
+  const activeRuns = new Map<string, SubagentRunState>();
+  const recentRuns: SubagentRunState[] = [];
+  const pendingReviewContexts: string[] = [];
+  const widget = new SubagentWidget(() => [
+    ...activeRuns.values(),
+    ...recentRuns,
+  ]);
 
-	const rememberRun = (run: SubagentRunState) => {
-		recentRuns.unshift(JSON.parse(JSON.stringify(run)) as SubagentRunState);
-		if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
-	};
+  const rememberRun = (run: SubagentRunState) => {
+    recentRuns.unshift(JSON.parse(JSON.stringify(run)) as SubagentRunState);
+    if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
+  };
 
-	const executeWorkflow = async (
-		workflow: SubagentWorkflow,
-		taskInputs: SubagentTaskInput[],
-		options: {
-			systemPrompt: string;
-			parseOutput: (markdown: string) => ParsedSubagentOutput;
-			onUpdate?: (update: unknown) => void;
-			signal?: AbortSignal;
-			ctx: ExtensionContext | ExtensionCommandContext;
-		},
-	) => {
-		const runId = createRunId();
-		const run: SubagentRunState = {
-			workflow,
-			runId,
-			mode: taskInputs.length === 1 ? "single" : "parallel",
-			state: "running",
-			startedAt: Date.now(),
-			tasks: taskInputs.map((task, index) => ({
-				workflow,
-				index,
-				taskId: createTaskId(runId, index),
-				task: task.task,
-				label: task.label?.trim() || task.task.trim(),
-				model: task.model,
-				thinkingLevel: task.thinkingLevel,
-				cwd: task.cwd,
-				metadata: task.metadata,
-				state: "pending",
-				toolUses: 0,
-				turnCount: 0,
-				tokenCount: 0,
-				responseText: "",
-				history: [],
-				recentTools: [],
-				recentOutputLines: [],
-			})),
-		};
+  const executeWorkflow = async (
+    workflow: SubagentWorkflow,
+    taskInputs: SubagentTaskInput[],
+    options: {
+      systemPrompt: string;
+      parseOutput: (markdown: string) => ParsedSubagentOutput;
+      onUpdate?: (update: unknown) => void;
+      signal?: AbortSignal;
+      ctx: ExtensionContext | ExtensionCommandContext;
+    },
+  ) => {
+    const runId = createRunId();
+    const run: SubagentRunState = {
+      workflow,
+      runId,
+      mode: taskInputs.length === 1 ? "single" : "parallel",
+      state: "running",
+      startedAt: Date.now(),
+      tasks: taskInputs.map((task, index) => ({
+        workflow,
+        index,
+        taskId: createTaskId(runId, index),
+        task: task.task,
+        label: task.label?.trim() || task.task.trim(),
+        intent: task.intent,
+        model: task.model,
+        thinkingLevel: task.thinkingLevel,
+        cwd: task.cwd,
+        metadata: task.metadata,
+        state: "pending",
+        toolUses: 0,
+        turnCount: 0,
+        tokenCount: 0,
+        responseText: "",
+        history: [],
+        recentTools: [],
+        recentOutputLines: [],
+      })),
+    };
 
-		const emitRunUpdate = () => {
-			const serialized = serializeRun(run);
-			widget.update();
-			if (!options.onUpdate) return;
-			options.onUpdate({
-				content: [
-					{ type: "text", text: `${workflow} run ${run.runId} in progress.` },
-				],
-				details: { workflow, run: serialized },
-			});
-		};
+    const emitRunUpdate = () => {
+      const serialized = serializeRun(run);
+      widget.update();
+      if (!options.onUpdate) return;
+      options.onUpdate({
+        content: [
+          { type: "text", text: `${workflow} run ${run.runId} in progress.` },
+        ],
+        details: { workflow, run: serialized },
+      });
+    };
 
-		activeRuns.set(run.runId, run);
-		for (const taskState of run.tasks) {
-			pi.sendMessage({
-				customType: SUBAGENT_TASK_MESSAGE_TYPE,
-				content: `${workflow} ${taskState.label}`,
-				display: true,
-				details: {
-					workflow,
-					taskId: taskState.taskId,
-					label: taskState.label,
-					task: taskState.task,
-				},
-			});
-		}
-		emitRunUpdate();
+    activeRuns.set(run.runId, run);
+    for (const taskState of run.tasks) {
+      pi.sendMessage({
+        customType: SUBAGENT_TASK_MESSAGE_TYPE,
+        content: `${workflow} ${taskState.label}`,
+        display: true,
+        details: {
+          workflow,
+          taskId: taskState.taskId,
+          label: taskState.label,
+          task: taskState.task,
+        },
+      });
+    }
+    emitRunUpdate();
 
-		try {
-			const results = await mapWithConcurrencyLimit(
-				run.tasks,
-				MAX_PARALLEL_TASKS,
-				async (taskState) =>
-					runSingleTask(taskState, {
-						parentCtx: options.ctx,
-						emitRunUpdate,
-						signal: options.signal,
-						systemPrompt: options.systemPrompt,
-						parseOutput: options.parseOutput,
-					}),
-			);
+    try {
+      const results = await mapWithConcurrencyLimit(
+        run.tasks,
+        MAX_PARALLEL_TASKS,
+        async (taskState) =>
+          runSingleTask(taskState, {
+            parentCtx: options.ctx,
+            emitRunUpdate,
+            signal: options.signal,
+            systemPrompt: options.systemPrompt,
+            parseOutput: options.parseOutput,
+          }),
+      );
 
-			run.endedAt = Date.now();
-			run.state = results.some((result) => result.status === "error")
-				? "error"
-				: results.some((result) => result.status === "aborted")
-					? "aborted"
-					: "success";
+      run.endedAt = Date.now();
+      run.state = results.some((result) => result.status === "error")
+        ? "error"
+        : results.some((result) => result.status === "aborted")
+          ? "aborted"
+          : "success";
 
-			activeRuns.delete(run.runId);
-			rememberRun(run);
-			widget.update();
-			return { run, results };
-		} catch (error) {
-			run.endedAt = Date.now();
-			run.state = "error";
-			activeRuns.delete(run.runId);
-			rememberRun(run);
-			widget.update();
-			throw error;
-		}
-	};
+      activeRuns.delete(run.runId);
+      rememberRun(run);
+      widget.update();
+      return { run, results };
+    } catch (error) {
+      run.endedAt = Date.now();
+      run.state = "error";
+      activeRuns.delete(run.runId);
+      rememberRun(run);
+      widget.update();
+      throw error;
+    }
+  };
 
-	const executeStatus = (
-		workflow: SubagentWorkflow,
-		params: { action: "list" | "get"; runId?: string },
-	) => {
-		const runs = filterRuns(workflow, activeRuns, recentRuns);
+  const executeStatus = (
+    workflow: SubagentWorkflow,
+    params: { action: "list" | "get"; runId?: string },
+  ) => {
+    const runs = filterRuns(workflow, activeRuns, recentRuns);
 
-		if (params.action === "list") {
-			const lines: string[] = [];
-			if (runs.length === 0) {
-				lines.push(`No ${workflow} runs recorded in this session.`);
-			} else {
-				for (const run of runs) {
-					lines.push(
-						`- ${run.runId} | ${run.state} | ${run.mode} | ${run.tasks.length} task(s)`,
-					);
-				}
-			}
-			return {
-				content: [{ type: "text", text: lines.join("\n") }],
-				details: { runs: runs.map(serializeRun) },
-			};
-		}
+    if (params.action === "list") {
+      const lines: string[] = [];
+      if (runs.length === 0) {
+        lines.push(`No ${workflow} runs recorded in this session.`);
+      } else {
+        for (const run of runs) {
+          lines.push(
+            `- ${run.runId} | ${run.state} | ${run.mode} | ${run.tasks.length} task(s)`,
+          );
+        }
+      }
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        details: { runs: runs.map(serializeRun) },
+      };
+    }
 
-		if (!params.runId?.trim()) {
-			return {
-				content: [{ type: "text", text: 'action="get" requires runId.' }],
-				isError: true,
-				details: {},
-			};
-		}
+    if (!params.runId?.trim()) {
+      return {
+        content: [{ type: "text", text: 'action="get" requires runId.' }],
+        isError: true,
+        details: {},
+      };
+    }
 
-		const run = runs.find((candidate) => candidate.runId === params.runId);
-		if (!run) {
-			return {
-				content: [{ type: "text", text: `Run not found: ${params.runId}` }],
-				isError: true,
-				details: {},
-			};
-		}
+    const run = runs.find((candidate) => candidate.runId === params.runId);
+    if (!run) {
+      return {
+        content: [{ type: "text", text: `Run not found: ${params.runId}` }],
+        isError: true,
+        details: {},
+      };
+    }
 
-		return {
-			content: [{ type: "text", text: renderRunMarkdown(run) }],
-			details: serializeRun(run),
-		};
-	};
+    return {
+      content: [{ type: "text", text: renderRunMarkdown(run) }],
+      details: serializeRun(run),
+    };
+  };
 
-	const runReviewSelection = async (
-		selection: ReviewSelection,
-		ctx: ExtensionCommandContext,
-		signal?: AbortSignal,
-	): Promise<ReviewExecutionResult> => {
-		try {
-			const { tasks, context } = await createReviewTasks(
-				pi,
-				selection.request,
-				ctx.cwd,
-				signal,
-			);
-			const { run, results } = await executeWorkflow("review", tasks, {
-				systemPrompt: REVIEWER_PROMPT,
-				parseOutput: parseReviewOutput,
-				signal,
-				ctx,
-			});
+  const runReviewSelection = async (
+    selection: ReviewSelection,
+    ctx: ExtensionCommandContext,
+    signal?: AbortSignal,
+  ): Promise<ReviewExecutionResult> => {
+    try {
+      const { tasks, context } = await createReviewTasks(
+        pi,
+        selection.request,
+        ctx.cwd,
+        signal,
+      );
+      const { run, results } = await executeWorkflow("review", tasks, {
+        systemPrompt: REVIEWER_PROMPT,
+        parseOutput: parseReviewOutput,
+        signal,
+        ctx,
+      });
 
-			if (signal?.aborted || run.state === "aborted") {
-				return { status: "aborted" };
-			}
+      if (signal?.aborted || run.state === "aborted") {
+        return { status: "aborted" };
+      }
 
-			const reviewMarkdown = renderFinalReviewResults(
-				run.runId,
-				run.mode,
-				results,
-				context,
-			);
-			showCommandMessage(
-				pi,
-				reviewMarkdown,
-				`Review ${selection.label}`,
-			);
-			pendingReviewContexts.push(reviewMarkdown);
+      const reviewMarkdown = renderFinalReviewResults(
+        run.runId,
+        run.mode,
+        results,
+        context,
+      );
+      showCommandMessage(pi, reviewMarkdown, `Review ${selection.label}`);
+      pendingReviewContexts.push(reviewMarkdown);
 
-			if (run.state === "success") {
-				return { status: "success" };
-			}
+      if (run.state === "success") {
+        return { status: "success" };
+      }
 
-			return {
-				status: "partial",
-				message: `Review completed with ${run.state} state for ${selection.label}.`,
-			};
-		} catch (error) {
-			if (signal?.aborted) return { status: "aborted" };
-			return {
-				status: "error",
-				message: error instanceof Error ? error.message : String(error),
-			};
-		}
-	};
+      return {
+        status: "partial",
+        message: `Review completed with ${run.state} state for ${selection.label}.`,
+      };
+    } catch (error) {
+      if (signal?.aborted) return { status: "aborted" };
+      return {
+        status: "error",
+        message: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
 
-	const executeReviewCommand = async (
-		args: string | undefined,
-		ctx: ExtensionCommandContext,
-	) => {
-		await ctx.waitForIdle();
+  const executeReviewCommand = async (
+    args: string | undefined,
+    ctx: ExtensionCommandContext,
+  ) => {
+    await ctx.waitForIdle();
 
-		const parsed = parseReviewCommandArgs(args);
-		if (parsed && "error" in parsed) {
-			if (ctx.hasUI) ctx.ui.notify(parsed.error, "error");
-			else showCommandMessage(pi, parsed.error, "Review command usage");
-			return;
-		}
+    const parsed = parseReviewCommandArgs(args);
+    if (parsed && "error" in parsed) {
+      if (ctx.hasUI) ctx.ui.notify(parsed.error, "error");
+      else showCommandMessage(pi, parsed.error, "Review command usage");
+      return;
+    }
 
-		if (!parsed && !ctx.hasUI) {
-			showCommandMessage(pi, REVIEW_COMMAND_USAGE, "Review command usage");
-			return;
-		}
+    if (!parsed && !ctx.hasUI) {
+      showCommandMessage(pi, REVIEW_COMMAND_USAGE, "Review command usage");
+      return;
+    }
 
-		const selection = parsed ?? (await promptForReviewSelection(pi, ctx));
-		if (!selection) return;
+    const selection = parsed ?? (await promptForReviewSelection(pi, ctx));
+    if (!selection) return;
 
-		let result: ReviewExecutionResult;
-		if (ctx.hasUI) {
-			result = await ctx.ui.custom<ReviewExecutionResult>(
-				(tui, theme, _kb, done) => {
-					const loader = new BorderedLoader(
-						tui,
-						theme,
-						`Running review for ${selection.label}...`,
-					);
-					let settled = false;
-					const finish = (value: ReviewExecutionResult) => {
-						if (settled) return;
-						settled = true;
-						done(value);
-					};
+    let result: ReviewExecutionResult;
+    if (ctx.hasUI) {
+      result = await ctx.ui.custom<ReviewExecutionResult>(
+        (tui, theme, _kb, done) => {
+          const loader = new BorderedLoader(
+            tui,
+            theme,
+            `Running review for ${selection.label}...`,
+          );
+          let settled = false;
+          const finish = (value: ReviewExecutionResult) => {
+            if (settled) return;
+            settled = true;
+            done(value);
+          };
 
-					loader.onAbort = () => finish({ status: "aborted" });
-					void runReviewSelection(selection, ctx, loader.signal).then(finish);
-					return loader;
-				},
-			);
-		} else {
-			result = await runReviewSelection(selection, ctx);
-		}
+          loader.onAbort = () => finish({ status: "aborted" });
+          void runReviewSelection(selection, ctx, loader.signal).then(finish);
+          return loader;
+        },
+      );
+    } else {
+      result = await runReviewSelection(selection, ctx);
+    }
 
-		if (!ctx.hasUI) {
-			if (result.status === "error") {
-				showCommandMessage(
-					pi,
-					`Review failed: ${result.message}`,
-					"Review failed",
-				);
-			}
-			return;
-		}
+    if (!ctx.hasUI) {
+      if (result.status === "error") {
+        showCommandMessage(
+          pi,
+          `Review failed: ${result.message}`,
+          "Review failed",
+        );
+      }
+      return;
+    }
 
-		switch (result.status) {
-			case "success":
-				ctx.ui.notify(
-					`Review finished for ${selection.label}. Findings will be added to the next agent turn.`,
-					"info",
-				);
-				return;
-			case "aborted":
-				ctx.ui.notify(`Review cancelled for ${selection.label}.`, "info");
-				return;
-			case "partial":
-				ctx.ui.notify(
-					`${result.message} Findings will be added to the next agent turn.`,
-					"warning",
-				);
-				return;
-			case "error":
-				ctx.ui.notify(`Review failed: ${result.message}`, "error");
-				return;
-		}
-	};
+    switch (result.status) {
+      case "success":
+        ctx.ui.notify(
+          `Review finished for ${selection.label}. Findings will be added to the next agent turn.`,
+          "info",
+        );
+        return;
+      case "aborted":
+        ctx.ui.notify(`Review cancelled for ${selection.label}.`, "info");
+        return;
+      case "partial":
+        ctx.ui.notify(
+          `${result.message} Findings will be added to the next agent turn.`,
+          "warning",
+        );
+        return;
+      case "error":
+        ctx.ui.notify(`Review failed: ${result.message}`, "error");
+        return;
+    }
+  };
 
-	pi.on("session_start", (_event, ctx) => {
-		if (!ctx.hasUI) return;
-		widget.setUICtx(ctx.ui);
-		widget.update();
-	});
+  pi.on("session_start", (_event, ctx) => {
+    if (!ctx.hasUI) return;
+    widget.setUICtx(ctx.ui);
+    widget.update();
+  });
 
-	pi.on("before_agent_start", (event) => {
-		const reviewContext = buildReviewContextSystemPrompt(
-			pendingReviewContexts,
-		);
-		if (!reviewContext) return undefined;
+  pi.on("before_agent_start", (event) => {
+    const reviewContext = buildReviewContextSystemPrompt(pendingReviewContexts);
+    if (!reviewContext) return undefined;
 
-		pendingReviewContexts.length = 0;
-		return {
-			systemPrompt: `${event.systemPrompt}\n\n${reviewContext}`,
-		};
-	});
+    pendingReviewContexts.length = 0;
+    return {
+      systemPrompt: `${event.systemPrompt}\n\n${reviewContext}`,
+    };
+  });
 
-	pi.on("agent_end", () => {
-		widget.dispose();
-	});
+  pi.on("agent_end", () => {
+    widget.dispose();
+  });
 
-	pi.on("session_shutdown", () => {
-		widget.dispose();
-	});
+  pi.on("session_shutdown", () => {
+    widget.dispose();
+  });
 
-	pi.registerMessageRenderer(
-		SUBAGENT_TASK_MESSAGE_TYPE,
-		(message, { expanded }, theme) => {
-			const details = message.details as
-				| {
-						workflow: SubagentWorkflow;
-						taskId: string;
-						label: string;
-						task: string;
-				  }
-				| undefined;
-			if (!details) return undefined;
-			return renderSubagentTaskMessage(details, expanded, theme);
-		},
-	);
+  pi.registerMessageRenderer(
+    SUBAGENT_TASK_MESSAGE_TYPE,
+    (message, { expanded }, theme) => {
+      const details = message.details as
+        | {
+            workflow: SubagentWorkflow;
+            taskId: string;
+            label: string;
+            task: string;
+          }
+        | undefined;
+      if (!details) return undefined;
+      return renderSubagentTaskMessage(details, expanded, theme);
+    },
+  );
 
-	pi.registerMessageRenderer(
-		SUBAGENT_MARKDOWN_MESSAGE_TYPE,
-		(message, { expanded }, theme) => {
-			const details = message.details as { markdown?: string } | undefined;
-			if (!details?.markdown) return undefined;
-			if (!expanded) {
-				return new Text(renderMarkdownPreview(details.markdown, theme), 0, 0);
-			}
-			return new Markdown(details.markdown, 0, 0, getMarkdownTheme());
-		},
-	);
+  pi.registerMessageRenderer(
+    SUBAGENT_MARKDOWN_MESSAGE_TYPE,
+    (message, { expanded }, theme) => {
+      const details = message.details as { markdown?: string } | undefined;
+      if (!details?.markdown) return undefined;
+      if (!expanded) {
+        return new Text(renderMarkdownPreview(details.markdown, theme), 0, 0);
+      }
+      return new Markdown(details.markdown, 0, 0, getMarkdownTheme());
+    },
+  );
 
-	pi.registerCommand("subagent", {
-		description: "Show detailed history for a subagent task by ID",
-		handler: async (args, ctx) => {
-			const result = findTaskById(args ?? "", activeRuns, recentRuns);
-			if ("error" in result) {
-				ctx.ui.notify(result.error, "error");
-				return;
-			}
+  pi.registerCommand("subagent", {
+    description: "Show detailed history for a subagent task by ID",
+    handler: async (args, ctx) => {
+      const result = findTaskById(args ?? "", activeRuns, recentRuns);
+      if ("error" in result) {
+        ctx.ui.notify(result.error, "error");
+        return;
+      }
 
-			showCommandMessage(
-				pi,
-				renderTaskHistoryMarkdown(result.task, result.run),
-				`Subagent history ${shortTaskId(result.task.taskId)}`,
-			);
-		},
-	});
+      showCommandMessage(
+        pi,
+        renderTaskHistoryMarkdown(result.task, result.run),
+        `Subagent history ${shortTaskId(result.task.taskId)}`,
+      );
+    },
+  });
 
-	pi.registerCommand("review", {
-		description:
-			"Run the fixed review pair against uncommitted changes, staged changes, a base branch, or a commit",
-		handler: async (args, ctx) => {
-			await executeReviewCommand(args, ctx);
-		},
-	});
+  pi.registerCommand("review", {
+    description:
+      "Run the fixed review pair against uncommitted changes, staged changes, a base branch, or a commit",
+    handler: async (args, ctx) => {
+      await executeReviewCommand(args, ctx);
+    },
+  });
 
-	pi.registerTool({
-		name: "explore",
-		label: "Explore",
-		description:
-			"Run one or more isolated read-only exploration subagents and return compressed findings.",
-		promptSnippet:
-			"Delegate repo, docs, web, or source exploration to isolated subagents. Use this for information gathering and context compression.",
-		promptGuidelines: [
-			"Use this tool for exploration tasks where intermediate retrieval steps do not need to pollute the main context.",
-			"Prefer parallel tasks when the information sources are independent, such as repo scan + web docs + upstream implementation lookup.",
-			"Keep tasks read-only and focused on finding and summarizing information.",
-			"Subagents only support GitHub Copilot models. Choose one of the allowed explore models per task.",
-			"Use cheaper models for lightweight scans and stronger models when synthesis is more important.",
-			"Use multiple tasks when the work is naturally parallel.",
-			"Do not use explore for formal audits or code review; /review is user-triggered.",
-			"Use the structured exploration result directly in your response instead of redoing the exploration yourself.",
-			"When the tool returns multiple task results, synthesize across those results instead of discarding their structure.",
-		],
-		parameters: exploreParamsSchema,
-		renderCall(args, theme) {
-			return renderExploreToolCall(args, theme);
-		},
-		renderResult(result, options, theme) {
-			return renderExploreToolResult(result, options, theme);
-		},
-		async execute(_toolCallId, params, signal, onUpdate, ctx) {
-			const hasSingle =
-				typeof params.task === "string" && params.task.trim().length > 0;
-			const hasParallel =
-				Array.isArray(params.tasks) && params.tasks.length > 0;
+  pi.registerTool({
+    name: "explore",
+    label: "Explore",
+    description:
+      "Run one or more isolated read-only exploration subagents and return compressed findings. Use optional intent hints like fast, balanced, or deep; the extension maps them to safe internal models.",
+    promptSnippet:
+      "Delegate repo, docs, web, or source exploration to isolated subagents. Use this for information gathering and context compression.",
+    promptGuidelines: [
+      "Use this tool for exploration tasks where intermediate retrieval steps do not need to pollute the main context.",
+      "Prefer parallel tasks when the information sources are independent, such as repo scan + web docs + upstream implementation lookup.",
+      "Keep tasks read-only and focused on finding and summarizing information.",
+      "Use intent instead of raw model names: fast for lightweight scans, balanced for the default tradeoff, deep for heavier synthesis.",
+      "If intent is omitted or unclear, the extension falls back to a safe balanced profile automatically.",
+      "Use multiple tasks when the work is naturally parallel.",
+      "Do not use explore for formal audits or code review; /review is user-triggered.",
+      "Use the structured exploration result directly in your response instead of redoing the exploration yourself.",
+      "When the tool returns multiple task results, synthesize across those results instead of discarding their structure.",
+    ],
+    parameters: exploreParamsSchema,
+    renderCall(args, theme) {
+      return renderExploreToolCall(args, theme);
+    },
+    renderResult(result, options, theme) {
+      return renderExploreToolResult(result, options, theme);
+    },
+    async execute(_toolCallId, params, signal, onUpdate, ctx) {
+      const hasSingle =
+        typeof params.task === "string" && params.task.trim().length > 0;
+      const hasParallel =
+        Array.isArray(params.tasks) && params.tasks.length > 0;
 
-			if (Number(hasSingle) + Number(hasParallel) !== 1) {
-				return {
-					content: [
-						{ type: "text", text: "Provide exactly one of: task or tasks." },
-					],
-					isError: true,
-					details: {},
-				};
-			}
+      if (Number(hasSingle) + Number(hasParallel) !== 1) {
+        return {
+          content: [
+            { type: "text", text: "Provide exactly one of: task or tasks." },
+          ],
+          isError: true,
+          details: {},
+        };
+      }
 
-			if (hasParallel && typeof params.model === "string") {
-				return {
-					content: [
-						{
-							type: "text",
-							text: 'Top-level model is only valid when using the single-task "task" form.',
-						},
-					],
-					isError: true,
-					details: {},
-				};
-			}
+      const defaultIntent = params.intent?.trim() || DEFAULT_EXPLORE_INTENT;
 
-			const tasks: SubagentTaskInput[] = hasSingle
-				? (() => {
-						const taskText = params.task?.trim() ?? "";
-						return [
-							{
-								task: taskText,
-								label: taskText,
-								model: params.model?.trim() || DEFAULT_EXPLORE_MODEL,
-								thinkingLevel: DEFAULT_EXPLORE_THINKING_LEVEL,
-								cwd: params.cwd?.trim() || ctx.cwd,
-							},
-						];
-					})()
-				: (params.tasks ?? []).map((task: SubagentTaskInput) => ({
-						task: task.task.trim(),
-						label: task.task.trim(),
-						model: task.model?.trim() || DEFAULT_EXPLORE_MODEL,
-						thinkingLevel: DEFAULT_EXPLORE_THINKING_LEVEL,
-						cwd: task.cwd?.trim() || ctx.cwd,
-					}));
+      const tasks: SubagentTaskInput[] = hasSingle
+        ? (() => {
+            const taskText = params.task?.trim() ?? "";
+            const profile = resolveExploreExecutionProfile(defaultIntent);
+            return [
+              {
+                task: taskText,
+                label: taskText,
+                intent: profile.intent,
+                model: profile.model,
+                thinkingLevel: profile.thinkingLevel,
+                cwd: params.cwd?.trim() || ctx.cwd,
+              },
+            ];
+          })()
+        : (params.tasks ?? []).map(
+            (task: { task: string; intent?: string; cwd?: string }) => {
+              const profile = resolveExploreExecutionProfile(
+                task.intent ?? defaultIntent,
+              );
+              return {
+                task: task.task.trim(),
+                label: task.task.trim(),
+                intent: profile.intent,
+                model: profile.model,
+                thinkingLevel: profile.thinkingLevel,
+                cwd: task.cwd?.trim() || ctx.cwd,
+              };
+            },
+          );
 
-			if (tasks.some((task) => !task.task)) {
-				return {
-					content: [
-						{ type: "text", text: "All exploration tasks must be non-empty." },
-					],
-					isError: true,
-					details: {},
-				};
-			}
+      if (tasks.some((task) => !task.task)) {
+        return {
+          content: [
+            { type: "text", text: "All exploration tasks must be non-empty." },
+          ],
+          isError: true,
+          details: {},
+        };
+      }
 
-			try {
-				const { run, results } = await executeWorkflow("explore", tasks, {
-					systemPrompt: EXPLORER_PROMPT,
-					parseOutput: parseExploreOutput,
-					onUpdate,
-					signal,
-					ctx,
-				});
+      try {
+        const { run, results } = await executeWorkflow("explore", tasks, {
+          systemPrompt: EXPLORER_PROMPT,
+          parseOutput: parseExploreOutput,
+          onUpdate,
+          signal,
+          ctx,
+        });
 
-				return {
-					content: [
-						{
-							type: "text",
-							text: renderFinalExploreResults(run.runId, run.mode, results),
-						},
-					],
-					isError: run.state !== "success",
-					details: {
-						workflow: "explore",
-						mode: run.mode,
-						runId: run.runId,
-						results,
-						run: serializeRun(run),
-					},
-				};
-			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error);
-				return {
-					content: [{ type: "text", text: `Explore run failed: ${message}` }],
-					isError: true,
-					details: {},
-				};
-			}
-		},
-	});
+        return {
+          content: [
+            {
+              type: "text",
+              text: renderFinalExploreResults(run.runId, run.mode, results),
+            },
+          ],
+          isError: run.state !== "success",
+          details: {
+            workflow: "explore",
+            mode: run.mode,
+            runId: run.runId,
+            results,
+            run: serializeRun(run),
+          },
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text", text: `Explore run failed: ${message}` }],
+          isError: true,
+          details: {},
+        };
+      }
+    },
+  });
 
-	pi.registerTool({
-		name: "explore_status",
-		label: "Explore Status",
-		description:
-			"Inspect active and recent exploration subagent runs in the current pi session.",
-		promptSnippet:
-			"Inspect active or recent exploration runs when you need to recall what exploration subagents are doing or what they already found.",
-		parameters: statusSchema,
-		async execute(_toolCallId, params) {
-			return executeStatus(
-				"explore",
-				params as { action: "list" | "get"; runId?: string },
-			);
-		},
-	});
+  pi.registerTool({
+    name: "explore_status",
+    label: "Explore Status",
+    description:
+      "Inspect active and recent exploration subagent runs in the current pi session.",
+    promptSnippet:
+      "Inspect active or recent exploration runs when you need to recall what exploration subagents are doing or what they already found.",
+    parameters: statusSchema,
+    async execute(_toolCallId, params) {
+      return executeStatus(
+        "explore",
+        params as { action: "list" | "get"; runId?: string },
+      );
+    },
+  });
 }

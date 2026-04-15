@@ -68,14 +68,26 @@ Subagents only support these **GitHub Copilot** models:
 - compressed context gathering
 - parallel information collection
 
-The agent may choose one allowed model per task. If omitted, the default is:
+The agent does **not** choose raw model IDs anymore.
+Instead it can provide an optional intent per task:
 
-- `github-copilot/gpt-5.4-mini`
+- `fast`
+- `balanced` (default/fallback)
+- `deep`
+
+The extension maps those intents to safe internal GitHub Copilot model profiles.
+Current mapping:
+
+- `fast` → `github-copilot/gpt-5.4-mini` with medium thinking
+- `balanced` → `github-copilot/gpt-5.4` with medium thinking
+- `deep` → `github-copilot/gpt-5.4` with high thinking
+
+If intent is omitted or invalid, `explore` falls back to `balanced` automatically.
 
 Examples:
 
-- one explore task with an explicit model
-- multiple parallel tasks with mixed models
+- one explore task with the default or an explicit intent
+- multiple parallel tasks with mixed intents
 - repo scan + docs lookup + upstream inspection in parallel
 
 It is not for formal audits or severity-ranked bug finding; `/review` is user-triggered.

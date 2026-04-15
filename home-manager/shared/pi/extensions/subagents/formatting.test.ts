@@ -46,6 +46,7 @@ test("renderTaskHistoryMarkdown and renderRunMarkdown include key run details", 
     taskId: "sub_now_abc123_task_1",
     task: "Investigate prompt flow",
     label: "Prompt flow",
+    intent: "balanced",
     model: "github-copilot/gpt-5.4-mini",
     thinkingLevel: "medium",
     cwd: "/tmp/project",
@@ -80,11 +81,13 @@ test("renderTaskHistoryMarkdown and renderRunMarkdown include key run details", 
 
   const taskMarkdown = renderTaskHistoryMarkdown(task, run);
   assert.match(taskMarkdown, /# Subagent abc123\/1/);
+  assert.match(taskMarkdown, /- Intent: balanced/);
   assert.match(taskMarkdown, /## Summary/);
   assert.match(taskMarkdown, /Everything looks good\./);
 
   const runMarkdown = renderRunMarkdown(run);
   assert.match(runMarkdown, /# Explore sub_now_abc123/);
+  assert.match(runMarkdown, /- Intent: balanced/);
   assert.match(runMarkdown, /- Tool uses: 2/);
   assert.match(runMarkdown, /- Progress:/);
 });

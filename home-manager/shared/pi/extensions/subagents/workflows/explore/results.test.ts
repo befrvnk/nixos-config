@@ -11,6 +11,7 @@ const result: SubagentTaskResult = {
   taskId: "sub_now_abc123_task_1",
   task: "Inspect docs",
   label: "Docs",
+  intent: "balanced",
   model: "github-copilot/gpt-5.4-mini",
   thinkingLevel: "medium",
   cwd: "/tmp/project",
@@ -74,6 +75,7 @@ test("renderFinalExploreResults includes defaults for empty sections and errors"
 
   assert.match(markdown, /# Exploration Results/);
   assert.match(markdown, /## Task 1/);
+  assert.match(markdown, /- Intent: balanced/);
   assert.match(markdown, /- README\.md/);
   assert.match(markdown, /## Task 2/);
   assert.match(markdown, /No summary returned\./);
