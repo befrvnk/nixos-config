@@ -1,12 +1,29 @@
 # Darwin-specific Nushell configuration
 #
 # Shared config (keybindings, navi, wt, launch, carapace) is in shared/nushell.nix.
-# This file handles Nix PATH setup and GITHUB_TOKEN for Darwin.
+# This file handles Nix PATH setup on Darwin and provides an opt-in helper for
+# populating GITHUB_TOKEN when a command actually needs it.
 
 _:
 
 {
   programs.nushell = {
+    extraConfig = ''
+      def --env ensure-github-token [] {
+        if (($env.GITHUB_TOKEN? | default "") | is-not-empty) {
+          return
+        }
+
+        let result = (do { gh auth token } | complete)
+        if $result.exit_code == 0 {
+          let token = ($result.stdout | str trim)
+          if ($token | is-not-empty) {
+            $env.GITHUB_TOKEN = $token
+          }
+        }
+      }
+    '';
+
     # Ensure Nix paths are in PATH for terminals that don't inherit the full environment
     # (e.g. Android Studio's embedded terminal via JetBrains Toolbox)
     # Nushell doesn't source /etc/zshenv where nix-darwin normally sets these up
@@ -21,9 +38,6 @@ _:
       if ($missing | is-not-empty) {
         $env.PATH = ($env.PATH | prepend $missing)
       }
-
-      # Set GITHUB_TOKEN for higher API rate limits (used by Nix flake updates)
-      $env.GITHUB_TOKEN = (do { gh auth token } | complete | get stdout | str trim)
     '';
   };
 }
