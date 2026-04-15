@@ -17,6 +17,11 @@ buildGoModule rec {
 
   vendorHash = "sha256-us25CXQC3cd3BTa+wOYArbBiMtwkgpfeCQoD3S7+3rU=";
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    $out/bin/gh-enhance --help > /dev/null
+  '';
+
   meta = {
     description = "A terminal UI for GitHub Actions, companion to gh-dash";
     homepage = "https://github.com/dlvhdr/gh-enhance";

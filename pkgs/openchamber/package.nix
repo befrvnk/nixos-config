@@ -2,6 +2,7 @@
   lib,
   stdenvNoCC,
   fetchurl,
+  makeBinaryWrapper,
 }:
 
 stdenvNoCC.mkDerivation rec {
@@ -15,11 +16,22 @@ stdenvNoCC.mkDerivation rec {
 
   sourceRoot = ".";
 
+  nativeBuildInputs = [ makeBinaryWrapper ];
+
   installPhase = ''
     runHook preInstall
-    mkdir -p $out/Applications
+    mkdir -p $out/Applications $out/bin
     cp -r OpenChamber.app $out/Applications/
+    makeBinaryWrapper \
+      "$out/Applications/OpenChamber.app/Contents/MacOS/OpenChamber" \
+      "$out/bin/openchamber"
     runHook postInstall
+  '';
+
+  doInstallCheck = true;
+  installCheckPhase = ''
+    test -x "$out/bin/openchamber"
+    test -x "$out/Applications/OpenChamber.app/Contents/MacOS/OpenChamber"
   '';
 
   meta = {
@@ -27,6 +39,6 @@ stdenvNoCC.mkDerivation rec {
     homepage = "https://github.com/openchamber/openchamber";
     license = lib.licenses.mit;
     platforms = [ "aarch64-darwin" ];
-    mainProgram = "OpenChamber";
+    mainProgram = "openchamber";
   };
 }

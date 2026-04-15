@@ -171,6 +171,12 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    test -x "$out/bin/idea-community"
+    test -f "$out/share/idea-community/bin/idea64.vmoptions"
+  '';
+
   desktopItems = [
     (makeDesktopItem {
       name = "idea-community";
@@ -210,7 +216,7 @@ stdenv.mkDerivation rec {
       for both non-commercial and commercial use.
     '';
     homepage = "https://www.jetbrains.com/idea/";
-    changelog = "https://youtrack.jetbrains.com/articles/IDEA-A-2100662619/IntelliJ-IDEA-2026.1-EAP-3-261.20362.25-build-Release-Notes";
+    changelog = "https://www.jetbrains.com/idea/whatsnew/";
     license = lib.licenses.asl20;
     maintainers = [ ];
     platforms = [

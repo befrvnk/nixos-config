@@ -35,6 +35,11 @@ rustPlatform.buildRustPackage {
       --prefix PATH : ${lib.makeBinPath [ whois ]}
   '';
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    $out/bin/domain-check --help > /dev/null
+  '';
+
   meta = {
     description = "Fast CLI tool for checking domain availability using RDAP with WHOIS fallback";
     homepage = "https://github.com/saidutt46/domain-check";

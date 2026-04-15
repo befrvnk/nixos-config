@@ -56,6 +56,12 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    test -x "$out/bin/pi"
+    test -x "$out/share/pi/pi"
+  '';
+
   meta = {
     description = "Coding agent CLI with terminal-first workflows and extensibility";
     homepage = "https://pi.dev/";

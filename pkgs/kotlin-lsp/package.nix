@@ -98,6 +98,12 @@ stdenv.mkDerivation {
   # Don't strip the bundled JRE
   dontStrip = true;
 
+  doInstallCheck = true;
+  installCheckPhase = ''
+    test -x "$out/bin/kotlin-lsp"
+    test -f "$out/libexec/kotlin-lsp/kotlin-lsp.sh"
+  '';
+
   meta = {
     description = "Official Kotlin Language Server from JetBrains";
     homepage = "https://github.com/Kotlin/kotlin-lsp";
