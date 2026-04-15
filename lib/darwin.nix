@@ -23,7 +23,7 @@ in
         inherit system;
         specialArgs = {
           inherit inputs;
-          hostConfig = {
+          hostDefaults = {
             inherit
               hostname
               system
@@ -35,6 +35,7 @@ in
         modules = [
           # Apply darwin-compatible overlays
           { nixpkgs.overlays = overlayLib.darwinOverlays; }
+          ./host-options-module.nix
           inputs.home-manager.darwinModules.home-manager
           hostPath
         ];

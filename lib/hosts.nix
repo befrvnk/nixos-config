@@ -43,7 +43,7 @@ in
         inherit system;
         specialArgs = {
           inherit inputs;
-          hostConfig = {
+          hostDefaults = {
             inherit
               hostname
               system
@@ -64,6 +64,7 @@ in
         modules = [
           # Apply common overlays
           { nixpkgs.overlays = overlayLib.nixosOverlays; }
+          ./host-options-module.nix
           # Host-specific configuration (imports nixos-hardware, lanzaboote, etc.)
           hostPath
           homeModulePath
