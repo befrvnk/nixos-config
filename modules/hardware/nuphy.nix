@@ -1,6 +1,6 @@
-_:
+{ hostConfig, lib, ... }:
 
-{
+lib.mkIf (hostConfig.enableNuphy or false) {
   # NuPhy Keyboard Support
   # =====================
   # This module enables NuPhy keyboards to work with the NuphyIO web configurator

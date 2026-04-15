@@ -6,7 +6,21 @@
 }:
 let
   isAmd = hostConfig.cpuVendor == "amd";
-  abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";
+  abmPath = hostConfig.abmPath or null;
+  wifiInterface = hostConfig.wifiInterface or null;
+  platformProfilePath = hostConfig.platformProfilePath or "/sys/firmware/acpi/platform_profile";
+
+  wifiPowerSave =
+    state:
+    lib.optionalString (wifiInterface != null) ''
+      ${pkgs.iw}/bin/iw dev ${wifiInterface} set power_save ${state} 2>/dev/null || true
+    '';
+
+  setAbm =
+    level:
+    lib.optionalString (abmPath != null) ''
+      echo ${toString level} > ${abmPath} 2>/dev/null || true
+    '';
 
   # Script for battery profile extras (boost, WiFi power save, ABM)
   # tuned's [script] plugin runs this when activating the profile
@@ -15,9 +29,9 @@ let
     # Disable CPU boost on battery (saves ~2-3W)
     echo 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
     # Enable WiFi power save on battery
-    ${pkgs.iw}/bin/iw dev wlp192s0 set power_save on 2>/dev/null || true
+    ${wifiPowerSave "on"}
     # Enable ABM (Adaptive Backlight Management) level 3 for power savings
-    echo 3 > ${abmPath} 2>/dev/null || true
+    ${setAbm 3}
   '';
 
   # Script for AC profile extras (boost, WiFi power save off, ABM off)
@@ -25,9 +39,9 @@ let
     # Enable CPU boost on AC for better performance
     echo 1 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
     # Disable WiFi power save on AC for better performance
-    ${pkgs.iw}/bin/iw dev wlp192s0 set power_save off 2>/dev/null || true
+    ${wifiPowerSave "off"}
     # Disable ABM on AC for accurate color reproduction
-    echo 0 > ${abmPath} 2>/dev/null || true
+    ${setAbm 0}
   '';
 in
 {
@@ -151,7 +165,7 @@ in
     tuned.serviceConfig.TimeoutStopSec = 10;
 
     # Make ABM sysfs writable by users (for toggle-abm and ironbar brightness popup)
-    abm-permissions = {
+    abm-permissions = lib.mkIf (abmPath != null) {
       description = "Set ABM sysfs permissions for user control";
       wantedBy = [ "multi-user.target" ];
       after = [ "systemd-udev-settle.service" ];
@@ -164,13 +178,13 @@ in
 
     # Make platform_profile writable by users (for ironbar power profile switching)
     # Allows manual override via ironbar without going through tuned
-    platform-profile-permissions = {
+    platform-profile-permissions = lib.mkIf (platformProfilePath != null) {
       description = "Set platform_profile sysfs permissions for user control";
       wantedBy = [ "multi-user.target" ];
       after = [ "systemd-udev-settle.service" ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${pkgs.coreutils}/bin/chmod 0666 /sys/firmware/acpi/platform_profile";
+        ExecStart = "${pkgs.coreutils}/bin/chmod 0666 ${platformProfilePath}";
         RemainAfterExit = true;
       };
     };

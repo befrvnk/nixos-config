@@ -55,6 +55,12 @@ in
       cpuVendor ? "intel", # "amd" or "intel"
       hasFingerprint ? false,
       hasTouchscreen ? false,
+      enableAndroid ? false,
+      enableLogitech ? false,
+      enableNuphy ? false,
+      wifiInterface ? null,
+      abmPath ? null,
+      platformProfilePath ? "/sys/firmware/acpi/platform_profile",
     }:
     lib.nixosSystem {
       inherit system;
@@ -69,6 +75,12 @@ in
             cpuVendor
             hasFingerprint
             hasTouchscreen
+            enableAndroid
+            enableLogitech
+            enableNuphy
+            wifiInterface
+            abmPath
+            platformProfilePath
             ;
         };
       };
