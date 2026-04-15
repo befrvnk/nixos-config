@@ -1,11 +1,11 @@
 ---
 name: remember
-description: Update the project's CLAUDE.md with learnings from the current session (corrections, gotchas, patterns, workarounds)
+description: Update the project's AGENTS.md with learnings from the current session (corrections, gotchas, patterns, workarounds)
 ---
 
 # Remember Learnings
 
-Analyze the current conversation to identify learnings that should be persisted to CLAUDE.md.
+Analyze the current conversation to identify learnings that should be persisted to AGENTS.md.
 
 ## Types of Learnings to Capture
 
@@ -18,20 +18,20 @@ Analyze the current conversation to identify learnings that should be persisted 
 ## Process
 
 1. Review the entire conversation for learnings worth persisting
-2. Read the current CLAUDE.md (if it exists) to understand structure and avoid duplicates
-3. If no CLAUDE.md exists, ask the user if they want to create one
+2. Read the current AGENTS.md (if it exists) to understand structure and avoid duplicates
+3. If no AGENTS.md exists, ask the user if they want to create one
 4. Categorize each learning and draft the text to add
 5. Present ALL proposed additions to the user for review using AskUserQuestion
-6. Only after explicit approval, write the changes to CLAUDE.md
+6. Only after explicit approval, write the changes to AGENTS.md
 7. Confirm what was added
 
 ## Interactive Confirmation
 
-CRITICAL: Always use AskUserQuestion to get explicit approval before writing to CLAUDE.md.
+CRITICAL: Always use AskUserQuestion to get explicit approval before writing to AGENTS.md.
 
 Present learnings in this format:
 
-**Proposed additions to CLAUDE.md:**
+**Proposed additions to AGENTS.md:**
 
 ### Section: [Section Name]
 ```
@@ -64,7 +64,7 @@ When the type of learning is ambiguous, ask the user:
 - Be specific - include file paths, commands, and concrete details
 - Explain "why" not just "what"
 - Skip trivial or one-off issues unlikely to recur
-- Match the formatting style of existing CLAUDE.md content
+- Match the formatting style of existing AGENTS.md content
 - Place learnings in the most appropriate existing section, or propose a new section
 - If no meaningful learnings are found, tell the user honestly
 
@@ -72,7 +72,7 @@ When the type of learning is ambiguous, ask the user:
 
 If the conversation contains no learnings worth persisting, respond:
 
-"I reviewed the conversation but didn't find any learnings that should be persisted to CLAUDE.md. This typically happens when:
+"I reviewed the conversation but didn't find any learnings that should be persisted to AGENTS.md. This typically happens when:
 - The session was exploratory or informational
 - Issues encountered were one-off or trivial
 - Solutions used were already documented

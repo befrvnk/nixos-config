@@ -173,7 +173,7 @@ If variables aren't in Android Studio's environment:
 
 ### Audio Crackling When Emulator is Running
 
-See [Android Emulator (QEMU) Audio](../CLAUDE.md#android-emulator-qemu-audio) in CLAUDE.md. The emulator requests very low audio latency which affects all system audio. This is addressed by PipeWire configuration in `modules/services/pipewire.nix`.
+See [Android Emulator (QEMU) Audio](../AGENTS.md#android-emulator-qemu-audio) in AGENTS.md. The emulator requests very low audio latency which affects all system audio. This is addressed by PipeWire configuration in `modules/services/pipewire.nix`.
 
 ## Wayland Native Support
 
