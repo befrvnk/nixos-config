@@ -108,50 +108,13 @@
       # Host configuration helpers
       hostLib = import ./lib/hosts.nix { inherit inputs; };
       darwinLib = import ./lib/darwin.nix { inherit inputs; };
+      hostInventory = import ./lib/host-inventory.nix;
     in
     {
-      # macOS (nix-darwin) configurations
-      darwinConfigurations = {
-        # MacBook Pro 14" (2024) - M4 Pro
-        macbook = darwinLib.mkDarwinHost {
-          hostname = "macbook-darwin";
-          primaryUser = "frank";
-          homeDirectory = "/Users/frank";
-        };
-      };
+      # System configurations generated from the host inventory.
+      darwinConfigurations = inputs.nixpkgs.lib.mapAttrs (_: darwinLib.mkDarwinHost) hostInventory.darwin;
 
-      nixosConfigurations = {
-        # Framework Laptop 13 (AMD AI 300 series)
-        framework = hostLib.mkHost {
-          hostname = "framework";
-          primaryUser = "frank";
-          homeDirectory = "/home/frank";
-          cpuVendor = "amd";
-          hasFingerprint = true;
-          hasTouchscreen = false;
-          enableAndroid = true;
-          enableLogitech = true;
-          enableNuphy = true;
-          wifiInterface = "wlp192s0";
-          abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";
-        };
-
-        # Future hosts (uncomment when ready):
-        #
-        # surface = hostLib.mkHost {
-        #   hostname = "surface";
-        #   cpuVendor = "intel";
-        #   hasFingerprint = false;
-        #   hasTouchscreen = true;
-        # };
-        #
-        # dell = hostLib.mkHost {
-        #   hostname = "dell";
-        #   cpuVendor = "intel";
-        #   hasFingerprint = true;
-        #   hasTouchscreen = false;
-        # };
-      };
+      nixosConfigurations = inputs.nixpkgs.lib.mapAttrs (_: hostLib.mkHost) hostInventory.nixos;
 
       # Formatters for `nix fmt` command on supported development systems
       # Use nixfmt-tree so `nix fmt -- --check .` works on the whole repository.
