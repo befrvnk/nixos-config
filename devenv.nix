@@ -197,15 +197,13 @@ in
       imagemagick # Image processing (for thumbnails) - Linux only
     ];
 
-  # Git hooks configuration - runs automatically after Claude edits files
+  # Git hooks configuration - runs automatically on commit
   git-hooks.hooks = {
     nixfmt = {
       enable = true;
       package = pkgs.nixfmt;
     };
-    # Optional: enable these for additional code quality checks
-    # statix.enable = true;    # Nix linter
-    # deadnix.enable = true;   # Find dead code
+    statix.enable = true;
   };
 
   # Environment variables
@@ -234,6 +232,7 @@ in
     ''}
     echo "  clean [N]                 - Clean old generations (default: keep 5)"
     echo "  flake-update              - Update flake inputs"
+    echo "  test-pi-extensions        - Run pi extension tests"
     echo ""
     echo "Slash commands (Claude Code):"
     echo "  /rebuild  - Rebuild and switch configuration"
@@ -305,6 +304,10 @@ in
       keep="''${1:-5}"
       echo "+ ${pkgs.nh}/bin/nh clean all --keep $keep"
       ${pkgs.nh}/bin/nh clean all --keep "$keep"
+    '';
+
+    test-pi-extensions.exec = ''
+      ./scripts/test-pi-extensions.sh
     '';
 
     flake-update.exec = ''

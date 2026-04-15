@@ -8,7 +8,7 @@
 {
   system = {
     stateVersion = 5;
-    primaryUser = hostConfig.primaryUser;
+    inherit (hostConfig) primaryUser;
 
     # macOS System Defaults
     defaults = {

@@ -37,7 +37,7 @@
 
   home = {
     username = hostConfig.primaryUser;
-    homeDirectory = hostConfig.homeDirectory;
+    inherit (hostConfig) homeDirectory;
     stateVersion = "25.05";
 
     # Enable Wayland support for Electron apps (Discord, Slack, Anytype, etc.)

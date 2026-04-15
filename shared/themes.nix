@@ -12,7 +12,7 @@ let
     in
     {
       base16Scheme = schemeFile;
-      palette = scheme.palette;
+      inherit (scheme) palette;
       polarity = scheme.variant; # "dark" or "light" from the YAML
     };
 in

@@ -1,4 +1,4 @@
-name: NixOS Configuration Build Check
+name: Nix Configuration Build Check
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  build:
+  linux-checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,10 +20,34 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Check Nix flake
-        run: nix flake check
+        run: nix flake check --accept-flake-config
 
       - name: Verify NixOS configuration (dry-run)
-        run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run
+        run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config
 
       - name: Check Nix formatting
         run: nix fmt -- --check .
+
+      - name: Lint Nix with statix
+        run: nix develop --accept-flake-config -c statix check .
+
+      - name: Lint helper scripts with shellcheck
+        run: nix develop --accept-flake-config -c shellcheck scripts/*.sh
+
+      - name: Run pi extension tests
+        run: nix develop --accept-flake-config -c test-pi-extensions
+
+  darwin-dry-run:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Enable Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Verify Darwin configuration (dry-run)
+        run: nix build .#darwinConfigurations.macbook.system --dry-run --accept-flake-config
