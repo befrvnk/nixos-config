@@ -1,14 +1,21 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
+  hmLib = import ../lib.nix { inherit lib pkgs; };
+
   # Shell script for battery monitoring (uses upower --monitor-detail)
   # This is event-driven and maintains a single persistent D-Bus connection
-  batteryMonitorScript = pkgs.writeShellScript "battery-monitor" ''
-    # Ensure required commands are in PATH
-    export PATH="${pkgs.upower}/bin:${pkgs.libnotify}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:$PATH"
-
-    ${builtins.readFile ./battery-monitor.sh}
-  '';
+  batteryMonitorScript = hmLib.mkPathWrappedScript {
+    name = "battery-monitor";
+    packages = [
+      pkgs.upower
+      pkgs.libnotify
+      pkgs.gawk
+      pkgs.coreutils
+      pkgs.gnugrep
+    ];
+    script = ./battery-monitor.sh;
+  };
 in
 {
   # Battery notification service (event-driven shell script)
@@ -18,19 +25,9 @@ in
   # - 100% battery (full) when charging
   #
   # Uses 'upower --monitor-detail' which maintains a single persistent D-Bus connection
-  systemd.user.services.battery-notifications = {
-    Unit = {
-      Description = "Battery level notifications";
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      Type = "simple";
-      ExecStart = "${batteryMonitorScript}";
-      Restart = "always";
-      RestartSec = "10";
-    };
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
+  systemd.user.services.battery-notifications = hmLib.mkGraphicalUserService {
+    description = "Battery level notifications";
+    execStart = "${batteryMonitorScript}";
+    restartSec = "10";
   };
 }
