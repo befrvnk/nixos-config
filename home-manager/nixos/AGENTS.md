@@ -69,8 +69,9 @@ Theme switching without full rebuilds:
 ## Audio Gotchas
 
 ### Ironbar Volume Module
-- **Do NOT** use built-in volume module (crashes with PulseAudio)
-- Use custom wpctl-based script in `ironbar/modules/volume/`
+- **Do NOT** use the built-in volume module (crashes with PulseAudio)
+- Ironbar only reads `ironbar/modules/volume/volume-status.sh`
+- Volume changes are handled by `niri/volume-ctl.sh`, which updates `~/.cache/volume-status`
 
 ### Framework pw-loopback
 - **Must start at session startup** for volume controls to work
@@ -126,10 +127,10 @@ Ironbar battery popup uses `tuned-adm` for switching.
 
 ## Desktop Gotchas
 
-### Niri Overview Popups
-- `niri-overview-watcher` service closes Ironbar popups on overview exit
-- Without it, popups remain visible after returning to desktop
-- Service in `ironbar/modules/niri-overview-watcher/`
+### Ironbar Reloads
+- Do **not** use `ironbar reload` when the bar is managed by `toggle-ironbar.py`
+- Rebuild, then restart `systemctl --user restart ironbar`
+- This keeps the overview toggle script and bar instance in sync
 
 ### Profile-sync-daemon (`profile-sync-daemon.nix`)
 - Syncs browser profiles to tmpfs (faster I/O, less SSD writes)

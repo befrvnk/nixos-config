@@ -20,6 +20,7 @@ home-manager/
 │   ├── packages.nix   # CLI packages
 │   └── zen-browser.nix
 ├── shared/            # Cross-platform modules
+│   ├── default.nix    # Shared import entry point
 │   ├── nushell.nix    # Shell (shared config, keybindings, carapace)
 │   ├── atuin.nix      # Shell history
 │   ├── git.nix        # Version control
@@ -53,10 +54,8 @@ home-manager/
 
 ### Simple Module (single file)
 1. Create `home-manager/<platform>/app.nix`
-2. Import in `frank.nix`:
-   ```nix
-   imports = [ ./app.nix ];
-   ```
+2. Import it from the platform entry point (`nixos/frank.nix` or `darwin/frank.nix`)
+3. If it is cross-platform, import it from `home-manager/shared/default.nix`
 
 ### Complex Module (directory)
 1. Create directory:
@@ -83,14 +82,21 @@ Examples: `nixos/niri/`, `nixos/ironbar/`
 ## Configuration Patterns
 
 ### Script Embedding
+For NixOS Home Manager services, prefer the helpers in `home-manager/nixos/lib.nix`:
+
 ```nix
 let
-  myScript = pkgs.writeShellScript "name" ''
-    export PATH="${pkgs.foo}/bin:${pkgs.bar}/bin:$PATH"
-    ${builtins.readFile ./script.sh}
-  '';
+  hmLib = import ../lib.nix { inherit lib pkgs; };
+  myScript = hmLib.mkPathWrappedScript {
+    name = "name";
+    packages = [ pkgs.foo pkgs.bar ];
+    script = ./script.sh;
+  };
 in {
-  systemd.user.services.my-service.Service.ExecStart = "${myScript}";
+  systemd.user.services.my-service = hmLib.mkGraphicalUserService {
+    description = "My service";
+    execStart = "${myScript}";
+  };
 }
 ```
 
@@ -137,7 +143,7 @@ let
   '';
 in { /* service definition */ }
 ```
-Used in: `nixos/darkman/` (monitor-hotplug), `nixos/ironbar/modules/niri-overview-watcher/`
+Used in: `nixos/darkman/` (monitor-hotplug)
 
 ## Adding Packages
 
@@ -163,8 +169,8 @@ Single source of truth for both platforms:
 
 **Imported by (NixOS):** stylix.nix, ghostty.nix, nushell.nix, zen-browser/
 
-### Wallpapers (`wallpapers/default.nix`)
+### Wallpapers (`nixos/wallpapers/default.nix`)
 ```nix
 { light = ./mountain.jpg; dark = ./mountain_dark.jpg; }
 ```
-**Imported by:** stylix.nix, darkman/
+**Imported by:** `nixos/stylix.nix`, `nixos/darkman/`
