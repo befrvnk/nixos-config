@@ -51,6 +51,25 @@ in
         executable = true;
       };
 
+      ".local/share/monitor-hotplug-watch.sh" = {
+        source = pkgs.replaceVars ./monitor-hotplug-watch.sh {
+          coreutils = "${pkgs.coreutils}";
+          gnugrep = "${pkgs.gnugrep}";
+          systemd = "${pkgs.systemd}";
+        };
+        executable = true;
+      };
+
+      ".local/share/restart-darkman.sh" = {
+        source = pkgs.replaceVars ./restart-darkman.sh {
+          coreutils = "${pkgs.coreutils}";
+          systemd = "${pkgs.systemd}";
+          darkman = "${pkgs.darkman}";
+          awww = "${inputs.awww.packages.${pkgs.system}.awww}";
+        };
+        executable = true;
+      };
+
       # Light mode wrapper
       ".local/share/light-mode.d/stylix.sh" = {
         text = ''
@@ -73,24 +92,7 @@ in
     # Restart darkman after home-manager activation to re-evaluate current theme
     # Only restart if we're not already being run by darkman (avoid infinite loop)
     activation.restartDarkman = config.lib.dag.entryAfter [ "writeBoundary" ] ''
-      # Check if DARKMAN_RUNNING environment variable is set
-      # Use parameter expansion with default to avoid "unbound variable" error
-      if [ -z "''${DARKMAN_RUNNING:-}" ]; then
-        $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user restart darkman.service || true
-
-        # After restart, wait for awww-daemon to be ready and apply initial wallpaper
-        # This ensures wallpaper is set on boot and after home-manager switches
-        if [ -z "$DRY_RUN_CMD" ]; then
-          for i in {1..10}; do
-            if ${inputs.awww.packages.${pkgs.system}.awww}/bin/awww query &>/dev/null; then
-              MODE=$(${pkgs.darkman}/bin/darkman get) || MODE="dark"
-              ~/.local/share/darkman-switch-mode.sh "$MODE" &>/dev/null || true
-              break
-            fi
-            sleep 0.5
-          done &
-        fi
-      fi
+      $DRY_RUN_CMD "$HOME/.local/share/restart-darkman.sh"
     '';
   };
 
@@ -105,7 +107,7 @@ in
 
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.systemd}/bin/udevadm monitor --udev --subsystem-match=drm | while read -r line; do if echo \"$line\" | ${pkgs.gnugrep}/bin/grep -q \"change\"; then sleep 2; ~/.local/share/monitor-hotplug.sh; fi; done'";
+      ExecStart = "%h/.local/share/monitor-hotplug-watch.sh";
       Restart = "always";
       RestartSec = "3";
     };
