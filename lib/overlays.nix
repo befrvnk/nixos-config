@@ -5,6 +5,7 @@ let
     (import ../overlays/gh-enhance.nix)
     (import ../overlays/kotlin-lsp.nix)
     (import ../overlays/pi-coding-agent.nix)
+    (import ../overlays/user-scanner.nix)
 
     # opencode from flake (patch bun version check - upstream requires ^1.3.11 but nixpkgs has 1.3.10)
     (final: prev: {
@@ -38,7 +39,6 @@ let
     (import ../overlays/niri.nix)
     inputs.nix-cachyos-kernel.overlays.pinned
     (import ../overlays/profile-sync-daemon.nix)
-    (import ../overlays/user-scanner.nix)
   ];
 
   darwinOverlays = sharedOverlays ++ [
