@@ -4,26 +4,12 @@ let
   # Import shared theme configuration (used by both Stylix and Zen Browser)
   themes = import ../../../shared/themes.nix { inherit pkgs; };
 
-  # Convert YAML color schemes to JSON and import
-  # We use yq-go to convert YAML to JSON, then parse with builtins.fromJSON
-  yamlToScheme =
-    yamlPath:
-    builtins.fromJSON (
-      builtins.readFile (
-        pkgs.runCommand "scheme.json" { } ''
-          ${pkgs.yq-go}/bin/yq -o json ${yamlPath} > $out
-        ''
-      )
-    );
-
-  # Load base16 color schemes from shared themes config
-  darkScheme = yamlToScheme themes.dark.base16Scheme;
-  lightScheme = yamlToScheme themes.light.base16Scheme;
+  darkPalette = themes.dark.palette;
+  lightPalette = themes.light.palette;
 
   # Helper function to generate Zen Browser theme CSS from base16 colors
-  # Uses the scheme's color palette to set all Zen-specific CSS variables
   generateZenTheme =
-    scheme: with scheme.palette; ''
+    palette: with palette; ''
       :root {
         --zen-colors-primary: ${base02} !important;
         --zen-primary-color: ${base0D} !important;
@@ -180,7 +166,7 @@ let
 
   # Glance uses inverted light-dark() function, override with correct colors
   generateGlanceTheme =
-    scheme: with scheme.palette; ''
+    palette: with palette; ''
       /* Glance sidebar - override inverted light-dark() with correct theme colors */
       .zen-glance-sidebar-container toolbarbutton {
         background: ${base02} !important;
@@ -212,20 +198,20 @@ pkgs.writeText "userChrome.css" ''
   /* Colors automatically sourced from Stylix base16 color schemes */
 
   /* ========================================== */
-  /* DARK THEME - ${darkScheme.name} */
+  /* DARK THEME - Catppuccin Mocha */
   /* ========================================== */
   @media (prefers-color-scheme: dark) {
-    ${generateZenTheme darkScheme}
+    ${generateZenTheme darkPalette}
     /* Glance - override inverted light-dark() with correct dark colors */
-    ${generateGlanceTheme darkScheme}
+    ${generateGlanceTheme darkPalette}
   }
 
   /* ========================================== */
-  /* LIGHT THEME - ${lightScheme.name} */
+  /* LIGHT THEME - Catppuccin Latte */
   /* ========================================== */
   @media (prefers-color-scheme: light) {
-    ${generateZenTheme lightScheme}
+    ${generateZenTheme lightPalette}
     /* Glance - override inverted light-dark() with correct light colors */
-    ${generateGlanceTheme lightScheme}
+    ${generateGlanceTheme lightPalette}
   }
 ''

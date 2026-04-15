@@ -5,19 +5,14 @@
   ...
 }:
 let
-  # Read the Stylix-generated qtct config and add icon theme
-  stylixQt5ctConf = builtins.readFile (
-    pkgs.runCommand "stylix-qt5ct" { } ''
-          cat > $out << 'EOF'
-      [Appearance]
-      icon_theme=Papirus
-      style=kvantum
-      [Fonts]
-      fixed="JetBrainsMono Nerd Font,11"
-      general="Noto Sans,11"
-      EOF
-    ''
-  );
+  stylixQt5ctConf = ''
+    [Appearance]
+    icon_theme=Papirus
+    style=kvantum
+    [Fonts]
+    fixed="JetBrainsMono Nerd Font,11"
+    general="Noto Sans,11"
+  '';
 
   localGeminiTextTools =
     inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.mkVicinaeExtension

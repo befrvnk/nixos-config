@@ -4,24 +4,12 @@ let
   # Import shared theme configuration
   themes = import ../../../shared/themes.nix { inherit pkgs; };
 
-  # Convert YAML color schemes to JSON and import
-  yamlToScheme =
-    yamlPath:
-    builtins.fromJSON (
-      builtins.readFile (
-        pkgs.runCommand "scheme.json" { } ''
-          ${pkgs.yq-go}/bin/yq -o json ${yamlPath} > $out
-        ''
-      )
-    );
-
-  # Load base16 color schemes from shared themes config
-  darkScheme = yamlToScheme themes.dark.base16Scheme;
-  lightScheme = yamlToScheme themes.light.base16Scheme;
+  darkPalette = themes.dark.palette;
+  lightPalette = themes.light.palette;
 
   # Generate userContent CSS for internal browser pages
   generateUserContent =
-    scheme: with scheme.palette; ''
+    palette: with palette; ''
       /* Common variables affecting all pages */
       @-moz-document url-prefix("about:") {
         :root {
@@ -179,16 +167,16 @@ pkgs.writeText "userContent.css" ''
   /* Colors automatically sourced from Stylix base16 color schemes */
 
   /* ========================================== */
-  /* DARK THEME - ${darkScheme.name} */
+  /* DARK THEME - Catppuccin Mocha */
   /* ========================================== */
   @media (prefers-color-scheme: dark) {
-    ${generateUserContent darkScheme}
+    ${generateUserContent darkPalette}
   }
 
   /* ========================================== */
-  /* LIGHT THEME - ${lightScheme.name} */
+  /* LIGHT THEME - Catppuccin Latte */
   /* ========================================== */
   @media (prefers-color-scheme: light) {
-    ${generateUserContent lightScheme}
+    ${generateUserContent lightPalette}
   }
 ''

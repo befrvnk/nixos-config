@@ -19,9 +19,9 @@ let
       });
     })
 
-    # devenv/worktrunk/agent-of-empires from flakes
+    # Extra packages from flakes
     (final: prev: {
-      devenv = inputs.devenv.packages.${prev.stdenv.hostPlatform.system}.devenv.overrideAttrs {
+      devenvLatest = inputs.devenv.packages.${prev.stdenv.hostPlatform.system}.devenv.overrideAttrs {
         doCheck = false;
       };
       worktrunk = inputs.worktrunk.packages.${prev.stdenv.hostPlatform.system}.default;
