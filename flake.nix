@@ -109,12 +109,51 @@
       hostLib = import ./lib/hosts.nix { inherit inputs; };
       darwinLib = import ./lib/darwin.nix { inherit inputs; };
       hostInventory = import ./lib/host-inventory.nix;
+      overlayLib = import ./lib/overlays.nix { inherit inputs; };
     in
     {
       # System configurations generated from the host inventory.
       darwinConfigurations = inputs.nixpkgs.lib.mapAttrs (_: darwinLib.mkDarwinHost) hostInventory.darwin;
 
       nixosConfigurations = inputs.nixpkgs.lib.mapAttrs (_: hostLib.mkHost) hostInventory.nixos;
+
+      checks = forAllSystems (
+        system:
+        let
+          pkgs = import inputs.nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+            overlays =
+              if inputs.nixpkgs.lib.hasSuffix "darwin" system then
+                overlayLib.darwinOverlays
+              else
+                overlayLib.nixosOverlays;
+          };
+        in
+        {
+          pi-extension-tests = pkgs.runCommand "pi-extension-tests" { } ''
+            test_files="$(${pkgs.findutils}/bin/find ${./home-manager/shared/pi/extensions} \( -name '*.test.ts' -o -name '*.test.mjs' \) | ${pkgs.coreutils}/bin/sort | ${pkgs.gnused}/bin/sed ':a;N;$!ba;s/\n/ /g')"
+            ${pkgs.tsx}/bin/tsx --test $test_files
+            touch $out
+          '';
+
+          inherit (pkgs)
+            gh-enhance
+            kotlin-lsp
+            pi-coding-agent
+            user-scanner
+            ;
+        }
+        // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          inherit (pkgs)
+            domain-check
+            idea-community
+            ;
+        }
+        // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+          inherit (pkgs) openchamber;
+        }
+      );
 
       # Formatters for `nix fmt` command on supported development systems
       # Use nixfmt-tree so `nix fmt -- --check .` works on the whole repository.
