@@ -1,174 +1,149 @@
 # Adding Packages
 
-This guide explains how to add packages to your NixOS configuration.
+This repo splits package ownership by scope and platform.
 
-## System vs User Packages
+## Choose the Right Place
 
-- **System packages** are available to all users and installed in `/run/current-system`
-- **User packages** are specific to your home-manager user and installed in `~/.nix-profile`
+### System packages
+Use `modules/system/packages.nix` for packages that should exist for every user or are needed by the system itself.
 
-Choose system packages for:
-- System services and daemons
-- Security tools (sbctl, tpm2-tss)
-- Core utilities needed by root or multiple users
+Examples:
+- `git`, `wget`, `vim`
+- boot/security tooling
+- system daemons and shared utilities
 
-Choose user packages for:
-- Applications you use (browsers, editors, terminals)
-- Development tools
-- Personal utilities
+Apply changes with:
 
-## Adding System Packages
+```bash
+rebuild switch
+# or
+nh os switch .
+```
 
-Edit `modules/system/packages.nix`:
+### Home Manager packages
+Use Home Manager for user-facing tools and applications.
+
+#### NixOS-only user packages
+Add to:
+- `home-manager/nixos/packages.nix`
+- or the specific module that owns the tool
+
+#### Darwin-only user packages
+Add to:
+- `home-manager/darwin/packages.nix`
+- or the specific Darwin module that owns the tool
+
+#### Cross-platform packages
+Prefer putting the package in the shared module that configures it under:
+- `home-manager/shared/`
+
+Examples already following this pattern:
+- `home-manager/shared/gh.nix`
+- `home-manager/shared/navi/default.nix`
+- `home-manager/shared/opencode.nix`
+- `home-manager/shared/pi/default.nix`
+
+## Package Ownership Rule
+
+If a module configures a tool, that module should usually own the package too.
+
+Good examples:
+- `home-manager/shared/navi/default.nix` configures **and** installs `navi`
+- `home-manager/shared/worktrunk.nix` configures **and** installs `worktrunk`
+
+Use the catch-all package lists only when a tool has no dedicated module yet.
+
+## Example: Add a simple CLI tool
+
+### NixOS-only
+Add it to `home-manager/nixos/packages.nix`:
 
 ```nix
-environment.systemPackages = with pkgs; [
-  # Essential CLI tools
-  git
-  vim
-  wget
-  your-new-package  # Add here
-
-  # System security & boot
-  tpm2-tss
-  sbctl
-
-  # Desktop environment packages
-  gnome-control-center
-  gnome-bluetooth
-  networkmanager
+home.packages = with pkgs; [
+  bat
+  fd
+  your-new-package
 ];
 ```
 
-Then rebuild:
-```bash
-sudo nixos-rebuild switch --flake .#framework
-```
-
-## Adding User Packages
-
-Edit `home-manager/packages.nix`:
+### Darwin-only
+Add it to `home-manager/darwin/packages.nix`:
 
 ```nix
-home.packages = (
-  with pkgs;
-  [
-    # Your applications
-    _1password-cli
-    _1password-gui
-    discord
-    your-new-package  # Add here
-
-    # CLI tools
-    bat
-    eza
-    fd
-  ]
-);
+home.packages = with pkgs; [
+  bat
+  fd
+  your-new-package
+];
 ```
 
-Then rebuild:
-```bash
-home-manager switch --flake .#frank@framework
+### Shared module-owned tool
+If the tool has configuration, create a shared module instead:
+
+```nix
+{ pkgs, ... }:
+{
+  home.packages = [ pkgs.your-new-package ];
+
+  programs.your-tool = {
+    enable = true;
+  };
+}
 ```
 
-Or rebuild the full system (which includes home-manager):
-```bash
-sudo nixos-rebuild switch --flake .#framework
+Then import it from `home-manager/shared/default.nix`.
+
+## Example: Add a new application module
+
+### NixOS module
+1. Create `home-manager/nixos/app.nix`
+2. Import it from `home-manager/nixos/frank.nix`
+
+```nix
+imports = [
+  ./app.nix
+];
 ```
+
+### Darwin module
+1. Create `home-manager/darwin/app.nix`
+2. Import it from `home-manager/darwin/frank.nix`
+
+### Shared module
+1. Create `home-manager/shared/app.nix`
+2. Import it from `home-manager/shared/default.nix`
 
 ## Searching for Packages
 
-### Online Search
-Visit [search.nixos.org](https://search.nixos.org/packages) to search the package database.
-
-### Command Line
 ```bash
-# Search for a package
 nix search nixpkgs firefox
-
-# Show package info
 nix eval nixpkgs#firefox.meta.description
 ```
 
-## Package Naming Conventions
-
-- Packages starting with numbers use underscore: `_1password-cli`
-- Some packages are in attribute sets: `pkgs.jetbrains.idea-community-bin`
-- Font packages: `pkgs.nerd-fonts.fira-code`
-
-## Testing Packages Temporarily
-
-Try a package without adding it to your configuration:
+## Temporary Testing
 
 ```bash
-# Run once
 nix run nixpkgs#firefox
-
-# Start a shell with the package
 nix shell nixpkgs#firefox nixpkgs#chromium
 ```
 
-## Unfree Packages
+## Rebuild Commands
 
-Unfree packages (like Discord, Spotify, 1Password) are already enabled via:
-```nix
-nixpkgs.config.allowUnfree = true;
+### NixOS
+```bash
+nh os switch .
+# or
+rebuild switch
 ```
 
-This is set in `modules/system/packages.nix`.
+### Darwin
+```bash
+nh darwin switch .
+```
 
-## Application-Specific Configuration
+## Notes
 
-For applications that need configuration beyond just installation:
-
-1. Create a new file in `home-manager/` (e.g., `home-manager/firefox.nix`)
-2. Add the configuration:
-   ```nix
-   { pkgs, ... }:
-
-   {
-     programs.firefox = {
-       enable = true;
-       # ... more config
-     };
-   }
-   ```
-3. Import it in `home-manager/frank.nix`:
-   ```nix
-   imports = [
-     # ... other imports
-     ./firefox.nix
-   ];
-   ```
-
-## Example: Adding a New Application
-
-Let's add Neovim with configuration:
-
-1. Create `home-manager/neovim.nix`:
-   ```nix
-   { pkgs, ... }:
-
-   {
-     programs.neovim = {
-       enable = true;
-       viAlias = true;
-       vimAlias = true;
-       plugins = with pkgs.vimPlugins; [
-         telescope-nvim
-         nvim-treesitter
-       ];
-     };
-   }
-   ```
-
-2. Add to `home-manager/frank.nix`:
-   ```nix
-   imports = [
-     # ... existing imports
-     ./neovim.nix
-   ];
-   ```
-
-3. Rebuild and test
+- Use `nix fmt` after edits
+- Use `statix check .` for Nix linting
+- Prefer module-owned packages over growing the catch-all package lists
+- GUI apps on macOS may belong in `hosts/macbook-darwin/default.nix` under Homebrew instead of nixpkgs

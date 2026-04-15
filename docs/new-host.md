@@ -1,227 +1,158 @@
 # Adding a New Host
 
-This guide explains how to add a new machine to your NixOS configuration.
+This repo builds hosts through the helpers in:
+- `lib/hosts.nix` for NixOS
+- `lib/darwin.nix` for nix-darwin
 
-## Prerequisites
+Host-specific files live under `hosts/`.
 
-- NixOS installed on the new machine
-- Git access to this repository
-- Basic hardware-configuration.nix generated during installation
+## NixOS Host
 
-## Step-by-Step Process
-
-### 1. Generate Hardware Configuration
-
-On the new machine, generate the hardware configuration:
+### 1. Create the host directory
 
 ```bash
-nixos-generate-config --show-hardware-config > hardware-configuration.nix
+mkdir -p hosts/<hostname>
 ```
 
-### 2. Create Host Directory
+### 2. Generate hardware configuration
 
-In your configuration repository:
+On the target machine:
 
 ```bash
-mkdir -p hosts/your-hostname
+sudo nixos-generate-config --show-hardware-config > hardware-configuration.nix
 ```
 
-### 3. Copy Hardware Configuration
+Copy that file into:
 
-Copy the `hardware-configuration.nix` from step 1 into your new host directory:
-
-```bash
-cp /path/to/hardware-configuration.nix hosts/your-hostname/
+```text
+hosts/<hostname>/hardware-configuration.nix
 ```
 
-### 4. Create Host Configuration
+### 3. Create `hosts/<hostname>/default.nix`
 
-Create `hosts/your-hostname/default.nix`:
+Start from the existing Framework host and keep only what the new machine needs.
+
+Minimal shape:
 
 ```nix
-{ nixos-hardware, lanzaboote, lib, ... }:
-
+{
+  lib,
+  pkgs,
+  ...
+}:
 {
   imports = [
     ./hardware-configuration.nix
     ../../modules
-    # Add hardware-specific modules if needed:
-    # nixos-hardware.nixosModules.framework-13-amd
   ];
 
-  # Set hostname
-  networking.hostName = "your-hostname";
-
-  # Host-specific configuration
-  # (boot settings, hardware tweaks, etc.)
+  networking.hostName = "<hostname>";
 }
 ```
 
-### 5. Create Overlays Configuration (Optional)
-
-If your host needs custom overlays, create `hosts/your-hostname/overlays.nix`:
+### 4. Create `hosts/<hostname>/home.nix`
 
 ```nix
-{ android-nixpkgs, niri, ... }:
-
 {
-  nixpkgs.overlays = [
-    # Add host-specific overlays here
-    android-nixpkgs.overlays.default
-    (import ../../overlays/niri.nix { inherit niri; })
-  ];
-}
-```
-
-Otherwise, you can skip this file and remove it from the flake imports.
-
-### 6. Create Home-Manager Configuration (Optional)
-
-If this host needs home-manager, create `hosts/your-hostname/home.nix`:
-
-```nix
-{ stylix, dankMaterialShell, vicinae, zen-browser, android-nixpkgs, ... }:
-
+  inputs,
+  hostConfig,
+  ...
+}:
 {
   home-manager = {
+    backupFileExtension = "hm-backup";
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.frank = import ../../home-manager/frank.nix;
-    backupFileExtension = "backup";
+    users.${hostConfig.primaryUser} = ../../home-manager/nixos/frank.nix;
     sharedModules = [
-      stylix.homeModules.stylix
-      dankMaterialShell.homeModules.dankMaterialShell.default
-      vicinae.homeManagerModules.default
+      inputs.stylix.homeModules.stylix
+      inputs.vicinae.homeManagerModules.default
+      inputs.niri.homeModules.niri
     ];
     extraSpecialArgs = {
-      inherit zen-browser android-nixpkgs;
+      inherit inputs;
     };
   };
 }
 ```
 
-Adjust the user name and modules as needed for your new host.
-
-### 7. Update flake.nix
-
-Add your new host to `flake.nix`:
+### 5. Add the host to `flake.nix`
 
 ```nix
-outputs = { nixpkgs, home-manager, ... }@inputs:
-  let
-    system = "x86_64-linux";
-  in
-  {
-    nixosConfigurations = {
-      framework = nixpkgs.lib.nixosSystem {
-        # ... existing framework config
-      };
-
-      # Add new host
-      your-hostname = nixpkgs.lib.nixosSystem {
-        inherit system;
-        specialArgs = {
-          inherit nixos-hardware lanzaboote inputs;
-          inherit stylix dankMaterialShell vicinae zen-browser android-nixpkgs niri;
-        };
-        modules = [
-          ./hosts/your-hostname
-          ./hosts/your-hostname/overlays.nix  # Optional
-          ./hosts/your-hostname/home.nix      # Optional
-          home-manager.nixosModules.home-manager  # If using home-manager
-          stylix.nixosModules.stylix              # If using stylix
-        ];
-      };
-    };
-  };
+nixosConfigurations.<hostname> = hostLib.mkHost {
+  hostname = "<hostname>";
+  primaryUser = "frank";
+  homeDirectory = "/home/frank";
+  cpuVendor = "intel";      # or "amd"
+  hasFingerprint = false;
+  hasTouchscreen = false;
+  enableAndroid = false;
+  enableLogitech = false;
+  enableNuphy = false;
+  wifiInterface = null;       # set if power-management scripts should manage WiFi power save
+  abmPath = null;             # set on AMD laptops with panel power savings support
+};
 ```
 
-### 8. Build and Test
-
-Test the configuration builds without errors:
+### 6. Build and test
 
 ```bash
-nix build .#nixosConfigurations.your-hostname.config.system.build.toplevel --no-link
+nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel --dry-run --accept-flake-config
+nh os test .
 ```
 
-### 9. Deploy to New Host
+## Darwin Host
 
-On the new machine, clone your configuration and switch to it:
+### 1. Create the host directory
 
 ```bash
-# Clone your configuration
-git clone <your-repo-url> ~/nixos-config
-cd ~/nixos-config
-
-# Build and switch
-sudo nixos-rebuild switch --flake .#your-hostname
+mkdir -p hosts/<hostname>-darwin
 ```
 
-## Host-Specific Customization
+### 2. Create `hosts/<hostname>-darwin/default.nix`
 
-### Different User
+Start from `hosts/macbook-darwin/default.nix` and trim what you do not need.
 
-If the new host uses a different user than "frank", update the home.nix:
+### 3. Add the host to `flake.nix`
 
 ```nix
-users.yourname = import ../../home-manager/yourname.nix;
+darwinConfigurations.<hostname> = darwinLib.mkDarwinHost {
+  hostname = "<hostname>-darwin";
+  primaryUser = "frank";
+  homeDirectory = "/Users/frank";
+};
 ```
 
-### Different Modules
+### 4. Build and test
 
-Not all hosts need all modules. Customize the imports in `hosts/your-hostname/default.nix`:
-
-```nix
-imports = [
-  ./hardware-configuration.nix
-  ../../modules/system/core.nix
-  ../../modules/system/packages.nix
-  # Only import modules needed for this host
-];
+```bash
+nix build .#darwinConfigurations.<hostname>.system --dry-run --accept-flake-config
 ```
 
-### Different Hardware
+## Host Metadata
 
-For specific hardware support, add nixos-hardware modules:
+`mkHost` and `mkDarwinHost` pass `hostConfig` into modules. Use that for host-specific values instead of hardcoding them in modules.
 
-```nix
-imports = [
-  nixos-hardware.nixosModules.lenovo-thinkpad-t480
-  # or
-  nixos-hardware.nixosModules.raspberry-pi-4
-];
-```
+Common fields include:
+- `hostConfig.hostname`
+- `hostConfig.system`
+- `hostConfig.primaryUser`
+- `hostConfig.homeDirectory`
+- `hostConfig.cpuVendor`
+- `hostConfig.hasFingerprint`
+- `hostConfig.hasTouchscreen`
 
-## Example: Minimal Server
+NixOS hosts can also set capability flags like:
+- `enableAndroid`
+- `enableLogitech`
+- `enableNuphy`
+- `wifiInterface`
+- `abmPath`
+- `platformProfilePath`
 
-For a server without desktop environment:
+## Notes
 
-```nix
-# hosts/server/default.nix
-{ lib, ... }:
-
-{
-  imports = [
-    ./hardware-configuration.nix
-    ../../modules/system/core.nix
-    ../../modules/system/packages.nix
-    ../../modules/services/pipewire.nix  # If needed
-  ];
-
-  networking.hostName = "server";
-
-  # Server-specific settings
-  services.openssh.enable = true;
-  networking.firewall.allowedTCPPorts = [ 22 ];
-}
-```
-
-Then in flake.nix, only include the needed modules (no home-manager, no stylix for a headless server).
-
-## Tips
-
-- Start with the framework host configuration as a template
-- Remove unnecessary modules for your use case
-- Test builds locally before deploying
-- Keep hardware-configuration.nix in version control
-- Document host-specific quirks in comments
+- `lib/hosts.nix` validates host paths and a few required fields
+- keep host-specific quirks inside `hosts/<hostname>/`
+- avoid hardcoding usernames or home directories in reusable modules
+- for more structure guidance, see `docs/structure.md`

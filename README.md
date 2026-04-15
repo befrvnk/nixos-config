@@ -1,6 +1,15 @@
-# NixOS Configuration
+# Nix Configuration
 
-Personal NixOS configuration for a Framework 13 laptop with the Niri window manager.
+Personal Nix configuration for:
+- **NixOS** on a Framework 13 laptop with the Niri window manager
+- **nix-darwin** on a MacBook Pro M4
+
+## Platform Overview
+
+| Platform | Flake output | Setup doc |
+|----------|--------------|-----------|
+| NixOS (Framework) | `.#nixosConfigurations.framework` | [README quick start](#quick-start), [docs/structure.md](./docs/structure.md) |
+| macOS / nix-darwin (MacBook) | `.#darwinConfigurations.macbook` | [docs/macbook-darwin-setup.md](./docs/macbook-darwin-setup.md) |
 
 ## Screenshots
 
@@ -51,23 +60,26 @@ Personal NixOS configuration for a Framework 13 laptop with the Niri window mana
 The repository uses **devenv** with **direnv** for automatic environment activation. The development environment provides git hooks, Claude Code integration, and custom rebuild commands.
 
 ```bash
-# First time setup (install devenv and approve direnv)
-sudo nixos-rebuild switch --flake ~/nixos-config#framework
+# First time setup (install this config and approve direnv)
 cd ~/nixos-config
 direnv allow
+rebuild switch        # NixOS
+# or
+nh darwin switch .    # macOS
 
 # Daily usage - environment activates automatically
 cd ~/nixos-config
 
 # Rebuild system configuration
-rebuild switch    # Apply changes immediately
-rebuild           # Prepare for next boot (default)
+rebuild switch    # Apply changes immediately on NixOS
+rebuild           # Prepare next boot on NixOS
+nh darwin switch .
 
 # Update all flake inputs
-nix flake update
+nix flake update --accept-flake-config
 
-# Format Nix files (happens automatically on commit)
-nixfmt **/*.nix
+# Format Nix files
+nix fmt
 ```
 
 > **Note:** This configuration uses [nh](https://github.com/nix-community/nh) (Nix Helper) instead of `nixos-rebuild` for better progress output, faster builds, and visual diffs of package changes. The `rebuild` script is available when the devenv environment is active. See [Development Environment](./docs/development-environment.md) for details.
@@ -339,7 +351,9 @@ Core utilities installed at the system level in `modules/system/packages.nix`:
 
 ### User Applications
 
-Installed via home-manager in `home-manager/packages.nix`:
+Installed via Home Manager in the platform-specific package sets:
+- `home-manager/nixos/packages.nix`
+- `home-manager/darwin/packages.nix`
 
 #### Productivity
 - **anytype** - Note-taking and knowledge management
@@ -438,11 +452,10 @@ nixos-config/
 │   ├── system/            # Core system settings
 │   └── theming/           # System-wide theming
 ├── home-manager/          # User-level configurations
-│   ├── frank.nix          # Main user config
-│   ├── packages.nix       # User packages
-│   ├── niri/              # Window manager config
-│   ├── ironbar/           # Status bar config
-│   └── ...                # Application configs
+│   ├── nixos/             # NixOS-specific Home Manager modules
+│   ├── darwin/            # Darwin-specific Home Manager modules
+│   ├── shared/            # Cross-platform Home Manager modules
+│   └── mcp/               # MCP server configuration
 ├── overlays/              # Package modifications
 └── docs/                  # Detailed documentation
 ```
@@ -494,10 +507,10 @@ This configuration separates concerns between system-level and user-level settin
 4. awww fades smoothly to the new wallpaper without daemon restart
 
 **Key configuration:**
-- Daemon started in `home-manager/niri/startup.nix`
-- Layer rule in `home-manager/niri/rules.nix` places awww on backdrop
-- Theme switching script in `home-manager/darkman/darkman-switch-mode.sh`
-- Wallpaper paths defined in `home-manager/wallpapers/default.nix`
+- Daemon started in `home-manager/nixos/niri/startup.nix`
+- Layer rule in `home-manager/nixos/niri/rules.nix` places awww on backdrop
+- Theme switching script in `home-manager/nixos/darkman/darkman-switch-mode.sh`
+- Wallpaper paths defined in `home-manager/nixos/wallpapers/default.nix`
 
 ### Security
 
@@ -512,7 +525,7 @@ This configuration separates concerns between system-level and user-level settin
   - 🔋 **Power Saver** (low-power): Max battery life, no boost
   - ⚡ **Balanced**: Battery + allows compilation boosts
   - 🚀 **Performance**: Full power on AC
-- **Automatic power switching** via udev rules (Balanced on AC, Power Saver on battery)
+- **Automatic power switching** via tuned/upower events (Balanced on AC, Power Saver on battery)
 - **ZRAM** compressed swap with zstd for memory pressure without SSD wear
 - **systemd-oomd** proactively kills runaway processes before system freezes (works with ZRAM)
 - **CachyOS-style sysctl tuning** - Optimized VM settings (swappiness=180 for ZRAM, page-cluster=0), network buffers, THP defer+madvise, RCU Lazy (5-10% idle power savings)
@@ -611,37 +624,34 @@ Everything is defined in `.nix` files. To change your system:
 
 ```bash
 # Rebuild after editing configuration
-nh os switch ~/nixos-config
+nh os switch .
+# or
+nh darwin switch .
 
-# Test configuration without making it default
-nh os test ~/nixos-config
+# Test configuration without making it default (NixOS)
+nh os test .
 
 # Update all packages
-nix flake update
-nh os switch ~/nixos-config
-
-# Roll back to previous generation
-sudo nixos-rebuild switch --rollback
+nix flake update --accept-flake-config
+rebuild switch
 
 # List generations
-sudo nix-env --list-generations --profile /nix/var/nix/profiles/system
+nh os generations
 
 # Garbage collect old generations
-sudo nix-collect-garbage -d
+nh clean all --keep 5
 ```
 
 ### Where to Add Things
 
 - **System package:** `modules/system/packages.nix`
-- **User package:** `home-manager/packages.nix`
-- **New application config:** Create `home-manager/appname.nix` and import in `frank.nix`
+- **User package:** `home-manager/nixos/packages.nix` or `home-manager/darwin/packages.nix`
+- **New application config:** Create the module under `home-manager/nixos/`, `home-manager/darwin/`, or `home-manager/shared/` and import it from the relevant `frank.nix`
 - **System service:** Create in `modules/services/`
 - **Hardware config:** Create in `modules/hardware/`
 
 See [Adding Packages](./docs/adding-packages.md) for detailed instructions.
 
 ## Known Issues
-
-- **Ironbar Volume Module:** The reported volume level from `volume-status.sh` only works once pavucontrol was opened or audio was played. Before that `volume-status.sh` returns 100% as volume level which isn't correct.
 
 - **Clamshell Mode Thermals:** Framework laptops run warmer in clamshell mode (lid closed with external monitor) due to the hinge cover restricting exhaust airflow. The 4K @ 144Hz external display also generates significant heat. Opening the lid slightly (~45°) can improve airflow. See [Clamshell Mode Thermals](./docs/clamshell-mode-thermals.md) for details and workarounds.
