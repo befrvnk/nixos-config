@@ -12,7 +12,7 @@
     pkgs.xwayland-satellite
     pkgs.brightnessctl
     pkgs.pavucontrol
-    inputs.awww.packages.${pkgs.system}.awww
+    inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww
 
     # Toggle internal display on/off
     (pkgs.writeShellScriptBin "toggle-internal-display" ''

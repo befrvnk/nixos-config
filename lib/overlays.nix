@@ -8,7 +8,7 @@ let
 
     # opencode from flake (patch bun version check - upstream requires ^1.3.11 but nixpkgs has 1.3.10)
     (final: prev: {
-      opencode = inputs.opencode.packages.${prev.system}.default.overrideAttrs (old: {
+      opencode = inputs.opencode.packages.${prev.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
         nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.nodejs ];
         postConfigure = (old.postConfigure or "") + ''
           sed -i 's/"packageManager": "bun@[^"]*"/"packageManager": "bun@${prev.bun.version}"/' package.json
@@ -20,9 +20,11 @@ let
 
     # devenv/worktrunk/agent-of-empires from flakes
     (final: prev: {
-      devenv = inputs.devenv.packages.${prev.system}.devenv.overrideAttrs { doCheck = false; };
-      worktrunk = inputs.worktrunk.packages.${prev.system}.default;
-      agent-of-empires = inputs.agent-of-empires.packages.${prev.system}.default;
+      devenv = inputs.devenv.packages.${prev.stdenv.hostPlatform.system}.devenv.overrideAttrs {
+        doCheck = false;
+      };
+      worktrunk = inputs.worktrunk.packages.${prev.stdenv.hostPlatform.system}.default;
+      agent-of-empires = inputs.agent-of-empires.packages.${prev.stdenv.hostPlatform.system}.default;
     })
   ];
 

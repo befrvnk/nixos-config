@@ -9,7 +9,7 @@ let
   userChromeCSS = import ./userChrome.nix { inherit pkgs; };
   userContentCSS = import ./userContent.nix { inherit pkgs; };
 
-  zenPackage = inputs.zen-browser.packages.${pkgs.system}.beta;
+  zenPackage = inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.beta;
 
   # Create a launcher script that forces the correct profile
   # This prevents Zen from using wrong profiles when the nix store path changes

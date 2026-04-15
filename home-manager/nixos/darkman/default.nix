@@ -30,7 +30,7 @@ in
           coreutils = "${pkgs.coreutils}";
           gnugrep = "${pkgs.gnugrep}";
           gnused = "${pkgs.gnused}";
-          awww = "${inputs.awww.packages.${pkgs.system}.awww}";
+          awww = "${inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww}";
           wallpaper_light = "${wallpapers.light}";
           wallpaper_dark = "${wallpapers.dark}";
         };
@@ -43,7 +43,7 @@ in
           coreutils = "${pkgs.coreutils}";
           gnugrep = "${pkgs.gnugrep}";
           gnused = "${pkgs.gnused}";
-          awww = "${inputs.awww.packages.${pkgs.system}.awww}";
+          awww = "${inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww}";
           darkman = "${pkgs.darkman}";
           wallpaper_light = "${wallpapers.light}";
           wallpaper_dark = "${wallpapers.dark}";
@@ -65,7 +65,7 @@ in
           coreutils = "${pkgs.coreutils}";
           systemd = "${pkgs.systemd}";
           darkman = "${pkgs.darkman}";
-          awww = "${inputs.awww.packages.${pkgs.system}.awww}";
+          awww = "${inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww}";
         };
         executable = true;
       };
