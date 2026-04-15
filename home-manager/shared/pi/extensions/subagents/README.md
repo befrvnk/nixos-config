@@ -125,7 +125,7 @@ Interactive `/review` currently supports:
 
 Interactive review uses a smart default target based on git state, searchable branch and commit pickers, and an optional prompt for one-off extra review instructions. Review runs use a cancellable loader UI; press `Esc` to abort an in-progress review.
 
-After a successful or partial review, the rendered findings are queued into the main agent's next turn as additional context so you can immediately ask it to apply or address the review.
+After a successful or partial review, the rendered findings are stored as a custom message that participates directly in the main agent context, so you can immediately ask it to apply or address the review.
 
 `/review ... --extra "..."` appends one-off review focus instructions to the fixed reviewer pair.
 
