@@ -26,14 +26,14 @@ jobs:
         run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config
 
       - name: Check Nix formatting
-        run: nix fmt -- --ci .
+        run: nix fmt --accept-flake-config -- --ci .
 
       - name: Lint Nix with statix
-        run: nix develop --accept-flake-config -c statix check .
+        run: nix shell --accept-flake-config --inputs-from . nixpkgs#statix --command statix check .
 
       - name: Lint helper scripts with shellcheck
         run: |
-          nix develop --accept-flake-config -c bash -lc '
+          nix shell --accept-flake-config --inputs-from . nixpkgs#shellcheck --command bash -lc '
             shellcheck \
               scripts/*.sh \
               home-manager/nixos/audio-keep-alive/audio-keep-alive.sh \
@@ -45,7 +45,7 @@ jobs:
           '
 
       - name: Run pi extension tests
-        run: nix develop --accept-flake-config -c test-pi-extensions
+        run: nix build .#checks.x86_64-linux.pi-extension-tests --accept-flake-config
 
   darwin-dry-run:
     runs-on: macos-latest
