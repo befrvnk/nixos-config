@@ -206,7 +206,11 @@ in
   };
 
   # diffnav: git diff pager with file tree (used by gh-dash and standalone)
-  home.packages = [ pkgs.diffnav ];
+  # github-copilot-cli: terminal agent used by the `ai` / `?` nushell helpers
+  home.packages = [
+    pkgs.diffnav
+    pkgs.github-copilot-cli
+  ];
 
   # Add ghd alias that auto-detects appearance
   home.shellAliases.ghd = toString ghDashWrapper;

@@ -21,7 +21,6 @@
     fd
     fzf
 
-    github-copilot-cli
     helix
     htop
     imagemagick
