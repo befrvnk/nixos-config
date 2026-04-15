@@ -1,116 +1,99 @@
 #!/usr/bin/env bash
-# Updates the android-studio-canary package to the latest version from Google
-# Usage: ./scripts/update-android-studio-canary.sh
-
+# shellcheck source=./update-common.sh
+# Updates the android-studio-canary package to the latest version from Google.
 set -euo pipefail
 
-VERSION_FILE="pkgs/android-studio-canary/version.nix"
-RELEASES_URL="https://jb.gg/android-studio-releases-list.xml"
+# shellcheck disable=SC1091
+source "$(dirname "$0")/update-common.sh"
+
+version_file="pkgs/android-studio-canary/version.nix"
+releases_url="https://jb.gg/android-studio-releases-list.xml"
 
 echo "Fetching Android Studio releases..."
 
-# Fetch the releases XML and save to temp file to avoid pipeline issues
-TEMP_FILE=$(mktemp)
-trap 'rm -f "$TEMP_FILE"' EXIT
-curl -sL "$RELEASES_URL" > "$TEMP_FILE"
+temp_file=$(mktemp)
+trap 'rm -f "$temp_file"' EXIT
+curl -fsSL "$releases_url" > "$temp_file"
 
-# The XML structure is predictable: the first <item> with <channel>Canary</channel> is the latest
-# Extract the version and Linux download URL from the first Canary item
-# Use awk for more reliable parsing
-read -r LATEST LINUX_URL < <(awk '
+read -r latest linux_url < <(
+  awk '
     /<item>/,/<\/item>/ {
-        if (/<version>/) {
-            gsub(/.*<version>/, "")
-            gsub(/<\/version>.*/, "")
-            version = $0
-        }
-        if (/<channel>Canary<\/channel>/) {
-            in_canary = 1
-        }
-        if (in_canary && /<link>.*linux\.tar\.gz/) {
-            gsub(/.*<link>/, "")
-            gsub(/<\/link>.*/, "")
-            linux_url = $0
-        }
-        if (in_canary && /<checksum>/ && linux_url != "") {
-            gsub(/.*<checksum>/, "")
-            gsub(/<\/checksum>.*/, "")
-            checksum = $0
-            print version, linux_url
-            exit
-        }
+      if (/<version>/) {
+        gsub(/.*<version>/, "")
+        gsub(/<\/version>.*/, "")
+        version = $0
+      }
+      if (/<channel>Canary<\/channel>/) {
+        in_canary = 1
+      }
+      if (in_canary && /<link>.*linux\.tar\.gz/) {
+        gsub(/.*<link>/, "")
+        gsub(/<\/link>.*/, "")
+        linux_url = $0
+      }
+      if (in_canary && /<checksum>/ && linux_url != "") {
+        print version, linux_url
+        exit
+      }
     }
-' "$TEMP_FILE")
+  ' "$temp_file"
+)
 
-if [[ -z "$LATEST" ]]; then
-    echo "Error: Could not fetch latest canary version from releases XML"
-    exit 1
+if [[ -z "$latest" ]]; then
+  echo "Error: Could not fetch latest canary version from releases XML"
+  exit 1
 fi
 
-echo "Latest canary version: $LATEST"
-echo "Download URL: $LINUX_URL"
+echo "Latest canary version: $latest"
+echo "Download URL: $linux_url"
 
-# Get current version from package
-CURRENT=$(grep 'version = ' "$VERSION_FILE" | sed 's/.*"\(.*\)".*/\1/')
-echo "Current version: $CURRENT"
+current=$(current_attr_value version "$version_file")
+echo "Current version: $current"
 
-if [[ "$LATEST" == "$CURRENT" ]]; then
-    echo "Already up to date!"
-    exit 0
+if [[ "$latest" == "$current" ]]; then
+  echo "Already up to date!"
+  exit 0
 fi
 
-echo "Updating to $LATEST..."
-
-# Extract the Linux download checksum from the XML
-# Look for the linux.tar.gz download within the first Canary item
-CHECKSUM=$(awk -v version="$LATEST" '
-    /<item>/,/<\/item>/ {
-        if (/<channel>Canary<\/channel>/) { in_canary = 1 }
-        if (in_canary && /linux\.tar\.gz/) { in_linux = 1 }
-        if (in_canary && in_linux && /<checksum>/) {
-            gsub(/.*<checksum>/, "")
-            gsub(/<\/checksum>.*/, "")
-            print
-            exit
-        }
+checksum=$(awk '
+  /<item>/,/<\/item>/ {
+    if (/<channel>Canary<\/channel>/) { in_canary = 1 }
+    if (in_canary && /linux\.tar\.gz/) { in_linux = 1 }
+    if (in_canary && in_linux && /<checksum>/) {
+      gsub(/.*<checksum>/, "")
+      gsub(/<\/checksum>.*/, "")
+      print
+      exit
     }
-' "$TEMP_FILE")
+  }
+' "$temp_file")
 
-if [[ -z "$CHECKSUM" ]]; then
-    echo "Warning: Could not extract checksum from releases XML, prefetching instead..."
-    echo "Prefetching: $LINUX_URL"
-    HASH=$(nix-prefetch-url "$LINUX_URL" 2>/dev/null | tail -1)
-    SRI_HASH=$(nix hash to-sri --type sha256 "$HASH" 2>/dev/null)
+if [[ -n "$checksum" ]]; then
+  sri_hash=$(nix hash convert --hash-algo sha256 --to sri "$checksum" 2>/dev/null || true)
 else
-    echo "Found checksum: $CHECKSUM"
-    # Convert hex checksum to SRI format (sha256-base64)
-    SRI_HASH=$(nix hash convert --hash-algo sha256 --to sri "$CHECKSUM" 2>/dev/null || echo "")
-
-    if [[ -z "$SRI_HASH" ]]; then
-        echo "Warning: Could not convert checksum, prefetching instead..."
-        echo "Prefetching: $LINUX_URL"
-        HASH=$(nix-prefetch-url "$LINUX_URL" 2>/dev/null | tail -1)
-        SRI_HASH=$(nix hash to-sri --type sha256 "$HASH" 2>/dev/null)
-    fi
+  sri_hash=""
 fi
 
-echo "New hash: $SRI_HASH"
+if [[ -z "$sri_hash" ]]; then
+  echo "Prefetching archive to determine hash..."
+  sri_hash=$(prefetch_sri_hash "$linux_url")
+fi
 
-# Convert Google edge URL to dl.google.com (both work, but dl.google.com is more reliable)
-# edgedl.me.gvt1.com -> dl.google.com/dl/android/studio
-DOWNLOAD_URL="${LINUX_URL//https:\/\/edgedl.me.gvt1.com\/android\/studio\//https:\/\/dl.google.com\/dl\/android\/studio\/}"
-echo "Normalized URL: $DOWNLOAD_URL"
+echo "New hash: $sri_hash"
 
-# Update the version file with URL (needed for new naming scheme like panda2-canary1)
-cat > "$VERSION_FILE" << EOF
+download_url="${linux_url//https:\/\/edgedl.me.gvt1.com\/android\/studio\//https:\/\/dl.google.com\/dl\/android\/studio\/}"
+
+echo "Normalized URL: $download_url"
+
+cat > "$version_file" <<EOF
 # Android Studio Canary version info
 # Updated automatically by: ./scripts/update-android-studio-canary.sh
 {
-  version = "$LATEST";
-  hash = "$SRI_HASH";
-  url = "$DOWNLOAD_URL";
+  version = "$latest";
+  hash = "$sri_hash";
+  url = "$download_url";
 }
 EOF
 
-echo "Updated $VERSION_FILE"
+echo "Updated $version_file"
 echo "Don't forget to test with: nix flake check --accept-flake-config"

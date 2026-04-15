@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-
+# shellcheck source=./update-common.sh
 set -euo pipefail
 
-PACKAGE_FILE="pkgs/pi-coding-agent/package.nix"
-OWNER="badlogic"
-REPO="pi-mono"
+# shellcheck disable=SC1091
+source "$(dirname "$0")/update-common.sh"
 
-echo "Fetching latest $REPO release from GitHub..."
+package_file="pkgs/pi-coding-agent/package.nix"
+owner="badlogic"
+repo="pi-mono"
 
-release_json=$(gh api "repos/$OWNER/$REPO/releases/latest")
+echo "Fetching latest $repo release from GitHub..."
+
+release_json=$(github_latest_release_json "$owner" "$repo")
 latest=$(jq -r '.tag_name // empty' <<< "$release_json")
 
 if [[ -z "$latest" ]]; then
@@ -17,7 +20,7 @@ if [[ -z "$latest" ]]; then
 fi
 
 version="${latest#v}"
-current=$(grep 'version = ' "$PACKAGE_FILE" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+current=$(current_attr_value version "$package_file")
 
 echo "Current: $current, Latest: $version"
 
@@ -34,15 +37,7 @@ declare -A assets=(
 )
 
 tmp_file=$(mktemp)
-cp "$PACKAGE_FILE" "$tmp_file"
-
-sed_in_place() {
-  if sed --version >/dev/null 2>&1; then
-    sed -i "$@"
-  else
-    sed -i '' "$@"
-  fi
-}
+cp "$package_file" "$tmp_file"
 
 sed_in_place "s|version = \".*\";|version = \"$version\";|" "$tmp_file"
 
@@ -59,6 +54,6 @@ for system in x86_64-linux aarch64-linux x86_64-darwin aarch64-darwin; do
   sed_in_place "/$system = {/,/};/ s|hash = \"[^\"]*\";|hash = \"$digest\";|" "$tmp_file"
 done
 
-mv "$tmp_file" "$PACKAGE_FILE"
+mv "$tmp_file" "$package_file"
 
-echo "Updated $PACKAGE_FILE to $version"
+echo "Updated $package_file to $version"

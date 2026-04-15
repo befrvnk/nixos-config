@@ -1,44 +1,40 @@
 #!/usr/bin/env bash
-# Updates the openchamber package to the latest GitHub release
-# Usage: ./scripts/update-openchamber.sh
-
+# shellcheck source=./update-common.sh
 set -euo pipefail
 
-PACKAGE_FILE="pkgs/openchamber/package.nix"
-OWNER="openchamber"
-REPO="openchamber"
+# shellcheck disable=SC1091
+source "$(dirname "$0")/update-common.sh"
 
-echo "Fetching latest $REPO release from GitHub..."
+package_file="pkgs/openchamber/package.nix"
+owner="openchamber"
+repo="openchamber"
 
-LATEST=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases/latest" | jq -r '.tag_name // empty')
+echo "Fetching latest $repo release from GitHub..."
 
-if [[ -z "$LATEST" ]]; then
-    echo "Error: Could not fetch latest version from GitHub API"
-    exit 1
+release_json=$(github_latest_release_json "$owner" "$repo")
+latest=$(jq -r '.tag_name // empty' <<< "$release_json")
+
+if [[ -z "$latest" ]]; then
+  echo "Error: Could not fetch latest version from GitHub API"
+  exit 1
 fi
 
-# Strip v prefix for version comparison
-VERSION="${LATEST#v}"
-CURRENT=$(grep 'version = ' "$PACKAGE_FILE" | head -1 | sed 's/.*"\(.*\)".*/\1/')
+version="${latest#v}"
+current=$(current_attr_value version "$package_file")
 
-echo "Current: $CURRENT, Latest: $VERSION"
+echo "Current: $current, Latest: $version"
 
-if [[ "$VERSION" == "$CURRENT" ]]; then
-    echo "Already up to date!"
-    exit 0
+if [[ "$version" == "$current" ]]; then
+  echo "Already up to date!"
+  exit 0
 fi
 
-echo "Updating to $VERSION..."
+url="https://github.com/$owner/$repo/releases/download/v${version}/OpenChamber.app-darwin-aarch64.tar.gz"
+src_sri=$(prefetch_sri_hash "$url")
 
-# Prefetch the new tarball
-URL="https://github.com/$OWNER/$REPO/releases/download/v${VERSION}/OpenChamber.app-darwin-aarch64.tar.gz"
-SRC_HASH=$(nix-prefetch-url "$URL" 2>/dev/null | tail -1)
-SRC_SRI=$(nix hash convert --hash-algo sha256 --to sri "$SRC_HASH" 2>/dev/null)
+echo "New hash: $src_sri"
 
-echo "New hash: $SRC_SRI"
+sed_in_place "s|version = \".*\"|version = \"$version\"|" "$package_file"
+sed_in_place "s|hash = \"sha256-.*\"|hash = \"$src_sri\"|" "$package_file"
 
-# Update version and hash
-sed -i "s|version = \".*\"|version = \"$VERSION\"|" "$PACKAGE_FILE"
-sed -i "s|hash = \"sha256-.*\"|hash = \"$SRC_SRI\"|" "$PACKAGE_FILE"
-
-echo "Updated $PACKAGE_FILE to $VERSION"
+echo "Updated $package_file to $version"
