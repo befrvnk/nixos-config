@@ -1,5 +1,11 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 let
+  iconPath = builtins.concatStringsSep ":" [
+    "${config.home.profileDirectory}/share/icons"
+    "/run/current-system/sw/share/icons/hicolor"
+    "/run/current-system/sw/share/pixmaps"
+  ];
+
   closeAndForget = pkgs.writeShellScript "dunst-close-and-forget" ''
     ${pkgs.dunst}/bin/dunstctl close
     ${pkgs.dunst}/bin/dunstctl history-pop
@@ -57,7 +63,7 @@ in
         max_icon_size = 64;
         enable_recursive_icon_lookup = true;
         icon_theme = "Papirus";
-        icon_path = "/home/frank/.nix-profile/share/icons/:/run/current-system/sw/share/icons/hicolor/:/run/current-system/sw/share/pixmaps/";
+        icon_path = "${iconPath}";
 
         # History
         sticky_history = true;
