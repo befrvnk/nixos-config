@@ -174,7 +174,7 @@ _:
 
       def copilot_run [prompt: string] {
         let result = (
-          ^gh copilot -- -p $prompt -s --effort low --allow-all-tools --disable-builtin-mcps --no-custom-instructions --available-tools=
+          ^gh copilot -- --model gpt-5.4-mini -p $prompt -s --effort low --allow-all-tools --disable-builtin-mcps --no-custom-instructions --available-tools=
           | complete
         )
 
