@@ -23,7 +23,6 @@
       mission-center
       nautilus
       gnome-disk-utility
-      navi
       nh
       nmap
       opencode-desktop

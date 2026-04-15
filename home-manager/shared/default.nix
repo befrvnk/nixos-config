@@ -1,0 +1,23 @@
+{
+  imports = [
+    ./agent-of-empires.nix
+    ./atuin.nix
+    ./btop.nix
+    ./claude-code
+    ./direnv.nix
+    ./gh.nix
+    ./git.nix
+    ./jujutsu.nix
+    ./lazygit.nix
+    ./navi
+    ./nil.nix
+    ./nushell.nix
+    ./opencode.nix
+    ./pi
+    ./ssh.nix
+    ./starship.nix
+    ./worktrunk.nix
+    ./zed.nix
+    ./zoxide.nix
+  ];
+}

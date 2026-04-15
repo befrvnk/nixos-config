@@ -26,7 +26,6 @@
     imagemagick
     lf
     marp-cli
-    navi
     nh
     nmap
 

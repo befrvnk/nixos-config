@@ -1,6 +1,8 @@
 { config, ... }:
 
 {
+  home.packages = [ config.programs.navi.package ];
+
   # Navi cheatsheet tool
   # Nushell widget integration is in nushell.nix (Ctrl+G)
   # since home-manager navi module lacks enableNushellIntegration

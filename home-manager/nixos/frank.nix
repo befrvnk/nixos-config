@@ -3,25 +3,7 @@
 {
   imports = [
     # Shared modules (cross-platform)
-    ../shared/agent-of-empires.nix
-    ../shared/atuin.nix
-    ../shared/btop.nix
-    ../shared/claude-code
-    ../shared/direnv.nix
-    ../shared/gh.nix
-    ../shared/git.nix
-    ../shared/jujutsu.nix
-    ../shared/lazygit.nix
-    ../shared/navi
-    ../shared/nil.nix
-    ../shared/nushell.nix
-    ../shared/opencode.nix
-    ../shared/pi
-    ../shared/ssh.nix
-    ../shared/starship.nix
-    ../shared/worktrunk.nix
-    ../shared/zed.nix
-    ../shared/zoxide.nix
+    ../shared
 
     # NixOS-specific modules
     inputs.zen-browser.homeModules.beta
