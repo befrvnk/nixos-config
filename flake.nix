@@ -99,8 +99,11 @@
   outputs =
     inputs:
     let
-      system = "x86_64-linux";
-      pkgs = inputs.nixpkgs.legacyPackages.${system};
+      systems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
+      forAllSystems = inputs.nixpkgs.lib.genAttrs systems;
 
       # Host configuration helpers
       hostLib = import ./lib/hosts.nix { inherit inputs; };
@@ -150,7 +153,7 @@
         # };
       };
 
-      # Formatter for `nix fmt` command
-      formatter.${system} = pkgs.nixfmt;
+      # Formatters for `nix fmt` command on supported development systems
+      formatter = forAllSystems (system: inputs.nixpkgs.legacyPackages.${system}.nixfmt);
     };
 }
