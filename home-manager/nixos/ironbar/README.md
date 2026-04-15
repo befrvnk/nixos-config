@@ -36,17 +36,16 @@ This ironbar setup includes:
 
 ### 2. Event-Driven Volume Display
 
-**Problem 1:** Ironbar's built-in volume module has a critical crash bug.
+**Problem:** Ironbar's built-in volume module has a critical crash bug.
 **Issue:** https://github.com/JakeStanger/ironbar/issues/875 (Open, Critical)
 
-**Problem 2:** Polling with `wpctl` generated ~185 dbus messages per call due to pipewire Realtime portal queries.
+**Solution:** Keep the volume display separate from volume control:
+1. `volume-ctl` (from the Niri config) changes volume and updates `~/.cache/volume-status`
+2. Niri runs `volume-ctl init` at session startup to seed the cache
+3. Ironbar polls a tiny reader script every second
+4. The reader script only returns the cached label, so the bar never talks to PipeWire directly
 
-**Solution:** Event-driven architecture with cache file:
-1. `volume-ctl` script (niri keybindings) calls swayosd AND writes to `~/.cache/volume-status`
-2. Ironbar reads the cache file (instant, zero dbus overhead)
-3. Cache initialized on startup via `volume-ctl init`
-
-**Details:** See `modules/volume/volume-status.sh` comments
+**Details:** See `modules/volume/README.md`
 
 ### 3. Stylix Color Integration
 
@@ -68,7 +67,7 @@ All custom modules use shell scripts that output formatted text with Nerd Font i
 | WiFi | `modules/wifi/wifi-status.sh` | 5s | Shows SSID and signal strength |
 | Battery | `modules/battery/battery-status.sh` | 5s | Shows battery level and charging status |
 | Notifications | `modules/notifications/*.sh` | 2s | Shows unread count, history popup |
-| **Volume** | `modules/volume/volume-status.sh` | **1s (cache read)** | **Event-driven via cache file** |
+| **Volume** | `modules/volume/volume-status.sh` | **1s (cache read)** | **Reads `~/.cache/volume-status` written by `volume-ctl`** |
 
 ## Building
 
@@ -106,30 +105,30 @@ ls -la /run/user/$(id -u)/ironbar-ipc.sock
 
 ### Volume Module Crash (WORKAROUND APPLIED)
 
-**Status:** Event-driven architecture implemented to avoid crash AND eliminate dbus overhead.
+**Status:** Event-driven cache reader implemented to avoid the crash path entirely.
 
 **Tracking:** https://github.com/JakeStanger/ironbar/issues/875
 
 **Architecture:**
-- Keybindings call `volume-ctl` instead of `swayosd-client` directly
-- `volume-ctl` calls swayosd AND writes to `~/.cache/volume-status`
-- Ironbar reads cache file (no dbus/pipewire queries)
-- wpctl only called when user changes volume, not on every poll
+- Keybindings call `volume-ctl` instead of invoking ironbar's built-in module
+- `volume-ctl` drives SwayOSD and updates `~/.cache/volume-status`
+- Ironbar reads the cache file once per second
+- The bar never calls `wpctl` or PipeWire directly
 
-**When fixed:** Can switch back to built-in module if desired, but event-driven approach is more efficient.
+**When fixed:** Can switch back to the built-in module if desired, but the cache-based design is simple and reliable.
 
 ## Performance
 
 - **Toggle script:** Minimal overhead, event-driven (not polling)
-- **Volume module:** Near-zero overhead (reads cache file instead of dbus queries)
+- **Volume module:** Near-zero overhead (reads a cache file)
 - **Total bar CPU:** <1% CPU when visible
 - **Memory:** ~30-40MB resident
-- **DBus impact:** Eliminated ~185 dbus messages per volume poll (was ~925/sec at 200ms interval)
+- **DBus impact:** No bar-side PipeWire polling for volume updates
 
 ## Dependencies
 
 - `pkgs.ironbar` - The bar itself
 - `pkgs.jq` - JSON parsing for notifications
-- `pkgs.wireplumber` - wpctl command for volume module
+- `pkgs.wireplumber` - wpctl command used by Niri helpers and display scripts
 - `pkgs.python3` - For toggle script
 - Nerd Font - For icons in custom modules
