@@ -104,71 +104,79 @@ let
               command: gh enhance -R {{.RepoName}} {{.PrNumber}}
   '';
 
-  # Catppuccin Mocha (dark) theme colors for gh-dash
-  darkTheme = ''
-    theme:
-        ui:
-            sectionsShowCount: true
-            table:
-                showSeparator: true
-                compact: false
-        colors:
-            text:
-                primary: "#cdd6f4"
-                secondary: "#a6adc8"
-                inverted: "#1e1e2e"
-                faint: "#585b70"
-                warning: "#f38ba8"
-                success: "#a6e3a1"
-            background:
-                selected: "#313244"
-            border:
-                primary: "#45475a"
-                secondary: "#313244"
-                faint: "#181825"
-  '';
+  mkThemeConfig =
+    {
+      colors,
+      diffnav,
+    }:
+    ''
+      theme:
+          ui:
+              sectionsShowCount: true
+              table:
+                  showSeparator: true
+                  compact: false
+          colors:
+              text:
+                  primary: "${colors.text.primary}"
+                  secondary: "${colors.text.secondary}"
+                  inverted: "${colors.text.inverted}"
+                  faint: "${colors.text.faint}"
+                  warning: "${colors.text.warning}"
+                  success: "${colors.text.success}"
+              background:
+                  selected: "${colors.background.selected}"
+              border:
+                  primary: "${colors.border.primary}"
+                  secondary: "${colors.border.secondary}"
+                  faint: "${colors.border.faint}"
+      pager:
+          diff: ${diffnav}
+      confirmQuit: false
+      showAuthorIcons: true
+      smartFilteringAtLaunch: true
+      includeReadNotifications: true
+    '';
 
-  # Catppuccin Latte (light) theme colors for gh-dash
-  lightTheme = ''
-    theme:
-        ui:
-            sectionsShowCount: true
-            table:
-                showSeparator: true
-                compact: false
-        colors:
-            text:
-                primary: "#4c4f69"
-                secondary: "#6c6f85"
-                inverted: "#eff1f5"
-                faint: "#acb0be"
-                warning: "#d20f39"
-                success: "#40a02b"
-            background:
-                selected: "#ccd0da"
-            border:
-                primary: "#bcc0cc"
-                secondary: "#ccd0da"
-                faint: "#e6e9ef"
-  '';
+  darkTheme = mkThemeConfig {
+    diffnav = diffnavDark;
+    colors = {
+      text = {
+        primary = "#cdd6f4";
+        secondary = "#a6adc8";
+        inverted = "#1e1e2e";
+        faint = "#585b70";
+        warning = "#f38ba8";
+        success = "#a6e3a1";
+      };
+      background.selected = "#313244";
+      border = {
+        primary = "#45475a";
+        secondary = "#313244";
+        faint = "#181825";
+      };
+    };
+  };
 
-  darkSuffix = ''
-    pager:
-        diff: ${diffnavDark}
-    confirmQuit: false
-    showAuthorIcons: true
-    smartFilteringAtLaunch: true
-    includeReadNotifications: true
-  '';
-
-  lightSuffix = ''
-    pager:
-        diff: ${diffnavLight}
-    confirmQuit: false
-    showAuthorIcons: true
-    smartFilteringAtLaunch: true
-    includeReadNotifications: true
-  '';
+  lightTheme = mkThemeConfig {
+    diffnav = diffnavLight;
+    colors = {
+      text = {
+        primary = "#4c4f69";
+        secondary = "#6c6f85";
+        inverted = "#eff1f5";
+        faint = "#acb0be";
+        warning = "#d20f39";
+        success = "#40a02b";
+      };
+      background.selected = "#ccd0da";
+      border = {
+        primary = "#bcc0cc";
+        secondary = "#ccd0da";
+        faint = "#e6e9ef";
+      };
+    };
+  };
 
   # Wrapper script that detects system appearance and launches gh-dash
   ghDashWrapper = pkgs.writeShellScript "gh-dash-wrapper" ''
@@ -196,11 +204,11 @@ in
   xdg.configFile = {
     "gh/config.yml".force = true;
     "gh-dash/config-dark.yml" = {
-      text = ghDashBaseConfig + keybindingsConfig + darkTheme + darkSuffix;
+      text = ghDashBaseConfig + keybindingsConfig + darkTheme;
       force = true;
     };
     "gh-dash/config-light.yml" = {
-      text = ghDashBaseConfig + keybindingsConfig + lightTheme + lightSuffix;
+      text = ghDashBaseConfig + keybindingsConfig + lightTheme;
       force = true;
     };
   };
