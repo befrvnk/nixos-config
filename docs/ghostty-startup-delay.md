@@ -70,7 +70,7 @@ The service eventually starts (2 minutes later), but Ghostty launched before tha
 
 ### Ghostty Theme Setup
 
-Location: `home-manager/ghostty.nix:40-44`
+Location: `home-manager/nixos/ghostty.nix:40-44`
 
 ```nix
 programs.ghostty = {
@@ -121,7 +121,7 @@ If the 5-second delay becomes too annoying before the ironbar migration, you can
 
 ### Option 1: Fixed Dark Theme
 
-Edit `home-manager/ghostty.nix:40-44`:
+Edit `home-manager/nixos/ghostty.nix:40-44`:
 ```nix
 settings = {
   theme = "stylix-dark";
@@ -130,7 +130,7 @@ settings = {
 
 ### Option 2: Fixed Light Theme
 
-Edit `home-manager/ghostty.nix:40-44`:
+Edit `home-manager/nixos/ghostty.nix:40-44`:
 ```nix
 settings = {
   theme = "stylix-light";

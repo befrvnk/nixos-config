@@ -29,10 +29,10 @@ We recently migrated to using Stylix's auto-theming capabilities across the enti
 - **Removed manual theming**: Cleaned up dunst.nix to prevent conflicts with Stylix
 
 **Files Modified:**
-- `home-manager/stylix.nix` - Central theming config, now includes inline theme paths
-- `home-manager/ghostty.nix` - New file with hardcoded Catppuccin colors for dual themes
+- `home-manager/nixos/stylix.nix` - Central theming config, now includes inline theme paths
+- `home-manager/nixos/ghostty.nix` - New file with hardcoded Catppuccin colors for dual themes
 - `home-manager/dunst.nix` - Removed manual font/color settings
-- `home-manager/darkman.nix` - Fixed script execution order (specialization → dconf)
+- `home-manager/nixos/darkman/default.nix` - Fixed script execution order (specialization → dconf)
 - `hosts/framework/home.nix` - Fixed import method for specializations
 - `home-manager/themes.nix` - **DELETED** (no longer needed)
 
@@ -87,7 +87,7 @@ stylix = {
 };
 ```
 
-### Home-Manager Level (`home-manager/frank.nix`)
+### Home-Manager Level (`home-manager/nixos/frank.nix`)
 
 **Base Configuration:**
 - Sets default theme (dark/catppuccin-mocha)
@@ -120,7 +120,7 @@ Systemd user service that:
 - Runs on login
 - Monitors sunrise/sunset times for Munich (48.13743°N, 11.57549°E)
 - Executes scripts in `~/.local/share/light-mode.d/` and `~/.local/share/dark-mode.d/`
-- **Automatically restarts after `nixos-rebuild switch`** to re-evaluate current theme
+- **Automatically restarts after `rebuild switch`** to re-evaluate current theme
 
 **Why restart on rebuild?**
 When rebuilding, the base home-manager configuration (dark theme) is activated. Restarting darkman makes it check the current time and switch to the appropriate theme (light during day, dark at night).
@@ -227,7 +227,7 @@ home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
 ```
 
 **Why this is needed:**
-- After `nixos-rebuild switch`, the base home-manager configuration (dark theme) is activated
+- After `rebuild switch`, the base home-manager configuration (dark theme) is activated
 - Without restart, darkman wouldn't re-evaluate the time until next scheduled check
 - Restarting forces immediate re-evaluation, switching to light theme if currently daytime
 
@@ -238,7 +238,7 @@ home.activation.restartDarkman = config.lib.dag.entryAfter ["writeBoundary"] ''
 
 #### 4. Centralized Theme Configuration
 
-**Theme Definitions** (`home-manager/stylix.nix`):
+**Theme Definitions** (`home-manager/nixos/stylix.nix`):
 
 All theme choices are centralized in the stylix configuration with specializations:
 
@@ -306,7 +306,7 @@ border.active.color = "#${colors.base03}";
 
 ### 1. Build Time
 
-When you run `sudo nixos-rebuild switch --flake .#framework`:
+When you run `rebuild switch`:
 
 1. **System builds three home-manager generations:**
    - Base generation (dark theme)
@@ -353,7 +353,7 @@ When darkman switches themes (automatic at sunrise/sunset or manual via `darkman
 **Why NOT use standalone home-manager?**
 
 We use home-manager as a NixOS module, which means:
-- Home-manager is built as part of `nixos-rebuild switch`
+- Home-manager is built as part of `rebuild switch`
 - No separate `home-manager switch` needed for system changes
 - Specialisations are built into system closure
 
@@ -397,7 +397,7 @@ We use [awww](https://codeberg.org/LGFae/awww) (renamed from swww) as the wallpa
    - `place-within-backdrop` makes wallpaper visible in overview mode
    - Workspace background is transparent, so wallpaper shows through
 
-3. **Wallpaper paths** (`home-manager/wallpapers/default.nix`):
+3. **Wallpaper paths** (`home-manager/nixos/wallpapers/default.nix`):
    ```nix
    {
      light = ./mountain.jpg;
@@ -640,7 +640,7 @@ specialisation.light.configuration = {
 
 **Solution:** Use Ghostty's native light/dark theme support with hardcoded colors:
 
-1. **Extract configuration** to `home-manager/ghostty.nix` for clarity
+1. **Extract configuration** to `home-manager/nixos/ghostty.nix` for clarity
 2. **Hardcode Catppuccin colors** to match Stylix themes:
    ```nix
    let
@@ -699,7 +699,7 @@ specialisation.light.configuration = {
 
 ### 9. Theme Reverts to Dark After Rebuild / Infinite Restart Loop
 
-**Problem:** After `nixos-rebuild switch`, theme stays dark even during daytime. Or darkman keeps restarting indefinitely, and Zed doesn't update properly.
+**Problem:** After `rebuild switch`, theme stays dark even during daytime. Or darkman keeps restarting indefinitely, and Zed doesn't update properly.
 
 **Cause:** The base home-manager configuration defaults to dark theme. Also, if the restart activation runs during specialisation activation (triggered by darkman), it creates an infinite loop: darkman runs specialisation → specialisation restarts darkman → darkman runs specialisation → ...
 
@@ -830,13 +830,13 @@ NIRI_SOCKET=$(...)
 **Cause:** Using explicit `import` function in the host configuration prevents proper module evaluation:
 ```nix
 # This breaks specializations:
-users.frank = import ../../home-manager/frank.nix;
+users.frank = import ../../home-manager/nixos/frank.nix;
 ```
 
 **Solution:** Use path-only reference without `import`:
 ```nix
 # This works correctly:
-users.frank = ../../home-manager/frank.nix;
+users.frank = ../../home-manager/nixos/frank.nix;
 ```
 
 Home-manager needs to evaluate the module itself to properly handle specializations. The explicit `import` evaluates the file too early in the process.
@@ -934,7 +934,7 @@ systemctl --user restart darkman
 
 3. **If missing:** Rebuild system:
    ```bash
-   sudo nixos-rebuild switch --flake .#framework
+   rebuild switch
    ```
 
 ### Application Not Themed
@@ -943,7 +943,7 @@ systemctl --user restart darkman
 
 2. **Verify autoEnable is true:**
    ```bash
-   grep "autoEnable" ~/nixos-config/home-manager/frank.nix
+   grep "autoEnable" ~/nixos-config/home-manager/nixos/frank.nix
    ```
 
 3. **For programs with home-manager modules:** Enable via `programs.<app>.enable`
@@ -1015,13 +1015,13 @@ systemctl --user restart darkman
 
 - `modules/stylix.nix` - System-level stylix configuration
 - `modules/darkman.nix` - Darkman systemd service
-- `home-manager/frank.nix` - Home-manager config with specialisations
-- `home-manager/stylix.nix` - **Centralized theme definitions with specializations** (change themes here!)
-- `home-manager/ghostty.nix` - Ghostty configuration (automatically themed by Stylix)
+- `home-manager/nixos/frank.nix` - Home-manager config with specialisations
+- `home-manager/nixos/stylix.nix` - **Centralized theme definitions with specializations** (change themes here!)
+- `home-manager/nixos/ghostty.nix` - Ghostty configuration (automatically themed by Stylix)
 - `home-manager/darkman/default.nix` - Darkman integration and monitor-hotplug service
 - `home-manager/darkman/darkman-switch-mode.sh` - Theme switching script
 - `home-manager/darkman/monitor-hotplug.sh` - Monitor hotplug handler script
-- `home-manager/wallpapers/default.nix` - Wallpaper paths for light/dark modes
+- `home-manager/nixos/wallpapers/default.nix` - Wallpaper paths for light/dark modes
 - `home-manager/niri/startup.nix` - awww daemon startup
 - `home-manager/niri/rules.nix` - Layer rules for awww backdrop placement
 - `flake.nix` - Stylix and awww module imports

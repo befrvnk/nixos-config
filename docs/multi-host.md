@@ -73,7 +73,7 @@ Create `hosts/<hostname>/home.nix`:
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.frank = import ../../home-manager/frank.nix;
+    users.${hostConfig.primaryUser} = ../../home-manager/nixos/frank.nix;
     backupFileExtension = "backup";
     sharedModules = [
       inputs.stylix.homeModules.stylix

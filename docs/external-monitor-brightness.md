@@ -37,7 +37,7 @@ Keypress → brightnessctl (sync) → Read % → Write target file → Show OSD
 |-----------|----------|
 | I2C access (`hardware.i2c.enable`) | `modules/system/core.nix` |
 | User in `i2c` group | `modules/users.nix` |
-| ddcutil package | `home-manager/packages.nix` |
+| ddcutil package | `home-manager/nixos/packages.nix` |
 | `brightness-ctl` script | `home-manager/niri/default.nix` |
 | Keyboard bindings | `home-manager/niri/binds.nix` |
 

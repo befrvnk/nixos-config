@@ -103,7 +103,9 @@ Configure your LUKS device to use the TPM:
 After making these changes, rebuild your NixOS system:
 
 ```bash
-nixos-rebuild switch --flake .#framework
+rebuild switch
+# or
+nh os switch .
 ```
 
 Then, reboot your system.

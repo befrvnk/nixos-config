@@ -84,7 +84,7 @@ modules/
 
 ## Configuration Details
 
-### Ironbar Configuration (`home-manager/ironbar/config.json`)
+### Ironbar Configuration (`home-manager/nixos/ironbar/config.json`)
 
 ```json
 {
@@ -109,7 +109,7 @@ modules/
 }
 ```
 
-### Custom Styling (`home-manager/ironbar/style.css`)
+### Custom Styling (`home-manager/nixos/ironbar/style.css`)
 
 The CSS uses Catppuccin Mocha colors with transparency:
 - Main bar: `rgba(30, 30, 46, 0.85)` background with blue accent border
@@ -119,7 +119,7 @@ The CSS uses Catppuccin Mocha colors with transparency:
 
 **Important:** GTK CSS doesn't support `@keyframes` animations. Use static styles only.
 
-### Toggle Script (`home-manager/ironbar/toggle-ironbar.py`)
+### Toggle Script (`home-manager/nixos/ironbar/toggle-ironbar.py`)
 
 The script:
 1. Connects to Niri's IPC socket
@@ -218,15 +218,15 @@ Unlike waybar (which uses SIGUSR1/SIGUSR2), ironbar has native IPC commands for 
 
 1. **Edit configuration files**:
    ```bash
-   vim ~/nixos-config/home-manager/ironbar/config.json
-   vim ~/nixos-config/home-manager/ironbar/style.css
+   vim ~/nixos-config/home-manager/nixos/ironbar/config.json
+   vim ~/nixos-config/home-manager/nixos/ironbar/style.css
    ```
 
 2. **Rebuild to update symlinks**:
    ```bash
-   sudo nixos-rebuild switch --flake .#
+   rebuild switch
    # OR for just home-manager:
-   home-manager switch --flake .#frank
+   rebuild switch
    ```
 
 3. **Restart the service** (required!):
@@ -247,7 +247,7 @@ Edit `config.json` and add modules to `start`, `center`, or `end` arrays. See [I
 
 After editing, rebuild and restart:
 ```bash
-sudo nixos-rebuild switch --flake .#
+rebuild switch
 systemctl --user restart ironbar
 ```
 
@@ -261,7 +261,7 @@ Edit `style.css` with any GTK CSS properties. Remember:
 
 After editing, rebuild and restart:
 ```bash
-sudo nixos-rebuild switch --flake .#
+rebuild switch
 systemctl --user restart ironbar
 ```
 
@@ -347,7 +347,7 @@ ls ~/.nix-profile/share/icons/Papirus*
 
 If missing, rebuild:
 ```bash
-sudo nixos-rebuild switch --flake .#
+rebuild switch
 ```
 
 ## Custom Modules Reference
@@ -356,31 +356,28 @@ This configuration uses several custom modules instead of Ironbar's built-in alt
 
 ### Volume Module
 
-**Location:** `home-manager/ironbar/modules/volume/`
+**Location:** `home-manager/nixos/ironbar/modules/volume/`
 
-**Why custom?** The built-in volume module has issues with PulseAudio/PipeWire compatibility and can crash.
+**Why custom?** The built-in volume module can crash, so the bar only reads cached status text.
 
 **Implementation:**
-- Uses `wpctl` (WirePlumber) for reliable audio control
-- Script outputs JSON: `{"icon": "󰕾", "volume": 75, "muted": false}`
-- Updates on volume key presses via custom script integration
+- `volume-ctl` in the Niri config changes volume and updates `~/.cache/volume-status`
+- `volume-status.sh` reads that cache file for Ironbar
+- Ironbar polls the reader script once per second
 
 **Files:**
-- `default.nix` - Module configuration
-- Volume control integrated with `volume-ctl` script in niri keybindings
+- `modules/volume/volume-status.sh` - cache reader used by ironbar
+- `home-manager/nixos/niri/volume-ctl.sh` - volume control + cache updater
 
 **Key code pattern:**
 ```bash
-# Get volume level
-wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print int($2 * 100)}'
-
-# Check if muted
-wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep -q MUTED
+# Read the already-rendered label for ironbar
+cat ~/.cache/volume-status
 ```
 
 ### Storage Module
 
-**Location:** `home-manager/ironbar/modules/storage/`
+**Location:** `home-manager/nixos/ironbar/modules/storage/`
 
 **Purpose:** Shows mounted removable devices (USB drives, SD cards) in the status bar.
 
@@ -406,7 +403,7 @@ lsblk -J -o NAME,MOUNTPOINT,SIZE,RM,TYPE | \
 
 ### Battery Module with Platform Profiles
 
-**Location:** `home-manager/ironbar/modules/battery/`
+**Location:** `home-manager/nixos/ironbar/modules/battery/`
 
 **Features:**
 - Uses Ironbar's built-in `upower` module for battery status
@@ -468,7 +465,7 @@ When exiting Niri's overview mode, any open Ironbar popups (volume slider, batte
 
 ### Service Configuration
 
-**Location:** `home-manager/ironbar/modules/niri-overview-watcher/default.nix`
+**Location:** `home-manager/nixos/ironbar/modules/niri-overview-watcher/default.nix`
 
 ```nix
 systemd.user.services.niri-overview-watcher = {
@@ -532,7 +529,7 @@ journalctl --user -u niri-overview-watcher -f
 
 ### Related Keybinding
 
-The `Mod+Tab` keybinding in `home-manager/niri/binds.nix` also explicitly closes popups:
+The `Mod+Tab` keybinding in `home-manager/nixos/niri/binds.nix` also explicitly closes popups:
 
 ```nix
 "Mod+Tab".action = spawn [
@@ -563,13 +560,13 @@ This provides immediate popup closing when entering overview, while the watcher 
 
 ## Related Configuration Files
 
-- `home-manager/ironbar/default.nix` - Main Ironbar module
-- `home-manager/ironbar/toggle-ironbar.py` - Overview mode toggle script
-- `home-manager/ironbar/modules/volume/` - Custom volume module
-- `home-manager/ironbar/modules/storage/` - Storage/removable media module
-- `home-manager/ironbar/modules/battery/` - Battery with platform profiles
-- `home-manager/ironbar/modules/niri-overview-watcher/` - Popup close watcher
-- `home-manager/niri/binds.nix` - Keybindings including overview toggle
+- `home-manager/nixos/ironbar/default.nix` - Main Ironbar module
+- `home-manager/nixos/ironbar/toggle-ironbar.py` - Overview mode toggle script
+- `home-manager/nixos/ironbar/modules/volume/` - Custom volume module
+- `home-manager/nixos/ironbar/modules/storage/` - Storage/removable media module
+- `home-manager/nixos/ironbar/modules/battery/` - Battery with platform profiles
+- `home-manager/nixos/ironbar/modules/niri-overview-watcher/` - Popup close watcher
+- `home-manager/nixos/niri/binds.nix` - Keybindings including overview toggle
 
 ## Related Documentation
 
