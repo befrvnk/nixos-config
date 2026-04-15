@@ -88,7 +88,9 @@
     useGlobalPkgs = true;
     useUserPackages = true;
     users.${hostConfig.primaryUser} = ../../home-manager/darwin/frank.nix;
-    extraSpecialArgs = { inherit inputs; };
+    extraSpecialArgs = {
+      inherit inputs hostConfig;
+    };
   };
 
   # Shell configuration

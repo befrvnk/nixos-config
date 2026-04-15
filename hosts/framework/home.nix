@@ -17,7 +17,7 @@
 
     ];
     extraSpecialArgs = {
-      inherit inputs;
+      inherit inputs hostConfig;
     };
   };
 }
