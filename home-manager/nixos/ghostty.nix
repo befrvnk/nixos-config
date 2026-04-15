@@ -3,19 +3,8 @@
 let
   themes = import ../../shared/themes.nix { inherit pkgs; };
 
-  # Parse base16 scheme YAML to get color values
-  parseBase16Scheme =
-    schemeFile:
-    let
-      jsonFile = pkgs.runCommand "base16-to-json" { } ''
-        ${pkgs.yq-go}/bin/yq -o json ${schemeFile} > $out
-      '';
-    in
-    builtins.fromJSON (builtins.readFile jsonFile);
-
-  # Colors are now dynamically loaded from themes.nix
-  darkColors = (parseBase16Scheme themes.dark.base16Scheme).palette;
-  lightColors = (parseBase16Scheme themes.light.base16Scheme).palette;
+  darkColors = themes.dark.palette;
+  lightColors = themes.light.palette;
 
   # Helper to convert base16 colors to Ghostty theme format
   # Note: base16 colors already include '#' prefix

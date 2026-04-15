@@ -12,18 +12,8 @@
 let
   themes = import ../../shared/themes.nix { inherit pkgs; };
 
-  # Parse base16 scheme YAML to get color values
-  parseBase16Scheme =
-    schemeFile:
-    let
-      jsonFile = pkgs.runCommand "base16-to-json" { } ''
-        ${pkgs.yq-go}/bin/yq -o json ${schemeFile} > $out
-      '';
-    in
-    builtins.fromJSON (builtins.readFile jsonFile);
-
-  darkColors = parseBase16Scheme themes.dark.base16Scheme;
-  lightColors = parseBase16Scheme themes.light.base16Scheme;
+  darkColors = themes.dark.palette;
+  lightColors = themes.light.palette;
 
   # Generate nushell color config from base16 palette in NUON format
   # Based on Stylix's nushell module (https://github.com/nix-community/stylix/blob/master/modules/nushell/hm.nix)
@@ -31,7 +21,7 @@ let
   mkNushellTheme =
     colors:
     let
-      p = colors.palette;
+      p = colors;
     in
     ''
       {
