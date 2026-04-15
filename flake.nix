@@ -154,6 +154,7 @@
       };
 
       # Formatters for `nix fmt` command on supported development systems
-      formatter = forAllSystems (system: inputs.nixpkgs.legacyPackages.${system}.nixfmt);
+      # Use nixfmt-tree so `nix fmt -- --check .` works on the whole repository.
+      formatter = forAllSystems (system: inputs.nixpkgs.legacyPackages.${system}.nixfmt-tree);
     };
 }
