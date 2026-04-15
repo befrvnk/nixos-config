@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 action="$1"
 target_file="/tmp/brightness-ctl-target"
 lock_file="/tmp/brightness-ctl-ddc.lock"
@@ -27,7 +28,7 @@ echo "$target" > "$target_file"
   fi
 
   touch "$lock_file"
-  trap "rm -f '$lock_file'" EXIT
+  trap 'rm -f "$lock_file"' EXIT
 
   # Keep syncing until target stops changing
   while true; do

@@ -11,14 +11,15 @@ fi
 
 # Set environment variable to prevent infinite restart loop
 export DARKMAN_RUNNING=1
-export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(@coreutils@/bin/id -u)/bus"
+USER_ID="$(@coreutils@/bin/id -u)"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$USER_ID/bus"
 
 # Set WAYLAND_DISPLAY if not already set (needed for awww to find the correct socket)
-if [ -z "$WAYLAND_DISPLAY" ]; then
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
   # Try to find the Wayland display from socket files
   # Retry up to 5 times with 0.5s delay to handle boot race conditions
-  for attempt in {1..5}; do
-    WAYLAND_NUM=$(@coreutils@/bin/ls /run/user/$(@coreutils@/bin/id -u)/wayland-* 2>/dev/null | @gnugrep@/bin/grep -v 'lock\|awww' | @coreutils@/bin/head -n1 | @gnused@/bin/sed 's|.*/wayland-\([0-9]*\)|\1|')
+  for _attempt in {1..5}; do
+    WAYLAND_NUM=$(@coreutils@/bin/ls "/run/user/$USER_ID"/wayland-* 2>/dev/null | @gnugrep@/bin/grep -v 'lock\|awww' | @coreutils@/bin/head -n1 | @gnused@/bin/sed 's|.*/wayland-\([0-9]*\)|\1|')
     if [ -n "$WAYLAND_NUM" ]; then
       export WAYLAND_DISPLAY="wayland-$WAYLAND_NUM"
       break
@@ -33,12 +34,16 @@ if [ -z "$WAYLAND_DISPLAY" ]; then
 fi
 
 # Find the home-manager generation with specialisations from the current system
-HM_GEN=$(/run/current-system/sw/bin/nix-store -qR /run/current-system | /run/current-system/sw/bin/grep home-manager-generation | while read gen; do
-  if [ -d "$gen/specialisation" ]; then
-    echo "$gen"
-    break
-  fi
-done)
+HM_GEN=$(
+  /run/current-system/sw/bin/nix-store -qR /run/current-system \
+    | /run/current-system/sw/bin/grep home-manager-generation \
+    | while IFS= read -r gen; do
+        if [ -d "$gen/specialisation" ]; then
+          echo "$gen"
+          break
+        fi
+      done
+)
 
 if [ -z "$HM_GEN" ]; then
   echo "Error: Could not find home-manager generation with specialisations" >&2

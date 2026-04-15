@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 ABM_PATH="/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings"
 if [[ -f "$ABM_PATH" ]]; then
   CURRENT=$(cat "$ABM_PATH" 2>/dev/null || echo "0")

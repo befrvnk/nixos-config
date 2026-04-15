@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Wait for PipeWire to be ready
 sleep 3
 

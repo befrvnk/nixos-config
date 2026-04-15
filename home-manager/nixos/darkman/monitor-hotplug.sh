@@ -3,18 +3,19 @@
 # This script is triggered by a systemd service that monitors for display changes
 
 # Set up environment
-export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(@coreutils@/bin/id -u)/bus"
+USER_ID="$(@coreutils@/bin/id -u)"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$USER_ID/bus"
 
 # Set WAYLAND_DISPLAY if not already set (needed for awww to find the correct socket)
-if [ -z "$WAYLAND_DISPLAY" ]; then
-  WAYLAND_DISPLAY=$(@coreutils@/bin/ls /run/user/$(@coreutils@/bin/id -u)/wayland-* 2>/dev/null | @gnugrep@/bin/grep -v 'lock\|awww' | @coreutils@/bin/head -n1 | @gnused@/bin/sed 's|.*/wayland-\([0-9]*\)|\1|')
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+  WAYLAND_DISPLAY=$(@coreutils@/bin/ls "/run/user/$USER_ID"/wayland-* 2>/dev/null | @gnugrep@/bin/grep -v 'lock\|awww' | @coreutils@/bin/head -n1 | @gnused@/bin/sed 's|.*/wayland-\([0-9]*\)|\1|')
   if [ -n "$WAYLAND_DISPLAY" ]; then
     export WAYLAND_DISPLAY="wayland-$WAYLAND_DISPLAY"
   fi
 fi
 
 # Wait a moment for the display subsystem to stabilize
-sleep 1
+@coreutils@/bin/sleep 1
 
 # Check if awww daemon is running
 if ! @awww@/bin/awww query &>/dev/null; then
