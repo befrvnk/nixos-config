@@ -24,7 +24,7 @@ const result: SubagentTaskResult = {
   },
 };
 
-test("parseExploreOutput extracts summary sections and bullet lists", () => {
+test("parseExploreOutput extracts summary sections and normalizes placeholder bullets away", () => {
   const parsed = parseExploreOutput([
     "## Summary",
     "Investigated the repo.",
@@ -43,7 +43,7 @@ test("parseExploreOutput extracts summary sections and bullet lists", () => {
   assert.deepEqual(parsed.data, {
     sources: ["README.md"],
     keyFindings: ["Found the feature flag"],
-    suggestedNextSteps: ["None"],
+    suggestedNextSteps: undefined,
   });
 });
 

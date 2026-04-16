@@ -18,6 +18,12 @@ export function asStringArray(value: unknown): string[] {
     : [];
 }
 
+function normalizeOptionalBullets(sectionBody: string | undefined): string[] | undefined {
+  const bullets = parseBullets(sectionBody);
+  const normalized = bullets?.filter((item) => item.trim().toLowerCase() !== "none");
+  return normalized && normalized.length > 0 ? normalized : undefined;
+}
+
 export function parseExploreOutput(markdown: string): ParsedSubagentOutput {
   const normalized = markdown.trim();
   if (!normalized) return { summary: "" };
@@ -26,9 +32,9 @@ export function parseExploreOutput(markdown: string): ParsedSubagentOutput {
   return {
     summary: sections.get("summary") ?? normalized,
     data: {
-      sources: parseBullets(sections.get("sources")),
-      keyFindings: parseBullets(sections.get("key findings")),
-      suggestedNextSteps: parseBullets(sections.get("next steps")),
+      sources: normalizeOptionalBullets(sections.get("sources")),
+      keyFindings: normalizeOptionalBullets(sections.get("key findings")),
+      suggestedNextSteps: normalizeOptionalBullets(sections.get("next steps")),
     },
   };
 }
