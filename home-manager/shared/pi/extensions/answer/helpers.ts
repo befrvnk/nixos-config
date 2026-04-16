@@ -7,6 +7,20 @@ export interface ExtractionResult {
 	questions: ExtractedQuestion[];
 }
 
+export const MAX_EXTRACTION_TEXT_CHARS = 20_000;
+
+export function prepareAssistantTextForExtraction(
+	text: string,
+	maxChars = MAX_EXTRACTION_TEXT_CHARS,
+): string {
+	const normalized = text.trim();
+	if (normalized.length <= maxChars) return normalized;
+	return [
+		`[Truncated assistant message. Only the last ${maxChars} characters are shown.]`,
+		normalized.slice(-maxChars),
+	].join("\n\n");
+}
+
 export function buildAnswerMessage(
 	questions: readonly ExtractedQuestion[],
 	answers: readonly string[],
@@ -38,9 +52,55 @@ export type BranchEntryLike = {
 	};
 };
 
+function extractBalancedJsonObject(text: string): string | undefined {
+	let depth = 0;
+	let startIndex = -1;
+	let inString = false;
+	let escaped = false;
+
+	for (let index = 0; index < text.length; index += 1) {
+		const char = text[index]!;
+
+		if (escaped) {
+			escaped = false;
+			continue;
+		}
+
+		if (char === "\\" && inString) {
+			escaped = true;
+			continue;
+		}
+
+		if (char === '"') {
+			inString = !inString;
+			continue;
+		}
+
+		if (inString) continue;
+		if (char === "{") {
+			if (depth === 0) startIndex = index;
+			depth += 1;
+			continue;
+		}
+		if (char === "}") {
+			if (depth === 0) continue;
+			depth -= 1;
+			if (depth === 0 && startIndex !== -1) {
+				return text.slice(startIndex, index + 1);
+			}
+		}
+	}
+
+	return undefined;
+}
+
 export function parseExtractionResult(text: string): ExtractionResult | null {
 	const fencedMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-	const jsonText = (fencedMatch?.[1] ?? text).trim();
+	const jsonText = (
+		fencedMatch?.[1] ??
+		extractBalancedJsonObject(text) ??
+		text
+	).trim();
 
 	let parsed: unknown;
 	try {

@@ -29,6 +29,7 @@ import {
 	buildAnswerMessage,
 	findLastAssistantText,
 	parseExtractionResult,
+	prepareAssistantTextForExtraction,
 	type ExtractedQuestion,
 	type ExtractionResult,
 } from "./helpers.ts";
@@ -367,7 +368,12 @@ export default function answerExtension(pi: ExtensionAPI) {
 
 				const message: UserMessage = {
 					role: "user",
-					content: [{ type: "text", text: lastAssistant.text! }],
+					content: [
+						{
+							type: "text",
+							text: prepareAssistantTextForExtraction(lastAssistant.text!),
+						},
+					],
 					timestamp: Date.now(),
 				};
 

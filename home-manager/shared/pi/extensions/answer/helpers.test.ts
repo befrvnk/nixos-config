@@ -5,9 +5,10 @@ import {
 	buildAnswerMessage,
 	findLastAssistantText,
 	parseExtractionResult,
+	prepareAssistantTextForExtraction,
 } from "./helpers.ts";
 
-test("parseExtractionResult accepts plain JSON and fenced JSON", () => {
+test("parseExtractionResult accepts plain JSON, fenced JSON, and prose-wrapped JSON", () => {
 	assert.deepEqual(parseExtractionResult('{"questions":[{"question":"Use SQLite?"}]}'), {
 		questions: [{ question: "Use SQLite?" }],
 	});
@@ -18,6 +19,16 @@ test("parseExtractionResult accepts plain JSON and fenced JSON", () => {
 			questions: [
 				{ question: "Need auth?", context: "OAuth is already wired" },
 			],
+		},
+	);
+
+	assert.deepEqual(
+		parseExtractionResult([
+			"Here are the questions I found:",
+			'{"questions":[{"question":"Preferred shell?","context":"nushell or bash"}]}',
+		].join("\n")),
+		{
+			questions: [{ question: "Preferred shell?", context: "nushell or bash" }],
 		},
 	);
 });
@@ -42,6 +53,14 @@ test("parseExtractionResult rejects invalid payloads and normalizes blanks", () 
 			],
 		},
 	);
+});
+
+test("prepareAssistantTextForExtraction trims oversized assistant messages", () => {
+	assert.equal(prepareAssistantTextForExtraction("  short answer  ", 40), "short answer");
+
+	const prepared = prepareAssistantTextForExtraction("A".repeat(10) + "B".repeat(30), 20);
+	assert.match(prepared, /Truncated assistant message/);
+	assert.match(prepared, /B{20}$/);
 });
 
 test("buildAnswerMessage separates quoted context from the answer", () => {
