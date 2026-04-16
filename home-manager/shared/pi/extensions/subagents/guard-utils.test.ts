@@ -46,4 +46,12 @@ test("blockIfSuspiciousBashCommand blocks destructive commands and risky syntax"
     blockIfSuspiciousBashCommand("cat /proc/cpuinfo", cwd) ?? "",
     /blocked runtime or system paths/,
   );
+  assert.match(
+    blockIfSuspiciousBashCommand("cat @/proc/cpuinfo", cwd) ?? "",
+    /blocked runtime or system paths/,
+  );
+  assert.match(
+    blockIfSuspiciousBashCommand("head @../../proc/cpuinfo", cwd) ?? "",
+    /blocked runtime or system paths/,
+  );
 });

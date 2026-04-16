@@ -6,7 +6,7 @@ import path from "node:path";
 // subagents on read-only inspection tasks and away from obviously irrelevant
 // runtime/system paths.
 const SUSPICIOUS_PATH_PREFIXES = ["/$bunfs", "/proc", "/sys", "/dev"];
-const PATH_REFERENCE_REGEX = /(?:\.\.\/|\.\/|\/)[^\s'"`|;&()<>]+/g;
+const PATH_REFERENCE_REGEX = /@?(?:\.\.\/|\.\/|\/)[^\s'"`|;&()<>]+/g;
 const READ_ONLY_BASH_COMMANDS = new Set([
   "basename",
   "cat",
