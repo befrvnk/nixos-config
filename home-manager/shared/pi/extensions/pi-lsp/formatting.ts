@@ -31,10 +31,10 @@ export function renderMarkup(value: unknown): string {
   if (Array.isArray(value)) return value.map((item) => renderMarkup(item)).filter(Boolean).join("\n\n");
   if (value && typeof value === "object") {
     const markup = value as MarkupContent & { language?: string; value?: string };
-    if (typeof markup.value === "string") return markup.value;
     if (typeof markup.language === "string" && typeof markup.value === "string") {
       return `\`\`\`${markup.language}\n${markup.value}\n\`\`\``;
     }
+    if (typeof markup.value === "string") return markup.value;
   }
   return "";
 }

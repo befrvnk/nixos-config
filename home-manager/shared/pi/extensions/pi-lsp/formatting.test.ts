@@ -49,6 +49,7 @@ test("renderMarkup and hoverToText support strings, arrays, and markup objects",
     renderMarkup([{ value: "first" }, "second"]),
     "first\n\nsecond",
   );
+  assert.equal(renderMarkup({ language: "nix", value: "let x = 1;" }), "```nix\nlet x = 1;\n```");
   assert.equal(hoverToText({ contents: { kind: "markdown", value: "**bold**" } }), "**bold**");
   assert.equal(hoverToText({}), "No hover information available.");
 });
