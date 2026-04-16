@@ -1,10 +1,4 @@
-import {
-  createFindTool,
-  createGrepTool,
-  createLsTool,
-  type ExtensionAPI,
-  type ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 const NAVIGATION_TOOL_NAMES = ["grep", "find", "ls"] as const;
 
@@ -15,16 +9,7 @@ function ensureNavigationToolsActive(pi: ExtensionAPI) {
 }
 
 export default function navToolsExtension(pi: ExtensionAPI) {
-  let registeredCwd: string | undefined;
-
-  pi.on("session_start", async (_event: unknown, ctx: ExtensionContext) => {
-    if (registeredCwd !== ctx.cwd) {
-      pi.registerTool(createGrepTool(ctx.cwd));
-      pi.registerTool(createFindTool(ctx.cwd));
-      pi.registerTool(createLsTool(ctx.cwd));
-      registeredCwd = ctx.cwd;
-    }
-
+  pi.on("session_start", async () => {
     ensureNavigationToolsActive(pi);
   });
 }
