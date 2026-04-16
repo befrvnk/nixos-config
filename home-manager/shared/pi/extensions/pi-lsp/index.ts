@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { CONFIG_PATH, loadConfig } from "./config.js";
+import { CONFIG_PATH, loadConfig, tryLoadConfig } from "./config.js";
 import {
   formatDiagnostics,
   formatDocumentSymbols,
@@ -36,10 +36,14 @@ import {
   type LspNoProjectError,
   type UnsupportedLspMethodError,
 } from "./server.js";
+import { formatStatusDetails as renderStatusDetails } from "./status.js";
 import type { QueryAction, ServerStatus, SupportedLanguage } from "./types.js";
 
 function getConfiguredLanguages(): SupportedLanguage[] {
-  return Object.entries(loadConfig().servers)
+  const loaded = tryLoadConfig();
+  if (!loaded.config) return [];
+
+  return Object.entries(loaded.config.servers)
     .filter(([, serverConfig]) => serverConfig)
     .map(([language]) => language as SupportedLanguage);
 }
@@ -65,24 +69,14 @@ function summarizeStatus(statuses: ServerStatus[]): string {
   return `LSP: ${statuses.length} active (${languages})`;
 }
 
-function formatStatusDetails(manager?: ServerManager): string {
-  const statuses = manager?.getStatus() ?? [];
-  const configuredLanguages = manager?.getConfiguredLanguages() ?? getConfiguredLanguages();
-
-  if (statuses.length === 0) {
-    const configured = configuredLanguages.length > 0 ? configuredLanguages.join(", ") : "none";
-    return [`No running language servers.`, `Configured languages: ${configured}`, `Config: ${CONFIG_PATH}`].join("\n");
-  }
-
-  return [
-    `Running language servers (${statuses.length}):`,
-    ...statuses.map((status, index) => {
-      const uptimeSeconds = status.startedAt ? Math.max(0, Math.round((Date.now() - status.startedAt) / 1000)) : 0;
-      const pid = status.pid ? ` pid ${status.pid}` : "";
-      return `${index + 1}. ${status.language} — ${status.root} (${status.openDocuments} open docs, ${uptimeSeconds}s uptime${pid})`;
-    }),
-    `Config: ${CONFIG_PATH}`,
-  ].join("\n");
+export function formatStatusDetails(manager?: ServerManager): string {
+  const loadedConfig = manager ? undefined : tryLoadConfig();
+  return renderStatusDetails({
+    statuses: manager?.getStatus() ?? [],
+    configuredLanguages: manager?.getConfiguredLanguages() ?? getConfiguredLanguages(),
+    configPath: CONFIG_PATH,
+    configError: loadedConfig?.error,
+  });
 }
 
 function updateStatus(manager: ServerManager | undefined, ctx: ExtensionContext) {

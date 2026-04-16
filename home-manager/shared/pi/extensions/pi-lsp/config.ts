@@ -18,3 +18,13 @@ export function loadConfig(): ExtensionConfig {
   return parsed;
 }
 
+export function tryLoadConfig(): { config?: ExtensionConfig; error?: string } {
+  try {
+    return { config: loadConfig() };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
