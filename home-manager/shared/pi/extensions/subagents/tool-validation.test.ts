@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
-import { buildExploreTaskInputs, findRunOrThrow } from "./tool-validation.ts";
+import {
+  buildExploreTaskInputs,
+  findRunOrThrow,
+  resolveExploreCwd,
+} from "./tool-validation.ts";
 import type { SubagentRunState } from "./types.ts";
 
 const sampleRun: SubagentRunState = {
@@ -43,4 +50,18 @@ test("buildExploreTaskInputs returns normalized single-task inputs", () => {
   assert.equal(task.label, "Inspect docs");
   assert.equal(task.cwd, "/repo");
   assert.equal(task.intent, "balanced");
+});
+
+test("resolveExploreCwd supports relative and @-prefixed paths", () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "subagent-cwd-"));
+  const nested = path.join(repoRoot, "docs", "guide");
+  fs.mkdirSync(nested, { recursive: true });
+
+  assert.equal(resolveExploreCwd("docs/guide", repoRoot), fs.realpathSync.native(nested));
+  assert.equal(resolveExploreCwd("@docs/guide", repoRoot), fs.realpathSync.native(nested));
+  assert.equal(resolveExploreCwd(`@${nested}`, repoRoot), fs.realpathSync.native(nested));
+  assert.throws(
+    () => resolveExploreCwd("missing-dir", repoRoot),
+    /Exploration cwd does not exist/,
+  );
 });
