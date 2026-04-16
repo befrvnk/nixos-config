@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { LANGUAGE_IDS } from "./constants.js";
 import type {
@@ -161,11 +162,18 @@ export class LspServer {
   private readonly language: SupportedLanguage;
   private readonly root: string;
   private readonly config: ServerConfig;
+  private readonly spawnProcess: typeof spawn;
 
-  constructor(language: SupportedLanguage, root: string, config: ServerConfig) {
+  constructor(
+    language: SupportedLanguage,
+    root: string,
+    config: ServerConfig,
+    spawnProcess: typeof spawn = spawn,
+  ) {
     this.language = language;
     this.root = root;
     this.config = config;
+    this.spawnProcess = spawnProcess;
   }
 
   async start(): Promise<void> {
@@ -173,7 +181,7 @@ export class LspServer {
 
     this.unsupportedMethods.clear();
 
-    const child = spawn(this.config.command, this.config.args ?? [], {
+    const child = this.spawnProcess(this.config.command, this.config.args ?? [], {
       cwd: this.root,
       env: process.env,
       stdio: ["pipe", "pipe", "pipe"],
