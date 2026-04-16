@@ -5,6 +5,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { Text } from "@mariozechner/pi-tui";
 import { rewriteCommandForNixShell } from "./rewrite.mjs";
+import { shouldRegisterBashTool } from "./session.ts";
 
 function formatBashCall(command: string, timeout: number | undefined, rewritten: string | null, theme: any) {
 	let text = theme.fg("toolTitle", theme.bold("$ "));
@@ -19,9 +20,7 @@ function formatBashCall(command: string, timeout: number | undefined, rewritten:
 	return new Text(text, 0, 0);
 }
 
-export default function nixShellFallbackExtension(pi: ExtensionAPI) {
-	const cwd = process.cwd();
-	const localBash = createLocalBashOperations();
+export function createNixShellFallbackBashTool(cwd: string) {
 	const bashTool = createBashTool(cwd, {
 		spawnHook: ({ command, cwd, env }) => ({
 			command: rewriteCommandForNixShell(command) ?? command,
@@ -30,7 +29,7 @@ export default function nixShellFallbackExtension(pi: ExtensionAPI) {
 		}),
 	});
 
-	pi.registerTool({
+	return {
 		...bashTool,
 		execute: async (toolCallId, params, signal, onUpdate) => {
 			return bashTool.execute(toolCallId, params, signal, onUpdate);
@@ -39,6 +38,17 @@ export default function nixShellFallbackExtension(pi: ExtensionAPI) {
 			const rewritten = rewriteCommandForNixShell(args.command);
 			return formatBashCall(args.command, args.timeout, rewritten, theme);
 		},
+	};
+}
+
+export default function nixShellFallbackExtension(pi: ExtensionAPI) {
+	let registeredCwd: string | undefined;
+	const localBash = createLocalBashOperations();
+
+	pi.on("session_start", (_event, ctx) => {
+		if (!shouldRegisterBashTool(registeredCwd, ctx.cwd)) return;
+		pi.registerTool(createNixShellFallbackBashTool(ctx.cwd));
+		registeredCwd = ctx.cwd;
 	});
 
 	pi.on("user_bash", (event) => {

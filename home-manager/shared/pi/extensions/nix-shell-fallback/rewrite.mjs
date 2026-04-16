@@ -189,11 +189,31 @@ function normalizePackageList(value) {
 	return Array.isArray(value) ? value : [value];
 }
 
+function expandEnvironmentValue(value, env) {
+	return value.replace(/\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))/g, (_match, bracedName, bareName) => {
+		const name = bracedName ?? bareName;
+		return env[name] ?? "";
+	});
+}
+
+function applyEnvironmentAssignment(env, token) {
+	const equalsIndex = token.indexOf("=");
+	if (equalsIndex === -1) return env;
+
+	const name = token.slice(0, equalsIndex);
+	const rawValue = token.slice(equalsIndex + 1);
+	return {
+		...env,
+		[name]: expandEnvironmentValue(rawValue, env),
+	};
+}
+
 export function getMappedPackagesForCommand(
 	command,
 	{
 		packageMap = DEFAULT_COMMAND_PACKAGE_MAP,
 		isCommandAvailable = isCommandOnPath,
+		env = process.env,
 	} = {},
 ) {
 	const trimmed = command.trim();
@@ -203,17 +223,22 @@ export function getMappedPackagesForCommand(
 	const packages = [];
 	const seenPackages = new Set();
 	let expectingCommand = true;
+	let commandEnv = env;
 
 	for (const token of splitCommandTokens(command)) {
 		if (CONTROL_OPERATORS.has(token)) {
 			expectingCommand = true;
+			commandEnv = env;
 			continue;
 		}
 
 		if (!expectingCommand) continue;
 		if (!token) continue;
 		if (isShellMetaToken(token)) continue;
-		if (ASSIGNMENT_PATTERN.test(token)) continue;
+		if (ASSIGNMENT_PATTERN.test(token)) {
+			commandEnv = applyEnvironmentAssignment(commandEnv, token);
+			continue;
+		}
 
 		const normalizedToken = stripCommandPrefixToken(token);
 		if (COMMAND_PREFIX_TOKENS.has(normalizedToken)) continue;
@@ -223,7 +248,7 @@ export function getMappedPackagesForCommand(
 		}
 
 		const mappedPackages = normalizePackageList(packageMap[normalizedToken]);
-		if (mappedPackages.length > 0 && !isCommandAvailable(normalizedToken)) {
+		if (mappedPackages.length > 0 && !isCommandAvailable(normalizedToken, commandEnv)) {
 			for (const packageName of mappedPackages) {
 				if (seenPackages.has(packageName)) continue;
 				seenPackages.add(packageName);

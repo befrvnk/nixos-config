@@ -38,6 +38,20 @@ test("handles env prefixes and command wrappers", () => {
 	);
 });
 
+test("respects inline PATH assignments when checking command availability", () => {
+	assert.deepEqual(
+		getMappedPackagesForCommand("PATH=/custom/bin:$PATH python -c 'print(1)'", {
+			env: { PATH: "/usr/bin" },
+			isCommandAvailable(command, env) {
+				assert.equal(command, "python");
+				assert.equal(env.PATH, "/custom/bin:/usr/bin");
+				return true;
+			},
+		}),
+		[],
+	);
+});
+
 test("does not rewrite nix shell commands", () => {
 	assert.equal(
 		rewriteCommandForNixShell("nix shell nixpkgs#python3 --command python -c 'print(1)'", {
