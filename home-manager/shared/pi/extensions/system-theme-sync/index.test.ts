@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyTheme, parseLinuxTheme } from "./index.ts";
+import { applyTheme, parseLinuxTheme, syncThemeSafely } from "./index.ts";
 
 test("parseLinuxTheme recognizes dark, light, and default outputs", () => {
   assert.equal(parseLinuxTheme("'prefer-dark'"), "dark");
@@ -35,4 +35,36 @@ test("applyTheme throws when ui.setTheme reports a failure", () => {
   } as any;
 
   assert.throws(() => applyTheme(ctx, "light"), /not available/);
+});
+
+test("syncThemeSafely swallows detector and theme-apply failures", async () => {
+  const notifications: string[] = [];
+  const ctx = {
+    ui: {
+      setTheme() {
+        return { success: false, error: "theme missing" };
+      },
+    },
+  } as any;
+
+  assert.equal(
+    await syncThemeSafely(ctx, {
+      currentTheme: "light",
+      detect: async () => {
+        throw new Error("detector offline");
+      },
+      notifyError: (message) => notifications.push(message),
+    }),
+    "light",
+  );
+  assert.equal(
+    await syncThemeSafely(ctx, {
+      currentTheme: "light",
+      detect: async () => "dark",
+      notifyError: (message) => notifications.push(message),
+    }),
+    "light",
+  );
+
+  assert.deepEqual(notifications, ["detector offline", "theme missing"]);
 });

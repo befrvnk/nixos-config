@@ -81,9 +81,31 @@ export function applyTheme(ctx: ExtensionContext, mode: ThemeMode): ThemeMode {
   return mode;
 }
 
+export async function syncThemeSafely(
+  ctx: ExtensionContext,
+  options: {
+    currentTheme?: ThemeMode;
+    detect?: () => Promise<ThemeMode | undefined>;
+    notifyError?: (message: string) => void;
+  } = {},
+): Promise<ThemeMode | undefined> {
+  const currentTheme = options.currentTheme;
+  try {
+    const detectedTheme = await (options.detect ?? detectTheme)();
+    if (!detectedTheme || detectedTheme === currentTheme) return currentTheme;
+    return applyTheme(ctx, detectedTheme);
+  } catch (error) {
+    options.notifyError?.(
+      error instanceof Error ? error.message : String(error),
+    );
+    return currentTheme;
+  }
+}
+
 export default function systemThemeSyncExtension(pi: ExtensionAPI) {
   let intervalId: ReturnType<typeof setInterval> | undefined;
   let currentTheme: ThemeMode | undefined;
+  let lastSyncError: string | undefined;
 
   const stop = () => {
     if (!intervalId) return;
@@ -91,15 +113,24 @@ export default function systemThemeSyncExtension(pi: ExtensionAPI) {
     intervalId = undefined;
   };
 
+  const reportSyncError = (ctx: ExtensionContext, message: string) => {
+    if (!ctx.hasUI || !message || message === lastSyncError) return;
+    lastSyncError = message;
+    ctx.ui.notify(`Theme sync failed: ${message}`, "warning");
+  };
+
   const syncTheme = async (ctx: ExtensionContext) => {
-    const detectedTheme = await detectTheme();
-    if (!detectedTheme || detectedTheme === currentTheme) return;
-    currentTheme = applyTheme(ctx, detectedTheme);
+    currentTheme = await syncThemeSafely(ctx, {
+      currentTheme,
+      notifyError: (message) => reportSyncError(ctx, message),
+    });
+    if (currentTheme) lastSyncError = undefined;
   };
 
   pi.on("session_start", async (_event, ctx) => {
     stop();
     currentTheme = undefined;
+    lastSyncError = undefined;
 
     if (!ctx.hasUI) return;
 
@@ -113,5 +144,6 @@ export default function systemThemeSyncExtension(pi: ExtensionAPI) {
   pi.on("session_shutdown", () => {
     stop();
     currentTheme = undefined;
+    lastSyncError = undefined;
   });
 }
