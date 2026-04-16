@@ -8,6 +8,8 @@
 import { complete, type Api, type Model, type UserMessage } from "@mariozechner/pi-ai";
 import {
 	BorderedLoader,
+	keyHint,
+	rawKeyHint,
 	type ExtensionAPI,
 	type ExtensionCommandContext,
 	type ModelRegistry,
@@ -33,6 +35,13 @@ import {
 	type ExtractedQuestion,
 	type ExtractionResult,
 } from "./helpers.ts";
+import {
+	isAnswerCancel,
+	isAnswerConfirm,
+	isAnswerNext,
+	isAnswerVerticalMove,
+	type AnswerKeybindingsLike,
+} from "./keybindings.ts";
 
 const SYSTEM_PROMPT = `You are a question extractor. Given text from a conversation, extract any questions that need answering.
 
@@ -88,6 +97,7 @@ class QnAComponent implements Component {
 	private readonly editor: Editor;
 	private readonly tui: TUI;
 	private readonly theme: Theme;
+	private readonly keybindings: AnswerKeybindingsLike;
 	private readonly onDone: (result: string | null) => void;
 	private currentIndex = 0;
 	private showingConfirmation = false;
@@ -98,12 +108,14 @@ class QnAComponent implements Component {
 		questions: readonly ExtractedQuestion[],
 		tui: TUI,
 		theme: Theme,
+		keybindings: AnswerKeybindingsLike,
 		onDone: (result: string | null) => void,
 	) {
 		this.questions = questions;
 		this.answers = questions.map(() => "");
 		this.tui = tui;
 		this.theme = theme;
+		this.keybindings = keybindings;
 		this.onDone = onDone;
 
 		const editorTheme: EditorTheme = {
@@ -165,17 +177,34 @@ class QnAComponent implements Component {
 		this.onDone(buildAnswerMessage(this.questions, this.answers));
 	}
 
+	private matchesCancel(data: string) {
+		return isAnswerCancel(this.keybindings, data);
+	}
+
+	private matchesConfirm(data: string) {
+		return isAnswerConfirm(this.keybindings, data);
+	}
+
+	private navigationHintText() {
+		return [
+			keyHint("tui.input.tab", "next"),
+			rawKeyHint("shift+tab", "prev"),
+			keyHint("tui.input.newLine", "newline"),
+			keyHint("tui.select.cancel", "cancel"),
+		].join(" · ");
+	}
+
+	private confirmationHintText() {
+		return `${this.warning("Submit all answers?")} ${this.dim(`(${keyHint("tui.select.confirm", "confirm")}, y confirm, ${keyHint("tui.select.cancel", "cancel")}, n cancel)`)}`;
+	}
+
 	handleInput(data: string) {
 		if (this.showingConfirmation) {
-			if (matchesKey(data, Key.enter) || data.toLowerCase() === "y") {
+			if (this.matchesConfirm(data) || data.toLowerCase() === "y") {
 				this.submit();
 				return;
 			}
-			if (
-				matchesKey(data, Key.escape) ||
-				matchesKey(data, Key.ctrl("c")) ||
-				data.toLowerCase() === "n"
-			) {
+			if (this.matchesCancel(data) || data.toLowerCase() === "n") {
 				this.showingConfirmation = false;
 				this.invalidate();
 				this.tui.requestRender();
@@ -184,12 +213,12 @@ class QnAComponent implements Component {
 			return;
 		}
 
-		if (matchesKey(data, Key.escape) || matchesKey(data, Key.ctrl("c"))) {
+		if (this.matchesCancel(data)) {
 			this.onDone(null);
 			return;
 		}
 
-		if (matchesKey(data, Key.tab)) {
+		if (isAnswerNext(this.keybindings, data)) {
 			if (this.currentIndex < this.questions.length - 1) {
 				this.navigateTo(this.currentIndex + 1);
 				this.tui.requestRender();
@@ -205,7 +234,7 @@ class QnAComponent implements Component {
 			return;
 		}
 
-		if (matchesKey(data, Key.up) && this.editor.getText() === "") {
+		if (isAnswerVerticalMove(this.keybindings, "up", data) && this.editor.getText() === "") {
 			if (this.currentIndex > 0) {
 				this.navigateTo(this.currentIndex - 1);
 				this.tui.requestRender();
@@ -213,7 +242,7 @@ class QnAComponent implements Component {
 			}
 		}
 
-		if (matchesKey(data, Key.down) && this.editor.getText() === "") {
+		if (isAnswerVerticalMove(this.keybindings, "down", data) && this.editor.getText() === "") {
 			if (this.currentIndex < this.questions.length - 1) {
 				this.navigateTo(this.currentIndex + 1);
 				this.tui.requestRender();
@@ -221,7 +250,7 @@ class QnAComponent implements Component {
 			}
 		}
 
-		if (matchesKey(data, Key.enter) && !matchesKey(data, Key.shift("enter"))) {
+		if (this.matchesConfirm(data) && !matchesKey(data, Key.shift("enter"))) {
 			this.saveCurrentAnswer();
 			if (this.currentIndex < this.questions.length - 1) {
 				this.navigateTo(this.currentIndex + 1);
@@ -305,22 +334,14 @@ class QnAComponent implements Component {
 		if (this.showingConfirmation) {
 			lines.push(
 				padToWidth(
-					boxLine(
-						truncateToWidth(
-							`${this.warning("Submit all answers?")} ${this.dim("(Enter/y confirm, Esc/n cancel)")}`,
-							contentWidth,
-						),
-					),
+					boxLine(truncateToWidth(this.confirmationHintText(), contentWidth)),
 				),
 			);
 		} else {
 			lines.push(
 				padToWidth(
 					boxLine(
-						truncateToWidth(
-							`${this.dim("Tab/Enter")} next · ${this.dim("Shift+Tab")} prev · ${this.dim("Shift+Enter")} newline · ${this.dim("Esc")} cancel`,
-							contentWidth,
-						),
+						truncateToWidth(this.dim(this.navigationHintText()), contentWidth),
 					),
 				),
 			);
@@ -431,8 +452,8 @@ export default function answerExtension(pi: ExtensionAPI) {
 			return;
 		}
 
-		const answers = await ctx.ui.custom<string | null>((tui: TUI, theme: Theme, _kb, done) =>
-			new QnAComponent(extraction.value.questions, tui, theme, done),
+		const answers = await ctx.ui.custom<string | null>((tui: TUI, theme: Theme, keybindings, done) =>
+			new QnAComponent(extraction.value.questions, tui, theme, keybindings, done),
 		);
 
 		if (answers === null) {
