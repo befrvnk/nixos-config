@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# shellcheck source=./update-common.sh
+set -euo pipefail
+
+# shellcheck disable=SC1091
+source "$(dirname "$0")/update-common.sh"
+
+package_file="pkgs/supacode/package.nix"
+owner="supabitapp"
+repo="supacode"
+asset_name="supacode.app.zip"
+
+echo "Fetching latest $repo release from GitHub..."
+
+release_json=$(github_latest_release_json "$owner" "$repo")
+latest=$(jq -r '.tag_name // empty' <<< "$release_json")
+
+if [[ -z "$latest" ]]; then
+  echo "Error: Could not fetch latest version from GitHub API"
+  exit 1
+fi
+
+version="${latest#v}"
+current=$(current_attr_value version "$package_file")
+
+echo "Current: $current, Latest: $version"
+
+if [[ "$version" == "$current" ]]; then
+  echo "Already up to date!"
+  exit 0
+fi
+
+url=$(jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url // empty' <<< "$release_json")
+
+if [[ -z "$url" ]]; then
+  echo "Error: Could not find asset $asset_name"
+  exit 1
+fi
+
+src_sri=$(prefetch_archive_sri_hash_keep_root "$url")
+
+echo "New hash: $src_sri"
+
+sed_in_place "s|version = \".*\"|version = \"$version\"|" "$package_file"
+sed_in_place "s|hash = \"sha256-.*\"|hash = \"$src_sri\"|" "$package_file"
+
+echo "Updated $package_file to $version"

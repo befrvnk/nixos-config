@@ -151,7 +151,10 @@
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
-          inherit (pkgs) openchamber;
+          inherit (pkgs)
+            openchamber
+            supacode
+            ;
         }
       );
 

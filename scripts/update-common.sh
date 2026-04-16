@@ -41,3 +41,38 @@ prefetch_sri_hash() {
 
   nix hash convert --hash-algo sha256 --to sri "$hash" 2>/dev/null
 }
+
+prefetch_archive_sri_hash_keep_root() {
+  local url="$1"
+  local store_path
+  local tmp_dir
+  local hash
+
+  store_path=$(nix store prefetch-file --json "$url" | jq -r '.storePath')
+  tmp_dir=$(mktemp -d)
+
+  case "$url" in
+    *.zip)
+      unzip -q "$store_path" -d "$tmp_dir"
+      ;;
+    *.tar.gz|*.tgz)
+      tar -xzf "$store_path" -C "$tmp_dir"
+      ;;
+    *.tar.xz)
+      tar -xJf "$store_path" -C "$tmp_dir"
+      ;;
+    *.tar.bz2)
+      tar -xjf "$store_path" -C "$tmp_dir"
+      ;;
+    *)
+      rm -rf "$tmp_dir"
+      echo "Error: Unsupported archive type for $url" >&2
+      return 1
+      ;;
+  esac
+
+  hash=$(nix hash path "$tmp_dir")
+  rm -rf "$tmp_dir"
+
+  echo "$hash"
+}

@@ -52,6 +52,7 @@ let
     })
     # OpenChamber: desktop GUI for OpenCode AI agent
     (import ../overlays/openchamber.nix)
+    (import ../overlays/supacode.nix)
   ];
 in
 {

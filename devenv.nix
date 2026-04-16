@@ -331,6 +331,10 @@ in
       ./scripts/update-openchamber.sh || echo "⚠️  OpenChamber update failed (may already be up to date)"
 
       echo ""
+      echo "Updating Supacode package..."
+      ./scripts/update-supacode.sh || echo "⚠️  Supacode update failed (may already be up to date)"
+
+      echo ""
       echo "Updating pi coding agent package..."
       ./scripts/update-pi-coding-agent.sh || echo "⚠️  pi coding agent update failed (may already be up to date)"
 

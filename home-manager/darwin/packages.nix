@@ -11,6 +11,7 @@
   home.packages = with pkgs; [
     # GUI apps
     openchamber
+    supacode
 
     # CLI tools (cross-platform + Darwin-specific)
     bun
