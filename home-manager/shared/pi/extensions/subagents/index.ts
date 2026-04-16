@@ -39,10 +39,7 @@ import {
   REVIEW_COMMAND_USAGE,
   type ReviewSelection,
 } from "./commands.js";
-import {
-  DEFAULT_EXPLORE_INTENT,
-  resolveExploreExecutionProfile,
-} from "./model-policy.js";
+import { buildExploreTaskInputs, findRunOrThrow } from "./tool-validation.js";
 import {
   createReviewTasks,
   parseReviewOutput,
@@ -635,22 +632,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       };
     }
 
-    if (!params.runId?.trim()) {
-      return {
-        content: [{ type: "text", text: 'action="get" requires runId.' }],
-        isError: true,
-        details: {},
-      };
-    }
-
-    const run = runs.find((candidate) => candidate.runId === params.runId);
-    if (!run) {
-      return {
-        content: [{ type: "text", text: `Run not found: ${params.runId}` }],
-        isError: true,
-        details: {},
-      };
-    }
+    const run = findRunOrThrow(runs, params.runId);
 
     return {
       content: [{ type: "text", text: renderRunMarkdown(run) }],
@@ -882,63 +864,15 @@ export default function subagentExtension(pi: ExtensionAPI) {
       return renderExploreToolResult(result, options, theme);
     },
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      const hasSingle =
-        typeof params.task === "string" && params.task.trim().length > 0;
-      const hasParallel =
-        Array.isArray(params.tasks) && params.tasks.length > 0;
-
-      if (Number(hasSingle) + Number(hasParallel) !== 1) {
-        return {
-          content: [
-            { type: "text", text: "Provide exactly one of: task or tasks." },
-          ],
-          isError: true,
-          details: {},
-        };
-      }
-
-      const defaultIntent = params.intent?.trim() || DEFAULT_EXPLORE_INTENT;
-
-      const tasks: SubagentTaskInput[] = hasSingle
-        ? (() => {
-            const taskText = params.task?.trim() ?? "";
-            const profile = resolveExploreExecutionProfile(defaultIntent);
-            return [
-              {
-                task: taskText,
-                label: taskText,
-                intent: profile.intent,
-                model: profile.model,
-                thinkingLevel: profile.thinkingLevel,
-                cwd: params.cwd?.trim() || ctx.cwd,
-              },
-            ];
-          })()
-        : (params.tasks ?? []).map(
-            (task: { task: string; intent?: string; cwd?: string }) => {
-              const profile = resolveExploreExecutionProfile(
-                task.intent ?? defaultIntent,
-              );
-              return {
-                task: task.task.trim(),
-                label: task.task.trim(),
-                intent: profile.intent,
-                model: profile.model,
-                thinkingLevel: profile.thinkingLevel,
-                cwd: task.cwd?.trim() || ctx.cwd,
-              };
-            },
-          );
-
-      if (tasks.some((task) => !task.task)) {
-        return {
-          content: [
-            { type: "text", text: "All exploration tasks must be non-empty." },
-          ],
-          isError: true,
-          details: {},
-        };
-      }
+      const tasks = buildExploreTaskInputs(
+        params as {
+          task?: string;
+          intent?: string;
+          cwd?: string;
+          tasks?: Array<{ task: string; intent?: string; cwd?: string }>;
+        },
+        ctx.cwd,
+      );
 
       try {
         const { run, results } = await executeWorkflow("explore", tasks, {
@@ -956,7 +890,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
               text: renderFinalExploreResults(run.runId, run.mode, results),
             },
           ],
-          isError: run.state !== "success",
           details: {
             workflow: "explore",
             mode: run.mode,
@@ -967,11 +900,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [{ type: "text", text: `Explore run failed: ${message}` }],
-          isError: true,
-          details: {},
-        };
+        throw new Error(`Explore run failed: ${message}`);
       }
     },
   });
