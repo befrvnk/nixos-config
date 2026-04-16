@@ -1528,11 +1528,11 @@
     },
     "nixpkgs_8": {
       "locked": {
-        "lastModified": 1773909469,
-        "narHash": "sha256-vglVrLfHjFIzIdV9A27Ugul6rh3I1qHbbitGW7dk420=",
+        "lastModified": 1772091128,
+        "narHash": "sha256-TnrYykX8Mf/Ugtkix6V+PjW7miU2yClA6uqWl/v6KWM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "7149c06513f335be57f26fcbbbe34afda923882b",
+        "rev": "3f0336406035444b4a24b942788334af5f906259",
         "type": "github"
       },
       "original": {
@@ -1588,16 +1588,17 @@
         "nixpkgs": "nixpkgs_8"
       },
       "locked": {
-        "lastModified": 1776238176,
-        "narHash": "sha256-zqb9Hlx/caYrHNuZtdXaHeC9I4cKZHt4VUPxgvM/LUw=",
+        "lastModified": 1773719253,
+        "narHash": "sha256-4LRyvmdtx5gyMh8+iRS8OHLkUhobWnlhOfOWqHeC3Qk=",
         "owner": "anomalyco",
         "repo": "opencode",
-        "rev": "c98f61638535c9cc57a2b710decc780f7289fc2f",
+        "rev": "e14e874e513178ac056cec7be5bac4ff5fd842ef",
         "type": "github"
       },
       "original": {
         "owner": "anomalyco",
         "repo": "opencode",
+        "rev": "e14e874e513178ac056cec7be5bac4ff5fd842ef",
         "type": "github"
       }
     },
@@ -1776,11 +1777,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1776050130,
-        "narHash": "sha256-/f/6/1WOfBJaGMfqV3VxWD9lpFRbPpF+Cx4MO+0mGok=",
+        "lastModified": 1767926800,
+        "narHash": "sha256-x0n73J6ufD/EhDlVdcoAmF0OQHZ+b0a2cKDc8RZyt+o=",
         "owner": "oxalica",
         "repo": "rust-overlay",
-        "rev": "3c27f4c92a7d977556dd2c10bb564d9c61b375e9",
+        "rev": "499e9eed88ff9494b6604205b42847e847dfeb91",
         "type": "github"
       },
       "original": {
@@ -2065,15 +2066,16 @@
         "rust-overlay": "rust-overlay_4"
       },
       "locked": {
-        "lastModified": 1776143802,
-        "narHash": "sha256-dUt7y0RMqqYaXynhyOEyN8pfqp4LRBXuIEpWSu455c0=",
+        "lastModified": 1775877117,
+        "narHash": "sha256-2m/szq1jTiel+XbIL/meh04lTu2hg7VQMTB5TDjGpIQ=",
         "owner": "max-sixty",
         "repo": "worktrunk",
-        "rev": "185341f7a4033afdcc0a2d446e3ac9ca0873201d",
+        "rev": "c68d0075af82b8f602db0e03cbc4aacda73e6e80",
         "type": "github"
       },
       "original": {
         "owner": "max-sixty",
+        "ref": "v0.36.0",
         "repo": "worktrunk",
         "type": "github"
       }

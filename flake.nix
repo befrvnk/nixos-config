@@ -54,8 +54,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # TUI for AI coding agents
+    # Temporarily pinned to last known working revision until upstream fixes
+    # the missing `glob` dependency regression in the shared package split.
     opencode = {
-      url = "github:anomalyco/opencode";
+      url = "github:anomalyco/opencode/e14e874e513178ac056cec7be5bac4ff5fd842ef";
     };
     # Don't use inputs.nixpkgs.follows here - devenv cachix has builds
     # for the flake's own nixpkgs version, and its nix fork requires matching nixpkgs
@@ -67,7 +69,7 @@
     };
     # Git worktree management CLI
     worktrunk = {
-      url = "github:max-sixty/worktrunk";
+      url = "github:max-sixty/worktrunk/v0.36.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # macOS system configuration
