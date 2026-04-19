@@ -72,6 +72,56 @@ test("detectProjectRoot recognizes Kotlin Gradle projects", () => {
   assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
 });
 
+test("detectProjectRoot prefers the top-level Gradle workspace root over nested module build files", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-gradle-workspace-"));
+  const appDir = path.join(root, "apps", "android", "app");
+  const nested = path.join(appDir, "src", "main", "kotlin", "example");
+  const file = path.join(nested, "App.kt");
+  fs.mkdirSync(nested, { recursive: true });
+  fs.writeFileSync(path.join(root, "settings.gradle.kts"), "rootProject.name = \"sample\"\ninclude(\":apps:android:app\")\n");
+  fs.writeFileSync(path.join(root, "gradlew"), "#!/usr/bin/env bash\n", { mode: 0o755 });
+  fs.writeFileSync(path.join(root, "build.gradle.kts"), "plugins { kotlin(\"jvm\") version \"2.1.0\" }\n");
+  fs.writeFileSync(path.join(appDir, "build.gradle.kts"), "plugins { id(\"com.android.application\") }\n");
+  fs.writeFileSync(file, "class App\n");
+
+  assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
+});
+
+test("detectProjectRoot falls back to standalone Gradle module roots when no workspace marker exists", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-standalone-"));
+  const nested = path.join(root, "src", "main", "kotlin", "example");
+  const file = path.join(nested, "App.kt");
+  fs.mkdirSync(nested, { recursive: true });
+  fs.writeFileSync(path.join(root, "build.gradle.kts"), "plugins { kotlin(\"jvm\") version \"2.1.0\" }\n");
+  fs.writeFileSync(file, "fun app() = Unit\n");
+
+  assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
+});
+
+test("detectProjectRoot recognizes Kotlin Maven projects", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-maven-"));
+  const nested = path.join(root, "src", "main", "kotlin", "example");
+  const file = path.join(nested, "App.kt");
+  fs.mkdirSync(nested, { recursive: true });
+  fs.writeFileSync(path.join(root, "pom.xml"), "<project />\n");
+  fs.writeFileSync(file, "fun app() = Unit\n");
+
+  assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
+});
+
+test("detectProjectRoot falls back to .git before nested Kotlin build files when no Gradle workspace root exists", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-git-fallback-"));
+  const moduleDir = path.join(root, "mobile", "app");
+  const nested = path.join(moduleDir, "src", "main", "kotlin", "example");
+  const file = path.join(nested, "App.kt");
+  fs.mkdirSync(nested, { recursive: true });
+  fs.mkdirSync(path.join(root, ".git"));
+  fs.writeFileSync(path.join(moduleDir, "build.gradle.kts"), "plugins { kotlin(\"android\") }\n");
+  fs.writeFileSync(file, "class App\n");
+
+  assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
+});
+
 test("toZeroIndexedPosition validates positive 1-indexed values", () => {
   assert.deepEqual(toZeroIndexedPosition(3, 7), { line: 2, character: 6 });
   assert.throws(() => toZeroIndexedPosition(0, 1), /positive 1-indexed/);

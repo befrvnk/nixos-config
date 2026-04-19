@@ -1,6 +1,6 @@
 # pi-lsp
 
-On-demand LSP extension for pi.
+LSP extension for pi with eager session-start warmup for likely workspace servers.
 
 Supported languages:
 - TypeScript
@@ -19,16 +19,24 @@ Semantic tools exposed to the agent:
 - `diagnostics`
 
 Interactive commands:
-- `/lsp-status` - show configured and currently running language servers
-- `/lsp-restart` - stop all running servers; they restart lazily on next use
+- `/lsp-status` - show configured and currently tracked language server runtimes
+- `/lsp-restart` - restart all tracked language server runtimes
+- `/lsp-stop` - stop all tracked language server runtimes
+- `/lsp-log` - show recent lifecycle and stderr log lines
 
 Capability notes:
 - some language servers do not implement every LSP method
 - when `workspace/symbol` is unsupported, the extension degrades gracefully and suggests `grep`, `document_symbols`, `definition`, or `references`
+- when semantic requests are unavailable, the extension returns degraded fallback guidance instead of a dead-end failure where practical
 
-This extension is intentionally passive:
+This extension is intentionally conservative:
 - it does not hook write/edit tools
-- it does not run automatically after edits
+- it warms likely workspace servers on session start to reduce first-call latency
+- it does not run semantic checks automatically after edits
 - the agent must call an LSP tool explicitly when it wants semantic checks
 
 Configuration is loaded from `~/.pi/agent/pi-lsp.json` unless `PI_LSP_CONFIG` overrides it.
+
+Planning notes:
+- `IMPROVEMENT-OVERVIEW.md` - proposed reliability and UX improvements for Kotlin and other slow-starting LSPs
+- `IMPLEMENTATION-PLAN.md` - concrete phased implementation plan for warmup, lifecycle state, Kotlin root detection, and debuggability

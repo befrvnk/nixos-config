@@ -67,10 +67,56 @@ export type OpenDocument = {
   text: string;
 };
 
+export type ServerLifecycleState =
+  | "starting"
+  | "initializing"
+  | "indexing"
+  | "ready"
+  | "failed"
+  | "stopped"
+  | "restarting";
+
+export type LspFailureCategory =
+  | "not_configured"
+  | "spawn_failed"
+  | "initialize_timeout"
+  | "initialize_failed"
+  | "process_exited"
+  | "workspace_import_failed"
+  | "request_timeout"
+  | "unsupported_method"
+  | "no_project"
+  | "outside_workspace"
+  | "aborted";
+
+export type LspFailureInfo = {
+  category: LspFailureCategory;
+  message: string;
+  at: number;
+  method?: string;
+};
+
+export type RequestMetric = {
+  method: string;
+  startedAt: number;
+  completedAt: number;
+  durationMs: number;
+  ok: boolean;
+  error?: string;
+};
+
 export type ServerStatus = {
   language: SupportedLanguage;
   root: string;
   pid?: number;
+  state: ServerLifecycleState;
   startedAt?: number;
+  initializedAt?: number;
+  readyAt?: number;
+  failedAt?: number;
   openDocuments: number;
+  restartCount: number;
+  lastFailure?: LspFailureInfo;
+  lastStderrLines: string[];
+  lastRequest?: RequestMetric;
 };

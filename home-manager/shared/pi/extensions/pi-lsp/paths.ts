@@ -23,8 +23,47 @@ export function detectLanguage(filePath: string, explicit?: SupportedLanguage): 
   return match.language;
 }
 
+function findHighestMatchingRoot(directories: string[], markers: string[]): string | undefined {
+  let match: string | undefined;
+
+  for (const dir of directories) {
+    if (markers.some((marker) => fs.existsSync(path.join(dir, marker)))) {
+      match = dir;
+    }
+  }
+
+  return match;
+}
+
+function detectKotlinProjectRoot(startDir: string): string {
+  const directories = [...walkParents(startDir)];
+
+  const gradleWorkspaceRoot = findHighestMatchingRoot(directories, [
+    "settings.gradle.kts",
+    "settings.gradle",
+    "gradlew",
+  ]);
+  if (gradleWorkspaceRoot) return gradleWorkspaceRoot;
+
+  const mavenRoot = findHighestMatchingRoot(directories, ["pom.xml"]);
+  if (mavenRoot) return mavenRoot;
+
+  const gitRoot = findHighestMatchingRoot(directories, [".git"]);
+  if (gitRoot) return gitRoot;
+
+  const gradleModuleRoot = findHighestMatchingRoot(directories, ["build.gradle.kts", "build.gradle"]);
+  if (gradleModuleRoot) return gradleModuleRoot;
+
+  return startDir;
+}
+
 export function detectProjectRoot(filePath: string, language: SupportedLanguage, _cwd: string): string {
   const startDir = fs.realpathSync.native(fs.statSync(filePath).isDirectory() ? filePath : path.dirname(filePath));
+
+  if (language === "kotlin") {
+    return detectKotlinProjectRoot(startDir);
+  }
+
   const markers = ROOT_MARKERS[language];
 
   for (const dir of walkParents(startDir)) {

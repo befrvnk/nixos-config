@@ -40,7 +40,7 @@ test("formatStatusDetails reports missing config files gracefully", async () => 
     configError: `Missing pi-lsp config: ${configPath}`,
   });
 
-  assert.match(details, /No running language servers/);
+  assert.match(details, /No tracked language server runtimes/);
   assert.match(details, /Configured languages: none/);
   assert.match(details, /Config status: Missing pi-lsp config/);
 });

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  classifyLspFailure,
   isLspNoProjectError,
   isMethodNotSupportedResponse,
   isNoProjectResponse,
@@ -94,4 +95,24 @@ test("LspNoProjectError carries workspace metadata", () => {
   assert.equal(isLspNoProjectError(error, "workspace/symbol"), true);
   assert.equal(isLspNoProjectError(error, "textDocument/hover"), false);
   assert.match(error.message, /has no project for workspace\/symbol/);
+});
+
+test("classifyLspFailure distinguishes initialize timeouts and unsupported methods", () => {
+  const timeoutFailure = classifyLspFailure(new Error("Timed out waiting for initialize from kotlin"), {
+    method: "initialize",
+  });
+  assert.equal(timeoutFailure.category, "initialize_timeout");
+  assert.equal(timeoutFailure.method, "initialize");
+
+  const unsupportedFailure = classifyLspFailure(
+    new UnsupportedLspMethodError("workspace/symbol", "nix", "/repo", "nil"),
+  );
+  assert.equal(unsupportedFailure.category, "unsupported_method");
+  assert.equal(unsupportedFailure.method, "workspace/symbol");
+
+  const noProjectFailure = classifyLspFailure(
+    new LspNoProjectError("workspace/symbol", "typescript", "/repo", "typescript-language-server"),
+  );
+  assert.equal(noProjectFailure.category, "no_project");
+  assert.equal(noProjectFailure.method, "workspace/symbol");
 });

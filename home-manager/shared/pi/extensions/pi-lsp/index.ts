@@ -31,13 +31,21 @@ import {
 } from "./schemas.js";
 import {
   isLspNoProjectError,
+  isLspReadinessTimeoutError,
   isUnsupportedLspMethodError,
   ServerManager,
   type LspNoProjectError,
   type UnsupportedLspMethodError,
 } from "./server.js";
-import { formatStatusDetails as renderStatusDetails } from "./status.js";
+import { formatLogDetails as renderLogDetails, formatStatusDetails as renderStatusDetails } from "./status.js";
 import type { QueryAction, ServerStatus, SupportedLanguage } from "./types.js";
+import {
+  formatWarmupMessage,
+  formatWorkspaceWarmupMessage,
+  summarizeWarmupStatus,
+  type WarmupSummary,
+} from "./warmup.js";
+import { formatActionFallbackMessage } from "./fallback.js";
 
 function getConfiguredLanguages(): SupportedLanguage[] {
   const loaded = tryLoadConfig();
@@ -65,8 +73,23 @@ function detectLikelyWorkspaceLanguages(startPath: string): SupportedLanguage[] 
 function summarizeStatus(statuses: ServerStatus[]): string {
   if (statuses.length === 0) return "LSP: idle";
 
-  const languages = Array.from(new Set(statuses.map((status) => status.language))).join(", ");
-  return `LSP: ${statuses.length} active (${languages})`;
+  if (statuses.length === 1) {
+    const [status] = statuses;
+    return `LSP: ${status.language} ${status.state}`;
+  }
+
+  const uniqueStates = Array.from(new Set(statuses.map((status) => status.state)));
+  if (uniqueStates.length === 1) {
+    const languages = Array.from(new Set(statuses.map((status) => status.language))).join(", ");
+    return `LSP: ${statuses.length} ${uniqueStates[0]} (${languages})`;
+  }
+
+  const counts = new Map<string, number>();
+  for (const status of statuses) {
+    counts.set(status.state, (counts.get(status.state) ?? 0) + 1);
+  }
+
+  return `LSP: ${Array.from(counts.entries(), ([state, count]) => `${count} ${state}`).join(", ")}`;
 }
 
 export function formatStatusDetails(manager?: ServerManager): string {
@@ -79,9 +102,59 @@ export function formatStatusDetails(manager?: ServerManager): string {
   });
 }
 
+export function formatLogDetails(manager?: ServerManager): string {
+  return renderLogDetails({
+    statuses: manager?.getStatus() ?? [],
+    logs: manager?.getRecentLogLines() ?? [],
+    configPath: CONFIG_PATH,
+  });
+}
+
+const READY_WAIT_TIMEOUT_MS = 1_500;
+
 function updateStatus(manager: ServerManager | undefined, ctx: ExtensionContext) {
   if (!ctx.hasUI) return;
   ctx.ui.setStatus("pi-lsp", summarizeStatus(manager?.getStatus() ?? []));
+}
+
+function createWarmupToolResult(action: QueryAction, summary: WarmupSummary) {
+  return {
+    content: [{ type: "text", text: formatWarmupMessage(action, summary) }],
+    details: {
+      action,
+      configPath: CONFIG_PATH,
+      warmingUp: true,
+      language: summary.language,
+      root: summary.root,
+      state: summary.state,
+      elapsedMs: summary.elapsedMs,
+      lastFailure: summary.lastFailure,
+    },
+  };
+}
+
+function createFallbackToolResult(
+  action: QueryAction,
+  language: SupportedLanguage,
+  root: string,
+  error: unknown,
+) {
+  return {
+    content: [{ type: "text", text: formatActionFallbackMessage({ action, language, root, error }) }],
+    details: {
+      action,
+      configPath: CONFIG_PATH,
+      degraded: true,
+      language,
+      root,
+      error: error instanceof Error ? error.message : String(error),
+    },
+  };
+}
+
+function isAbortError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /abort|cancel/i.test(error.message);
 }
 
 function formatWorkspaceSymbolsUnsupportedMessage(
@@ -155,12 +228,45 @@ function dedupeWorkspaceSymbols(result: any[]): any[] {
   return deduped;
 }
 
+async function getReadyServerOrWarmup(
+  manager: ServerManager,
+  language: SupportedLanguage,
+  root: string,
+  action: QueryAction,
+  signal: AbortSignal | undefined,
+  ctx: ExtensionContext,
+): Promise<{ server?: Awaited<ReturnType<ServerManager["getOrCreate"]>>; warmup?: WarmupSummary }> {
+  const server = manager.startInBackground(language, root);
+  updateStatus(manager, ctx);
+
+  try {
+    await server.waitUntilReady({ signal, maxWaitMs: READY_WAIT_TIMEOUT_MS, acceptIndexing: true });
+    updateStatus(manager, ctx);
+    return { server };
+  } catch (error) {
+    updateStatus(manager, ctx);
+    if (isLspReadinessTimeoutError(error)) {
+      return { warmup: summarizeWarmupStatus(server.getStatus()) };
+    }
+    if (isAbortError(error)) throw error;
+    throw error;
+  }
+}
+
 export default function piLspExtension(pi: ExtensionAPI) {
   let manager: ServerManager | undefined;
 
   const getManager = () => {
     if (!manager) manager = new ServerManager(loadConfig());
     return manager;
+  };
+
+  const getManagerIfConfigured = () => {
+    try {
+      return getManager();
+    } catch {
+      return undefined;
+    }
   };
 
   const executeAction = async (
@@ -174,6 +280,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
       includeDeclaration?: boolean;
       maxResults?: number;
     },
+    signal: AbortSignal | undefined,
     ctx: ExtensionContext,
   ) => {
     const maxResults = params.maxResults ?? 50;
@@ -206,14 +313,20 @@ export default function piLspExtension(pi: ExtensionAPI) {
       const failures: string[] = [];
       const unsupported: UnsupportedLspMethodError[] = [];
       const noProject: LspNoProjectError[] = [];
+      const warming: WarmupSummary[] = [];
 
       for (const language of targetLanguages) {
         const rootHintPath = resolvedPath ?? ctx.cwd;
         const root = detectProjectRoot(rootHintPath, language, ctx.cwd);
 
         try {
-          const server = await serverManager.get(language, root);
-          const result = await server.request("workspace/symbol", { query: params.query }, 20_000);
+          const ready = await getReadyServerOrWarmup(serverManager, language, root, action, signal, ctx);
+          if (ready.warmup) {
+            warming.push(ready.warmup);
+            continue;
+          }
+
+          const result = await ready.server!.request("workspace/symbol", { query: params.query }, 20_000);
           if (Array.isArray(result)) results.push(...result);
         } catch (error) {
           if (isUnsupportedLspMethodError(error, "workspace/symbol")) {
@@ -226,6 +339,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
             continue;
           }
 
+          if (isAbortError(error)) throw error;
+
           const message = error instanceof Error ? error.message : String(error);
           failures.push(`${language}: ${message}`);
         }
@@ -235,12 +350,31 @@ export default function piLspExtension(pi: ExtensionAPI) {
 
       const dedupedResults = dedupeWorkspaceSymbols(results);
       if (dedupedResults.length === 0) {
-        if (unsupported.length > 0 || noProject.length > 0) {
+        if (warming.length > 0 && unsupported.length === 0 && noProject.length === 0 && failures.length === 0) {
           return {
             content: [
               {
                 type: "text",
-                text: formatWorkspaceSymbolsUnsupportedMessage(unsupported, noProject, failures),
+                text: formatWorkspaceWarmupMessage(action, warming),
+              },
+            ],
+            details: {
+              action,
+              configPath: CONFIG_PATH,
+              languages: targetLanguages,
+              path: resolvedPath,
+              warmingUp: warming,
+            },
+          };
+        }
+
+        if (unsupported.length > 0 || noProject.length > 0) {
+          const warmupText = warming.length > 0 ? `\n\n${formatWorkspaceWarmupMessage(action, warming)}` : "";
+          return {
+            content: [
+              {
+                type: "text",
+                text: `${formatWorkspaceSymbolsUnsupportedMessage(unsupported, noProject, failures)}${warmupText}`,
               },
             ],
             details: {
@@ -260,6 +394,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
                 root: error.root,
                 method: error.method,
               })),
+              warmingUp: warming,
               unavailable: failures,
             },
           };
@@ -279,6 +414,9 @@ export default function piLspExtension(pi: ExtensionAPI) {
       if (noProject.length > 0) {
         const skipped = Array.from(new Set(noProject.map((error) => `${error.language} (${error.serverName})`)));
         notes.push(`Skipped no-project workspaces: ${skipped.join(" | ")}`);
+      }
+      if (warming.length > 0) {
+        notes.push(formatWorkspaceWarmupMessage(action, warming));
       }
       if (failures.length > 0) {
         notes.push(`Unavailable: ${failures.join(" | ")}`);
@@ -306,6 +444,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
             root: error.root,
             method: error.method,
           })),
+          warmingUp: warming,
           unavailable: failures,
         },
       };
@@ -318,90 +457,106 @@ export default function piLspExtension(pi: ExtensionAPI) {
     const documentPath = ensureActionSupportsPath(action, filePath);
     const documentUri = pathToFileURL(documentPath).href;
     const root = detectProjectRoot(documentPath, inferredLanguage, ctx.cwd);
-    const server = await serverManager.get(inferredLanguage, root);
+    const position =
+      action === "hover" || action === "definition" || action === "references"
+        ? toZeroIndexedPosition(params.line, params.character)
+        : undefined;
 
-    switch (action) {
-      case "hover": {
-        await server.syncDocument(documentPath);
-        const result = await server.request(
-          "textDocument/hover",
-          {
-            textDocument: toTextDocumentIdentifier(documentPath),
-            position: toZeroIndexedPosition(params.line, params.character),
-          },
-          15_000,
-        );
-        updateStatus(serverManager, ctx);
-        return {
-          content: [{ type: "text", text: hoverToText(result) }],
-          details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
-        };
+    try {
+      const ready = await getReadyServerOrWarmup(serverManager, inferredLanguage, root, action, signal, ctx);
+      if (ready.warmup) {
+        return createWarmupToolResult(action, ready.warmup);
       }
 
-      case "definition": {
-        await server.syncDocument(documentPath);
-        const result = await server.request(
-          "textDocument/definition",
-          {
-            textDocument: toTextDocumentIdentifier(documentPath),
-            position: toZeroIndexedPosition(params.line, params.character),
-          },
-          20_000,
-        );
-        updateStatus(serverManager, ctx);
-        return {
-          content: [{ type: "text", text: formatLocations("Definitions", result, maxResults) }],
-          details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
-        };
-      }
+      const server = ready.server!;
 
-      case "references": {
-        await server.syncDocument(documentPath);
-        const result = await server.request(
-          "textDocument/references",
-          {
-            textDocument: toTextDocumentIdentifier(documentPath),
-            position: toZeroIndexedPosition(params.line, params.character),
-            context: {
-              includeDeclaration: params.includeDeclaration ?? false,
+      switch (action) {
+        case "hover": {
+          await server.syncDocument(documentPath);
+          const result = await server.request(
+            "textDocument/hover",
+            {
+              textDocument: toTextDocumentIdentifier(documentPath),
+              position,
             },
-          },
-          20_000,
-        );
-        updateStatus(serverManager, ctx);
-        return {
-          content: [{ type: "text", text: formatLocations("References", result, maxResults) }],
-          details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
-        };
-      }
+            15_000,
+          );
+          updateStatus(serverManager, ctx);
+          return {
+            content: [{ type: "text", text: hoverToText(result) }],
+            details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
+          };
+        }
 
-      case "diagnostics": {
-        const diagnostics = await server.getDiagnostics(documentPath);
-        updateStatus(serverManager, ctx);
-        return {
-          content: [{ type: "text", text: formatDiagnostics(diagnostics, documentPath, maxResults) }],
-          details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
-        };
-      }
+        case "definition": {
+          await server.syncDocument(documentPath);
+          const result = await server.request(
+            "textDocument/definition",
+            {
+              textDocument: toTextDocumentIdentifier(documentPath),
+              position,
+            },
+            20_000,
+          );
+          updateStatus(serverManager, ctx);
+          return {
+            content: [{ type: "text", text: formatLocations("Definitions", result, maxResults) }],
+            details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
+          };
+        }
 
-      case "document_symbols": {
-        await server.syncDocument(documentPath);
-        const result = await server.request(
-          "textDocument/documentSymbol",
-          {
-            textDocument: toTextDocumentIdentifier(documentPath),
-          },
-          20_000,
-        );
-        updateStatus(serverManager, ctx);
-        return {
-          content: [{ type: "text", text: formatDocumentSymbols(result, documentUri, maxResults) }],
-          details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
-        };
-      }
+        case "references": {
+          await server.syncDocument(documentPath);
+          const result = await server.request(
+            "textDocument/references",
+            {
+              textDocument: toTextDocumentIdentifier(documentPath),
+              position,
+              context: {
+                includeDeclaration: params.includeDeclaration ?? false,
+              },
+            },
+            20_000,
+          );
+          updateStatus(serverManager, ctx);
+          return {
+            content: [{ type: "text", text: formatLocations("References", result, maxResults) }],
+            details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
+          };
+        }
 
-      default:
-        throw new Error(`Unsupported action: ${String(action)}`);
+        case "diagnostics": {
+          const diagnostics = await server.getDiagnostics(documentPath);
+          updateStatus(serverManager, ctx);
+          return {
+            content: [{ type: "text", text: formatDiagnostics(diagnostics, documentPath, maxResults) }],
+            details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
+          };
+        }
+
+        case "document_symbols": {
+          await server.syncDocument(documentPath);
+          const result = await server.request(
+            "textDocument/documentSymbol",
+            {
+              textDocument: toTextDocumentIdentifier(documentPath),
+            },
+            20_000,
+          );
+          updateStatus(serverManager, ctx);
+          return {
+            content: [{ type: "text", text: formatDocumentSymbols(result, documentUri, maxResults) }],
+            details: { action, configPath: CONFIG_PATH, language: inferredLanguage, root },
+          };
+        }
+
+        default:
+          throw new Error(`Unsupported action: ${String(action)}`);
+      }
+    } catch (error) {
+      updateStatus(serverManager, ctx);
+      if (isAbortError(error)) throw error;
+      return createFallbackToolResult(action, inferredLanguage, root, error);
     }
   };
 
@@ -417,8 +572,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Do not assume it runs automatically after edits; call it explicitly when verification is useful.",
     ],
     parameters: LspQueryParams,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return executeAction(params.action as QueryAction, params, ctx);
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return executeAction(params.action as QueryAction, params, signal, ctx);
     },
   });
 
@@ -432,8 +587,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Use this before grep when you are looking for functions, classes, interfaces, modules, or declarations in supported languages.",
     ],
     parameters: WorkspaceSymbolsParams,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return executeAction("workspace_symbols", params, ctx);
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return executeAction("workspace_symbols", params, signal, ctx);
     },
   });
 
@@ -446,8 +601,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Use this before reading a large TypeScript, Nix, or Kotlin file when you need a structural overview.",
     ],
     parameters: DocumentSymbolsParams,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return executeAction("document_symbols", params, ctx);
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return executeAction("document_symbols", params, signal, ctx);
     },
   });
 
@@ -460,8 +615,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Use this when you already know a symbol position and want its declaration or implementation site.",
     ],
     parameters: PositionSearchParams,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return executeAction("definition", params, ctx);
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return executeAction("definition", params, signal, ctx);
     },
   });
 
@@ -474,8 +629,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Prefer this over grep when you need callers or usages of a real symbol in a supported language.",
     ],
     parameters: ReferencesParams,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return executeAction("references", params, ctx);
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return executeAction("references", params, signal, ctx);
     },
   });
 
@@ -488,8 +643,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Use this for signatures, inferred types, and symbol details at a known position.",
     ],
     parameters: PositionParams,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return executeAction("hover", params, ctx);
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return executeAction("hover", params, signal, ctx);
     },
   });
 
@@ -502,8 +657,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Use this after code changes when you want semantic validation from the language server.",
     ],
     parameters: DiagnosticsParams,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      return executeAction("diagnostics", params, ctx);
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return executeAction("diagnostics", params, signal, ctx);
     },
   });
 
@@ -517,21 +672,61 @@ export default function piLspExtension(pi: ExtensionAPI) {
   });
 
   pi.registerCommand("lsp-restart", {
-    description: "Stop all running LSP servers; they restart lazily on next use",
+    description: "Restart all tracked LSP runtimes",
     handler: async (_args, ctx) => {
-      if (manager) {
-        await manager.shutdown();
-        manager = undefined;
+      if (!manager || manager.getStatus().length === 0) {
+        updateStatus(manager, ctx);
+        if (ctx.hasUI) ctx.ui.notify("No tracked LSP runtimes to restart.", "info");
+        return;
       }
+
+      await manager.restart();
       updateStatus(manager, ctx);
-      if (ctx.hasUI) {
-        ctx.ui.notify("Stopped all running LSP servers. They will start lazily on next use.", "info");
+      if (ctx.hasUI) ctx.ui.notify("Restarted all tracked LSP runtimes.", "info");
+    },
+  });
+
+  pi.registerCommand("lsp-stop", {
+    description: "Stop all tracked LSP runtimes",
+    handler: async (_args, ctx) => {
+      if (!manager || manager.getStatus().length === 0) {
+        updateStatus(manager, ctx);
+        if (ctx.hasUI) ctx.ui.notify("No tracked LSP runtimes to stop.", "info");
+        return;
       }
+
+      await manager.stop();
+      updateStatus(manager, ctx);
+      if (ctx.hasUI) ctx.ui.notify("Stopped all tracked LSP runtimes.", "info");
+    },
+  });
+
+  pi.registerCommand("lsp-log", {
+    description: "Show recent LSP lifecycle and stderr log lines",
+    handler: async (_args, ctx) => {
+      if (!ctx.hasUI) return;
+      updateStatus(manager, ctx);
+      ctx.ui.notify(formatLogDetails(manager), "info");
     },
   });
 
   pi.on("session_start", async (_event, ctx) => {
-    updateStatus(manager, ctx);
+    const serverManager = getManagerIfConfigured();
+    if (!serverManager) {
+      updateStatus(manager, ctx);
+      return;
+    }
+
+    const likelyLanguages = detectLikelyWorkspaceLanguages(ctx.cwd);
+    for (const language of likelyLanguages) {
+      const root = detectProjectRoot(ctx.cwd, language, ctx.cwd);
+      const server = serverManager.warm(language, root);
+      void server.waitUntilReady({ maxWaitMs: 20_000, acceptIndexing: true }).catch(() => undefined).finally(() => {
+        updateStatus(serverManager, ctx);
+      });
+    }
+
+    updateStatus(serverManager, ctx);
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
