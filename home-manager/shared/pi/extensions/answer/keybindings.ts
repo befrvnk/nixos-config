@@ -1,14 +1,27 @@
 export type AnswerKeybindingsLike = {
-  matches: (keybindingId: string, data: string) => boolean;
+  matches: (first: string, second: string) => boolean;
 };
+
+function matchesKeybinding(
+  keybindings: AnswerKeybindingsLike,
+  keybindingId: string,
+  data: string,
+): boolean {
+  // pi's injected keybindings manager uses matches(data, keybindingId),
+  // but keep a fallback for the old local mock ordering so tests can cover both.
+  return (
+    keybindings.matches(data, keybindingId) ||
+    keybindings.matches(keybindingId, data)
+  );
+}
 
 export function isAnswerCancel(
   keybindings: AnswerKeybindingsLike,
   data: string,
 ): boolean {
   return (
-    keybindings.matches("tui.select.cancel", data) ||
-    keybindings.matches("app.interrupt", data)
+    matchesKeybinding(keybindings, "tui.select.cancel", data) ||
+    matchesKeybinding(keybindings, "app.interrupt", data)
   );
 }
 
@@ -17,8 +30,8 @@ export function isAnswerConfirm(
   data: string,
 ): boolean {
   return (
-    keybindings.matches("tui.select.confirm", data) ||
-    keybindings.matches("tui.input.submit", data)
+    matchesKeybinding(keybindings, "tui.select.confirm", data) ||
+    matchesKeybinding(keybindings, "tui.input.submit", data)
   );
 }
 
@@ -26,7 +39,7 @@ export function isAnswerNext(
   keybindings: AnswerKeybindingsLike,
   data: string,
 ): boolean {
-  return keybindings.matches("tui.input.tab", data);
+  return matchesKeybinding(keybindings, "tui.input.tab", data);
 }
 
 export function isAnswerVerticalMove(
@@ -34,7 +47,8 @@ export function isAnswerVerticalMove(
   direction: "up" | "down",
   data: string,
 ): boolean {
-  return keybindings.matches(
+  return matchesKeybinding(
+    keybindings,
     direction === "up" ? "tui.select.up" : "tui.select.down",
     data,
   );
