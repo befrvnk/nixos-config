@@ -2,13 +2,22 @@
 
 let
   alsaMixerInitScript = pkgs.writeShellScript "alsa-mixer-init" ''
-    CARD=$(${pkgs.alsa-utils}/bin/aplay -l 2>/dev/null | ${pkgs.gnugrep}/bin/grep -oP 'card \K\d+(?=:.*HD-Audio Generic_1)' | head -1)
-    if [ -n "$CARD" ]; then
-      ${pkgs.alsa-utils}/bin/amixer -c"$CARD" sset Master 100%
-    else
-      # Fallback to card 1 if name lookup fails
-      ${pkgs.alsa-utils}/bin/amixer -c1 sset Master 100%
-    fi
+    attempts=0
+    while [ "$attempts" -lt 20 ]; do
+      CARD=$(${pkgs.alsa-utils}/bin/aplay -l 2>/dev/null \
+        | ${pkgs.gnugrep}/bin/grep -oP 'card \K\d+(?=: Generic_1\b)' \
+        | head -1 || true)
+
+      if [ -n "$CARD" ] && ${pkgs.alsa-utils}/bin/amixer -c"$CARD" scontrols >/dev/null 2>&1; then
+        exec ${pkgs.alsa-utils}/bin/amixer -q -c"$CARD" sset Master 100%
+      fi
+
+      sleep 0.5
+      attempts=$((attempts + 1))
+    done
+
+    echo "Internal ALSA card not ready; skipping mixer init" >&2
+    exit 0
   '';
 in
 {
@@ -16,7 +25,7 @@ in
 
   # Set ALSA mixer levels to 100% at boot
   # Framework laptop defaults Master to 77% (-15 dB), leaving significant headroom unused
-  # Card 1 is the HD-Audio Generic_1 (Family 17h/19h/1ah HD Audio Controller - speakers)
+  # Wait for the internal speaker card because sound.target can be reached before card1 exists
   systemd.services.alsa-mixer-init = {
     description = "Initialize ALSA mixer levels";
     after = [ "sound.target" ];
