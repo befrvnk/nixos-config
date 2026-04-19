@@ -8,18 +8,47 @@ let
     (import ../overlays/user-scanner.nix)
 
     # opencode from flake
-    # Keep build-time Bun aligned with this repo's nixpkgs Bun so temporary pins
-    # to older upstream revisions do not fail the packageManager version check.
-    (final: prev: {
-      opencode = inputs.opencode.packages.${prev.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-        nativeBuildInputs = [ prev.bun ] ++ (old.nativeBuildInputs or [ ]) ++ [ prev.nodejs ];
-        postConfigure = (old.postConfigure or "") + ''
-          sed -i 's/"packageManager": "bun@[^"]*"/"packageManager": "bun@${prev.bun.version}"/' package.json
-          chmod -R u+w node_modules packages
-          patchShebangs node_modules packages/*/node_modules
+    # Keep build-time Bun aligned with this repo's nixpkgs Bun and pin the
+    # mutable ghostty-web Git dependency to the commit already recorded in the
+    # upstream lockfile so bun --frozen-lockfile stays reproducible.
+    (
+      final: prev:
+      let
+        opencodeRev =
+          inputs.opencode.shortRev
+            or (if inputs.opencode ? rev then builtins.substring 0 7 inputs.opencode.rev else "dirty");
+
+        opencodeSrc = prev.runCommand "opencode-source-${opencodeRev}" { } ''
+          cp -R ${inputs.opencode.outPath}/. $out
+          chmod -R u+w $out
+          sed -i 's#"packageManager": "bun@[^"]*"#"packageManager": "bun@${prev.bun.version}"#' $out/package.json
+          sed -i 's|"ghostty-web": "github:anomalyco/ghostty-web#main"|"ghostty-web": "github:anomalyco/ghostty-web#4af877d"|' $out/packages/app/package.json
         '';
-      });
-    })
+
+        node_modules =
+          (prev.callPackage "${inputs.opencode.outPath}/nix/node_modules.nix" {
+            inherit (prev) bun;
+            rev = opencodeRev;
+          }).overrideAttrs
+            {
+              src = opencodeSrc;
+            };
+      in
+      {
+        opencode =
+          (prev.callPackage "${inputs.opencode.outPath}/nix/opencode.nix" {
+            inherit (prev) bun;
+            inherit node_modules;
+          }).overrideAttrs
+            (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.nodejs ];
+              postConfigure = (old.postConfigure or "") + ''
+                chmod -R u+w node_modules packages
+                patchShebangs node_modules packages/*/node_modules
+              '';
+            });
+      }
+    )
 
     # Extra packages from flakes
     (final: prev: {
