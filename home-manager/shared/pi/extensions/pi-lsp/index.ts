@@ -33,8 +33,8 @@ import {
   isLspNoProjectError,
   isLspReadinessTimeoutError,
   isUnsupportedLspMethodError,
+  LspNoProjectError,
   ServerManager,
-  type LspNoProjectError,
   type UnsupportedLspMethodError,
 } from "./server.js";
 import { formatLogDetails as renderLogDetails, formatStatusDetails as renderStatusDetails } from "./status.js";
@@ -90,6 +90,23 @@ function summarizeStatus(statuses: ServerStatus[]): string {
   }
 
   return `LSP: ${Array.from(counts.entries(), ([state, count]) => `${count} ${state}`).join(", ")}`;
+}
+
+function rootHintToWorkspacePath(rootHintPath: string): string {
+  const stat = fs.statSync(rootHintPath);
+  const workspacePath = stat.isDirectory() ? rootHintPath : path.dirname(rootHintPath);
+  return fs.realpathSync.native(workspacePath);
+}
+
+function toWorkspaceNoProjectError(
+  language: SupportedLanguage,
+  rootHintPath: string,
+  error: unknown,
+): LspNoProjectError | undefined {
+  if (language !== "kotlin") return undefined;
+  if (!(error instanceof Error)) return undefined;
+  if (!/Kotlin LSP only works in Gradle or Maven projects/.test(error.message)) return undefined;
+  return new LspNoProjectError("workspace/symbol", language, rootHintToWorkspacePath(rootHintPath), "project detection");
 }
 
 export function formatStatusDetails(manager?: ServerManager): string {
@@ -317,9 +334,9 @@ export default function piLspExtension(pi: ExtensionAPI) {
 
       for (const language of targetLanguages) {
         const rootHintPath = resolvedPath ?? ctx.cwd;
-        const root = detectProjectRoot(rootHintPath, language, ctx.cwd);
 
         try {
+          const root = detectProjectRoot(rootHintPath, language, ctx.cwd);
           const ready = await getReadyServerOrWarmup(serverManager, language, root, action, signal, ctx);
           if (ready.warmup) {
             warming.push(ready.warmup);
@@ -329,6 +346,12 @@ export default function piLspExtension(pi: ExtensionAPI) {
           const result = await ready.server!.request("workspace/symbol", { query: params.query }, 20_000);
           if (Array.isArray(result)) results.push(...result);
         } catch (error) {
+          const rootDetectionNoProject = toWorkspaceNoProjectError(language, rootHintPath, error);
+          if (rootDetectionNoProject) {
+            noProject.push(rootDetectionNoProject);
+            continue;
+          }
+
           if (isUnsupportedLspMethodError(error, "workspace/symbol")) {
             unsupported.push(error);
             continue;
@@ -719,11 +742,15 @@ export default function piLspExtension(pi: ExtensionAPI) {
 
     const likelyLanguages = detectLikelyWorkspaceLanguages(ctx.cwd);
     for (const language of likelyLanguages) {
-      const root = detectProjectRoot(ctx.cwd, language, ctx.cwd);
-      const server = serverManager.warm(language, root);
-      void server.waitUntilReady({ maxWaitMs: 20_000, acceptIndexing: true }).catch(() => undefined).finally(() => {
-        updateStatus(serverManager, ctx);
-      });
+      try {
+        const root = detectProjectRoot(ctx.cwd, language, ctx.cwd);
+        const server = serverManager.warm(language, root);
+        void server.waitUntilReady({ maxWaitMs: 20_000, acceptIndexing: true }).catch(() => undefined).finally(() => {
+          updateStatus(serverManager, ctx);
+        });
+      } catch {
+        // Skip warmup when the workspace is not a valid project for that language.
+      }
     }
 
     updateStatus(serverManager, ctx);
