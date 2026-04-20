@@ -150,6 +150,7 @@
           inherit (pkgs)
             domain-check
             idea-community
+            orca-ai
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {

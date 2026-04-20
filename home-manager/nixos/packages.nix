@@ -24,6 +24,7 @@
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
       pkgs.discord
       pkgs.obsidian
+      pkgs.orca-ai
       pkgs.slack
       pkgs.spotify
       (import ./elecwhat.nix { inherit pkgs; })
