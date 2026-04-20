@@ -26,9 +26,36 @@ export const DEFAULT_COMMAND_PACKAGE_MAP = Object.freeze({
 });
 
 const COMMAND_PREFIX_TOKENS = new Set(["builtin", "command", "env", "noglob", "time"]);
-const CONTROL_OPERATORS = new Set(["&&", "(", ")", ";", "|", "||", "\n"]);
+const CONTROL_OPERATORS = new Set(["&&", "(", ")", ";", "|", "||", "\n", "&"]);
 const REDIRECTION_PATTERN = /^\d*(?:>>?|<<?|&>>?|&>|<>).*$/;
 const ASSIGNMENT_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*=.*/;
+const SHELL_COMMAND_NAMES = new Set(["bash", "dash", "fish", "nu", "sh", "zsh"]);
+const FIND_EXEC_TOKENS = new Set(["-exec", "-execdir"]);
+const FIND_EXEC_TERMINATORS = new Set([";", "\\;", "+"]);
+const XARGS_OPTIONS_WITH_VALUES = new Set([
+	"-a",
+	"-d",
+	"-E",
+	"-e",
+	"-I",
+	"-i",
+	"-L",
+	"-l",
+	"-n",
+	"-P",
+	"-s",
+	"-S",
+	"--arg-file",
+	"--delimiter",
+	"--eof",
+	"--eof-string",
+	"--max-args",
+	"--max-chars",
+	"--max-lines",
+	"--max-procs",
+	"--open-tty",
+	"--replace",
+]);
 const availabilityCache = new Map();
 
 function splitCommandTokens(command) {
@@ -131,6 +158,28 @@ function splitCommandTokens(command) {
 	return tokens;
 }
 
+function splitIntoSegments(tokens) {
+	const segments = [];
+	let current = [];
+
+	const pushCurrent = () => {
+		if (current.length === 0) return;
+		segments.push(current);
+		current = [];
+	};
+
+	for (const token of tokens) {
+		if (CONTROL_OPERATORS.has(token)) {
+			pushCurrent();
+			continue;
+		}
+		current.push(token);
+	}
+
+	pushCurrent();
+	return segments;
+}
+
 function stripCommandPrefixToken(token) {
 	if (!token) return token;
 
@@ -141,6 +190,24 @@ function stripCommandPrefixToken(token) {
 		result = trimmed;
 	}
 	return result;
+}
+
+function normalizeExecutableName(token) {
+	if (!token) return token;
+	const normalized = stripCommandPrefixToken(token);
+	if (!normalized) return normalized;
+	if (!isPathLike(normalized)) return normalized;
+	return path.basename(normalized.replace(/\\/g, "/"));
+}
+
+function unquoteToken(token) {
+	if (!token || token.length < 2) return token;
+
+	const quote = token[0];
+	if ((quote !== "'" && quote !== '"') || token[token.length - 1] !== quote) return token;
+	const inner = token.slice(1, -1);
+	if (quote === "'") return inner;
+	return inner.replace(/\\([\\"$`])/g, "$1");
 }
 
 function isPathLike(token) {
@@ -189,6 +256,14 @@ function normalizePackageList(value) {
 	return Array.isArray(value) ? value : [value];
 }
 
+function addUniquePackages(packages, seenPackages, values) {
+	for (const packageName of normalizePackageList(values)) {
+		if (seenPackages.has(packageName)) continue;
+		seenPackages.add(packageName);
+		packages.push(packageName);
+	}
+}
+
 function expandEnvironmentValue(value, env) {
 	return value.replace(/\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))/g, (_match, bracedName, bareName) => {
 		const name = bracedName ?? bareName;
@@ -208,33 +283,94 @@ function applyEnvironmentAssignment(env, token) {
 	};
 }
 
-export function getMappedPackagesForCommand(
-	command,
+export function getMappedPackagesForExecutable(
+	executable,
 	{
 		packageMap = DEFAULT_COMMAND_PACKAGE_MAP,
 		isCommandAvailable = isCommandOnPath,
 		env = process.env,
 	} = {},
 ) {
-	const trimmed = command.trim();
-	if (!trimmed) return [];
-	if (/^nix\s+(shell|develop|run)\b/.test(trimmed)) return [];
+	if (!executable) return [];
+	if (isPathLike(executable)) return [];
 
-	const packages = [];
-	const seenPackages = new Set();
-	let expectingCommand = true;
-	let commandEnv = env;
+	const mappedPackages = normalizePackageList(packageMap[executable]);
+	if (mappedPackages.length === 0) return [];
+	if (isCommandAvailable(executable, env)) return [];
+	return mappedPackages;
+}
 
-	for (const token of splitCommandTokens(command)) {
-		if (CONTROL_OPERATORS.has(token)) {
-			expectingCommand = true;
-			commandEnv = env;
-			continue;
-		}
+function createCollectionState(options = {}) {
+	return {
+		packageMap: options.packageMap ?? DEFAULT_COMMAND_PACKAGE_MAP,
+		isCommandAvailable: options.isCommandAvailable ?? isCommandOnPath,
+		env: options.env ?? process.env,
+		packages: [],
+		seenPackages: new Set(),
+	};
+}
 
-		if (!expectingCommand) continue;
+function withEnvironment(state, env) {
+	return { ...state, env };
+}
+
+function findShellCommandStringTokenIndex(tokens, startIndex) {
+	for (let index = startIndex; index < tokens.length; index += 1) {
+		const token = tokens[index];
 		if (!token) continue;
-		if (isShellMetaToken(token)) continue;
+		if (token === "--") continue;
+		if (token === "-c" || token === "--command" || (/^-[A-Za-z]*c[A-Za-z]*$/.test(token) && token !== "-s")) {
+			return index + 1 < tokens.length ? index + 1 : undefined;
+		}
+		if (!token.startsWith("-")) return undefined;
+	}
+	return undefined;
+}
+
+function nextXargsCommandIndex(tokens, startIndex) {
+	for (let index = startIndex; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		if (!token) continue;
+		if (token === "--") return index + 1 < tokens.length ? index + 1 : undefined;
+		if (!token.startsWith("-")) return index;
+
+		const [optionName, inlineValue] = token.split("=", 2);
+		if (inlineValue !== undefined) continue;
+		if (XARGS_OPTIONS_WITH_VALUES.has(optionName) && index + 1 < tokens.length) {
+			index += 1;
+		}
+	}
+	return undefined;
+}
+
+function findExecCommandGroups(tokens) {
+	const groups = [];
+
+	for (let index = 0; index < tokens.length; index += 1) {
+		if (!FIND_EXEC_TOKENS.has(tokens[index])) continue;
+		const start = index + 1;
+		let end = start;
+		while (end < tokens.length && !FIND_EXEC_TERMINATORS.has(tokens[end])) {
+			end += 1;
+		}
+		if (start < end) groups.push(tokens.slice(start, end));
+		index = end;
+	}
+
+	return groups;
+}
+
+function collectMappedPackagesFromSegment(tokens, state, depth = 0) {
+	if (depth > 4 || tokens.length === 0) return;
+
+	let commandIndex;
+	let commandToken;
+	let commandName;
+	let commandEnv = state.env;
+
+	for (let index = 0; index < tokens.length; index += 1) {
+		const token = tokens[index];
+		if (!token || isShellMetaToken(token)) continue;
 		if (ASSIGNMENT_PATTERN.test(token)) {
 			commandEnv = applyEnvironmentAssignment(commandEnv, token);
 			continue;
@@ -242,24 +378,66 @@ export function getMappedPackagesForCommand(
 
 		const normalizedToken = stripCommandPrefixToken(token);
 		if (COMMAND_PREFIX_TOKENS.has(normalizedToken)) continue;
-		if (isPathLike(normalizedToken)) {
-			expectingCommand = false;
-			continue;
-		}
 
-		const mappedPackages = normalizePackageList(packageMap[normalizedToken]);
-		if (mappedPackages.length > 0 && !isCommandAvailable(normalizedToken, commandEnv)) {
-			for (const packageName of mappedPackages) {
-				if (seenPackages.has(packageName)) continue;
-				seenPackages.add(packageName);
-				packages.push(packageName);
-			}
-		}
-
-		expectingCommand = false;
+		commandIndex = index;
+		commandToken = normalizedToken;
+		commandName = normalizeExecutableName(normalizedToken);
+		addUniquePackages(
+			state.packages,
+			state.seenPackages,
+			getMappedPackagesForExecutable(normalizedToken, withEnvironment(state, commandEnv)),
+		);
+		break;
 	}
 
-	return packages;
+	if (commandIndex === undefined || !commandToken || !commandName) return;
+
+	if (SHELL_COMMAND_NAMES.has(commandName)) {
+		const scriptIndex = findShellCommandStringTokenIndex(tokens, commandIndex + 1);
+		const scriptToken = scriptIndex !== undefined ? tokens[scriptIndex] : undefined;
+		const script = unquoteToken(scriptToken);
+		if (script) collectMappedPackagesFromCommand(script, withEnvironment(state, commandEnv), depth + 1);
+		return;
+	}
+
+	if (commandName === "xargs") {
+		const nestedIndex = nextXargsCommandIndex(tokens, commandIndex + 1);
+		if (nestedIndex !== undefined) {
+			collectMappedPackagesFromSegment(tokens.slice(nestedIndex), withEnvironment(state, commandEnv), depth + 1);
+		}
+		return;
+	}
+
+	if (commandName === "find") {
+		for (const group of findExecCommandGroups(tokens.slice(commandIndex + 1))) {
+			collectMappedPackagesFromSegment(group, withEnvironment(state, commandEnv), depth + 1);
+		}
+	}
+}
+
+function collectMappedPackagesFromCommand(command, state, depth = 0) {
+	for (const segment of splitIntoSegments(splitCommandTokens(command))) {
+		collectMappedPackagesFromSegment(segment, state, depth);
+	}
+}
+
+export function getMappedPackagesForCommand(
+	command,
+	{
+		packageMap = DEFAULT_COMMAND_PACKAGE_MAP,
+		isCommandAvailable = isCommandOnPath,
+		env = process.env,
+		extraPackages = [],
+	} = {},
+) {
+	const trimmed = command.trim();
+	if (!trimmed) return [];
+	if (/^nix\s+(shell|develop|run)\b/.test(trimmed)) return [];
+
+	const state = createCollectionState({ packageMap, isCommandAvailable, env });
+	collectMappedPackagesFromCommand(command, state);
+	addUniquePackages(state.packages, state.seenPackages, extraPackages);
+	return state.packages;
 }
 
 export function quoteForBash(command) {

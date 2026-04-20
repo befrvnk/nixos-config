@@ -29,6 +29,42 @@ test("collects packages across pipelines", () => {
 	);
 });
 
+test("treats background jobs as command separators", () => {
+	assert.deepEqual(
+		getMappedPackagesForCommand("python -c 'print(1)' & jq .", {
+			isCommandAvailable: unavailableCommands("python", "jq"),
+		}),
+		["python3", "jq"],
+	);
+});
+
+test("collects packages for xargs subcommands", () => {
+	assert.deepEqual(
+		getMappedPackagesForCommand("fd -0 | xargs -0 rg foo", {
+			isCommandAvailable: unavailableCommands("fd", "rg"),
+		}),
+		["fd", "ripgrep"],
+	);
+});
+
+test("collects packages for find -exec subcommands", () => {
+	assert.deepEqual(
+		getMappedPackagesForCommand("find . -name '*.ts' -exec rg foo {} \\;", {
+			isCommandAvailable: unavailableCommands("rg"),
+		}),
+		["ripgrep"],
+	);
+});
+
+test("collects packages inside nested shell command strings", () => {
+	assert.deepEqual(
+		getMappedPackagesForCommand("bash -lc 'python -c \"print(1)\" | jq .'", {
+			isCommandAvailable: unavailableCommands("python", "jq"),
+		}),
+		["python3", "jq"],
+	);
+});
+
 test("handles env prefixes and command wrappers", () => {
 	assert.deepEqual(
 		getMappedPackagesForCommand("env DEBUG=1 command python -c 'print(1)'", {
