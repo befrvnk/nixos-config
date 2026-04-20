@@ -109,8 +109,8 @@ test("detectProjectRoot recognizes Kotlin Maven projects", () => {
   assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
 });
 
-test("detectProjectRoot falls back to .git before nested Kotlin build files when no Gradle workspace root exists", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-git-fallback-"));
+test("detectProjectRoot uses the nearest Kotlin module root when no Gradle workspace marker exists", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-module-root-"));
   const moduleDir = path.join(root, "mobile", "app");
   const nested = path.join(moduleDir, "src", "main", "kotlin", "example");
   const file = path.join(nested, "App.kt");
@@ -119,7 +119,21 @@ test("detectProjectRoot falls back to .git before nested Kotlin build files when
   fs.writeFileSync(path.join(moduleDir, "build.gradle.kts"), "plugins { kotlin(\"android\") }\n");
   fs.writeFileSync(file, "class App\n");
 
-  assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(root));
+  assert.equal(detectProjectRoot(file, "kotlin", nested), fs.realpathSync.native(moduleDir));
+});
+
+test("detectProjectRoot rejects Kotlin files outside Gradle or Maven projects", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-no-project-"));
+  const nested = path.join(root, "src", "main", "kotlin", "example");
+  const file = path.join(nested, "App.kt");
+  fs.mkdirSync(nested, { recursive: true });
+  fs.mkdirSync(path.join(root, ".git"));
+  fs.writeFileSync(file, "class App\n");
+
+  assert.throws(
+    () => detectProjectRoot(file, "kotlin", nested),
+    /Kotlin LSP only works in Gradle or Maven projects/,
+  );
 });
 
 test("toZeroIndexedPosition validates positive 1-indexed values", () => {

@@ -35,7 +35,7 @@ function findHighestMatchingRoot(directories: string[], markers: string[]): stri
   return match;
 }
 
-function detectKotlinProjectRoot(startDir: string): string {
+function detectKotlinProjectRoot(startDir: string): string | undefined {
   const directories = [...walkParents(startDir)];
 
   const gradleWorkspaceRoot = findHighestMatchingRoot(directories, [
@@ -48,20 +48,23 @@ function detectKotlinProjectRoot(startDir: string): string {
   const mavenRoot = findHighestMatchingRoot(directories, ["pom.xml"]);
   if (mavenRoot) return mavenRoot;
 
-  const gitRoot = findHighestMatchingRoot(directories, [".git"]);
-  if (gitRoot) return gitRoot;
-
   const gradleModuleRoot = findHighestMatchingRoot(directories, ["build.gradle.kts", "build.gradle"]);
   if (gradleModuleRoot) return gradleModuleRoot;
 
-  return startDir;
+  return undefined;
 }
 
 export function detectProjectRoot(filePath: string, language: SupportedLanguage, _cwd: string): string {
   const startDir = fs.realpathSync.native(fs.statSync(filePath).isDirectory() ? filePath : path.dirname(filePath));
 
   if (language === "kotlin") {
-    return detectKotlinProjectRoot(startDir);
+    const kotlinRoot = detectKotlinProjectRoot(startDir);
+    if (!kotlinRoot) {
+      throw new Error(
+        `Kotlin LSP only works in Gradle or Maven projects. No Kotlin project markers were found near: ${filePath}`,
+      );
+    }
+    return kotlinRoot;
   }
 
   const markers = ROOT_MARKERS[language];
