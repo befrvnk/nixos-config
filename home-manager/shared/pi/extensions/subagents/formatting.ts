@@ -184,6 +184,8 @@ export function renderRunMarkdown(run: SubagentRunState): string {
 			for (const line of task.recentOutputLines.slice(-MAX_RECENT_OUTPUT_LINES))
 				lines.push(`  - ${line}`);
 		}
+		if (task.parseMeta?.structure)
+			lines.push(`- Structured output: ${task.parseMeta.structure}`);
 		if (task.summary) lines.push(`- Summary: ${task.summary}`);
 		if (task.error) lines.push(`- Error: ${task.error}`);
 		lines.push("");
@@ -223,6 +225,7 @@ export function serializeRun(run: SubagentRunState) {
 			recentOutputLines: [...task.recentOutputLines],
 			summary: task.summary,
 			data: task.data,
+			parseMeta: task.parseMeta,
 			error: task.error,
 			startedAt: task.startedAt,
 			endedAt: task.endedAt,

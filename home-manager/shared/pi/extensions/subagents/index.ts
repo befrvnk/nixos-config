@@ -41,6 +41,7 @@ import {
 } from "./commands.js";
 import { buildExploreTaskInputs, findRunOrThrow } from "./tool-validation.js";
 import {
+  buildReviewRepairPrompt,
   createReviewTasks,
   parseReviewOutput,
   renderFinalReviewResults,
@@ -512,6 +513,10 @@ export default function subagentExtension(pi: ExtensionAPI) {
     options: {
       systemPrompt: string;
       parseOutput: (markdown: string) => ParsedSubagentOutput;
+      buildRepairPrompt?: (
+        parsed: ParsedSubagentOutput,
+        rawResponse: string,
+      ) => string | undefined;
       onUpdate?: (update: unknown) => void;
       signal?: AbortSignal;
       ctx: ExtensionContext | ExtensionCommandContext;
@@ -585,6 +590,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
             signal: options.signal,
             systemPrompt: options.systemPrompt,
             parseOutput: options.parseOutput,
+            buildRepairPrompt: options.buildRepairPrompt,
           }),
       );
 
@@ -655,6 +661,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       const { run, results } = await executeWorkflow("review", tasks, {
         systemPrompt: REVIEWER_PROMPT,
         parseOutput: parseReviewOutput,
+        buildRepairPrompt: buildReviewRepairPrompt,
         signal,
         ctx,
       });

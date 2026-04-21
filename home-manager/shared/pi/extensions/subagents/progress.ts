@@ -57,5 +57,6 @@ export function cleanParsedOutput(
 	return {
 		summary: stripProgressBlocks(output.summary),
 		data: output.data,
+		...(output.parseMeta ? { parseMeta: output.parseMeta } : {}),
 	};
 }

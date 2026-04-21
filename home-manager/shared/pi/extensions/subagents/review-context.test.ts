@@ -12,6 +12,9 @@ test("buildReviewContextMessage wraps and trims a review result", () => {
 
 	assert.match(prompt ?? "", /## Additional context from \/review/);
 	assert.match(prompt ?? "", /The user previously ran the \/review command/);
+	assert.match(prompt ?? "", /Interpretation notes:/);
+	assert.match(prompt ?? "", /Prefer the consensus and parsed sections first/);
+	assert.match(prompt ?? "", /raw form for manual inspection/);
 	assert.match(prompt ?? "", /# Review Results/);
 	assert.match(prompt ?? "", /Finding one/);
 	assert.doesNotMatch(prompt ?? "", /Queued review 1/);

@@ -16,6 +16,7 @@ import {
 } from "./guidelines.js";
 import type { ReviewerConfig } from "../../model-policy.js";
 import type {
+	ParsedOutputMeta,
 	ParsedSubagentOutput,
 	SubagentTaskInput,
 	SubagentTaskResult,
@@ -592,7 +593,7 @@ export function buildReviewTask(
 		"- Prefer correctness, regressions, hidden bugs, safety issues, and meaningful maintainability concerns over style nits.",
 		"- Do not speculate beyond the evidence available in the diff and surrounding code.",
 		"- Treat silent fallback behavior, swallowed errors, and best-effort recovery as high-signal findings unless the boundary explicitly justifies them.",
-		"- Surface informational human-reviewer callouts separately from actionable findings.",
+		"- Surface informational non-blocking callouts separately from actionable findings.",
 		"",
 		"Return markdown with exactly these sections:",
 		"## Summary",
@@ -606,7 +607,7 @@ export function buildReviewTask(
 		"- Format each bullet as: `[severity: high|medium|low][confidence: high|medium|low][path: <file or file:line>] issue | evidence | recommendation`",
 		"- If there are no actionable findings, write `- None`.",
 		"",
-		"## Human Reviewer Callouts",
+		"## Non-blocking Callouts",
 		"- Use bullets for non-blocking informational callouts such as migrations, dependency or lockfile changes, auth/permission changes, config-default changes, backwards-incompatible contract/schema/API updates, and destructive operations.",
 		"- Do not repeat actionable findings here.",
 		"- If there are no applicable callouts, write `- None`.",
@@ -674,6 +675,16 @@ export async function createReviewTasks(
 	};
 }
 
+const INLINE_CHANGED_FILES_LIMIT = 8;
+const REVIEW_SECTION_TITLES = {
+	summary: "Summary",
+	verdict: "Verdict",
+	findings: "Findings",
+	nonBlockingCallouts: "Non-blocking Callouts",
+	legacyHumanReviewerCallouts: "Human Reviewer Callouts",
+	nextSteps: "Next Steps",
+} as const;
+
 function normalizeOptionalBullets(sectionBody: string | undefined): string[] {
 	return (parseBullets(sectionBody) ?? []).filter(
 		(item) => item.toLowerCase() !== "none",
@@ -689,27 +700,227 @@ function parseVerdict(sectionBody: string | undefined): string | undefined {
 	return line === "correct" || line === "needs attention" ? line : undefined;
 }
 
+function asStringArray(value: unknown): string[] {
+	return Array.isArray(value)
+		? value.filter((item): item is string => typeof item === "string")
+		: [];
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function hasMarkdownSection(markdown: string, title: string): boolean {
+	return new RegExp(`^##\\s+${escapeRegExp(title)}\\s*$`, "im").test(markdown);
+}
+
+function buildReviewParseMeta(
+	markdown: string,
+	verdict: string | undefined,
+): ParsedOutputMeta {
+	const hasSummarySection = hasMarkdownSection(
+		markdown,
+		REVIEW_SECTION_TITLES.summary,
+	);
+	const hasVerdictSection = hasMarkdownSection(
+		markdown,
+		REVIEW_SECTION_TITLES.verdict,
+	);
+	const hasFindingsSection = hasMarkdownSection(
+		markdown,
+		REVIEW_SECTION_TITLES.findings,
+	);
+	const hasCalloutsSection =
+		hasMarkdownSection(markdown, REVIEW_SECTION_TITLES.nonBlockingCallouts) ||
+		hasMarkdownSection(
+			markdown,
+			REVIEW_SECTION_TITLES.legacyHumanReviewerCallouts,
+		);
+	const hasNextStepsSection = hasMarkdownSection(
+		markdown,
+		REVIEW_SECTION_TITLES.nextSteps,
+	);
+	const recognizedSectionCount = [
+		hasSummarySection,
+		hasVerdictSection,
+		hasFindingsSection,
+		hasCalloutsSection,
+		hasNextStepsSection,
+	].filter(Boolean).length;
+	const missingSections: string[] = [];
+	if (!hasSummarySection) missingSections.push(REVIEW_SECTION_TITLES.summary);
+	if (!hasVerdictSection || !verdict)
+		missingSections.push(REVIEW_SECTION_TITLES.verdict);
+	if (!hasFindingsSection) missingSections.push(REVIEW_SECTION_TITLES.findings);
+	if (!hasCalloutsSection)
+		missingSections.push(REVIEW_SECTION_TITLES.nonBlockingCallouts);
+	if (!hasNextStepsSection) missingSections.push(REVIEW_SECTION_TITLES.nextSteps);
+
+	const warnings: string[] = [];
+	if (recognizedSectionCount === 0) {
+		warnings.push("No expected review sections were found.");
+	}
+	if (/<\/?(?:read_file|path|grep|find|ls|bash|tool|function_calls?)>/i.test(markdown)) {
+		warnings.push("Output contains XML-like or tool-trace content.");
+	}
+
+	const structure =
+		recognizedSectionCount === 5 && verdict
+			? "valid"
+			: recognizedSectionCount > 0
+				? "partial"
+				: "invalid";
+
+	return {
+		structure,
+		missingSections,
+		warnings,
+	};
+}
+
+function inferReviewParseMeta(result: SubagentTaskResult): ParsedOutputMeta {
+	if (result.parseMeta) {
+		return {
+			structure: result.parseMeta.structure,
+			missingSections: [...(result.parseMeta.missingSections ?? [])],
+			warnings: [...(result.parseMeta.warnings ?? [])],
+		};
+	}
+
+	const hasStructuredFields =
+		result.summary.trim().length > 0 ||
+		Object.values(result.data ?? {}).some((value) => {
+			if (Array.isArray(value)) return value.length > 0;
+			if (typeof value === "string") return value.trim().length > 0;
+			return Boolean(value);
+		});
+	return {
+		structure: hasStructuredFields ? "partial" : "invalid",
+		missingSections: [],
+		warnings: [],
+	};
+}
+
+function buildParseIssues(parseMeta: ParsedOutputMeta): string[] {
+	return [
+		...(parseMeta.missingSections ?? []).map(
+			(section) => `Missing section: ${section}`,
+		),
+		...(parseMeta.warnings ?? []),
+	];
+}
+
+function pushBulletSection(
+	lines: string[],
+	title: string,
+	items: string[],
+	emptyText = "- None",
+): void {
+	lines.push(title);
+	if (items.length > 0) {
+		for (const item of items) lines.push(`- ${item}`);
+	} else {
+		lines.push(emptyText);
+	}
+	lines.push("");
+}
+
+function renderTextFence(text: string): string[] {
+	const trimmed = text.trim();
+	const fenceLength = Math.max(
+		3,
+		...((trimmed.match(/`+/g) ?? []).map((run) => run.length + 1) as number[]),
+	);
+	const fence = "`".repeat(fenceLength);
+	return [`${fence}text`, trimmed || "(empty)", fence];
+}
+
 export function parseReviewOutput(markdown: string): ParsedSubagentOutput {
 	const normalized = markdown.trim();
-	if (!normalized) return { summary: "" };
+	if (!normalized) {
+		return {
+			summary: "",
+			data: {
+				verdict: undefined,
+				findings: [],
+				humanReviewerCallouts: [],
+				suggestedNextSteps: [],
+			},
+			parseMeta: {
+				structure: "invalid",
+				missingSections: [
+					REVIEW_SECTION_TITLES.summary,
+					REVIEW_SECTION_TITLES.verdict,
+					REVIEW_SECTION_TITLES.findings,
+					REVIEW_SECTION_TITLES.nonBlockingCallouts,
+					REVIEW_SECTION_TITLES.nextSteps,
+				],
+				warnings: ["Empty review output."],
+			},
+		};
+	}
 
 	const sections = splitMarkdownSections(normalized);
 	const findings = normalizeOptionalBullets(sections.get("findings"));
 	const humanReviewerCallouts = normalizeOptionalBullets(
-		sections.get("human reviewer callouts"),
+		sections.get("human reviewer callouts") ??
+			sections.get("non-blocking callouts"),
 	);
 	const suggestedNextSteps = normalizeOptionalBullets(sections.get("next steps"));
 	const verdict = parseVerdict(sections.get("verdict"));
+	const parseMeta = buildReviewParseMeta(normalized, verdict);
+	const summary =
+		parseMeta.structure === "invalid" ? "" : (sections.get("summary") ?? "");
 
 	return {
-		summary: sections.get("summary") ?? normalized,
+		summary,
 		data: {
 			verdict,
 			findings,
 			humanReviewerCallouts,
 			suggestedNextSteps,
 		},
+		parseMeta,
 	};
+}
+
+export function buildReviewRepairPrompt(
+	parsed: ParsedSubagentOutput,
+	rawResponse: string,
+): string | undefined {
+	if (!parsed.parseMeta || parsed.parseMeta.structure === "valid") return undefined;
+
+	const issues = buildParseIssues(parsed.parseMeta);
+	const issueLines = issues.length > 0 ? issues.map((item) => `- ${item}`) : ["- Formatting drift detected."];
+	const rawPreview = rawResponse
+		.trim()
+		.split("\n")
+		.slice(0, 8)
+		.map((line) => `> ${line}`);
+
+	return [
+		"Your previous answer did not follow the required review output format.",
+		`Structured output status: ${parsed.parseMeta.structure}.`,
+		"Rewrite your final answer only.",
+		"Do not include tool narration, XML-like tags, progress blocks, or any preamble.",
+		"Preserve the substance of your review unless the evidence requires a correction.",
+		"",
+		"Formatting issues to fix:",
+		...issueLines,
+		"",
+		"Return markdown with exactly these sections:",
+		"## Summary",
+		"## Verdict",
+		"## Findings",
+		`## ${REVIEW_SECTION_TITLES.nonBlockingCallouts}`,
+		"## Next Steps",
+		"",
+		"If there are no items for a bullet-list section, write `- None`.",
+		"Write exactly one of `correct` or `needs attention` under `## Verdict`.",
+		"",
+		"Do not repeat the malformed formatting below. It is included only as a reminder of what to repair:",
+		...rawPreview,
+	].join("\n");
 }
 
 export function renderFinalReviewResults(
@@ -731,53 +942,66 @@ export function renderFinalReviewResults(
 	}
 	lines.push("");
 
+	if (
+		context &&
+		context.changedFiles.length > 0 &&
+		context.changedFiles.length <= INLINE_CHANGED_FILES_LIMIT
+	) {
+		lines.push("### Changed Files");
+		for (const file of context.changedFiles) lines.push(`- ${file}`);
+		lines.push("");
+	}
+
 	const consensus = buildReviewConsensus(results);
 	lines.push("## Consensus");
 	lines.push("");
 	lines.push("### Verdict");
 	lines.push(consensus.verdict);
 	lines.push("");
-	lines.push("### Findings");
-	if (consensus.findings.length > 0) {
-		for (const finding of consensus.findings) lines.push(`- ${finding}`);
-	} else {
-		lines.push("- None");
+	lines.push("### Rationale");
+	lines.push(consensus.rationale);
+	lines.push("");
+	lines.push("### Output Quality");
+	lines.push(`- Valid: ${consensus.reviewerOutputQuality.valid}`);
+	lines.push(`- Partial: ${consensus.reviewerOutputQuality.partial}`);
+	lines.push(`- Invalid: ${consensus.reviewerOutputQuality.invalid}`);
+	lines.push(`- Failed runs: ${consensus.reviewerOutputQuality.failed}`);
+	if (consensus.reviewerOutputQuality.failed > 0) {
+		lines.push(
+			"- Note: failed runs are also counted in the structured-format buckets above.",
+		);
 	}
 	lines.push("");
-	lines.push("### Human Reviewer Callouts");
-	if (consensus.humanReviewerCallouts.length > 0) {
-		for (const callout of consensus.humanReviewerCallouts)
-			lines.push(`- ${callout}`);
-	} else {
-		lines.push("- None");
-	}
-	lines.push("");
-	lines.push("### Suggested Fix Queue");
-	if (consensus.suggestedFixQueue.length > 0) {
-		for (const step of consensus.suggestedFixQueue) lines.push(`- ${step}`);
-	} else {
-		lines.push("- None");
-	}
-	lines.push("");
+	pushBulletSection(
+		lines,
+		"### Reviewer Agreement",
+		consensus.reviewerAgreement,
+	);
+	pushBulletSection(lines, "### Findings", consensus.findings);
+	pushBulletSection(
+		lines,
+		"### Non-blocking Callouts",
+		consensus.humanReviewerCallouts,
+	);
+	pushBulletSection(lines, "### Suggested Follow-ups", consensus.suggestedFixQueue);
 
 	for (let i = 0; i < results.length; i++) {
 		const result = results[i]!;
 		const data = result.data ?? {};
-		const findings = Array.isArray(data.findings)
-			? (data.findings as string[])
-			: [];
-		const suggestedNextSteps = Array.isArray(data.suggestedNextSteps)
-			? (data.suggestedNextSteps as string[])
-			: [];
-		const humanReviewerCallouts = Array.isArray(data.humanReviewerCallouts)
-			? (data.humanReviewerCallouts as string[])
-			: [];
+		const findings = asStringArray(data.findings);
+		const suggestedNextSteps = asStringArray(data.suggestedNextSteps);
+		const humanReviewerCallouts = asStringArray(data.humanReviewerCallouts);
 		const verdict =
 			typeof data.verdict === "string" ? data.verdict : undefined;
 		const focus =
 			typeof result.metadata?.focus === "string"
 				? result.metadata.focus
 				: undefined;
+		const parseMeta = inferReviewParseMeta(result);
+		const parseIssues = buildParseIssues(parseMeta);
+		const rawOutput = (result.rawResponse ?? "").trim();
+		const repairAttempted = result.metadata?.repairAttempted === true;
+		const repairSucceeded = result.metadata?.repairSucceeded === true;
 
 		lines.push(`## Reviewer ${i + 1}`);
 		lines.push(`- Status: ${result.status}`);
@@ -787,34 +1011,34 @@ export function renderFinalReviewResults(
 		if (result.thinkingLevel)
 			lines.push(`- Thinking level: ${result.thinkingLevel}`);
 		if (focus) lines.push(`- Focus: ${focus}`);
+		if (repairAttempted)
+			lines.push(
+				`- Formatting repair: ${repairSucceeded ? "succeeded" : "attempted; output still partial or invalid"}`,
+			);
+		lines.push(`- Structured format: ${parseMeta.structure}`);
+		if (parseIssues.length > 0) {
+			lines.push(`- Structure issues: ${parseIssues.join("; ")}`);
+		}
 		lines.push("");
-		lines.push("### Summary");
-		lines.push(result.summary || "No summary returned.");
+		lines.push("### Structured Summary");
+		lines.push(result.summary || "No structured summary could be extracted.");
 		lines.push("");
 
-		lines.push("### Verdict");
+		lines.push("### Structured Verdict");
 		lines.push(verdict ?? "Not provided.");
 		lines.push("");
 
-		lines.push("### Findings");
-		if (findings.length > 0) {
-			for (const finding of findings) lines.push(`- ${finding}`);
-		} else {
-			lines.push("- None");
-		}
-		lines.push("");
+		pushBulletSection(lines, "### Structured Findings", findings);
+		pushBulletSection(
+			lines,
+			"### Structured Non-blocking Callouts",
+			humanReviewerCallouts,
+		);
+		pushBulletSection(lines, "### Structured Next Steps", suggestedNextSteps);
 
-		lines.push("### Human Reviewer Callouts");
-		if (humanReviewerCallouts.length > 0) {
-			for (const callout of humanReviewerCallouts) lines.push(`- ${callout}`);
-		} else {
-			lines.push("- None");
-		}
-		lines.push("");
-
-		if (suggestedNextSteps.length > 0) {
-			lines.push("### Next Steps");
-			for (const step of suggestedNextSteps) lines.push(`- ${step}`);
+		if (parseMeta.structure !== "valid" && rawOutput) {
+			lines.push("### Preserved Raw Output");
+			lines.push(...renderTextFence(rawOutput));
 			lines.push("");
 		}
 

@@ -35,12 +35,31 @@ type ParentContextLike = {
 	modelRegistry?: ModelRegistryLike;
 };
 
+type SessionLike = {
+	subscribe: (listener: (event: any) => void) => () => void;
+	prompt: (input: string) => Promise<void>;
+	abort: () => Promise<void> | void;
+	dispose: () => void;
+	messages: Array<{ role?: string; content?: unknown }>;
+};
+
 type RunTaskOptions = {
 	parentCtx: ParentContextLike;
 	emitRunUpdate: () => void;
 	signal?: AbortSignal;
 	systemPrompt: string;
 	parseOutput: (markdown: string) => ParsedSubagentOutput;
+	buildRepairPrompt?: (
+		parsed: ParsedSubagentOutput,
+		rawResponse: string,
+	) => string | undefined;
+	createSession?: (args: {
+		repositoryRoot: string;
+		model: Model<any>;
+		thinkingLevel?: SubagentThinkingLevel;
+		modelRegistry?: ModelRegistryLike;
+		systemPrompt: string;
+	}) => Promise<SessionLike>;
 };
 
 function extractTextFromContent(content: unknown): string {
@@ -96,13 +115,32 @@ function pushHistory(
 	}
 }
 
-function hasMeaningfulParsedOutput(parsed: ParsedSubagentOutput): boolean {
+function hasMeaningfulParsedOutput(
+	parsed: ParsedSubagentOutput,
+	workflow: SubagentTaskState["workflow"],
+	rawResponse?: string,
+): boolean {
+	if (workflow === "review") {
+		if ((rawResponse ?? "").trim()) return true;
+		if (parsed.parseMeta?.structure === "valid") return true;
+	}
 	if (parsed.summary.trim()) return true;
 	return Object.values(parsed.data ?? {}).some((value) => {
 		if (Array.isArray(value)) return value.length > 0;
 		if (typeof value === "string") return value.trim().length > 0;
 		return Boolean(value);
 	});
+}
+
+function mergeTaskMetadata(
+	metadata: Record<string, unknown> | undefined,
+	extra: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+	if (!metadata && !extra) return undefined;
+	return {
+		...(metadata ?? {}),
+		...(extra ?? {}),
+	};
 }
 
 function previewTool(
@@ -274,6 +312,8 @@ export async function runSingleTask(
 	let streamingAssistantText = "";
 	let promptError: string | undefined;
 	let lastProgressSignature = "";
+	let repairAttempted = false;
+	let repairSucceeded = false;
 
 	const finish = (result: SubagentTaskResult) => {
 		if (settled) return result;
@@ -281,6 +321,8 @@ export async function runSingleTask(
 		taskState.endedAt = Date.now();
 		taskState.summary = result.summary;
 		taskState.data = result.data;
+		taskState.parseMeta = result.parseMeta;
+		taskState.metadata = result.metadata;
 		taskState.error = result.error;
 		taskState.state = result.status;
 		taskState.currentTool = undefined;
@@ -295,7 +337,13 @@ export async function runSingleTask(
 				taskState.workflow === "review" &&
 				result.status === "success"
 			) {
-				pushHistory(taskState, "assistant", "No actionable findings.");
+				pushHistory(
+					taskState,
+					"assistant",
+					result.parseMeta?.structure && result.parseMeta.structure !== "valid"
+						? `Review completed with ${result.parseMeta.structure} structured output.`
+						: "No actionable findings.",
+				);
 			}
 		}
 
@@ -325,23 +373,38 @@ export async function runSingleTask(
 		const model = await resolveModel(taskState.model, parentCtx);
 		pushHistory(taskState, "lifecycle", `started ${taskState.workflow} task`);
 		const repositoryRoot = taskState.cwd ?? process.cwd();
-		const agentDir = getAgentDir();
-		const resourceLoader = new DefaultResourceLoader({
-			cwd: repositoryRoot,
-			agentDir,
-			noExtensions: true,
-			noThemes: true,
-			appendSystemPromptOverride: (base) => [...base, systemPrompt],
-		});
-		await resourceLoader.reload();
-
-		const { session } = await createAgentSession(
-			buildSubagentSessionOptions(repositoryRoot, agentDir, resourceLoader, {
-				model,
-				thinkingLevel: taskState.thinkingLevel,
-				modelRegistry: parentCtx.modelRegistry,
-			}),
-		);
+		const session = options.createSession
+			? await options.createSession({
+					repositoryRoot,
+					model,
+					thinkingLevel: taskState.thinkingLevel,
+					modelRegistry: parentCtx.modelRegistry,
+					systemPrompt,
+				})
+			: await (async () => {
+					const agentDir = getAgentDir();
+					const resourceLoader = new DefaultResourceLoader({
+						cwd: repositoryRoot,
+						agentDir,
+						noExtensions: true,
+						noThemes: true,
+						appendSystemPromptOverride: (base) => [...base, systemPrompt],
+					});
+					await resourceLoader.reload();
+					const { session } = await createAgentSession(
+						buildSubagentSessionOptions(
+							repositoryRoot,
+							agentDir,
+							resourceLoader,
+							{
+								model,
+								thinkingLevel: taskState.thinkingLevel,
+								modelRegistry: parentCtx.modelRegistry,
+							},
+						),
+					);
+					return session as SessionLike;
+				})();
 
 		const unsubscribe = session.subscribe((event: any) => {
 			if (event.type === "message_start") {
@@ -495,23 +558,67 @@ export async function runSingleTask(
 			else signal.addEventListener("abort", abortHandler, { once: true });
 		}
 
+		let bestResponse = "";
+		let parsed: ParsedSubagentOutput = { summary: "" };
+		const readLatestAssistantText = () =>
+			getLastAssistantText(
+				session.messages as Array<{ role?: string; content?: unknown }>,
+			);
+		const captureLatestReviewState = () => {
+			const response = stripProgressBlocks(
+				bestAssistantText || readLatestAssistantText() || fallbackAssistantText,
+			);
+			return {
+				response,
+				parsed: cleanParsedOutput(parseOutput(response)),
+			};
+		};
+
 		try {
 			await session.prompt(taskState.task);
+			const initialState = captureLatestReviewState();
+			const repairPrompt = options.buildRepairPrompt?.(
+				initialState.parsed,
+				initialState.response,
+			);
+			if (!aborted && !promptError && repairPrompt?.trim()) {
+				repairAttempted = true;
+				pushHistory(
+					taskState,
+					"lifecycle",
+					"repairing malformed review output with a strict formatting retry",
+				);
+				await session.prompt(repairPrompt);
+				repairSucceeded =
+					captureLatestReviewState().parsed.parseMeta?.structure === "valid";
+				pushHistory(
+					taskState,
+					"lifecycle",
+					repairSucceeded
+						? "review output repair succeeded"
+						: "review output repair completed but remained partial or invalid",
+				);
+			}
 		} catch (error) {
 			promptError = error instanceof Error ? error.message : String(error);
 		} finally {
-			fallbackAssistantText = getLastAssistantText(
-				session.messages as Array<{ role?: string; content?: unknown }>,
-			);
+			fallbackAssistantText = readLatestAssistantText();
+			bestResponse = stripProgressBlocks(bestAssistantText || fallbackAssistantText);
+			parsed = cleanParsedOutput(parseOutput(bestResponse));
 			unsubscribe();
 			if (signal) signal.removeEventListener("abort", abortHandler);
 			session.dispose();
 		}
 
-		const bestResponse = stripProgressBlocks(
-			bestAssistantText || fallbackAssistantText,
+		const resultMetadata = mergeTaskMetadata(
+			taskState.metadata,
+			repairAttempted
+				? {
+					repairAttempted: true,
+					repairSucceeded,
+				}
+				: undefined,
 		);
-		const parsed = cleanParsedOutput(parseOutput(bestResponse));
 
 		if (aborted) {
 			return finish({
@@ -525,9 +632,10 @@ export async function runSingleTask(
 				status: "aborted",
 				summary: parsed.summary,
 				data: parsed.data,
+				parseMeta: parsed.parseMeta,
 				error: taskState.error || promptError || "Subagent aborted",
 				rawResponse: bestResponse,
-				metadata: taskState.metadata,
+				metadata: resultMetadata,
 			});
 		}
 
@@ -543,13 +651,17 @@ export async function runSingleTask(
 				status: "error",
 				summary: parsed.summary,
 				data: parsed.data,
+				parseMeta: parsed.parseMeta,
 				error: promptError,
 				rawResponse: bestResponse,
-				metadata: taskState.metadata,
+				metadata: resultMetadata,
 			});
 		}
 
-		if (!bestResponse.trim() || !hasMeaningfulParsedOutput(parsed)) {
+		if (
+			!bestResponse.trim() ||
+			!hasMeaningfulParsedOutput(parsed, taskState.workflow, bestResponse)
+		) {
 			const error = taskState.error || "Subagent returned no structured content.";
 			pushHistory(taskState, "error", error);
 			return finish({
@@ -563,9 +675,10 @@ export async function runSingleTask(
 				status: "error",
 				summary: parsed.summary,
 				data: parsed.data,
+				parseMeta: parsed.parseMeta,
 				error,
 				rawResponse: bestResponse,
-				metadata: taskState.metadata,
+				metadata: resultMetadata,
 			});
 		}
 
@@ -580,8 +693,9 @@ export async function runSingleTask(
 			status: "success",
 			summary: parsed.summary,
 			data: parsed.data,
+			parseMeta: parsed.parseMeta,
 			rawResponse: bestResponse,
-			metadata: taskState.metadata,
+			metadata: resultMetadata,
 		});
 	} catch (error) {
 		const response = stripProgressBlocks(
@@ -601,9 +715,18 @@ export async function runSingleTask(
 			status: aborted ? "aborted" : "error",
 			summary: parsed.summary,
 			data: parsed.data,
+			parseMeta: parsed.parseMeta,
 			error: message,
 			rawResponse: response,
-			metadata: taskState.metadata,
+			metadata: mergeTaskMetadata(
+				taskState.metadata,
+				repairAttempted
+					? {
+						repairAttempted: true,
+						repairSucceeded,
+					}
+					: undefined,
+			),
 		});
 	}
 }

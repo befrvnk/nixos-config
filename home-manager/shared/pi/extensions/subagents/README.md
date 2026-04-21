@@ -149,10 +149,12 @@ It returns structured markdown with:
 - `## Summary`
 - `## Verdict`
 - `## Findings`
-- `## Human Reviewer Callouts`
+- `## Non-blocking Callouts`
 - `## Next Steps`
 
-Rendered review results include a top-level consensus section with a rolled-up verdict, deduplicated findings, human reviewer callouts, and a suggested fix queue, followed by per-reviewer details.
+Rendered review results include a top-level consensus section with a rolled-up verdict, an output-quality summary, a reviewer-agreement summary, deduplicated findings, non-blocking callouts, and suggested follow-ups, followed by per-reviewer details.
+
+If a reviewer returns malformed or partially structured output, the workflow preserves it, marks the structured-format quality, and includes a fenced preserved-raw-output section for manual inspection. Review subagents also get one strict formatting retry when the first answer drifts from the required schema.
 
 ## Guarding and scope discipline
 

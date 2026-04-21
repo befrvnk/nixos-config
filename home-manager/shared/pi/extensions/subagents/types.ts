@@ -47,9 +47,18 @@ export type SubagentHistoryEntry = {
 	text: string;
 };
 
+export type ParsedOutputStructure = "valid" | "partial" | "invalid";
+
+export type ParsedOutputMeta = {
+	structure: ParsedOutputStructure;
+	missingSections?: string[];
+	warnings?: string[];
+};
+
 export type ParsedSubagentOutput = {
 	summary: string;
 	data?: Record<string, unknown>;
+	parseMeta?: ParsedOutputMeta;
 };
 
 export type SubagentTaskResult = {
@@ -63,6 +72,7 @@ export type SubagentTaskResult = {
 	status: SubagentTaskStatus;
 	summary: string;
 	data?: Record<string, unknown>;
+	parseMeta?: ParsedOutputMeta;
 	error?: string;
 	rawResponse?: string;
 	metadata?: Record<string, unknown>;
@@ -91,6 +101,7 @@ export type SubagentTaskState = {
 	recentOutputLines: string[];
 	summary?: string;
 	data?: Record<string, unknown>;
+	parseMeta?: ParsedOutputMeta;
 	error?: string;
 	startedAt?: number;
 	endedAt?: number;
