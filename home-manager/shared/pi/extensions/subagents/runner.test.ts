@@ -196,6 +196,71 @@ test("runSingleTask repairs malformed review output once and keeps repair metada
 	});
 });
 
+test("runSingleTask repairs narrated structured review output that includes a preamble", async () => {
+	await withMockedCodingAgent(async (runSingleTask) => {
+		const taskState = createReviewTaskState();
+		const session = new MockSession([
+			[
+				"Let me inspect the relevant source files for context.",
+				"",
+				"<details>",
+				"<summary>Reading changed files</summary>",
+				"I checked the surrounding code.",
+				"</details>",
+				"",
+				"## Summary",
+				"Looks safe overall.",
+				"",
+				"## Verdict",
+				"correct",
+				"",
+				"## Findings",
+				"- None",
+				"",
+				"## Non-blocking Callouts",
+				"- None",
+				"",
+				"## Next Steps",
+				"- None",
+			].join("\n"),
+			[
+				"## Summary",
+				"Looks safe overall.",
+				"",
+				"## Verdict",
+				"correct",
+				"",
+				"## Findings",
+				"- None",
+				"",
+				"## Non-blocking Callouts",
+				"- None",
+				"",
+				"## Next Steps",
+				"- None",
+			].join("\n"),
+		]);
+
+		const result = await runSingleTask(taskState, {
+			parentCtx: {
+				model: { provider: "github-copilot", id: "claude-opus-4.6" } as any,
+			},
+			emitRunUpdate: () => undefined,
+			systemPrompt: "You are a code review subagent.",
+			parseOutput: parseReviewOutput,
+			buildRepairPrompt: buildReviewRepairPrompt,
+			createSession: async () => session,
+		});
+
+		assert.equal(result.status, "success");
+		assert.equal(result.summary, "Looks safe overall.");
+		assert.equal(result.parseMeta?.structure, "valid");
+		assert.equal(session.prompts.length, 2);
+		assert.equal(result.metadata?.repairAttempted, true);
+		assert.equal(result.metadata?.repairSucceeded, true);
+	});
+});
+
 test("runSingleTask keeps streaming repair output separate from the initial malformed response", async () => {
 	await withMockedCodingAgent(async (runSingleTask) => {
 		const invalidResponse = [

@@ -77,6 +77,39 @@ test("parseReviewOutput normalizes None bullets away from structured findings", 
 	});
 });
 
+test("parseReviewOutput marks narrated structured output partial and excludes the preamble from summary", () => {
+	const parsed = parseReviewOutput(
+		[
+			"Let me inspect the relevant source files for surrounding context.",
+			"",
+			"<details>",
+			"<summary>Reading files</summary>",
+			"I checked the surrounding code.",
+			"</details>",
+			"",
+			"## Summary",
+			"Looks safe overall.",
+			"",
+			"## Verdict",
+			"correct",
+			"",
+			"## Findings",
+			"- None",
+			"",
+			"## Non-blocking Callouts",
+			"- None",
+			"",
+			"## Next Steps",
+			"- None",
+		].join("\n"),
+	);
+
+	assert.equal(parsed.summary, "Looks safe overall.");
+	assert.equal(parsed.parseMeta?.structure, "partial");
+	assert.match(parsed.parseMeta?.warnings?.join("\n") ?? "", /Unexpected preamble/i);
+	assert.match(parsed.parseMeta?.warnings?.join("\n") ?? "", /HTML-style disclosure markup/i);
+});
+
 test("buildReviewRepairPrompt requests a strict rewrite for malformed output", () => {
 	const parsed = parseReviewOutput(
 		[
@@ -100,6 +133,7 @@ test("buildReviewRepairPrompt requests a strict rewrite for malformed output", (
 	assert.match(prompt ?? "", /did not follow the required review output format/i);
 	assert.match(prompt ?? "", /## Non-blocking Callouts/);
 	assert.match(prompt ?? "", /Do not include tool narration, XML-like tags/);
+	assert.match(prompt ?? "", /Start with `## Summary` on the first non-empty line/);
 });
 
 test("parseReviewOutput marks raw tool-trace output invalid and keeps parsed summary empty", () => {
