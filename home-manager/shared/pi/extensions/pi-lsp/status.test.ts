@@ -85,7 +85,7 @@ test("formatLogDetails renders recent lifecycle log lines", () => {
   assert.match(text, /LSP log view/);
   assert.match(text, /Tracked runtimes: 1/);
   assert.match(text, /kotlin — indexing — \/repo/);
-  assert.match(text, /Recent lifecycle and stderr lines:/);
+  assert.match(text, /Recent lifecycle, progress, request, and stderr lines:/);
   assert.match(text, /\[lifecycle\] stopped -> starting/);
   assert.match(text, /\[stderr\] Gradle import running/);
 });

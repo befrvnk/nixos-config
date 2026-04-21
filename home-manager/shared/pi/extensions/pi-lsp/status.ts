@@ -96,7 +96,7 @@ export function formatLogDetails(options: {
   if (logs.length === 0) {
     lines.push("No recent lifecycle or stderr log lines.");
   } else {
-    lines.push("Recent lifecycle and stderr lines:");
+    lines.push("Recent lifecycle, progress, request, and stderr lines:");
     for (const line of logs.slice(-30)) {
       lines.push(`- ${line}`);
     }

@@ -41,6 +41,13 @@ type DiagnosticsWaiter = {
   timer: ReturnType<typeof setTimeout>;
 };
 
+type WorkDoneProgressValue = {
+  kind?: string;
+  title?: string;
+  message?: string;
+  percentage?: number;
+};
+
 export class JsonRpcStreamParser {
   private buffer = Buffer.alloc(0);
 
@@ -100,6 +107,25 @@ function timestampPrefix(timestamp: number): string {
 
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
+}
+
+function normalizeProgressToken(token: unknown): string | undefined {
+  if (typeof token === "string" || typeof token === "number") return String(token);
+  return undefined;
+}
+
+function summarizeProgress(value: WorkDoneProgressValue | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const parts: string[] = [];
+  if (typeof value.title === "string" && value.title.trim()) parts.push(value.title.trim());
+  if (typeof value.message === "string" && value.message.trim()) parts.push(value.message.trim());
+  if (typeof value.percentage === "number") parts.push(`${value.percentage}%`);
+  return parts.length > 0 ? parts.join(" — ") : undefined;
+}
+
+function isJsonRpcRequestId(value: unknown): value is number | string {
+  return typeof value === "number" || typeof value === "string";
 }
 
 function createFailureInfo(
@@ -272,6 +298,7 @@ export class LspServer {
   private readonly documents = new Map<string, OpenDocument>();
   private readonly diagnostics = new Map<string, DiagnosticEntry>();
   private readonly diagnosticWaiters = new Map<string, DiagnosticsWaiter[]>();
+  private readonly activeProgressTokens = new Set<string>();
   private readonly recentStderrLines: string[] = [];
   private readonly recentLogLines: string[] = [];
   private readonly language: SupportedLanguage;
@@ -574,6 +601,9 @@ export class LspServer {
               publishDiagnostics: {},
               references: {},
             },
+            window: {
+              workDoneProgress: true,
+            },
             workspace: {
               symbol: {},
               workspaceFolders: true,
@@ -589,10 +619,13 @@ export class LspServer {
         timeoutMs,
       );
       this.initializedAt = Date.now();
-      await this.notify("initialized", {});
       if (this.language === "kotlin") {
+        // Kotlin may emit progress notifications immediately after `initialized`, so
+        // enter `indexing` first to avoid missing the promotion to `ready`.
         this.transitionState("indexing");
-      } else {
+      }
+      await this.notify("initialized", {});
+      if (this.language !== "kotlin") {
         this.readyAt = Date.now();
         this.transitionState("ready");
       }
@@ -606,16 +639,28 @@ export class LspServer {
   }
 
   private handleMessage(message: any): void {
-    if (message?.method === "textDocument/publishDiagnostics") {
-      const params = message.params as { uri?: string; version?: number; diagnostics?: Diagnostic[] } | undefined;
-      if (params?.uri) {
-        const entry: DiagnosticEntry = {
-          diagnostics: params.diagnostics ?? [],
-          updatedAt: Date.now(),
-          version: typeof params.version === "number" ? params.version : undefined,
-        };
-        this.diagnostics.set(params.uri, entry);
-        this.settleDiagnosticWaiters(params.uri, entry);
+    if (typeof message?.method === "string") {
+      if (message.method === "textDocument/publishDiagnostics") {
+        const params = message.params as { uri?: string; version?: number; diagnostics?: Diagnostic[] } | undefined;
+        if (params?.uri) {
+          const entry: DiagnosticEntry = {
+            diagnostics: params.diagnostics ?? [],
+            updatedAt: Date.now(),
+            version: typeof params.version === "number" ? params.version : undefined,
+          };
+          this.diagnostics.set(params.uri, entry);
+          this.settleDiagnosticWaiters(params.uri, entry);
+        }
+        return;
+      }
+
+      if (message.method === "$/progress") {
+        this.handleProgressNotification(message.params);
+        return;
+      }
+
+      if (isJsonRpcRequestId(message.id)) {
+        this.handleServerRequest(message.id, message.method, message.params);
       }
       return;
     }
@@ -650,6 +695,59 @@ export class LspServer {
         }
       } else {
         pending.resolve(message.result);
+      }
+    }
+  }
+
+  private handleServerRequest(id: number | string, method: string, params: unknown): void {
+    switch (method) {
+      case "window/workDoneProgress/create": {
+        const token = normalizeProgressToken((params as { token?: unknown } | undefined)?.token);
+        this.addLogLine(`[server-request] ${method}${token ? ` ${token}` : ""} ok`);
+        this.writeMessage({
+          jsonrpc: "2.0",
+          id,
+          result: null,
+        });
+        return;
+      }
+      default:
+        this.addLogLine(`[server-request] unsupported ${method}`);
+        this.writeMessage({
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32601,
+            message: `Unsupported server request: ${method}`,
+          },
+        });
+    }
+  }
+
+  private handleProgressNotification(params: unknown): void {
+    const payload = params as { token?: unknown; value?: WorkDoneProgressValue } | undefined;
+    const token = normalizeProgressToken(payload?.token);
+    const value = payload?.value;
+    if (!token || !value || typeof value !== "object") return;
+
+    const summary = summarizeProgress(value);
+
+    if (value.kind === "begin") {
+      this.activeProgressTokens.add(token);
+      this.addLogLine(`[progress] begin${summary ? ` ${summary}` : ""}`);
+      return;
+    }
+
+    if (value.kind === "report") {
+      if (summary) this.addLogLine(`[progress] report ${summary}`);
+      return;
+    }
+
+    if (value.kind === "end") {
+      this.activeProgressTokens.delete(token);
+      this.addLogLine(`[progress] end${summary ? ` ${summary}` : ""}`);
+      if (this.language === "kotlin" && this.state === "indexing" && this.activeProgressTokens.size === 0) {
+        this.markSemanticReady();
       }
     }
   }
@@ -770,6 +868,7 @@ export class LspServer {
     this.documents.clear();
     this.diagnostics.clear();
     this.unsupportedMethods.clear();
+    this.activeProgressTokens.clear();
     this.initializedAt = undefined;
     this.readyAt = undefined;
     if (this.state !== "failed") this.startedAt = undefined;

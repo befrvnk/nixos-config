@@ -9,9 +9,11 @@ import { PassThrough } from "node:stream";
 import { LspServer } from "./server.ts";
 
 type JsonRpcMessage = {
-  id?: number;
+  id?: number | string;
   method?: string;
   params?: Record<string, unknown>;
+  result?: unknown;
+  error?: unknown;
 };
 
 function encodeMessage(payload: unknown): string {
@@ -114,9 +116,139 @@ test("LspServer.start sends initialize with the workspace basename", async () =>
     | Array<{ name?: string; uri?: string }>
     | undefined;
 
+  const capabilities = initializeMessage?.params?.capabilities as
+    | { window?: { workDoneProgress?: boolean } }
+    | undefined;
+
   assert.equal(initializeMessage?.method, "initialize");
   assert.equal(workspaceFolders?.[0]?.name, path.basename(root));
   assert.equal(workspaceFolders?.[0]?.uri, pathToFileURL(root).href);
+  assert.equal(capabilities?.window?.workDoneProgress, true);
+});
+
+
+test("LspServer distinguishes server requests from client responses during initialize", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-server-request-"));
+  let acknowledgedProgressCreate = false;
+
+  const child = createMockChild((message, childProcess) => {
+    if (message.method === "initialize") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          method: "window/workDoneProgress/create",
+          params: { token: "kotlin-import" },
+        }),
+      );
+      return;
+    }
+
+    if (typeof message.id === "number" && message.method === undefined && message.result === null) {
+      acknowledgedProgressCreate = true;
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: {},
+        }),
+      );
+      return;
+    }
+
+    if (message.method === "shutdown") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: null,
+        }),
+      );
+    }
+  });
+
+  const server = new LspServer(
+    "kotlin",
+    root,
+    {
+      command: "/bin/mock-kotlin-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+
+  assert.equal(acknowledgedProgressCreate, true);
+  assert.equal(server.getStatus().state, "indexing");
+  assert.match(server.getRecentLogLines().join("\n"), /server-request.*window\/workDoneProgress\/create/);
+
+  await server.stop();
+});
+
+test("LspServer acknowledges string-id server requests", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-string-server-request-"));
+  let acknowledgedProgressCreate = false;
+
+  const child = createMockChild((message, childProcess) => {
+    if (message.method === "initialize") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: {},
+        }),
+      );
+      return;
+    }
+
+    if (message.method === "initialized") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: "progress-create-1",
+          method: "window/workDoneProgress/create",
+          params: { token: "kotlin-import" },
+        }),
+      );
+      return;
+    }
+
+    if (message.id === "progress-create-1" && message.method === undefined && message.result === null) {
+      acknowledgedProgressCreate = true;
+      return;
+    }
+
+    if (message.method === "shutdown") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: null,
+        }),
+      );
+    }
+  });
+
+  const server = new LspServer(
+    "kotlin",
+    root,
+    {
+      command: "/bin/mock-kotlin-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  assert.equal(acknowledgedProgressCreate, true);
+  assert.match(server.getRecentLogLines().join("\n"), /server-request.*window\/workDoneProgress\/create/);
+
+  await server.stop();
 });
 
 test("Kotlin LspServer enters indexing after initialize and retains recent stderr output", async () => {
@@ -162,6 +294,91 @@ test("Kotlin LspServer enters indexing after initialize and retains recent stder
 
   await server.stop();
 });
+
+test("Kotlin LspServer promotes indexing to ready after work done progress completes", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-progress-ready-"));
+
+  const child = createMockChild((message, childProcess) => {
+    if (message.method === "initialize") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: {},
+        }),
+      );
+      return;
+    }
+
+    if (message.method === "initialized") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: 99,
+          method: "window/workDoneProgress/create",
+          params: { token: "kotlin-import" },
+        }),
+      );
+      return;
+    }
+
+    if (message.id === 99 && message.method === undefined && message.result === null) {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          method: "$/progress",
+          params: {
+            token: "kotlin-import",
+            value: { kind: "begin", title: "Indexing..." },
+          },
+        }),
+      );
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          method: "$/progress",
+          params: {
+            token: "kotlin-import",
+            value: { kind: "end", message: "Done" },
+          },
+        }),
+      );
+      return;
+    }
+
+    if (message.method === "shutdown") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: null,
+        }),
+      );
+    }
+  });
+
+  const server = new LspServer(
+    "kotlin",
+    root,
+    {
+      command: "/bin/mock-kotlin-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const status = server.getStatus();
+  assert.equal(status.state, "ready");
+  assert.ok(typeof status.readyAt === "number");
+  assert.match(server.getRecentLogLines().join("\n"), /progress.*Indexing\.\.\./);
+
+  await server.stop();
+});
+
 
 test("Kotlin LspServer promotes indexing to ready after a successful semantic request", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-promote-"));
