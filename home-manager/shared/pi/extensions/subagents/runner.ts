@@ -2,6 +2,7 @@ import type { Message, Model } from "@mariozechner/pi-ai";
 import {
 	createAgentSession,
 	DefaultResourceLoader,
+	getAgentDir,
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
 import { createGuardedExplorationTools } from "./child-guard.js";
@@ -15,6 +16,7 @@ import type {
 	ParsedSubagentOutput,
 	SubagentTaskResult,
 	SubagentTaskState,
+	SubagentThinkingLevel,
 } from "./types.js";
 import {
 	COPILOT_PROVIDER,
@@ -227,6 +229,34 @@ export async function mapWithConcurrencyLimit<TIn, TOut>(
 	return results;
 }
 
+function buildSubagentSessionOptions(
+	repositoryRoot: string,
+	agentDir: string,
+	resourceLoader: DefaultResourceLoader,
+	overrides: {
+		model?: Model<any>;
+		thinkingLevel?: SubagentThinkingLevel;
+		modelRegistry?: ModelRegistryLike;
+	},
+): Parameters<typeof createAgentSession>[0] {
+	const sessionOptions: Record<string, unknown> = {
+		cwd: repositoryRoot,
+		agentDir,
+		resourceLoader,
+		// pi 0.68+ expects a string allowlist in `tools`; guarded tool objects must go
+		// through `customTools` or child sessions fail before the subagent can run.
+		tools: [],
+		customTools: createGuardedExplorationTools(repositoryRoot),
+		sessionManager: SessionManager.inMemory(repositoryRoot),
+	};
+	if (overrides.model) sessionOptions.model = overrides.model;
+	if (overrides.thinkingLevel)
+		sessionOptions.thinkingLevel = overrides.thinkingLevel;
+	if (overrides.modelRegistry)
+		sessionOptions.modelRegistry = overrides.modelRegistry;
+	return sessionOptions as Parameters<typeof createAgentSession>[0];
+}
+
 export async function runSingleTask(
 	taskState: SubagentTaskState,
 	options: RunTaskOptions,
@@ -295,28 +325,22 @@ export async function runSingleTask(
 		const model = await resolveModel(taskState.model, parentCtx);
 		pushHistory(taskState, "lifecycle", `started ${taskState.workflow} task`);
 		const repositoryRoot = taskState.cwd ?? process.cwd();
+		const agentDir = getAgentDir();
 		const resourceLoader = new DefaultResourceLoader({
 			cwd: repositoryRoot,
+			agentDir,
 			noExtensions: true,
 			noThemes: true,
 			appendSystemPromptOverride: (base) => [...base, systemPrompt],
 		});
 		await resourceLoader.reload();
 
-		const createSessionOptions: Record<string, unknown> = {
-			cwd: repositoryRoot,
-			resourceLoader,
-			tools: createGuardedExplorationTools(repositoryRoot),
-			sessionManager: SessionManager.inMemory(repositoryRoot),
-		};
-		if (model) createSessionOptions.model = model;
-		if (taskState.thinkingLevel)
-			createSessionOptions.thinkingLevel = taskState.thinkingLevel;
-		if (parentCtx.modelRegistry)
-			createSessionOptions.modelRegistry = parentCtx.modelRegistry;
-
 		const { session } = await createAgentSession(
-			createSessionOptions as Parameters<typeof createAgentSession>[0],
+			buildSubagentSessionOptions(repositoryRoot, agentDir, resourceLoader, {
+				model,
+				thinkingLevel: taskState.thinkingLevel,
+				modelRegistry: parentCtx.modelRegistry,
+			}),
 		);
 
 		const unsubscribe = session.subscribe((event: any) => {
