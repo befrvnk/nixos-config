@@ -7,11 +7,11 @@
 
 stdenvNoCC.mkDerivation rec {
   pname = "supacode";
-  version = "0.8.0";
+  version = "0.8.2";
 
   src = fetchzip {
     url = "https://github.com/supabitapp/supacode/releases/download/v${version}/supacode.app.zip";
-    hash = "sha256-6xpf4Nu8lopS8AL0zVdrogHkKCnxyNUnK9iirVaxxL0=";
+    hash = "sha256-PWcU2htNGlqXg2zKaUs5+ZSbAJrGEvAovT7StAA5Pvs=";
     stripRoot = false;
   };
 
