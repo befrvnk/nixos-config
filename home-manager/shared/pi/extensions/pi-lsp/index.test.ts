@@ -44,10 +44,11 @@ function createMockPi() {
   };
 }
 
-test("workspace_symbols skips Kotlin non-project roots instead of aborting the whole query", async () => {
+test("workspace_symbols skips Kotlin non-project roots and warmup detection ignores bare git repos", async () => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-index-workspace-"));
   const configPath = path.join(workspace, "pi-lsp.json");
 
+  fs.mkdirSync(path.join(workspace, ".git"));
   fs.writeFileSync(
     configPath,
     JSON.stringify({
@@ -62,11 +63,18 @@ test("workspace_symbols skips Kotlin non-project roots instead of aborting the w
           args: ["-e", "process.exit(1)"],
           startupTimeoutMs: 100,
         },
+        nix: {
+          command: process.execPath,
+          args: ["-e", "process.exit(1)"],
+          startupTimeoutMs: 100,
+        },
       },
     }),
   );
 
-  const { default: piLspExtension } = await importWithConfigPath<typeof import("./index.ts")>("./index.ts", configPath);
+  const { default: piLspExtension, detectLikelyWorkspaceLanguages } =
+    await importWithConfigPath<typeof import("./index.ts")>("./index.ts", configPath);
+  assert.deepEqual(detectLikelyWorkspaceLanguages(workspace), []);
   const pi = createMockPi();
   piLspExtension(pi as any);
 
@@ -87,6 +95,16 @@ test("workspace_symbols skips Kotlin non-project roots instead of aborting the w
   assert.equal(result.details.action, "workspace_symbols");
   assert.equal(result.details.noProject.length, 1);
   assert.equal(result.details.noProject[0].language, "kotlin");
-  assert.match(result.content[0].text, /kotlin \(project detection\) could not answer workspace_symbols because this workspace is not a recognized project/i);
-  assert.match(result.content[0].text, /Unavailable: typescript:/);
+  assert.match(
+    result.content[0].text,
+    /kotlin \(project detection\) could not answer workspace_symbols because this workspace is not a recognized project/i,
+  );
+  assert.match(result.content[0].text, /Unavailable: .*typescript:/);
+  assert.match(result.content[0].text, /Unavailable: .*nix:/);
+
+  fs.writeFileSync(path.join(workspace, "devenv.nix"), "{ pkgs, ... }: { }\n");
+  assert.deepEqual(detectLikelyWorkspaceLanguages(workspace), ["nix"]);
+
+  fs.writeFileSync(path.join(workspace, "package.json"), "{}\n");
+  assert.deepEqual(detectLikelyWorkspaceLanguages(workspace), ["typescript", "nix"]);
 });

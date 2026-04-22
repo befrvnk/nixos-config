@@ -25,8 +25,8 @@ export const LANGUAGE_EXTENSIONS: Array<{ suffixes: string[]; language: Supporte
 
 export const ROOT_MARKERS: Record<SupportedLanguage, string[]> = {
   kotlin: ["settings.gradle.kts", "settings.gradle", "gradlew", "pom.xml", "build.gradle.kts", "build.gradle"],
-  nix: ["flake.nix", "default.nix", "shell.nix", ".git"],
-  typescript: ["tsconfig.json", "tsconfig.base.json", "jsconfig.json", "package.json", "pnpm-workspace.yaml", ".git"],
+  nix: ["devenv.lock", "devenv.nix", "devenv.yaml", "flake.nix", "default.nix", "shell.nix"],
+  typescript: ["tsconfig.json", "tsconfig.base.json", "jsconfig.json", "package.json", "pnpm-workspace.yaml"],
 };
 
 export const SYMBOL_KINDS: Record<number, string> = {

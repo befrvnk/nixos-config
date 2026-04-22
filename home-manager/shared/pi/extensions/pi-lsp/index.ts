@@ -56,7 +56,7 @@ function getConfiguredLanguages(): SupportedLanguage[] {
     .map(([language]) => language as SupportedLanguage);
 }
 
-function detectLikelyWorkspaceLanguages(startPath: string): SupportedLanguage[] {
+export function detectLikelyWorkspaceLanguages(startPath: string): SupportedLanguage[] {
   const startDir = fs.realpathSync.native(startPath);
 
   return getConfiguredLanguages().filter((language) => {
