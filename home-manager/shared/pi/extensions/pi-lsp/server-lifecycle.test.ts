@@ -295,6 +295,43 @@ test("Kotlin LspServer enters indexing after initialize and retains recent stder
   await server.stop();
 });
 
+test("Kotlin LspServer promotes indexing to ready when no progress notifications arrive", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-no-progress-ready-"));
+  const child = createMockChild((message, childProcess) => {
+    if (typeof message.id === "number") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: {},
+        }),
+      );
+    }
+  });
+
+  const server = new LspServer(
+    "kotlin",
+    root,
+    {
+      command: "/bin/mock-kotlin-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+      kotlinReadyWithoutProgressMs: 20,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+
+  const status = server.getStatus();
+  assert.equal(status.state, "ready");
+  assert.ok(typeof status.readyAt === "number");
+  assert.match(server.getRecentLogLines().join("\n"), /no Kotlin work-done progress observed/);
+
+  await server.stop();
+});
+
 test("Kotlin LspServer promotes indexing to ready after work done progress completes", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-progress-ready-"));
 
@@ -379,6 +416,81 @@ test("Kotlin LspServer promotes indexing to ready after work done progress compl
   await server.stop();
 });
 
+
+test("Kotlin LspServer promotes indexing to ready when progress stalls", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-stalled-progress-ready-"));
+
+  const child = createMockChild((message, childProcess) => {
+    if (message.method === "initialize") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: {},
+        }),
+      );
+      return;
+    }
+
+    if (message.method === "initialized") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: 99,
+          method: "window/workDoneProgress/create",
+          params: { token: "kotlin-import" },
+        }),
+      );
+      return;
+    }
+
+    if (message.id === 99 && message.method === undefined && message.result === null) {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          method: "$/progress",
+          params: {
+            token: "kotlin-import",
+            value: { kind: "begin", title: "Indexing..." },
+          },
+        }),
+      );
+      return;
+    }
+
+    if (message.method === "shutdown") {
+      childProcess.stdout.write(
+        encodeMessage({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: null,
+        }),
+      );
+    }
+  });
+
+  const server = new LspServer(
+    "kotlin",
+    root,
+    {
+      command: "/bin/mock-kotlin-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+      kotlinStalledProgressTimeoutMs: 20,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+  await new Promise((resolve) => setTimeout(resolve, 40));
+
+  const status = server.getStatus();
+  assert.equal(status.state, "ready");
+  assert.ok(typeof status.readyAt === "number");
+  assert.match(server.getRecentLogLines().join("\n"), /Kotlin progress stalled/);
+
+  await server.stop();
+});
 
 test("Kotlin LspServer promotes indexing to ready after a successful semantic request", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-promote-"));

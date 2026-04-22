@@ -116,3 +116,24 @@ test("classifyLspFailure distinguishes initialize timeouts and unsupported metho
   assert.equal(noProjectFailure.category, "no_project");
   assert.equal(noProjectFailure.method, "workspace/symbol");
 });
+
+test("classifyLspFailure explains likely Kotlin workspace session conflicts", () => {
+  const likelyConflict = classifyLspFailure(new Error("cancelled"), {
+    method: "initialize",
+    language: "kotlin",
+    root: "/repo",
+  });
+  assert.equal(likelyConflict.category, "initialize_failed");
+  assert.match(likelyConflict.message, /Multiple editing sessions for one workspace are not supported yet/);
+
+  const explicitConflict = classifyLspFailure(
+    new Error("Multiple editing sessions for one workspace are not supported yet"),
+    {
+      method: "initialize",
+      language: "kotlin",
+      root: "/repo",
+    },
+  );
+  assert.equal(explicitConflict.category, "workspace_session_conflict");
+  assert.match(explicitConflict.message, /Stop the other Kotlin LSP session for this workspace/i);
+});

@@ -32,4 +32,14 @@ test("formatActionFallbackMessage renders actionable degraded responses", () => 
   });
 
   assert.match(documentSymbols, /read the file directly for structure/);
+
+  const workspaceConflict = formatActionFallbackMessage({
+    action: "definition",
+    language: "kotlin",
+    root: "/repo",
+    error: new Error("Multiple editing sessions for one workspace are not supported yet"),
+  });
+
+  assert.match(workspaceConflict, /workspace_session_conflict/);
+  assert.match(workspaceConflict, /stop the other pi\/editor session using this same workspace root/);
 });

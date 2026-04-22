@@ -21,6 +21,8 @@ export function formatActionFallbackMessage(options: {
               : action === "diagnostics"
                 ? "textDocument/publishDiagnostics"
                 : undefined,
+    language,
+    root,
   });
 
   const lines = [
@@ -28,13 +30,22 @@ export function formatActionFallbackMessage(options: {
     `Root: ${root}`,
     `Reason: ${failure.category}: ${failure.message}`,
     "",
-    ...getSuggestions(action),
+    ...getSuggestions(action, failure.category),
   ];
 
   return lines.join("\n");
 }
 
-function getSuggestions(action: QueryAction): string[] {
+function getSuggestions(action: QueryAction, category?: string): string[] {
+  if (category === "workspace_session_conflict") {
+    return [
+      "Suggested fix:",
+      "- stop the other pi/editor session using this same workspace root",
+      "- run /lsp-stop in the other session or kill orphaned kotlin-lsp processes for this root",
+      "- retry after only one kotlin-lsp remains attached, or use a separate worktree",
+    ];
+  }
+
   switch (action) {
     case "definition":
       return [

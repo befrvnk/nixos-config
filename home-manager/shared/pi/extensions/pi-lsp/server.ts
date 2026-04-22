@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { execFileSync, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -18,6 +18,8 @@ import type {
 
 const DEFAULT_DIAGNOSTICS_TIMEOUT_MS = 5_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
+const DEFAULT_KOTLIN_READY_WITHOUT_PROGRESS_MS = 5_000;
+const DEFAULT_KOTLIN_STALLED_PROGRESS_TIMEOUT_MS = 30_000;
 const MAX_RECENT_STDERR_LINES = 20;
 const MAX_RECENT_LOG_LINES = 50;
 
@@ -94,6 +96,132 @@ function formatExitSuffix(code: number | null, signal: NodeJS.Signals | null): s
 
 function getServerLabel(command: string): string {
   return path.basename(command) || command;
+}
+
+function findExistingCommand(candidates: string[]): string | undefined {
+  return candidates.find((candidate) => {
+    if (candidate.includes(path.sep)) return fs.existsSync(candidate);
+    return true;
+  });
+}
+
+function isKotlinLspCommand(command: string): boolean {
+  return /kotlinLspServerKt|(^|\s)kotlin-lsp(\s|$)/.test(command);
+}
+
+function listKotlinLspPidsFromProc(): number[] {
+  try {
+    return fs.readdirSync("/proc", { withFileTypes: true }).flatMap((entry) => {
+      if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) return [];
+
+      try {
+        const pid = Number(entry.name);
+        const command = fs.readFileSync(`/proc/${entry.name}/cmdline`, "utf8").replace(/\0/g, " ").trim();
+        if (!Number.isInteger(pid) || !command || !isKotlinLspCommand(command)) return [];
+        return [pid];
+      } catch {
+        return [];
+      }
+    });
+  } catch {
+    return [];
+  }
+}
+
+function listKotlinLspPids(): number[] {
+  if (process.platform === "linux" && fs.existsSync("/proc")) {
+    return listKotlinLspPidsFromProc();
+  }
+
+  const psCommand = findExistingCommand([
+    "/run/current-system/sw/bin/ps",
+    "/usr/bin/ps",
+    "/bin/ps",
+    "ps",
+  ]);
+  if (!psCommand) return [];
+
+  try {
+    const output = execFileSync(psCommand, ["-axo", "pid=,command="], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+
+    return output
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .flatMap((line) => {
+        const match = line.match(/^(\d+)\s+(.*)$/);
+        if (!match) return [];
+
+        const pid = Number(match[1]);
+        const command = match[2];
+        if (!Number.isInteger(pid) || !isKotlinLspCommand(command)) return [];
+        return [pid];
+      });
+  } catch {
+    return [];
+  }
+}
+
+function getProcessCwd(pid: number): string | undefined {
+  if (process.platform === "linux") {
+    try {
+      return fs.realpathSync.native(fs.readlinkSync(`/proc/${pid}/cwd`));
+    } catch {
+      // Fall back to lsof below when procfs is unavailable.
+    }
+  }
+
+  const lsofCommand = findExistingCommand([
+    "/usr/sbin/lsof",
+    "/usr/bin/lsof",
+    "lsof",
+  ]);
+  if (!lsofCommand) return undefined;
+
+  try {
+    const output = execFileSync(lsofCommand, ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+
+    for (const line of output.split(/\r?\n/)) {
+      if (!line.startsWith("n")) continue;
+      const cwd = line.slice(1).trim();
+      if (!cwd) continue;
+      return fs.realpathSync.native(cwd);
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function findCompetingKotlinWorkspacePids(root: string, currentPid?: number): number[] {
+  let normalizedRoot: string;
+  try {
+    normalizedRoot = fs.realpathSync.native(root);
+  } catch {
+    return [];
+  }
+
+  return listKotlinLspPids().filter((pid) => {
+    if (pid === currentPid) return false;
+    return getProcessCwd(pid) === normalizedRoot;
+  });
+}
+
+function formatKotlinWorkspaceSessionConflictMessage(root: string | undefined, pids: number[]): string {
+  const rootLine = root ? ` Workspace: ${root}.` : "";
+
+  if (pids.length > 0) {
+    return `Another kotlin-lsp session is already attached to this workspace.${rootLine} Competing PID(s): ${pids.join(", ")}. kotlin-lsp currently supports only one editing session per workspace root. Stop the other session or use a separate worktree, then retry.`;
+  }
+
+  return `Kotlin initialize was cancelled.${rootLine} kotlin-lsp may reject a second client for the same workspace with “Multiple editing sessions for one workspace are not supported yet”. Stop the other Kotlin LSP session for this workspace or use a separate worktree, then retry.`;
 }
 
 function pushBounded(items: string[], value: string, maxItems: number): void {
@@ -227,7 +355,15 @@ export function isLspReadinessTimeoutError(error: unknown): error is LspReadines
   return error instanceof LspReadinessTimeoutError;
 }
 
-export function classifyLspFailure(error: unknown, options: { method?: string } = {}): LspFailureInfo {
+export function classifyLspFailure(
+  error: unknown,
+  options: {
+    method?: string;
+    language?: SupportedLanguage;
+    root?: string;
+    currentPid?: number;
+  } = {},
+): LspFailureInfo {
   if (error instanceof UnsupportedLspMethodError) {
     return createFailureInfo("unsupported_method", error.message, {
       at: Date.now(),
@@ -245,6 +381,28 @@ export function classifyLspFailure(error: unknown, options: { method?: string } 
   const normalized = toError(error);
   const message = normalized.message;
   const lowered = message.toLowerCase();
+  const isExplicitWorkspaceConflict = lowered.includes("multiple editing sessions for one workspace");
+  const isLikelyKotlinWorkspaceConflict = options.language === "kotlin" && lowered === "cancelled";
+
+  if (isExplicitWorkspaceConflict || isLikelyKotlinWorkspaceConflict) {
+    const competingWorkspacePids = options.root
+      ? findCompetingKotlinWorkspacePids(options.root, options.currentPid)
+      : [];
+
+    if (isExplicitWorkspaceConflict || competingWorkspacePids.length > 0) {
+      return createFailureInfo(
+        "workspace_session_conflict",
+        formatKotlinWorkspaceSessionConflictMessage(options.root, competingWorkspacePids),
+        { method: options.method },
+      );
+    }
+
+    if (options.method === "initialize") {
+      return createFailureInfo("initialize_failed", formatKotlinWorkspaceSessionConflictMessage(options.root, []), {
+        method: options.method,
+      });
+    }
+  }
 
   if (lowered.includes("timed out waiting for initialize")) {
     return createFailureInfo("initialize_timeout", message, { method: "initialize" });
@@ -299,6 +457,9 @@ export class LspServer {
   private readonly diagnostics = new Map<string, DiagnosticEntry>();
   private readonly diagnosticWaiters = new Map<string, DiagnosticsWaiter[]>();
   private readonly activeProgressTokens = new Set<string>();
+  private kotlinProgressObserved = false;
+  private kotlinLastProgressAt: number | undefined;
+  private kotlinReadyFallbackTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly recentStderrLines: string[] = [];
   private readonly recentLogLines: string[] = [];
   private readonly language: SupportedLanguage;
@@ -432,7 +593,12 @@ export class LspServer {
     } catch (error) {
       const normalized = toError(error);
       this.recordRequestMetric(method, requestStartedAt, false, normalized);
-      this.lastFailure = classifyLspFailure(normalized, { method });
+      this.lastFailure = classifyLspFailure(normalized, {
+        method,
+        language: this.language,
+        root: this.root,
+        currentPid: this.process?.pid,
+      });
       throw normalized;
     }
   }
@@ -622,7 +788,7 @@ export class LspServer {
       if (this.language === "kotlin") {
         // Kotlin may emit progress notifications immediately after `initialized`, so
         // enter `indexing` first to avoid missing the promotion to `ready`.
-        this.transitionState("indexing");
+        this.enterKotlinIndexing();
       }
       await this.notify("initialized", {});
       if (this.language !== "kotlin") {
@@ -632,7 +798,15 @@ export class LspServer {
     } catch (error) {
       const normalized = toError(error);
       this.lastProcessError = normalized;
-      this.recordFailure(classifyLspFailure(normalized, { method: "initialize" }), normalized);
+      this.recordFailure(
+        classifyLspFailure(normalized, {
+          method: "initialize",
+          language: this.language,
+          root: this.root,
+          currentPid: this.process?.pid,
+        }),
+        normalized,
+      );
       this.terminateProcess();
       throw normalized;
     }
@@ -731,15 +905,21 @@ export class LspServer {
     if (!token || !value || typeof value !== "object") return;
 
     const summary = summarizeProgress(value);
+    if (this.language === "kotlin") {
+      this.kotlinProgressObserved = true;
+      this.kotlinLastProgressAt = Date.now();
+    }
 
     if (value.kind === "begin") {
       this.activeProgressTokens.add(token);
       this.addLogLine(`[progress] begin${summary ? ` ${summary}` : ""}`);
+      this.scheduleKotlinStalledProgressFallback();
       return;
     }
 
     if (value.kind === "report") {
       if (summary) this.addLogLine(`[progress] report ${summary}`);
+      this.scheduleKotlinStalledProgressFallback();
       return;
     }
 
@@ -748,7 +928,9 @@ export class LspServer {
       this.addLogLine(`[progress] end${summary ? ` ${summary}` : ""}`);
       if (this.language === "kotlin" && this.state === "indexing" && this.activeProgressTokens.size === 0) {
         this.markSemanticReady();
+        return;
       }
+      this.scheduleKotlinStalledProgressFallback();
     }
   }
 
@@ -781,10 +963,14 @@ export class LspServer {
     if (!this.lastProcessError) this.lastProcessError = normalized;
     this.rejectPendingRequests(this.lastProcessError);
     this.rejectDiagnosticWaiters(this.lastProcessError);
+    const failedPid = this.process?.pid;
     this.process = undefined;
     this.recordFailure(
       classifyLspFailure(this.lastProcessError, {
         method: this.state === "starting" || this.state === "initializing" ? "initialize" : undefined,
+        language: this.language,
+        root: this.root,
+        currentPid: failedPid,
       }),
       this.lastProcessError,
     );
@@ -802,7 +988,61 @@ export class LspServer {
     ].includes(method);
   }
 
+  private enterKotlinIndexing(): void {
+    this.clearKotlinProgressState();
+    this.transitionState("indexing");
+    this.scheduleKotlinReadyWithoutProgressFallback();
+  }
+
+  private scheduleKotlinReadyWithoutProgressFallback(): void {
+    if (this.language !== "kotlin") return;
+
+    this.clearKotlinReadyFallbackTimer();
+    const delayMs = this.config.kotlinReadyWithoutProgressMs ?? DEFAULT_KOTLIN_READY_WITHOUT_PROGRESS_MS;
+    this.kotlinReadyFallbackTimer = setTimeout(() => {
+      if (this.state !== "indexing") return;
+      if (this.kotlinProgressObserved) return;
+      if (this.activeProgressTokens.size > 0) return;
+
+      this.addLogLine(`[progress] no Kotlin work-done progress observed after ${delayMs}ms; assuming ready`);
+      this.markSemanticReady();
+    }, delayMs);
+  }
+
+  private scheduleKotlinStalledProgressFallback(): void {
+    if (this.language !== "kotlin") return;
+    if (this.state !== "indexing") return;
+    if (!this.kotlinProgressObserved) return;
+
+    this.clearKotlinReadyFallbackTimer();
+    const delayMs = this.config.kotlinStalledProgressTimeoutMs ?? DEFAULT_KOTLIN_STALLED_PROGRESS_TIMEOUT_MS;
+    this.kotlinReadyFallbackTimer = setTimeout(() => {
+      if (this.state !== "indexing") return;
+      if (!this.kotlinProgressObserved) return;
+      if (!this.kotlinLastProgressAt) return;
+      if (Date.now() - this.kotlinLastProgressAt < delayMs) return;
+
+      const activeTokenCount = this.activeProgressTokens.size;
+      const activeTokenSuffix = activeTokenCount > 0 ? ` with ${activeTokenCount} active progress token(s)` : "";
+      this.addLogLine(`[progress] Kotlin progress stalled for ${delayMs}ms${activeTokenSuffix}; assuming ready`);
+      this.markSemanticReady();
+    }, delayMs);
+  }
+
+  private clearKotlinReadyFallbackTimer(): void {
+    if (!this.kotlinReadyFallbackTimer) return;
+    clearTimeout(this.kotlinReadyFallbackTimer);
+    this.kotlinReadyFallbackTimer = undefined;
+  }
+
+  private clearKotlinProgressState(): void {
+    this.clearKotlinReadyFallbackTimer();
+    this.kotlinProgressObserved = false;
+    this.kotlinLastProgressAt = undefined;
+  }
+
   private markSemanticReady(): void {
+    this.clearKotlinReadyFallbackTimer();
     if (this.state === "ready") return;
     this.readyAt = Date.now();
     this.transitionState("ready");
@@ -869,6 +1109,7 @@ export class LspServer {
     this.diagnostics.clear();
     this.unsupportedMethods.clear();
     this.activeProgressTokens.clear();
+    this.clearKotlinProgressState();
     this.initializedAt = undefined;
     this.readyAt = undefined;
     if (this.state !== "failed") this.startedAt = undefined;

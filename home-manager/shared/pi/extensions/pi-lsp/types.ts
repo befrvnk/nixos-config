@@ -56,6 +56,8 @@ export type ServerConfig = {
   command: string;
   args?: string[];
   startupTimeoutMs?: number;
+  kotlinReadyWithoutProgressMs?: number;
+  kotlinStalledProgressTimeoutMs?: number;
 };
 
 export type ExtensionConfig = {
@@ -83,6 +85,7 @@ export type LspFailureCategory =
   | "initialize_failed"
   | "process_exited"
   | "workspace_import_failed"
+  | "workspace_session_conflict"
   | "request_timeout"
   | "unsupported_method"
   | "no_project"
