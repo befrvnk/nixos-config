@@ -126,6 +126,7 @@
     };
     taps = [
       "BarutSRB/tap"
+      "muxy-app/tap"
     ];
     casks =
       map
@@ -140,6 +141,7 @@
           "jetbrains-toolbox"
           "lunar"
           "miro"
+          "muxy"
           "notion"
           "opencode-desktop"
           "raycast"
