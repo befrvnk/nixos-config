@@ -272,6 +272,7 @@ async function getReadyServerOrWarmup(
 
 export default function piLspExtension(pi: ExtensionAPI) {
   let manager: ServerManager | undefined;
+  let unsubscribeStatusUpdates: (() => void) | undefined;
 
   const getManager = () => {
     if (!manager) manager = new ServerManager(loadConfig());
@@ -284,6 +285,15 @@ export default function piLspExtension(pi: ExtensionAPI) {
     } catch {
       return undefined;
     }
+  };
+
+  const bindStatusUpdates = (serverManager: ServerManager | undefined, ctx: ExtensionContext) => {
+    unsubscribeStatusUpdates?.();
+    unsubscribeStatusUpdates = undefined;
+    if (!serverManager || !ctx.hasUI) return;
+    unsubscribeStatusUpdates = serverManager.onStatusChange(() => {
+      updateStatus(serverManager, ctx);
+    });
   };
 
   const executeAction = async (
@@ -735,6 +745,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     const serverManager = getManagerIfConfigured();
+    bindStatusUpdates(serverManager, ctx);
     if (!serverManager) {
       updateStatus(manager, ctx);
       return;
@@ -757,6 +768,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
+    unsubscribeStatusUpdates?.();
+    unsubscribeStatusUpdates = undefined;
     if (manager) await manager.shutdown();
     manager = undefined;
     if (ctx.hasUI) ctx.ui.setStatus("pi-lsp", undefined);

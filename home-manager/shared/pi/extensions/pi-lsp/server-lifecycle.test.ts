@@ -78,6 +78,17 @@ type MockChild = EventEmitter & {
   kill: () => boolean;
 };
 
+async function waitFor(predicate: () => boolean, timeoutMs = 1_000, intervalMs = 10): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (!predicate()) {
+    if (Date.now() >= deadline) {
+      throw new Error(`Timed out after ${timeoutMs}ms waiting for test condition.`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}
+
 test("LspServer.start sends initialize with the workspace basename", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-root-"));
   let initializeMessage: JsonRpcMessage | undefined;
@@ -243,7 +254,7 @@ test("LspServer acknowledges string-id server requests", async () => {
   );
 
   await server.start();
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  await waitFor(() => acknowledgedProgressCreate);
 
   assert.equal(acknowledgedProgressCreate, true);
   assert.match(server.getRecentLogLines().join("\n"), /server-request.*window\/workDoneProgress\/create/);
@@ -322,7 +333,7 @@ test("Kotlin LspServer promotes indexing to ready when no progress notifications
   );
 
   await server.start();
-  await new Promise((resolve) => setTimeout(resolve, 40));
+  await waitFor(() => server.getStatus().state === "ready");
 
   const status = server.getStatus();
   assert.equal(status.state, "ready");
@@ -406,7 +417,7 @@ test("Kotlin LspServer promotes indexing to ready after work done progress compl
   );
 
   await server.start();
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  await waitFor(() => server.getStatus().state === "ready");
 
   const status = server.getStatus();
   assert.equal(status.state, "ready");
@@ -482,7 +493,7 @@ test("Kotlin LspServer promotes indexing to ready when progress stalls", async (
   );
 
   await server.start();
-  await new Promise((resolve) => setTimeout(resolve, 40));
+  await waitFor(() => server.getStatus().state === "ready");
 
   const status = server.getStatus();
   assert.equal(status.state, "ready");

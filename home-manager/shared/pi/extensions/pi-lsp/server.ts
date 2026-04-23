@@ -506,6 +506,7 @@ export class LspServer {
   private readonly config: ServerConfig;
   private readonly spawnProcess: typeof spawn;
   private readonly findCompetingWorkspacePids: typeof findCompetingKotlinWorkspacePids;
+  private readonly onStatusChange: (() => void) | undefined;
 
   constructor(
     language: SupportedLanguage,
@@ -513,12 +514,14 @@ export class LspServer {
     config: ServerConfig,
     spawnProcess: typeof spawn = spawn,
     findCompetingWorkspacePids: typeof findCompetingKotlinWorkspacePids = findCompetingKotlinWorkspacePids,
+    onStatusChange?: () => void,
   ) {
     this.language = language;
     this.root = root;
     this.config = config;
     this.spawnProcess = spawnProcess;
     this.findCompetingWorkspacePids = findCompetingWorkspacePids;
+    this.onStatusChange = onStatusChange;
   }
 
   async start(): Promise<void> {
@@ -1117,6 +1120,7 @@ export class LspServer {
     const previous = this.state;
     this.state = nextState;
     this.addLogLine(`[lifecycle] ${previous} -> ${nextState}`);
+    this.onStatusChange?.();
   }
 
   private recordFailure(failure: LspFailureInfo, error: Error): void {
@@ -1261,9 +1265,17 @@ export class ServerManager {
   private readonly servers = new Map<string, LspServer>();
   private readonly starting = new Map<string, Promise<LspServer>>();
   private readonly config: ExtensionConfig;
+  private readonly statusListeners = new Set<() => void>();
 
   constructor(config: ExtensionConfig) {
     this.config = config;
+  }
+
+  onStatusChange(listener: () => void): () => void {
+    this.statusListeners.add(listener);
+    return () => {
+      this.statusListeners.delete(listener);
+    };
   }
 
   getOrCreate(language: SupportedLanguage, root: string): LspServer {
@@ -1311,6 +1323,8 @@ export class ServerManager {
       this.starting.delete(key);
       this.servers.delete(key);
     }
+
+    this.notifyStatusChange();
   }
 
   getConfiguredLanguages(): SupportedLanguage[] {
@@ -1334,6 +1348,7 @@ export class ServerManager {
     await Promise.all(Array.from(this.servers.values(), (server) => server.stop()));
     this.servers.clear();
     this.starting.clear();
+    this.notifyStatusChange();
   }
 
   private ensureServer(language: SupportedLanguage, root: string): LspServer {
@@ -1346,7 +1361,9 @@ export class ServerManager {
       throw new Error(`No LSP server configured for ${language}.`);
     }
 
-    const server = new LspServer(language, root, serverConfig);
+    const server = new LspServer(language, root, serverConfig, spawn, findCompetingKotlinWorkspacePids, () => {
+      this.notifyStatusChange();
+    });
     this.servers.set(key, server);
     return server;
   }
@@ -1366,5 +1383,9 @@ export class ServerManager {
 
   private getKey(language: SupportedLanguage, root: string): string {
     return `${language}:${root}`;
+  }
+
+  private notifyStatusChange(): void {
+    for (const listener of this.statusListeners) listener();
   }
 }
