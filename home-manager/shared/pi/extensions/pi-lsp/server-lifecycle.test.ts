@@ -555,6 +555,34 @@ test("LspServer records initialize timeout failures in status", async () => {
   assert.match(status.lastFailure?.message ?? "", /Timed out waiting for initialize from kotlin/);
 });
 
+test("Kotlin LspServer fails before spawn when another workspace session is already running", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-kotlin-workspace-conflict-"));
+  let spawnCalled = false;
+
+  const server = new LspServer(
+    "kotlin",
+    root,
+    {
+      command: "/bin/mock-kotlin-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 20,
+    },
+    () => {
+      spawnCalled = true;
+      return createMockChild(() => undefined) as any;
+    },
+    () => [5151],
+  );
+
+  await assert.rejects(server.start(), /Competing PID\(s\): 5151/);
+
+  const status = server.getStatus();
+  assert.equal(spawnCalled, false);
+  assert.equal(status.state, "failed");
+  assert.equal(status.lastFailure?.category, "workspace_session_conflict");
+  assert.match(status.lastFailure?.message ?? "", /Competing PID\(s\): 5151/);
+});
+
 test("LspServer.restart increments restart count and re-initializes", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-restart-"));
   let initializeCalls = 0;

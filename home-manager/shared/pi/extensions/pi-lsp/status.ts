@@ -19,6 +19,39 @@ function formatRequest(status: ServerStatus): string | undefined {
   return `${status.lastRequest.method} ${outcome} in ${status.lastRequest.durationMs}ms`;
 }
 
+function formatFailureHints(status: ServerStatus): string[] {
+  const failure = status.lastFailure;
+  if (!failure) return [];
+
+  if (failure.category === "workspace_session_conflict") {
+    return [
+      "   conflict hint: kotlin-lsp allows only one client per workspace root",
+      "   next steps:",
+      "     - stop the other pi/editor session using this workspace root",
+      "     - if the other session is gone, kill the competing kotlin-lsp PID(s) mentioned above",
+      "     - use a separate worktree if you need parallel Kotlin sessions",
+    ];
+  }
+
+  return [];
+}
+
+function formatLogConflictHints(statuses: ServerStatus[]): string[] {
+  const conflicts = statuses.filter((status) => status.lastFailure?.category === "workspace_session_conflict");
+  if (conflicts.length === 0) return [];
+
+  return [
+    "Workspace conflict hints:",
+    ...conflicts.flatMap((status) => [
+      `- ${status.language} — ${status.root}`,
+      "  kotlin-lsp allows only one client per workspace root",
+      "  stop the other pi/editor session for this root or kill stale competing kotlin-lsp processes",
+      "  use a separate worktree if you need parallel Kotlin sessions",
+    ]),
+    "",
+  ];
+}
+
 export function formatStatusDetails(options: {
   statuses: ServerStatus[];
   configuredLanguages: SupportedLanguage[];
@@ -60,6 +93,7 @@ export function formatStatusDetails(options: {
 
       const failure = formatFailure(status.lastFailure);
       if (failure) lines.push(`   last failure: ${failure}`);
+      lines.push(...formatFailureHints(status));
 
       if (status.lastStderrLines.length > 0) {
         lines.push(`   recent stderr:`);
@@ -91,6 +125,7 @@ export function formatLogDetails(options: {
       ...statuses.map((status, index) => `${index + 1}. ${status.language} — ${status.state} — ${status.root}`),
       "",
     );
+    lines.push(...formatLogConflictHints(statuses));
   }
 
   if (logs.length === 0) {

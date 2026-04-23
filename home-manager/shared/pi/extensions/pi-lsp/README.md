@@ -28,6 +28,7 @@ Capability notes:
 - some language servers do not implement every LSP method
 - when `workspace/symbol` is unsupported, the extension degrades gracefully and suggests `grep`, `document_symbols`, `definition`, or `references`
 - when semantic requests are unavailable, the extension returns degraded fallback guidance instead of a dead-end failure where practical
+- Kotlin same-workspace conflicts are detected before pi starts a second `kotlin-lsp`, so parallel sessions fail fast with a clear one-client-per-root message
 - Kotlin initialize cancellations are annotated with a clearer same-workspace-session hint when pi can infer that another `kotlin-lsp` is already attached to the same root
 - Kotlin runtimes no longer stay in `indexing` forever when the server never emits usable work-done progress; pi promotes them to `ready` after a conservative fallback delay
 

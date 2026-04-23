@@ -2,11 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   classifyLspFailure,
+  isKotlinWorkspaceSessionConflictError,
   isLspNoProjectError,
   isMethodNotSupportedResponse,
   isNoProjectResponse,
   isUnsupportedLspMethodError,
   JsonRpcStreamParser,
+  KotlinWorkspaceSessionConflictError,
   LspNoProjectError,
   UnsupportedLspMethodError,
 } from "./server.ts";
@@ -97,6 +99,22 @@ test("LspNoProjectError carries workspace metadata", () => {
   assert.match(error.message, /has no project for workspace\/symbol/);
 });
 
+test("KotlinWorkspaceSessionConflictError carries workspace conflict metadata", () => {
+  const error = new KotlinWorkspaceSessionConflictError(
+    "initialize",
+    "kotlin",
+    "/repo",
+    "kotlin-lsp",
+    [111, 222],
+  );
+
+  assert.equal(isKotlinWorkspaceSessionConflictError(error), true);
+  assert.equal(isKotlinWorkspaceSessionConflictError(error, "initialize"), true);
+  assert.equal(isKotlinWorkspaceSessionConflictError(error, "workspace/symbol"), false);
+  assert.deepEqual(error.competingPids, [111, 222]);
+  assert.match(error.message, /Competing PID\(s\): 111, 222/);
+});
+
 test("classifyLspFailure distinguishes initialize timeouts and unsupported methods", () => {
   const timeoutFailure = classifyLspFailure(new Error("Timed out waiting for initialize from kotlin"), {
     method: "initialize",
@@ -115,6 +133,12 @@ test("classifyLspFailure distinguishes initialize timeouts and unsupported metho
   );
   assert.equal(noProjectFailure.category, "no_project");
   assert.equal(noProjectFailure.method, "workspace/symbol");
+
+  const workspaceConflictFailure = classifyLspFailure(
+    new KotlinWorkspaceSessionConflictError("initialize", "kotlin", "/repo", "kotlin-lsp", [4242]),
+  );
+  assert.equal(workspaceConflictFailure.category, "workspace_session_conflict");
+  assert.equal(workspaceConflictFailure.method, "initialize");
 });
 
 test("classifyLspFailure explains likely Kotlin workspace session conflicts", () => {

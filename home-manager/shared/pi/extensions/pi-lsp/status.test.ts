@@ -56,6 +56,42 @@ test("formatStatusDetails renders empty and active runtime states", () => {
   assert.match(text, /Gradle import still running/);
 });
 
+test("formatStatusDetails renders explicit workspace conflict hints", () => {
+  const text = formatStatusDetails({
+    statuses: [
+      {
+        language: "kotlin",
+        root: "/repo",
+        pid: undefined,
+        state: "failed",
+        startedAt: Date.now() - 8_000,
+        initializedAt: undefined,
+        readyAt: undefined,
+        failedAt: Date.now() - 3_000,
+        openDocuments: 0,
+        restartCount: 0,
+        lastFailure: {
+          category: "workspace_session_conflict",
+          message:
+            "Another kotlin-lsp session is already attached to this workspace. Workspace: /repo. Competing PID(s): 5151.",
+          at: Date.now() - 3_000,
+          method: "initialize",
+        },
+        lastStderrLines: [],
+        lastRequest: undefined,
+      },
+    ],
+    configuredLanguages: ["kotlin"],
+    configPath: "/tmp/pi-lsp.json",
+  });
+
+  assert.match(text, /last failure: workspace_session_conflict \(initialize\): Another kotlin-lsp session is already attached to this workspace/);
+  assert.match(text, /conflict hint: kotlin-lsp allows only one client per workspace root/);
+  assert.match(text, /stop the other pi\/editor session using this workspace root/);
+  assert.match(text, /kill the competing kotlin-lsp PID\(s\) mentioned above/);
+  assert.match(text, /use a separate worktree if you need parallel Kotlin sessions/);
+});
+
 test("formatLogDetails renders recent lifecycle log lines", () => {
   const text = formatLogDetails({
     statuses: [
@@ -88,4 +124,43 @@ test("formatLogDetails renders recent lifecycle log lines", () => {
   assert.match(text, /Recent lifecycle, progress, request, and stderr lines:/);
   assert.match(text, /\[lifecycle\] stopped -> starting/);
   assert.match(text, /\[stderr\] Gradle import running/);
+});
+
+test("formatLogDetails renders explicit workspace conflict hints", () => {
+  const text = formatLogDetails({
+    statuses: [
+      {
+        language: "kotlin",
+        root: "/repo",
+        pid: undefined,
+        state: "failed",
+        startedAt: Date.now() - 5_000,
+        initializedAt: undefined,
+        readyAt: undefined,
+        failedAt: Date.now() - 2_000,
+        openDocuments: 0,
+        restartCount: 0,
+        lastFailure: {
+          category: "workspace_session_conflict",
+          message:
+            "Another kotlin-lsp session is already attached to this workspace. Workspace: /repo. Competing PID(s): 5151.",
+          at: Date.now() - 2_000,
+          method: "initialize",
+        },
+        lastStderrLines: [],
+        lastRequest: undefined,
+      },
+    ],
+    logs: [
+      "2026-01-01T00:00:00.000Z [failure] workspace_session_conflict: Another kotlin-lsp session is already attached to this workspace.",
+    ],
+    configPath: "/tmp/pi-lsp.json",
+  });
+
+  assert.match(text, /Workspace conflict hints:/);
+  assert.match(text, /- kotlin — \/repo/);
+  assert.match(text, /kotlin-lsp allows only one client per workspace root/);
+  assert.match(text, /stop the other pi\/editor session for this root or kill stale competing kotlin-lsp processes/);
+  assert.match(text, /use a separate worktree if you need parallel Kotlin sessions/);
+  assert.match(text, /workspace_session_conflict/);
 });

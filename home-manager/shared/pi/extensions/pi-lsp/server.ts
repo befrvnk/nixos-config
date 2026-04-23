@@ -355,6 +355,38 @@ export function isLspReadinessTimeoutError(error: unknown): error is LspReadines
   return error instanceof LspReadinessTimeoutError;
 }
 
+export class KotlinWorkspaceSessionConflictError extends Error {
+  readonly method: string;
+  readonly language: SupportedLanguage;
+  readonly root: string;
+  readonly serverName: string;
+  readonly competingPids: number[];
+
+  constructor(
+    method: string,
+    language: SupportedLanguage,
+    root: string,
+    serverName: string,
+    competingPids: number[] = [],
+  ) {
+    super(formatKotlinWorkspaceSessionConflictMessage(root, competingPids));
+    this.name = "KotlinWorkspaceSessionConflictError";
+    this.method = method;
+    this.language = language;
+    this.root = root;
+    this.serverName = serverName;
+    this.competingPids = [...competingPids];
+  }
+}
+
+export function isKotlinWorkspaceSessionConflictError(
+  error: unknown,
+  method?: string,
+): error is KotlinWorkspaceSessionConflictError {
+  if (!(error instanceof KotlinWorkspaceSessionConflictError)) return false;
+  return method ? error.method === method : true;
+}
+
 export function classifyLspFailure(
   error: unknown,
   options: {
@@ -373,6 +405,13 @@ export function classifyLspFailure(
 
   if (error instanceof LspNoProjectError) {
     return createFailureInfo("no_project", error.message, {
+      at: Date.now(),
+      method: error.method,
+    });
+  }
+
+  if (error instanceof KotlinWorkspaceSessionConflictError) {
+    return createFailureInfo("workspace_session_conflict", error.message, {
       at: Date.now(),
       method: error.method,
     });
@@ -466,17 +505,20 @@ export class LspServer {
   private readonly root: string;
   private readonly config: ServerConfig;
   private readonly spawnProcess: typeof spawn;
+  private readonly findCompetingWorkspacePids: typeof findCompetingKotlinWorkspacePids;
 
   constructor(
     language: SupportedLanguage,
     root: string,
     config: ServerConfig,
     spawnProcess: typeof spawn = spawn,
+    findCompetingWorkspacePids: typeof findCompetingKotlinWorkspacePids = findCompetingKotlinWorkspacePids,
   ) {
     this.language = language;
     this.root = root;
     this.config = config;
     this.spawnProcess = spawnProcess;
+    this.findCompetingWorkspacePids = findCompetingWorkspacePids;
   }
 
   async start(): Promise<void> {
@@ -708,6 +750,28 @@ export class LspServer {
     this.readyAt = undefined;
     this.startedAt = Date.now();
     this.transitionState("starting");
+
+    if (this.language === "kotlin") {
+      const competingWorkspacePids = this.findCompetingWorkspacePids(this.root);
+      if (competingWorkspacePids.length > 0) {
+        const error = new KotlinWorkspaceSessionConflictError(
+          "initialize",
+          this.language,
+          this.root,
+          getServerLabel(this.config.command),
+          competingWorkspacePids,
+        );
+        this.recordFailure(
+          classifyLspFailure(error, {
+            method: "initialize",
+            language: this.language,
+            root: this.root,
+          }),
+          error,
+        );
+        throw error;
+      }
+    }
 
     const child = this.spawnProcess(this.config.command, this.config.args ?? [], {
       cwd: this.root,
