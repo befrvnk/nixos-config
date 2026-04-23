@@ -11,6 +11,7 @@
     ./lazygit.nix
     ./navi
     ./nil.nix
+    ./nix-index.nix
     ./nushell.nix
     ./opencode.nix
     ./packages.nix

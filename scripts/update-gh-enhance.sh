@@ -29,7 +29,7 @@ if [[ "$version" == "$current" ]]; then
   exit 0
 fi
 
-src_sri=$(prefetch_sri_hash "https://github.com/$owner/$repo/archive/refs/tags/$latest.tar.gz" --unpack)
+src_sri=$(github_tag_archive_sri_hash "$owner" "$repo" "$latest")
 
 echo "New source hash: $src_sri"
 

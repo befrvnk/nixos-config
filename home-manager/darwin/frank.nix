@@ -32,4 +32,7 @@
     stateVersion = "25.05";
   };
 
+  # Keep a minimal Home Manager zsh config so shared shell integrations that
+  # target .zshrc (for example nix-index command-not-found) work on Darwin.
+  programs.zsh.enable = true;
 }

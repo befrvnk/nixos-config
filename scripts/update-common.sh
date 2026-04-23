@@ -28,6 +28,23 @@ github_latest_release_json() {
   curl -fsSL "https://api.github.com/repos/$owner/$repo/releases/latest"
 }
 
+github_tag_archive_sri_hash() {
+  local owner="$1"
+  local repo="$2"
+  local tag="$3"
+  local hash=""
+
+  if command -v nurl >/dev/null 2>&1; then
+    hash=$(nurl --hash "https://github.com/$owner/$repo" "$tag" 2>/dev/null || true)
+  fi
+
+  if [[ -z "$hash" ]]; then
+    hash=$(prefetch_sri_hash "https://github.com/$owner/$repo/archive/refs/tags/$tag.tar.gz" --unpack)
+  fi
+
+  echo "$hash"
+}
+
 prefetch_sri_hash() {
   local url="$1"
   local unpack_flag="${2:-}"

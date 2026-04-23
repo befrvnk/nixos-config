@@ -188,6 +188,7 @@ in
       git
       nh # NixOS helper
       nixfmt
+      nurl # Generate repo fetchers and hashes for package updates
       nvd # Nix version diff (for changelog lookup)
       shellcheck # Shell script linter
       statix # Nix linter

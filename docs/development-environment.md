@@ -8,7 +8,7 @@ This repo uses **devenv** with **direnv** for a reproducible project shell.
 - git hooks on commit
 - Claude Code slash commands and hooks
 - repo-local helper commands like `rebuild`, `clean`, and `flake-update`
-- linting and testing tools such as `nixfmt`, `statix`, `shellcheck`, and `deadnix`
+- linting and packaging tools such as `nixfmt`, `statix`, `shellcheck`, `deadnix`, and `nurl`
 
 ## First-Time Setup
 
