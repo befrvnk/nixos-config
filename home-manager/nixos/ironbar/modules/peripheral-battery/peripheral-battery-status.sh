@@ -48,17 +48,15 @@ get_device_kind() {
     local type
     local model
 
-    type=$(busctl --system get-property org.freedesktop.UPower "$device" org.freedesktop.UPower.Device Type 2>/dev/null | awk '{print $2}')
-    case "$type" in
-        5)
-            echo "mouse"
-            return
-            ;;
-        6)
-            echo "keyboard"
-            return
-            ;;
-    esac
+    model=$(echo "$info" | awk -F: '/^[[:space:]]*model:/ {sub(/^[[:space:]]+/, "", $2); print $2; exit}')
+
+    # Some vendor-specific battery integrations show up in UPower with a
+    # keyboard type even though they belong to a mouse. Prefer explicit model
+    # and object-path hints before trusting the UPower type.
+    if echo "$device $model" | grep -qiE "(keychron_mouse|keychron.*mouse|keychron.*m[0-9]+)"; then
+        echo "mouse"
+        return
+    fi
 
     if echo "$device" | grep -qi "mouse"; then
         echo "mouse"
@@ -80,8 +78,19 @@ get_device_kind() {
         return
     fi
 
-    model=$(echo "$info" | awk -F: '/^[[:space:]]*model:/ {sub(/^[[:space:]]+/, "", $2); print $2; exit}')
-    if echo "$model" | grep -qiE "(keychron.*m[0-9]+|logitech.*(mouse|mx|g[0-9]+)|mouse)"; then
+    type=$(busctl --system get-property org.freedesktop.UPower "$device" org.freedesktop.UPower.Device Type 2>/dev/null | awk '{print $2}')
+    case "$type" in
+        5)
+            echo "mouse"
+            return
+            ;;
+        6)
+            echo "keyboard"
+            return
+            ;;
+    esac
+
+    if echo "$model" | grep -qiE "(logitech.*(mouse|mx|g[0-9]+)|mouse)"; then
         echo "mouse"
         return
     fi
