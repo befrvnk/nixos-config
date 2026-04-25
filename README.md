@@ -556,7 +556,7 @@ This configuration separates concerns between system-level and user-level settin
 - **RAM:** 2x32GB DDR5-5600
 - **Storage:** 1TB WD_BLACK SN850X NVMe
 - **Keyboard:** Nuphy Air75 V3 (configured via [nuphy.io](https://nuphy.io))
-- **Mouse:** Logitech G403
+- **Mouse:** Keychron M6 8K (configured via Keychron Launcher)
 - **Monitor:** Dough Spectrum 4K 144Hz 27"
 
 ### Custom Keyboard Layout

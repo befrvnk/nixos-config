@@ -46,7 +46,7 @@ Common fields include:
 
 NixOS hosts may also define capability flags such as:
 - `enableAndroid`
-- `enableLogitech`
+- `enableKeychronM6`
 - `enableNuphy`
 - `wifiInterface`
 - `abmPath`

@@ -56,7 +56,7 @@ modules/
 ├── hardware/          # Hardware configuration
 │   ├── android.nix    # Android udev rules
 │   ├── fprintd/       # Fingerprint reader
-│   ├── logitech.nix   # Logitech peripherals
+│   ├── keychron-m6.nix  # Keychron M6 mouse
 │   ├── nuphy.nix      # NuPhy keyboard
 │   └── power-management.nix  # TLP, tuned
 ├── services/          # System services

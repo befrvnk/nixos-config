@@ -15,7 +15,7 @@ in
       hasFingerprint ? false,
       hasTouchscreen ? false,
       enableAndroid ? false,
-      enableLogitech ? false,
+      enableKeychronM6 ? false,
       enableNuphy ? false,
       wifiInterface ? null,
       abmPath ? null,
@@ -53,7 +53,7 @@ in
               hasFingerprint
               hasTouchscreen
               enableAndroid
-              enableLogitech
+              enableKeychronM6
               enableNuphy
               wifiInterface
               abmPath

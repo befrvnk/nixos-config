@@ -8,7 +8,7 @@
       hasFingerprint = true;
       hasTouchscreen = false;
       enableAndroid = true;
-      enableLogitech = true;
+      enableKeychronM6 = true;
       enableNuphy = true;
       wifiInterface = "wlp192s0";
       abmPath = "/sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings";

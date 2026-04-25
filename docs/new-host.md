@@ -87,7 +87,7 @@ nixosConfigurations.<hostname> = hostLib.mkHost {
   hasFingerprint = false;
   hasTouchscreen = false;
   enableAndroid = false;
-  enableLogitech = false;
+  enableKeychronM6 = false;
   enableNuphy = false;
   wifiInterface = null;       # set if power-management scripts should manage WiFi power save
   abmPath = null;             # set on AMD laptops with panel power savings support
@@ -144,7 +144,7 @@ Common fields include:
 
 NixOS hosts can also set capability flags like:
 - `enableAndroid`
-- `enableLogitech`
+- `enableKeychronM6`
 - `enableNuphy`
 - `wifiInterface`
 - `abmPath`

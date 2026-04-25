@@ -68,11 +68,11 @@ in
       description = "Enable Android development host extras.";
     };
 
-    enableLogitech = mkOption {
+    enableKeychronM6 = mkOption {
       type = types.bool;
-      default = hostDefaults.enableLogitech or false;
+      default = hostDefaults.enableKeychronM6 or false;
       readOnly = true;
-      description = "Enable Logitech hardware support.";
+      description = "Enable Keychron M6 mouse support.";
     };
 
     enableNuphy = mkOption {
