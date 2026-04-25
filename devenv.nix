@@ -232,7 +232,7 @@ in
       echo "  take-readme-screenshots   - Capture screenshots for README"
     ''}
     echo "  clean [N]                 - Clean old generations (default: keep 5)"
-    echo "  flake-update              - Update flake inputs"
+    echo "  flake-update              - Update flake inputs and package metadata"
     echo "  test-pi-extensions        - Run pi extension tests"
     echo ""
     echo "Slash commands (Claude Code):"
@@ -338,6 +338,10 @@ in
       echo ""
       echo "Updating Orca AI package..."
       ./scripts/update-orca-ai.sh || echo "⚠️  Orca AI update failed (may already be up to date)"
+
+      echo ""
+      echo "Updating Paseo package..."
+      ./scripts/update-paseo.sh || echo "⚠️  Paseo update failed (may already be up to date)"
 
       echo ""
       echo "Updating pi coding agent package..."

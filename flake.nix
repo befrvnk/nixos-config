@@ -155,6 +155,7 @@
             domain-check
             idea-community
             orca-ai
+            paseo
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {

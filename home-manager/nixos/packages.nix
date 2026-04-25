@@ -25,6 +25,7 @@
       pkgs.discord
       pkgs.obsidian
       pkgs.orca-ai
+      pkgs.paseo
       pkgs.slack
       pkgs.spotify
       (import ./elecwhat.nix { inherit pkgs; })
