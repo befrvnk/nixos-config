@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=./exa-mcp.sh
+source "$SCRIPT_DIR/exa-mcp.sh"
+
 usage() {
   cat <<'EOF'
 Usage:
-  search.sh "query" [--overview|--single] [--results N] [--type auto|fast|deep] [--livecrawl fallback|preferred] [--chars N] [--json]
+  search.sh "query" [--overview|--single] [--focus overview|docs|general|repo|recent] [--results N] [--type auto|fast|deep] [--livecrawl fallback|preferred] [--chars N] [--json]
 
 Examples:
   search.sh "FlowRedux documentation"                                  # Broader overview (default)
+  search.sh "FlowRedux documentation" --focus docs                     # Only the docs/reference pass
   search.sh "FlowRedux documentation" --single                         # One focused Exa query
-  search.sh "site:github.com freeletics FlowRedux releases" --results 5
-  search.sh "latest Anthropic web search tool docs" --results 6 --chars 12000
+  search.sh "site:github.com freeletics FlowRedux releases" --focus repo
+  search.sh "latest Anthropic web search tool docs" --focus recent
   search.sh "FlowRedux documentation" --json
 EOF
 }
@@ -21,13 +26,16 @@ if [[ $# -lt 1 ]]; then
 fi
 
 QUERY=""
-RESULTS=5
-TYPE="deep"
-LIVECRAWL="preferred"
-CHARS=8000
+RESULTS=""
+TYPE=""
+LIVECRAWL=""
+CHARS=""
 JSON_MODE=0
 MODE="overview"
+FOCUS="overview"
+FOCUS_SET=0
 MAX_CONCURRENCY=2
+CURRENT_YEAR=$(date +%Y)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -59,6 +67,11 @@ while [[ $# -gt 0 ]]; do
       MODE="overview"
       shift
       ;;
+    --focus)
+      FOCUS="${2:-}"
+      FOCUS_SET=1
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -89,69 +102,15 @@ if [[ -z "$QUERY" ]]; then
   exit 1
 fi
 
-case "$TYPE" in
-  auto|fast|deep) ;;
-  *) echo "Invalid --type: $TYPE" >&2; exit 1 ;;
+case "$FOCUS" in
+  overview|docs|general|repo|recent) ;;
+  *) echo "Invalid --focus: $FOCUS" >&2; exit 1 ;;
 esac
 
-case "$LIVECRAWL" in
-  fallback|preferred) ;;
-  *) echo "Invalid --livecrawl: $LIVECRAWL" >&2; exit 1 ;;
-esac
-
-if ! [[ "$RESULTS" =~ ^[0-9]+$ ]] || [[ "$RESULTS" -lt 1 ]]; then
-  echo "Invalid --results: $RESULTS" >&2
+if [[ "$MODE" == "single" && "$FOCUS_SET" -eq 1 ]]; then
+  echo "--focus cannot be combined with --single" >&2
   exit 1
 fi
-
-if ! [[ "$CHARS" =~ ^[0-9]+$ ]] || [[ "$CHARS" -lt 1 ]]; then
-  echo "Invalid --chars: $CHARS" >&2
-  exit 1
-fi
-
-call_exa() {
-  local label="$1"
-  local query="$2"
-  local payload raw data_line error_message error_code
-
-  payload=$(jq -nc \
-    --arg query "$query" \
-    --arg type "$TYPE" \
-    --arg livecrawl "$LIVECRAWL" \
-    --argjson numResults "$RESULTS" \
-    --argjson contextMaxCharacters "$CHARS" \
-    '{jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"web_search_exa",arguments:{query:$query,type:$type,numResults:$numResults,livecrawl:$livecrawl,contextMaxCharacters:$contextMaxCharacters}}}')
-
-  raw=$(curl -fsSL \
-    -H 'accept: application/json, text/event-stream' \
-    -H 'content-type: application/json' \
-    --data "$payload" \
-    'https://mcp.exa.ai/mcp')
-
-  data_line=$(printf '%s\n' "$raw" | awk '/^data: /{sub(/^data: /, ""); print; exit}')
-
-  if [[ -z "$data_line" ]]; then
-    echo "Failed to parse Exa response for query: $query" >&2
-    printf '%s\n' "$raw" >&2
-    return 1
-  fi
-
-  error_message=$(printf '%s' "$data_line" | jq -r '.error.message // empty')
-  if [[ -n "$error_message" ]]; then
-    error_code=$(printf '%s' "$data_line" | jq -r '.error.code // empty')
-    if [[ -n "$error_code" ]]; then
-      echo "Exa API error ($error_code) for query: $query: $error_message" >&2
-    else
-      echo "Exa API error for query: $query: $error_message" >&2
-    fi
-    return 1
-  fi
-
-  printf '%s' "$data_line" | jq -c \
-    --arg label "$label" \
-    --arg query "$query" \
-    '{label:$label,query:$query,searchTime:(.result.content[0]._meta.searchTime // null),text:(.result.content[0].text // "")}'
-}
 
 normalize_warning_detail() {
   tr '\n' ' ' < "$1" | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
@@ -160,6 +119,117 @@ normalize_warning_detail() {
 normalize_topic_query() {
   printf '%s\n' "$1" \
     | sed -E 's/(^|[[:space:]])site:[^[:space:]]+/ /g; s/[[:space:]]+/ /g; s/^ //; s/ $//'
+}
+
+extract_site_filters_json() {
+  local filters
+
+  filters=$(printf '%s\n' "$1" | grep -Eo 'site:[^[:space:]]+' || true)
+  if [[ -z "$filters" ]]; then
+    printf '[]'
+  else
+    printf '%s\n' "$filters" | jq -R . | jq -s '.'
+  fi
+}
+
+has_github_constraint() {
+  printf '%s\n' "$1" | grep -Eiq '(^|[[:space:]])site:github\.com([[:space:]]|$)|(^|[[:space:]])github\.com([[:space:]/]|$)|(^|[[:space:]])github([[:space:]]|$)'
+}
+
+has_year_token() {
+  printf '%s\n' "$1" | grep -Eq '(^|[^0-9])(19|20)[0-9]{2}([^0-9]|$)'
+}
+
+append_recent_year_if_needed() {
+  local query="$1"
+  if has_year_token "$query"; then
+    printf '%s' "$query"
+  else
+    printf '%s %s' "$query" "$CURRENT_YEAR"
+  fi
+}
+
+is_recency_sensitive() {
+  printf '%s\n' "$1" | grep -Eiq '(^|[[:space:]])(latest|recent|new|update|updates|release|releases|announcement|announcements|changelog|today|this year|current|now|20[0-9]{2})([[:space:]]|$)'
+}
+
+apply_mode_defaults() {
+  local default_results default_type default_livecrawl default_chars
+
+  case "$MODE:$FOCUS" in
+    single:*)
+      default_results=8
+      default_type="auto"
+      default_livecrawl="fallback"
+      default_chars=6000
+      ;;
+    overview:overview)
+      default_results=5
+      default_type="deep"
+      default_livecrawl="preferred"
+      default_chars=8000
+      ;;
+    overview:recent)
+      default_results=6
+      default_type="auto"
+      default_livecrawl="preferred"
+      default_chars=8000
+      ;;
+    overview:*)
+      default_results=8
+      default_type="auto"
+      default_livecrawl="fallback"
+      default_chars=6000
+      ;;
+  esac
+
+  : "${RESULTS:=$default_results}"
+  : "${TYPE:=$default_type}"
+  : "${LIVECRAWL:=$default_livecrawl}"
+  : "${CHARS:=$default_chars}"
+}
+
+validate_inputs() {
+  case "$TYPE" in
+    auto|fast|deep) ;;
+    *) echo "Invalid --type: $TYPE" >&2; exit 1 ;;
+  esac
+
+  case "$LIVECRAWL" in
+    fallback|preferred) ;;
+    *) echo "Invalid --livecrawl: $LIVECRAWL" >&2; exit 1 ;;
+  esac
+
+  if ! [[ "$RESULTS" =~ ^[0-9]+$ ]] || (( RESULTS < 1 )); then
+    echo "Invalid --results: $RESULTS" >&2
+    exit 1
+  fi
+
+  if ! [[ "$CHARS" =~ ^[0-9]+$ ]] || (( CHARS < 1 )); then
+    echo "Invalid --chars: $CHARS" >&2
+    exit 1
+  fi
+}
+
+call_exa() {
+  local label="$1"
+  local query="$2"
+  local arguments_json event_json
+
+  arguments_json=$(jq -nc \
+    --arg query "$query" \
+    --arg type "$TYPE" \
+    --arg livecrawl "$LIVECRAWL" \
+    --argjson numResults "$RESULTS" \
+    --argjson contextMaxCharacters "$CHARS" \
+    '{query:$query,type:$type,numResults:$numResults,livecrawl:$livecrawl,contextMaxCharacters:$contextMaxCharacters}')
+
+  event_json=$(exa_call_mcp "web_search_exa" "$arguments_json" 30) || return 1
+
+  printf '%s' "$event_json" | jq -c \
+    --arg label "$label" \
+    --arg query "$query" \
+    '{label:$label,query:$query,searchTime:(.result.content[0]._meta.searchTime // null),text:(.result.content[0].text // "")}'
 }
 
 collect_batch() {
@@ -187,9 +257,63 @@ collect_batch() {
   batch_indexes=()
 }
 
-is_recency_sensitive() {
-  printf '%s\n' "$1" | grep -Eiq '(^|[[:space:]])(latest|recent|new|update|updates|release|releases|announcement|announcements|changelog|today|202[0-9])([[:space:]]|$)'
+add_search() {
+  labels+=("$1")
+  queries+=("$2")
 }
+
+build_search_plan() {
+  local docs_query general_query repo_query recent_base recent_query
+
+  if [[ "$MODE" == "single" ]]; then
+    add_search "Focused search" "$QUERY"
+    return
+  fi
+
+  docs_query="$QUERY official documentation docs reference"
+  general_query="$QUERY"
+
+  if has_github_constraint "$QUERY"; then
+    repo_query="$QUERY releases issues changelog"
+  else
+    repo_query="site:github.com $topic_query releases issues changelog"
+  fi
+
+  recent_base="$QUERY latest updates announcements release notes"
+  recent_query=$(append_recent_year_if_needed "$recent_base")
+
+  case "$FOCUS" in
+    overview)
+      add_search "Official docs & references" "$docs_query"
+      add_search "General overview" "$general_query"
+      add_search "Code, releases & issues" "$repo_query"
+      if is_recency_sensitive "$QUERY"; then
+        add_search "Recent updates" "$recent_query"
+        if ! has_year_token "$recent_base"; then
+          current_year_injected=1
+        fi
+      fi
+      ;;
+    docs)
+      add_search "Official docs & references" "$docs_query"
+      ;;
+    general)
+      add_search "General overview" "$general_query"
+      ;;
+    repo)
+      add_search "Code, releases & issues" "$repo_query"
+      ;;
+    recent)
+      add_search "Recent updates" "$recent_query"
+      if ! has_year_token "$recent_base"; then
+        current_year_injected=1
+      fi
+      ;;
+  esac
+}
+
+apply_mode_defaults
+validate_inputs
 
 tmpdir=$(mktemp -d)
 trap 'rm -rf "$tmpdir"' EXIT
@@ -204,31 +328,14 @@ declare -a error_files=()
 declare -a batch_pids=()
 declare -a batch_indexes=()
 
+site_filters_json=$(extract_site_filters_json "$QUERY")
 topic_query=$(normalize_topic_query "$QUERY")
 if [[ -z "$topic_query" ]]; then
   topic_query="$QUERY"
 fi
+current_year_injected=0
 
-if [[ "$MODE" == "single" ]]; then
-  labels=("Focused search")
-  queries=("$QUERY")
-else
-  labels=(
-    "Official docs & references"
-    "General overview"
-    "Code, releases & issues"
-  )
-  queries=(
-    "$topic_query official documentation docs reference"
-    "$QUERY"
-    "site:github.com $topic_query releases issues changelog"
-  )
-
-  if is_recency_sensitive "$QUERY"; then
-    labels+=("Recent updates")
-    queries+=("$topic_query latest updates announcements release notes")
-  fi
-fi
+build_search_plan
 
 for i in "${!labels[@]}"; do
   result_file="$tmpdir/search-$i.json"
@@ -259,29 +366,34 @@ if [[ ! -s "$searches_file" ]]; then
 fi
 
 warnings_json=$(if [[ ${#warnings[@]} -gt 0 ]]; then printf '%s\n' "${warnings[@]}" | jq -R . | jq -s .; else printf '[]'; fi)
+total_search_time=$(jq -s '[.[].searchTime // 0] | add' "$searches_file")
 
 if [[ "$JSON_MODE" -eq 1 ]]; then
   jq -s \
     --arg originalQuery "$QUERY" \
     --arg topicQuery "$topic_query" \
     --arg mode "$MODE" \
+    --arg focus "$FOCUS" \
     --arg type "$TYPE" \
     --arg livecrawl "$LIVECRAWL" \
     --argjson results "$RESULTS" \
     --argjson contextMaxCharacters "$CHARS" \
     --argjson warnings "$warnings_json" \
-    '{
+    --argjson siteFilters "$site_filters_json" \
+    --argjson currentYearInjected "$current_year_injected" \
+    ' {
       originalQuery:$originalQuery,
       topicQuery:$topicQuery,
       mode:$mode,
+      focus:$focus,
       settings:{type:$type,livecrawl:$livecrawl,numResultsPerSearch:$results,contextMaxCharactersPerSearch:$contextMaxCharacters},
+      siteFilters:$siteFilters,
+      currentYearInjected:($currentYearInjected == 1),
       searches:.,
       warnings:$warnings
     }' "$searches_file"
   exit 0
 fi
-
-total_search_time=$(jq -s '[.[].searchTime // 0] | add' "$searches_file")
 
 if [[ "$MODE" == "single" ]]; then
   echo "Exa search for: $QUERY"
@@ -290,9 +402,13 @@ else
 fi
 
 echo "Mode: $MODE"
+echo "Focus: $FOCUS"
 echo "Per-search settings: results=$RESULTS, type=$TYPE, livecrawl=$LIVECRAWL, chars=$CHARS"
 if [[ "$total_search_time" != "null" ]]; then
   echo "Combined search time: ${total_search_time}ms"
+fi
+if [[ "$current_year_injected" -eq 1 ]]; then
+  echo "Recent-pass year hint: $CURRENT_YEAR"
 fi
 
 echo
