@@ -1,7 +1,7 @@
 { pkgs, ... }:
 let
   piSettings = {
-    defaultModel = "gpt-5.4";
+    defaultModel = "gpt-5.5";
     defaultProvider = "github-copilot";
     defaultThinkingLevel = "high";
     hideThinkingBlock = true;
