@@ -75,12 +75,15 @@ let
   ];
 
   darwinOverlays = sharedOverlays ++ [
-    # direnv: fix cgo required for -linkmode=external on Darwin
+    # direnv: fix Darwin build issues until nixpkgs catches up
+    # - CGO is required for -linkmode=external on Darwin
+    # - checkPhase currently hangs/fails in shell integration tests on Darwin
     (final: prev: {
       direnv = prev.direnv.overrideAttrs (old: {
         env = (old.env or { }) // {
           CGO_ENABLED = "1";
         };
+        doCheck = false;
       });
     })
     # Nushell 0.112.1 currently fails Darwin sandboxed SHLVL tests with
