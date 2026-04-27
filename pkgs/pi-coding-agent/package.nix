@@ -7,23 +7,23 @@
 }:
 
 let
-  version = "0.70.2";
+  version = "0.70.5";
   sources = {
     x86_64-linux = {
       url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-linux-x64.tar.gz";
-      hash = "sha256:54312268e486b7268dafed5476ac8b7424d0876cd727dc325d4e00ec7446f749";
+      hash = "sha256:3a01257b0dd94130b9c74a6b51ead0e9a996cfb17147b0dbd37e3b75f0663fbe";
     };
     aarch64-linux = {
       url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-linux-arm64.tar.gz";
-      hash = "sha256:91f5025050bf735653a7c21a0731acf699d345f79aec2014b0865dcd5b90e6ef";
+      hash = "sha256:ef1c5b205d1b3e5c6b0d287ec639b4461fe2348a9994069310cfd0255caeb657";
     };
     x86_64-darwin = {
       url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-darwin-x64.tar.gz";
-      hash = "sha256:0ffed2128efb469ef23c46f861cd1d848022153ba7247dab3ee7ea41bf6c3864";
+      hash = "sha256:0b2f362c98b08e526b2f54a8f71b1176bd3f7324db0fa363f14ce5952c7093cd";
     };
     aarch64-darwin = {
       url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-darwin-arm64.tar.gz";
-      hash = "sha256:4e039050367d82bff963e15fea8d85ca268f7b0284b83f5f15939aad087353a4";
+      hash = "sha256:04c52df1c3a13e4c95b3648ea9402344eab168ae772a3ef3c692ef0f98a42c73";
     };
   };
   source =
