@@ -129,29 +129,37 @@
       "muxy-app/tap"
     ];
     casks =
-      map
-        (name: {
-          inherit name;
-          greedy = true;
-        })
-        [
-          "1password"
-          "caffeine"
-          "ghostty"
-          "jetbrains-toolbox"
-          "lunar"
-          "miro"
-          "muxy"
-          "notion"
-          "opencode-desktop"
-          "raycast"
-          "signal"
+      let
+        greedyCasks =
+          map
+            (name: {
+              inherit name;
+              greedy = true;
+            })
+            [
+              "1password"
+              "caffeine"
+              "ghostty"
+              "jetbrains-toolbox"
+              "lunar"
+              "miro"
+              "muxy"
+              "notion"
+              "opencode-desktop"
+              "raycast"
+              "signal"
+              "spotify"
+              "whatsapp"
+              "zed"
+              "zen"
+            ];
+        selfUpdatingCasks = [
+          # Slack self-updates; forcing a Homebrew greedy upgrade can fail
+          # activation when Slack is running.
           "slack"
-          "spotify"
-          "whatsapp"
-          "zed"
-          "zen"
         ];
+      in
+      selfUpdatingCasks ++ greedyCasks;
   };
 
   # Expose Nix-managed binaries to GUI apps (Dock/Spotlight launched apps only
