@@ -15,6 +15,8 @@ type RenderUtilities = {
   wrapTextWithAnsi: (text: string, width: number) => string[];
 };
 
+type HighlightCode = (code: string, lang?: string) => string[];
+
 const LANGUAGE_ALIASES: Record<string, string | undefined> = {
   cjs: "javascript",
   console: "bash",
@@ -79,6 +81,7 @@ export function renderCodeBlockLines(
   width: number,
   nextTokenType: string | undefined,
   utilities: RenderUtilities,
+  highlightCode?: HighlightCode,
 ): string[] {
   const code = token.text ?? "";
   const language = normalizeLanguage(token.lang);
@@ -87,9 +90,11 @@ export function renderCodeBlockLines(
   const contentWidth = Math.max(1, width - (hasPrefixRoom ? 2 : 0));
   const prefix = hasPrefixRoom ? border("│ ") : "";
 
-  const highlightedLines = theme.highlightCode
-    ? theme.highlightCode(code, language)
-    : code.split("\n").map((line) => theme.codeBlock(line));
+  const highlightedLines = highlightCode
+    ? highlightCode(code, language)
+    : theme.highlightCode
+      ? theme.highlightCode(code, language)
+      : code.split("\n").map((line) => theme.codeBlock(line));
 
   const lines: string[] = [
     borderedLine(displayLanguage(token.lang), width, border, utilities),

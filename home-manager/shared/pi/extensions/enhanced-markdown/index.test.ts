@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { highlightKotlinCode } from "./kotlin-highlighter.ts";
 import {
   normalizeLanguage,
   renderCodeBlockLines,
@@ -21,6 +22,10 @@ const theme = {
   codeBlockBorder: identity,
   highlightCode: (code: string, lang?: string) =>
     code.split("\n").map((line) => (lang ? `[${lang}] ${line}` : line)),
+};
+const syntaxTheme = {
+  fg: (color: string, text: string) => `<${color}>${text}</${color}>`,
+  italic: (text: string) => `<i>${text}</i>`,
 };
 
 test("normalizeLanguage maps common fence aliases", () => {
@@ -70,4 +75,27 @@ test("renderCodeBlockLines wraps long code lines to the render width", () => {
     "│ xxxxxxxxxxxxxxxxxxxxxxxx",
     "╰────────────────────────────╯",
   ]);
+});
+
+test("highlightKotlinCode colors keywords, functions, and chained functions", () => {
+  const lines = highlightKotlinCode(
+    'fun main() {\n  val result = listOf("a").map { it.trim() }\n}',
+    syntaxTheme,
+  );
+
+  assert.equal(
+    lines[0],
+    '<syntaxKeyword>fun</syntaxKeyword> <syntaxFunction>main</syntaxFunction><syntaxPunctuation>(</syntaxPunctuation><syntaxPunctuation>)</syntaxPunctuation> <syntaxPunctuation>{</syntaxPunctuation>',
+  );
+  assert.match(lines[1], /<syntaxKeyword>val<\/syntaxKeyword>/);
+  assert.match(lines[1], /<syntaxFunction>listOf<\/syntaxFunction>/);
+  assert.match(
+    lines[1],
+    /<syntaxFunction><i>map<\/i><\/syntaxFunction>/,
+  );
+  assert.match(
+    lines[1],
+    /<syntaxFunction><i>trim<\/i><\/syntaxFunction>/,
+  );
+  assert.match(lines[1], /<syntaxString>"a"<\/syntaxString>/);
 });
