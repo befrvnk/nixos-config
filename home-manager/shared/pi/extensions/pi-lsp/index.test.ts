@@ -199,7 +199,9 @@ test("ServerManager notifies listeners when Kotlin warmup becomes ready asynchro
       kotlin: {
         command: process.execPath,
         args: [serverScriptPath],
-        startupTimeoutMs: 200,
+        // This test exercises status notifications, not subprocess startup speed.
+        // Give slower CI/Nix sandbox runners enough time to launch the mock server.
+        startupTimeoutMs: 2_000,
         kotlinReadyWithoutProgressMs: 20,
       },
     },
