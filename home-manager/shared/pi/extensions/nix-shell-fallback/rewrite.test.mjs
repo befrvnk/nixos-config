@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
 	getMappedPackagesForCommand,
+	isUnavailableDarwinDeveloperToolShim,
 	quoteForBash,
 	rewriteCommandForNixShell,
 } from "./rewrite.mjs";
@@ -112,6 +113,30 @@ test("leaves commands alone when they already exist", () => {
 			isCommandAvailable: () => true,
 		}),
 		null,
+	);
+});
+
+test("treats unavailable macOS developer tool shims as missing", () => {
+	assert.equal(
+		isUnavailableDarwinDeveloperToolShim("python3", "/usr/bin/python3", {
+			platform: "darwin",
+			runXcrunFind: () => false,
+		}),
+		true,
+	);
+	assert.equal(
+		isUnavailableDarwinDeveloperToolShim("python3", "/nix/store/python3/bin/python3", {
+			platform: "darwin",
+			runXcrunFind: () => false,
+		}),
+		false,
+	);
+	assert.equal(
+		isUnavailableDarwinDeveloperToolShim("python3", "/usr/bin/python3", {
+			platform: "linux",
+			runXcrunFind: () => false,
+		}),
+		false,
 	);
 });
 

@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { accessSync, constants } from "node:fs";
 import path from "node:path";
 
@@ -30,6 +31,7 @@ const CONTROL_OPERATORS = new Set(["&&", "(", ")", ";", "|", "||", "\n", "&"]);
 const REDIRECTION_PATTERN = /^\d*(?:>>?|<<?|&>>?|&>|<>).*$/;
 const ASSIGNMENT_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*=.*/;
 const SHELL_COMMAND_NAMES = new Set(["bash", "dash", "fish", "nu", "sh", "zsh"]);
+const DARWIN_DEVELOPER_TOOL_SHIMS = new Set(["pip", "pip3", "python", "python3"]);
 const FIND_EXEC_TOKENS = new Set(["-exec", "-execdir"]);
 const FIND_EXEC_TERMINATORS = new Set([";", "\\;", "+"]);
 const XARGS_OPTIONS_WITH_VALUES = new Set([
@@ -57,6 +59,32 @@ const XARGS_OPTIONS_WITH_VALUES = new Set([
 	"--replace",
 ]);
 const availabilityCache = new Map();
+
+function xcrunFind(command, env) {
+	const result = spawnSync("/usr/bin/xcrun", ["-find", command], {
+		env: { ...process.env, ...env },
+		encoding: "utf8",
+		stdio: ["ignore", "pipe", "pipe"],
+		timeout: 1000,
+	});
+
+	return !result.error && result.status === 0 && result.stdout.trim().length > 0;
+}
+
+export function isUnavailableDarwinDeveloperToolShim(
+	command,
+	candidate,
+	{
+		env = process.env,
+		platform = process.platform,
+		runXcrunFind = xcrunFind,
+	} = {},
+) {
+	if (platform !== "darwin") return false;
+	if (!DARWIN_DEVELOPER_TOOL_SHIMS.has(command)) return false;
+	if (path.normalize(candidate) !== path.join("/usr/bin", command)) return false;
+	return !runXcrunFind(command, env);
+}
 
 function splitCommandTokens(command) {
 	const tokens = [];
@@ -223,7 +251,7 @@ export function isCommandOnPath(command, env = process.env) {
 	if (isPathLike(command)) return true;
 
 	const pathValue = env.PATH ?? "";
-	const cacheKey = `${pathValue}::${command}`;
+	const cacheKey = `${pathValue}::${env.DEVELOPER_DIR ?? ""}::${command}`;
 	const cached = availabilityCache.get(cacheKey);
 	if (cached !== undefined) return cached;
 
@@ -239,6 +267,7 @@ export function isCommandOnPath(command, env = process.env) {
 			const candidate = path.join(directory, `${command}${extension}`);
 			try {
 				accessSync(candidate, constants.X_OK);
+				if (isUnavailableDarwinDeveloperToolShim(command, candidate, { env })) continue;
 				availabilityCache.set(cacheKey, true);
 				return true;
 			} catch {

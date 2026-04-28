@@ -6,6 +6,7 @@ test("extractMissingCommandName handles common shell error formats", () => {
 	assert.equal(extractMissingCommandName("bash: line 1: rg: command not found"), "rg");
 	assert.equal(extractMissingCommandName("xargs: rg: No such file or directory"), "rg");
 	assert.equal(extractMissingCommandName("zsh: command not found: uv"), "uv");
+	assert.equal(extractMissingCommandName("error: tool 'python3' not found"), "python3");
 });
 
 test("createRetryingBashOperations retries with newly detected packages and preserves live output", async () => {
@@ -120,6 +121,29 @@ test("createRetryingBashOperations can retry even when static analysis finds no 
 	assert.deepEqual(commands, [
 		"my-wrapper build",
 		"nix shell nixpkgs#ripgrep --command bash -lc 'my-wrapper build'",
+	]);
+	assert.equal(result.exitCode, 0);
+});
+
+test("createRetryingBashOperations retries macOS developer tool shim failures", async () => {
+	const commands: string[] = [];
+	const operations = createRetryingBashOperations({
+		async exec(command, _cwd, options) {
+			commands.push(command);
+			if (commands.length === 1) {
+				options.onData?.(Buffer.from("error: tool 'python3' not found\n"));
+				return { exitCode: 1 };
+			}
+			options.onData?.(Buffer.from("ok\n"));
+			return { exitCode: 0 };
+		},
+	});
+
+	const result = await operations.exec("my-wrapper build", "/repo", { onData() {} });
+
+	assert.deepEqual(commands, [
+		"my-wrapper build",
+		"nix shell nixpkgs#python3 --command bash -lc 'my-wrapper build'",
 	]);
 	assert.equal(result.exitCode, 0);
 });

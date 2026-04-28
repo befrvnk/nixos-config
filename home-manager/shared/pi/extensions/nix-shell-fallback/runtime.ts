@@ -19,6 +19,7 @@ export type BashOperationsLike = {
 };
 
 const MISSING_COMMAND_PATTERNS = [
+	/\berror:\s+tool\s+['"`]?([^'"`\s:;]+)['"`]?\s+not found\b/gi,
 	/\bcommand not found:\s*['"`]?([^'"`\s:;]+)['"`]?/gi,
 	/\b(?:bash|dash|env|fish|find|nu|sh|xargs|zsh):(?: line \d+:)?\s+['"`]?([^'"`\s:;]+)['"`]?:\s+command not found\b/gi,
 	/\b(?:bash|dash|fish|nu|sh|zsh):(?: line \d+:)?\s+['"`]?([^'"`\s:;]+)['"`]?:\s+not found\b/gi,
@@ -88,7 +89,10 @@ export function createRetryingBashOperations(
 				const missingCommand = extractMissingCommandName(output);
 				if (!missingCommand) break;
 
-				const retryPackages = getMappedPackagesForExecutable(missingCommand, { packageMap });
+				const retryPackages = getMappedPackagesForExecutable(missingCommand, {
+					packageMap,
+					isCommandAvailable: () => false,
+				});
 				const newPackages = retryPackages.filter((packageName) => !seenRetryPackages.has(packageName));
 				if (newPackages.length === 0) break;
 				if (attempt >= maxRetries) break;

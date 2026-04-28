@@ -37,6 +37,7 @@ This helps with nested cases like shell wrappers or helper commands discovered o
 ## Notes
 
 - Commands already available on `PATH` are left untouched.
+- On macOS, unavailable `/usr/bin` developer-tool shims such as `python3` are treated as missing so they can fall back to `nix shell`.
 - Existing `nix shell`, `nix develop`, and `nix run` invocations are left untouched.
 - The parser now handles additional patterns like background jobs, `xargs`, `find -exec`, and nested `sh -c`/`bash -lc` command strings.
 - Agent bash tool calls show both the original command and the rewritten `nix shell ...` command for transparency.
