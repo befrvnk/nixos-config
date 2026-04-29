@@ -11,6 +11,8 @@
   home.packages = with pkgs; [
     # GUI apps
     openchamber
+    orca-ai
+    paseo
     supacode
 
     # CLI tools (cross-platform + Darwin-specific)

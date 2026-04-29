@@ -93,8 +93,10 @@ let
         doCheck = false;
       };
     })
-    # OpenChamber: desktop GUI for OpenCode AI agent
+    # Desktop AI agent apps
     (import ../overlays/openchamber.nix)
+    (import ../overlays/orca-ai.nix)
+    (import ../overlays/paseo.nix)
     (import ../overlays/supacode.nix)
   ];
 in

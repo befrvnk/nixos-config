@@ -161,6 +161,8 @@
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           inherit (pkgs)
             openchamber
+            orca-ai
+            paseo
             supacode
             ;
         }

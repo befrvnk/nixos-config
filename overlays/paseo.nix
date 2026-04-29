@@ -1,3 +1,5 @@
 final: prev: {
-  paseo = final.callPackage ../pkgs/paseo/package.nix { };
+  paseo = final.callPackage (
+    if final.stdenv.hostPlatform.isDarwin then ../pkgs/paseo/darwin.nix else ../pkgs/paseo/package.nix
+  ) { };
 }
