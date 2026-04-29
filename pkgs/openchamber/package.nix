@@ -7,14 +7,14 @@
 
 stdenvNoCC.mkDerivation rec {
   pname = "openchamber";
-  version = "1.9.9";
+  version = "1.9.10";
 
   appName = "OpenChamber.app";
   executable = "openchamber-desktop";
 
   src = fetchurl {
     url = "https://github.com/openchamber/openchamber/releases/download/v${version}/OpenChamber.app-darwin-aarch64.tar.gz";
-    hash = "sha256-aRyRLYhBm0m6stsHeoONgnd0j66sHds/9asPDpK7n6I=";
+    hash = "sha256-ysOkwphgq5y4JjT0xD62XWuLuErOYPl6DfdafWXXSYA=";
   };
 
   sourceRoot = ".";
