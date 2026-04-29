@@ -9,6 +9,7 @@ import {
   splitMarkdownSections,
   uniqueNonEmptyStrings,
 } from "./formatting.ts";
+import { FAST_EXPLORE_MODEL } from "./model-policy.ts";
 import type { SubagentRunState, SubagentTaskState } from "./types.ts";
 
 test("formatDuration renders milliseconds, seconds, and minutes", () => {
@@ -47,7 +48,7 @@ test("renderTaskHistoryMarkdown and renderRunMarkdown include key run details", 
     task: "Investigate prompt flow",
     label: "Prompt flow",
     intent: "balanced",
-    model: "github-copilot/gpt-5.4-mini",
+    model: FAST_EXPLORE_MODEL,
     thinkingLevel: "medium",
     cwd: "/tmp/project",
     state: "success",

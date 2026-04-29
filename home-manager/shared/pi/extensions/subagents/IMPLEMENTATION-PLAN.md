@@ -43,17 +43,17 @@ Reshape it into the target design from this plan.
 
 ### Allowed model whitelist for explore
 
-Only these models may be used for explore:
+Only the models centralized in `model-policy.ts` may be used for explore:
 
 - `github-copilot/claude-opus-4.6`
 - `github-copilot/claude-sonnet-4.6`
 - `github-copilot/gemini-3.1-pro-preview`
-- `github-copilot/gpt-5.4-mini`
-- `github-copilot/gpt-5.4`
+- `FAST_EXPLORE_MODEL`
+- `DEFAULT_EXPLORE_MODEL`
 
 Recommended default when `model` is omitted:
 
-- `github-copilot/gpt-5.4-mini`
+- `DEFAULT_EXPLORE_MODEL`
 
 ### Fixed review models
 
@@ -138,13 +138,13 @@ Optional later:
 
 ### Allowed explore models
 
-The main agent may choose **only** from this whitelist:
+The main agent may choose **only** from this whitelist centralized in `model-policy.ts`:
 
 - `github-copilot/claude-opus-4.6`
 - `github-copilot/claude-sonnet-4.6`
 - `github-copilot/gemini-3.1-pro-preview`
-- `github-copilot/gpt-5.4-mini`
-- `github-copilot/gpt-5.4`
+- `FAST_EXPLORE_MODEL`
+- `DEFAULT_EXPLORE_MODEL`
 
 ### Explore model selection
 
@@ -161,7 +161,7 @@ Examples that should be supported:
 
 Recommended fallback when `model` is omitted:
 
-- `github-copilot/gpt-5.4-mini`
+- `DEFAULT_EXPLORE_MODEL`
 
 Important: **do not** inherit the current session model anymore.
 The fallback should be predictable and cheap.
@@ -187,7 +187,7 @@ The next implementation session should adjust it rather than build from scratch.
 ### Current state that must be changed
 
 1. `explore` currently fans out each logical task into two fixed model runs
-   - `github-copilot/gpt-5.4-mini`
+   - `FAST_EXPLORE_MODEL`
    - `github-copilot/claude-sonnet-4.6`
 
 2. `explore` currently rejects model overrides from the caller
@@ -265,7 +265,7 @@ Undo the fixed two-model fanout design and restore `explore` as a flexible agent
 - One explore task = one child run
 - Multiple explore tasks = multiple child runs
 - The main agent may choose the model per task from the whitelist
-- If omitted, model defaults to `github-copilot/gpt-5.4-mini`
+- If omitted, model defaults to `DEFAULT_EXPLORE_MODEL`
 - `explore` remains read-only
 - `explore_status` continues to work
 - `review` may still exist temporarily during this phase, but Phase 2 removes it from agent control
@@ -282,7 +282,7 @@ Keep:
 Change:
 
 - remove `FIXED_EXPLORE_MODELS`
-- add `DEFAULT_EXPLORE_MODEL = "github-copilot/gpt-5.4-mini"`
+- add `DEFAULT_EXPLORE_MODEL`, derived from centralized model IDs
 
 Suggested shape:
 
@@ -387,10 +387,10 @@ In other words:
 ```json
 {
   "tasks": [
-    { "task": "research topic A", "model": "github-copilot/gpt-5.4-mini" },
+    { "task": "research topic A", "model": "<FAST_EXPLORE_MODEL>" },
     { "task": "research topic B", "model": "github-copilot/gemini-3.1-pro-preview" },
     { "task": "inspect module C", "model": "github-copilot/claude-opus-4.6" },
-    { "task": "inspect module D", "model": "github-copilot/gpt-5.4" }
+    { "task": "inspect module D", "model": "<DEFAULT_EXPLORE_MODEL>" }
   ]
 }
 ```
@@ -739,7 +739,7 @@ Should remain review-focused and fixed-pair oriented.
 
 - agent can run single explore task with explicit model
 - agent can run multiple explore tasks with mixed models
-- omitted model defaults to `github-copilot/gpt-5.4-mini`
+- omitted model defaults to `DEFAULT_EXPLORE_MODEL`
 - non-whitelisted models fail clearly
 - explore results and status reflect real child runs directly
 

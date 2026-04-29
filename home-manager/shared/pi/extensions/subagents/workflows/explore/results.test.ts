@@ -5,6 +5,7 @@ import {
   renderFinalExploreResults,
   summarizeExploreResult,
 } from "./results.ts";
+import { FAST_EXPLORE_MODEL } from "../../model-policy.ts";
 import type { SubagentTaskResult } from "../../types.ts";
 
 const result: SubagentTaskResult = {
@@ -12,7 +13,7 @@ const result: SubagentTaskResult = {
   task: "Inspect docs",
   label: "Docs",
   intent: "balanced",
-  model: "github-copilot/gpt-5.4-mini",
+  model: FAST_EXPLORE_MODEL,
   thinkingLevel: "medium",
   cwd: "/tmp/project",
   status: "success",

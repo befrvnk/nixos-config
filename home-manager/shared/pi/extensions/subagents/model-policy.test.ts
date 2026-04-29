@@ -4,7 +4,9 @@ import {
   ALLOWED_EXPLORE_INTENTS,
   ALLOWED_SUBAGENT_MODELS,
   DEFAULT_EXPLORE_INTENT,
+  DEFAULT_EXPLORE_MODEL,
   EXPLORE_INTENT_PROFILES,
+  FAST_EXPLORE_MODEL,
   FIXED_REVIEWERS,
   isAllowedSubagentModel,
   normalizeExploreIntent,
@@ -15,6 +17,7 @@ test("default explore configuration stays within the allowed model policy", () =
   const profile = resolveExploreExecutionProfile(undefined);
   assert.equal(profile.intent, DEFAULT_EXPLORE_INTENT);
   assert.ok(ALLOWED_SUBAGENT_MODELS.includes(profile.model));
+  assert.equal(profile.model, DEFAULT_EXPLORE_MODEL);
   assert.equal(profile.thinkingLevel, "medium");
 });
 
@@ -43,17 +46,17 @@ test("explore intent normalization and profile resolution are safe by default", 
 
   assert.deepEqual(EXPLORE_INTENT_PROFILES.fast, {
     intent: "fast",
-    model: "github-copilot/gpt-5.4-mini",
+    model: FAST_EXPLORE_MODEL,
     thinkingLevel: "medium",
   });
   assert.deepEqual(EXPLORE_INTENT_PROFILES.balanced, {
     intent: "balanced",
-    model: "github-copilot/gpt-5.4",
+    model: DEFAULT_EXPLORE_MODEL,
     thinkingLevel: "medium",
   });
   assert.deepEqual(EXPLORE_INTENT_PROFILES.deep, {
     intent: "deep",
-    model: "github-copilot/gpt-5.4",
+    model: DEFAULT_EXPLORE_MODEL,
     thinkingLevel: "high",
   });
 });

@@ -51,13 +51,8 @@ Child runs are intentionally read-only and use guarded versions of:
 
 The bash tool is restricted to read-only inspection commands and blocks shell output redirection, command substitution, and write-capable git subcommands.
 
-Subagents only support these **GitHub Copilot** models:
-
-- `github-copilot/claude-opus-4.6`
-- `github-copilot/claude-sonnet-4.6`
-- `github-copilot/gemini-3.1-pro-preview`
-- `github-copilot/gpt-5.4-mini`
-- `github-copilot/gpt-5.4`
+Subagents only support the **GitHub Copilot** models configured in `model-policy.ts`.
+The model IDs are centralized in `SUBAGENT_MODEL_IDS`; changing the default explore model should only require updating `defaultExplore` there.
 
 ## Explore workflow
 
@@ -75,12 +70,12 @@ Instead it can provide an optional intent per task:
 - `balanced` (default/fallback)
 - `deep`
 
-The extension maps those intents to safe internal GitHub Copilot model profiles.
+The extension maps those intents to safe internal GitHub Copilot model profiles from `model-policy.ts`.
 Current mapping:
 
-- `fast` → `github-copilot/gpt-5.4-mini` with medium thinking
-- `balanced` → `github-copilot/gpt-5.4` with medium thinking
-- `deep` → `github-copilot/gpt-5.4` with high thinking
+- `fast` → `FAST_EXPLORE_MODEL` with medium thinking
+- `balanced` → `DEFAULT_EXPLORE_MODEL` with medium thinking
+- `deep` → `DEFAULT_EXPLORE_MODEL` with high thinking
 
 If intent is omitted or invalid, `explore` falls back to `balanced` automatically.
 
