@@ -115,6 +115,7 @@ CLI tools that work cross-platform:
 - **Shell**: Nushell, Starship prompt, Atuin history
 - **Development**: Helix, Zed, Claude Code, git, gh, lazygit, jujutsu
 - **Utilities**: bat, eza, fd, fzf, htop, yazi, navi
+- **Security**: 1Password CLI (`op`)
 
 GUI apps that stay in nixpkgs are the exceptions, used only when there isn't a suitable Homebrew cask.
 
@@ -122,7 +123,19 @@ GUI apps that stay in nixpkgs are the exceptions, used only when there isn't a s
 
 Selected GUI apps configured via nix-darwin:
 - Raycast, Notion, Slack, and Spotify (Homebrew casks so in-app updates keep working)
-- Ghostty, JetBrains Toolbox, 1Password, Signal, WhatsApp, Zed, Zen, and others
+- Ghostty, JetBrains Toolbox, 1Password app, Signal, WhatsApp, Zed, Zen, and others
+
+### 1Password CLI app integration
+
+The 1Password app is installed via Homebrew, while the `op` CLI is installed via nixpkgs.
+To use vault items from the CLI, enable the desktop app integration in 1Password:
+
+1. Open and unlock 1Password.
+2. Go to **Settings > Security** and enable Touch ID/system authentication.
+3. Go to **Settings > Developer** and enable **Integrate with 1Password CLI**.
+4. Run a command like `op vault list`; the app should prompt for Touch ID.
+
+If `op signin` says "No accounts configured", the app integration is not enabled or the account has not been added to the 1Password app. Do not add an account manually unless you intentionally want the older terminal-password/session-token flow.
 
 ### macOS System Defaults
 
