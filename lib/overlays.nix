@@ -94,7 +94,6 @@ let
       };
     })
     # Desktop AI agent apps
-    (import ../overlays/aizen.nix)
     (import ../overlays/openchamber.nix)
     (import ../overlays/orca-ai.nix)
     (import ../overlays/paseo.nix)

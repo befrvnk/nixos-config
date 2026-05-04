@@ -160,7 +160,6 @@
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           inherit (pkgs)
-            aizen
             openchamber
             orca-ai
             paseo
