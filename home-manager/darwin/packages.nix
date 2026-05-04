@@ -10,6 +10,7 @@
 {
   home.packages = with pkgs; [
     # GUI apps
+    aizen
     openchamber
     orca-ai
     paseo
