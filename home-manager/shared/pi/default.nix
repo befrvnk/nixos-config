@@ -43,11 +43,11 @@ in
       ".pi/agent/extensions/nav-tools".source = ./extensions/nav-tools;
       ".pi/agent/extensions/nix-shell-fallback".source = ./extensions/nix-shell-fallback;
       ".pi/agent/extensions/pi-lsp".source = ./extensions/pi-lsp;
+      ".pi/agent/extensions/search-tools".source = ./extensions/search-tools;
       ".pi/agent/extensions/subagents".source = ./extensions/subagents;
       ".pi/agent/extensions/system-theme-sync".source = ./extensions/system-theme-sync;
       ".pi/agent/pi-lsp.json".text = builtins.toJSON piLspConfig;
       ".pi/agent/settings.json".text = builtins.toJSON piSettings;
-      ".pi/agent/skills/exa-search".source = ./skills/exa-search;
     };
   };
 }
