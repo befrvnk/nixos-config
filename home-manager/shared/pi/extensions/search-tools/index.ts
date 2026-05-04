@@ -2,7 +2,7 @@ import { StringEnum, Type } from "@mariozechner/pi-ai";
 import { defineTool, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 const EXA_MCP_URL = process.env.EXA_MCP_URL ?? "https://mcp.exa.ai/mcp";
-const EXA_RETRIES = readPositiveIntEnv("EXA_CURL_RETRIES", 2);
+const EXA_RETRIES = readPositiveIntEnv(["EXA_RETRIES", "EXA_CURL_RETRIES"], 2);
 const EXA_RETRY_DELAY_MS = 1_000;
 const MAX_CONCURRENCY = 2;
 
@@ -569,11 +569,16 @@ function errorToMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function readPositiveIntEnv(name: string, fallback: number): number {
-  const value = process.env[name];
-  if (!value) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+function readPositiveIntEnv(names: string | string[], fallback: number): number {
+  for (const name of Array.isArray(names) ? names : [names]) {
+    const value = process.env[name];
+    if (!value) continue;
+
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  }
+
+  return fallback;
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -583,11 +588,15 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
       return;
     }
 
-    const timeout = setTimeout(resolve, ms);
     const abort = () => {
       clearTimeout(timeout);
       reject(new Error("Search cancelled."));
     };
+    const timeout = setTimeout(() => {
+      signal?.removeEventListener("abort", abort);
+      resolve();
+    }, ms);
+
     signal?.addEventListener("abort", abort, { once: true });
   });
 }
