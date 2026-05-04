@@ -1,5 +1,11 @@
 import { StringEnum, Type } from "@mariozechner/pi-ai";
-import { defineTool, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import {
+  defineTool,
+  getMarkdownTheme,
+  type ExtensionAPI,
+} from "@mariozechner/pi-coding-agent";
+import { Markdown, Text } from "@mariozechner/pi-tui";
+import { formatCodeSearchOutput, formatWebSearchOutput } from "./formatting.ts";
 
 const EXA_MCP_URL = process.env.EXA_MCP_URL ?? "https://mcp.exa.ai/mcp";
 const EXA_RETRIES = readPositiveIntEnv(["EXA_RETRIES", "EXA_CURL_RETRIES"], 2);
@@ -92,6 +98,22 @@ const webSearchTool = defineTool({
     ),
   }),
 
+  renderCall(args, theme) {
+    const query = typeof args.query === "string" ? args.query.trim() : "";
+    const mode = typeof args.mode === "string" ? args.mode : "overview";
+    const focus = typeof args.focus === "string" ? args.focus : "overview";
+    let text = `${theme.fg("toolTitle", theme.bold("Web Search"))} `;
+    text += theme.fg("accent", query || "query");
+    if (mode !== "overview" || focus !== "overview") {
+      text += theme.fg("muted", ` (${mode}/${focus})`);
+    }
+    return new Text(text, 0, 0);
+  },
+
+  renderResult(result, options) {
+    return renderMarkdownToolResult(result, options, "Searching the web…", "No web results found.");
+  },
+
   async execute(_toolCallId, params, signal) {
     const query = params.query.trim();
     if (!query) {
@@ -178,6 +200,19 @@ const codeSearchTool = defineTool({
       }),
     ),
   }),
+
+  renderCall(args, theme) {
+    const query = typeof args.query === "string" ? args.query.trim() : "";
+    const maxTokens = typeof args.maxTokens === "number" ? args.maxTokens : undefined;
+    let text = `${theme.fg("toolTitle", theme.bold("Code Search"))} `;
+    text += theme.fg("accent", query || "query");
+    if (maxTokens != null) text += theme.fg("muted", ` (${maxTokens} tokens)`);
+    return new Text(text, 0, 0);
+  },
+
+  renderResult(result, options) {
+    return renderMarkdownToolResult(result, options, "Searching code context…", "No code snippets or documentation found.");
+  },
 
   async execute(_toolCallId, params, signal) {
     const query = params.query.trim();
@@ -477,62 +512,20 @@ function extractMcpResultEvent(raw: string): any {
   return resultEvent;
 }
 
-function formatWebSearchOutput(input: {
-  originalQuery: string;
-  mode: WebSearchModeValue;
-  focus: WebSearchFocusValue;
-  settings: SearchSettings;
-  plan: SearchPlanItem[];
-  results: SearchResult[];
-  warnings: SearchWarning[];
-  currentYearInjected: boolean;
-}): string {
-  const totalSearchTime = input.results.reduce((sum, result) => {
-    return typeof result.searchTime === "number" ? sum + result.searchTime : sum;
-  }, 0);
-
-  const lines: string[] = [];
-  lines.push(input.mode === "single" ? `Web search for: ${input.originalQuery}` : `Web research overview for: ${input.originalQuery}`);
-  lines.push(`Mode: ${input.mode}`);
-  lines.push(`Focus: ${input.focus}`);
-  lines.push(
-    `Per-search settings: results=${input.settings.results}, depth=${input.settings.depth}, freshness=${input.settings.freshness}, maxCharacters=${input.settings.maxCharacters}`,
-  );
-  if (totalSearchTime > 0) lines.push(`Combined search time: ${Math.round(totalSearchTime * 10) / 10}ms`);
-  if (input.currentYearInjected) lines.push(`Recent-pass year hint: ${new Date().getFullYear()}`);
-
-  lines.push("");
-  lines.push("Search plan:");
-  for (const item of input.plan) lines.push(`- ${item.label}: ${item.query}`);
-
-  if (input.warnings.length > 0) {
-    lines.push("");
-    lines.push("Warnings:");
-    for (const warning of input.warnings) lines.push(`- ${warning.label} failed: ${warning.query} (${warning.error})`);
-  }
-
-  for (const result of input.results) {
-    lines.push("");
-    lines.push("================================================================================");
-    lines.push(result.label);
-    lines.push(`Query: ${result.query}`);
-    if (result.searchTime != null) lines.push(`Search time: ${result.searchTime}ms`);
-    lines.push("================================================================================");
-    lines.push("");
-    lines.push(result.text || "No results found.");
-  }
-
-  return lines.join("\n");
+function renderMarkdownToolResult(
+  result: { content?: Array<{ type?: string; text?: string }> },
+  options: { isPartial: boolean },
+  partialText: string,
+  emptyText: string,
+) {
+  const contentText = getTextContent(result);
+  const text = contentText || (options.isPartial ? partialText : emptyText);
+  const markdown = options.isPartial && !contentText ? `_${text}_` : text;
+  return new Markdown(markdown, 0, 0, getMarkdownTheme());
 }
 
-function formatCodeSearchOutput(query: string, maxTokens: number, searchTime: unknown, text: string): string {
-  const lines: string[] = [];
-  lines.push(`Code search for: ${query}`);
-  lines.push(`Max tokens: ${maxTokens}`);
-  if (searchTime != null) lines.push(`Search time: ${searchTime}ms`);
-  lines.push("");
-  lines.push(text || "No code snippets or documentation found.");
-  return lines.join("\n");
+function getTextContent(result: { content?: Array<{ type?: string; text?: string }> }): string {
+  return result.content?.find((item) => item.type === "text" && typeof item.text === "string")?.text?.trim() ?? "";
 }
 
 function normalizeTopicQuery(query: string): string {
