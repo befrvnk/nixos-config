@@ -126,7 +126,16 @@ stdenv.mkDerivation rec {
     ln -s ${lib.getLib vips_8_17}/lib/libvips-cpp.so.42.19.3 \
       "$out/lib/paseo/resources/app.asar.unpacked/node_modules/@img/sharp-linux-x64/lib/libvips-cpp.so.8.17.3"
 
-    makeWrapper "$out/lib/paseo/Paseo.bin" "$out/bin/paseo-desktop" \
+    appExecutable="$out/lib/paseo/Paseo.bin"
+    if [ ! -x "$appExecutable" ]; then
+      appExecutable="$out/lib/paseo/Paseo"
+    fi
+    if [ ! -x "$appExecutable" ]; then
+      echo "Bundled Paseo executable not found" >&2
+      exit 1
+    fi
+
+    makeWrapper "$appExecutable" "$out/bin/paseo-desktop" \
       "''${gappsWrapperArgs[@]}" \
       --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}" \
       --prefix PATH : "${
@@ -140,7 +149,7 @@ stdenv.mkDerivation rec {
       --add-flags "--enable-features=WaylandWindowDecorations" \
       --add-flags "--enable-wayland-ime=true"
 
-    makeWrapper "$out/lib/paseo/Paseo.bin" "$out/bin/paseo" \
+    makeWrapper "$appExecutable" "$out/bin/paseo" \
       --set ELECTRON_RUN_AS_NODE 1 \
       --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}" \
       --prefix PATH : "${
@@ -178,7 +187,7 @@ stdenv.mkDerivation rec {
   installCheckPhase = ''
     test -x "$out/bin/paseo"
     test -x "$out/bin/paseo-desktop"
-    test -x "$out/lib/paseo/Paseo.bin"
+    test -x "$out/lib/paseo/Paseo" || test -x "$out/lib/paseo/Paseo.bin"
     test -f "$out/lib/paseo/resources/app.asar"
     test -f "$out/share/applications/paseo.desktop"
     test -f "$out/share/icons/hicolor/128x128/apps/Paseo.png"
