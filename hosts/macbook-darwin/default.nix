@@ -126,6 +126,7 @@
     };
     taps = [
       "BarutSRB/tap"
+      "darrylmorley/whatcable"
       "muxy-app/tap"
     ];
     casks =
@@ -150,6 +151,7 @@
               "signal"
               "spotify"
               "whatsapp"
+              "whatcable"
               "zed"
               "zen"
             ];
