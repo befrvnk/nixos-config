@@ -44,11 +44,11 @@
 
 stdenv.mkDerivation rec {
   pname = "paseo";
-  version = "0.1.67";
+  version = "0.1.70";
 
   src = fetchurl {
     url = "https://github.com/getpaseo/paseo/releases/download/v${version}/Paseo-${version}-amd64.deb";
-    hash = "sha256-6bvxQ0BRda8rfQHuI3FxgeN71zgLGi7vPy+mpGIVdlI=";
+    hash = "sha256-WsjSQpQ0FaFO3xqDRvtITmIsMEtpKDedgM6p9ruwSdA=";
   };
 
   dontUnpack = true;
