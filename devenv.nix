@@ -340,10 +340,6 @@ in
       ./scripts/update-orca-ai.sh || echo "⚠️  Orca AI update failed (may already be up to date)"
 
       echo ""
-      echo "Updating Paseo package..."
-      ./scripts/update-paseo.sh || echo "⚠️  Paseo update failed (may already be up to date)"
-
-      echo ""
       echo "Updating pi coding agent package..."
       ./scripts/update-pi-coding-agent.sh || echo "⚠️  pi coding agent update failed (may already be up to date)"
 

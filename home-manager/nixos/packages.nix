@@ -1,5 +1,13 @@
-{ lib, pkgs, ... }:
+{
+  lib,
+  pkgs,
+  inputs,
+  ...
+}:
 
+let
+  paseoDesktop = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.desktop;
+in
 {
   home.packages =
     (with pkgs; [
@@ -14,6 +22,7 @@
       nautilus
       gnome-disk-utility
       opencode-desktop
+      paseoDesktop
       powertop
       sushi # nautilus preview
       # Icon theme for ironbar
@@ -25,7 +34,6 @@
       pkgs.discord
       pkgs.obsidian
       pkgs.orca-ai
-      pkgs.paseo
       pkgs.slack
       pkgs.spotify
       (import ./elecwhat.nix { inherit pkgs; })

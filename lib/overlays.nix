@@ -67,7 +67,6 @@ let
     (import ../overlays/domain-check.nix)
     (import ../overlays/idea-community.nix)
     (import ../overlays/orca-ai.nix)
-    (import ../overlays/paseo.nix)
     inputs.niri.overlays.niri
     (import ../overlays/niri.nix)
     inputs.nix-cachyos-kernel.overlays.pinned
@@ -96,7 +95,6 @@ let
     # Desktop AI agent apps
     (import ../overlays/openchamber.nix)
     (import ../overlays/orca-ai.nix)
-    (import ../overlays/paseo.nix)
     (import ../overlays/supacode.nix)
   ];
 in
