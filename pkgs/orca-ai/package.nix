@@ -42,11 +42,11 @@
 
 stdenv.mkDerivation rec {
   pname = "orca-ai";
-  version = "1.3.41";
+  version = "1.4.1";
 
   src = fetchurl {
     url = "https://github.com/stablyai/orca/releases/download/v${version}/orca_${version}_amd64.deb";
-    hash = "sha256-rl0QhUaUkaBfzi20U/papoeOBZCWRQEW4O6dhcfBycQ=";
+    hash = "sha256-tpHTB9XXvP9mNsP18Rl6FrFss4jdvvKO9rUn0cW6KOE=";
   };
 
   dontUnpack = true;
