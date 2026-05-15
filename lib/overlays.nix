@@ -47,6 +47,41 @@ let
                 patchShebangs node_modules packages/*/node_modules
               '';
             });
+
+        # nixpkgs' desktop package targets a newer upstream layout where the
+        # Electron app lives in packages/desktop. Our pinned flake revision uses
+        # packages/desktop-electron, so retarget the package and bundle the CLI
+        # sidecar from the matching pinned opencode build.
+        opencode-desktop = prev.opencode-desktop.overrideAttrs (old: {
+          postPatch =
+            builtins.replaceStrings
+              [ "packages/desktop/src/main/constants.ts" ]
+              [ "packages/desktop-electron/src/main/constants.ts" ]
+              old.postPatch;
+
+          buildPhase =
+            builtins.replaceStrings
+              [
+                "bun --bun ./script/build-node.ts --skip-install"
+                "cd packages/desktop"
+                "cp -R icons/prod resources/icons"
+              ]
+              [
+                ":"
+                "cd packages/desktop-electron"
+                ''
+                  cp -R icons/prod resources/icons
+                  install -Dm755 ${final.opencode}/bin/opencode resources/opencode-cli
+                ''
+              ]
+              old.buildPhase;
+
+          installPhase =
+            builtins.replaceStrings
+              [ "packages/desktop/" "packages/desktop" ]
+              [ "packages/desktop-electron/" "packages/desktop-electron" ]
+              old.installPhase;
+        });
       }
     )
 
