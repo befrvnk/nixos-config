@@ -6,6 +6,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { Markdown, Text } from "@mariozechner/pi-tui";
 import { formatCodeSearchOutput, formatWebSearchOutput } from "./formatting.ts";
+import { extractUrlsFromMcpResult } from "./url-extraction.ts";
 
 const EXA_MCP_URL = process.env.EXA_MCP_URL ?? "https://mcp.exa.ai/mcp";
 const EXA_RETRIES = readPositiveIntEnv(["EXA_RETRIES", "EXA_CURL_RETRIES"], 2);
@@ -53,8 +54,7 @@ interface SearchPlanItem {
 }
 
 interface SearchResult extends SearchPlanItem {
-  searchTime: unknown;
-  text: string;
+  urls: string[];
 }
 
 interface SearchWarning {
@@ -67,15 +67,16 @@ const webSearchTool = defineTool({
   name: "web_search",
   label: "Web Search",
   description:
-    "Search the web for current documentation, official references, release notes, recent changes, project pages, issues, and technical information beyond the model cutoff.",
+    "Search the web for current documentation, official references, release notes, recent changes, project pages, issues, and technical information beyond the model cutoff. Returns searched queries and source URLs, not page content.",
   promptSnippet:
-    "Search the web for current docs, release notes, official pages, recent changes, GitHub/project information, and technical references",
+    "Search the web for current docs, release notes, official pages, recent changes, GitHub/project information, and technical source URLs",
   promptGuidelines: [
     "Use web_search when the user asks for current documentation, release notes, recent changes, official project pages, web research, or information beyond the model cutoff.",
     "Use web_search with focus='docs' for official documentation and API references.",
     "Use web_search with focus='repo' for GitHub repositories, changelogs, releases, and issues.",
     "Use web_search with focus='recent' for latest/current/release/changelog questions.",
     "Use web_search in default overview mode first when the user needs a broad understanding of a project, library, or tool.",
+    "web_search returns source URLs only; open or fetch a URL separately if page content is required.",
     "Preserve user constraints such as site:, repository names, versions, and years in web_search queries.",
   ],
   parameters: Type.Object({
@@ -141,13 +142,9 @@ const webSearchTool = defineTool({
 
     const text = formatWebSearchOutput({
       originalQuery: query,
-      mode,
-      focus,
-      settings,
       plan,
       results,
       warnings,
-      currentYearInjected,
     });
 
     return {
@@ -400,8 +397,7 @@ async function runWebSearchPass(item: SearchPlanItem, settings: SearchSettings, 
 
   return {
     ...item,
-    searchTime: event?.result?.content?.[0]?._meta?.searchTime ?? null,
-    text: event?.result?.content?.[0]?.text ?? "",
+    urls: extractUrlsFromMcpResult(event?.result),
   };
 }
 

@@ -1,38 +1,18 @@
 export interface WebSearchFormatInput {
   originalQuery: string;
-  mode: string;
-  focus: string;
-  settings: {
-    results: number;
-    depth: string;
-    freshness: string;
-    maxCharacters: number;
-  };
   plan: Array<{ label: string; query: string }>;
-  results: Array<{ label: string; query: string; searchTime: unknown; text: string }>;
+  results: Array<{ label: string; query: string; urls: string[] }>;
   warnings: Array<{ label: string; query: string; error: string }>;
-  currentYearInjected: boolean;
 }
 
 export function formatWebSearchOutput(input: WebSearchFormatInput): string {
-  const totalSearchTime = input.results.reduce((sum, result) => {
-    return typeof result.searchTime === "number" ? sum + result.searchTime : sum;
-  }, 0);
-
   const lines: string[] = [];
-  lines.push(input.mode === "single" ? "# Web search" : "# Web research overview");
+  lines.push("# Web search sources");
   lines.push("");
   lines.push(`**Query:** ${input.originalQuery}`);
-  lines.push(`**Mode:** ${inlineCode(input.mode)}`);
-  lines.push(`**Focus:** ${inlineCode(input.focus)}`);
-  lines.push(
-    `**Per-search settings:** results=${input.settings.results}, depth=${inlineCode(input.settings.depth)}, freshness=${inlineCode(input.settings.freshness)}, maxCharacters=${input.settings.maxCharacters}`,
-  );
-  if (totalSearchTime > 0) lines.push(`**Combined search time:** ${Math.round(totalSearchTime * 10) / 10}ms`);
-  if (input.currentYearInjected) lines.push(`**Recent-pass year hint:** ${new Date().getFullYear()}`);
 
   lines.push("");
-  lines.push("## Search plan");
+  lines.push("## Search queries");
   lines.push("");
   for (const item of input.plan) lines.push(`- **${item.label}:** ${inlineCode(item.query)}`);
 
@@ -45,14 +25,21 @@ export function formatWebSearchOutput(input: WebSearchFormatInput): string {
     }
   }
 
+  lines.push("");
+  lines.push("## URLs");
+
   for (const result of input.results) {
     lines.push("");
-    lines.push(`## ${result.label}`);
+    lines.push(`### ${result.label}`);
     lines.push("");
     lines.push(`**Query:** ${inlineCode(result.query)}`);
-    if (result.searchTime != null) lines.push(`**Search time:** ${result.searchTime}ms`);
     lines.push("");
-    lines.push(result.text?.trim() || "No results found.");
+
+    if (result.urls.length === 0) {
+      lines.push("No URLs found.");
+    } else {
+      for (const url of result.urls) lines.push(`- ${url}`);
+    }
   }
 
   return lines.join("\n");
