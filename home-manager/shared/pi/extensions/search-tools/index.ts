@@ -5,8 +5,9 @@ import {
   type ExtensionAPI,
 } from "@mariozechner/pi-coding-agent";
 import { Markdown, Text } from "@mariozechner/pi-tui";
-import { formatCodeSearchOutput, formatWebSearchOutput } from "./formatting.ts";
+import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
+import { fetchWebUrl, type WebFetchFormat } from "./web-fetch.ts";
 
 const EXA_MCP_URL = process.env.EXA_MCP_URL ?? "https://mcp.exa.ai/mcp";
 const EXA_RETRIES = readPositiveIntEnv(["EXA_RETRIES", "EXA_CURL_RETRIES"], 2);
@@ -32,6 +33,11 @@ const SearchDepth = StringEnum(["auto", "fast", "deep"] as const, {
 const SearchFreshness = StringEnum(["fallback", "prefer_fresh"] as const, {
   description:
     'Freshness preference. Leave omitted for adaptive defaults; use "prefer_fresh" for recent/current/release/changelog queries.',
+});
+
+const WebFetchFormatEnum = StringEnum(["markdown", "text", "html"] as const, {
+  description: 'Response format to return. Defaults to "markdown".',
+  default: "markdown",
 });
 
 type WebSearchModeValue = "overview" | "single";
@@ -76,7 +82,7 @@ const webSearchTool = defineTool({
     "Use web_search with focus='repo' for GitHub repositories, changelogs, releases, and issues.",
     "Use web_search with focus='recent' for latest/current/release/changelog questions.",
     "Use web_search in default overview mode first when the user needs a broad understanding of a project, library, or tool.",
-    "web_search returns source URLs only; open or fetch a URL separately if page content is required.",
+    "web_search returns source URLs only; use web_fetch on a specific URL if page content is required.",
     "Preserve user constraints such as site:, repository names, versions, and years in web_search queries.",
   ],
   parameters: Type.Object({
@@ -175,6 +181,79 @@ const webSearchTool = defineTool({
   },
 });
 
+const webFetchTool = defineTool({
+  name: "web_fetch",
+  label: "Web Fetch",
+  description:
+    "Fetch the content of a specific HTTP(S) URL discovered through web_search or provided by the user. Returns markdown, text, or HTML with metadata and truncation.",
+  promptSnippet: "Fetch and read the content of a specific HTTP(S) URL when source content is needed",
+  promptGuidelines: [
+    "Use web_fetch after web_search when you need to inspect the content of a specific source URL.",
+    "Prefer fetching official documentation, repository, changelog, or release-note URLs before less authoritative sources.",
+    "Do not use web_fetch for local files or internal/private network URLs; only HTTP(S) web URLs are supported.",
+    "Keep maxCharacters as small as practical; increase it only when the page content is incomplete for the task.",
+  ],
+  parameters: Type.Object({
+    url: Type.String({ description: "HTTP(S) URL to fetch. Use a specific source URL, not a search query." }),
+    format: Type.Optional(WebFetchFormatEnum),
+    timeout: Type.Optional(
+      Type.Number({
+        description: "Optional timeout in seconds. Default: 30. Maximum: 120.",
+        minimum: 1,
+        maximum: 120,
+      }),
+    ),
+    maxCharacters: Type.Optional(
+      Type.Number({
+        description: "Maximum characters of fetched content to return. Default: 20000.",
+        minimum: 1,
+        maximum: 200000,
+      }),
+    ),
+  }),
+
+  renderCall(args, theme) {
+    const url = typeof args.url === "string" ? args.url.trim() : "";
+    const format = typeof args.format === "string" ? args.format : "markdown";
+    let text = `${theme.fg("toolTitle", theme.bold("Web Fetch"))} `;
+    text += theme.fg("accent", url || "url");
+    if (format !== "markdown") text += theme.fg("muted", ` (${format})`);
+    return new Text(text, 0, 0);
+  },
+
+  renderResult(result, options) {
+    return renderMarkdownToolResult(result, options, "Fetching URL…", "No web content fetched.");
+  },
+
+  async execute(_toolCallId, params, signal) {
+    const maxCharacters = Math.trunc(params.maxCharacters ?? 20_000);
+    if (maxCharacters < 1 || maxCharacters > 200_000) {
+      throw new Error("web_fetch maxCharacters must be between 1 and 200000.");
+    }
+
+    const timeout = params.timeout == null ? undefined : params.timeout;
+    if (timeout != null && (timeout < 1 || timeout > 120)) {
+      throw new Error("web_fetch timeout must be between 1 and 120 seconds.");
+    }
+
+    const result = await fetchWebUrl(
+      {
+        url: params.url,
+        format: (params.format ?? "markdown") as WebFetchFormat,
+        timeoutSeconds: timeout,
+        maxCharacters,
+      },
+      signal,
+    );
+    const text = formatWebFetchOutput(result);
+
+    return {
+      content: [{ type: "text", text }],
+      details: result,
+    };
+  },
+});
+
 const codeSearchTool = defineTool({
   name: "code_search",
   label: "Code Search",
@@ -245,6 +324,7 @@ const codeSearchTool = defineTool({
 
 export default function searchToolsExtension(pi: ExtensionAPI) {
   pi.registerTool(webSearchTool);
+  pi.registerTool(webFetchTool);
   pi.registerTool(codeSearchTool);
 }
 

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatCodeSearchOutput, formatWebSearchOutput } from "./formatting.ts";
+import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
+import { fetchWebUrl, validatePublicWebUrl } from "./web-fetch.ts";
 
 test("formatWebSearchOutput emits only queries and source URLs", () => {
   const output = formatWebSearchOutput({
@@ -71,6 +72,118 @@ test("extractUrlsFromMcpResult extracts explicit nested URL fields", () => {
 test("extractUrlsFromMcpResult returns an empty list for nullish results", () => {
   assert.deepEqual(extractUrlsFromMcpResult(null), []);
   assert.deepEqual(extractUrlsFromMcpResult(undefined), []);
+});
+
+test("formatWebFetchOutput emits metadata and content", () => {
+  const output = formatWebFetchOutput({
+    originalUrl: "https://example.com/docs",
+    finalUrl: "https://www.example.com/docs",
+    status: 200,
+    contentType: "text/html; charset=utf-8",
+    format: "markdown",
+    title: "Example Docs",
+    bytes: 1234,
+    maxCharacters: 20_000,
+    truncated: false,
+    content: "# Example\n\nFetched content",
+    binary: false,
+  });
+
+  assert.match(output, /^# Web fetch/);
+  assert.match(output, /\*\*URL:\*\* https:\/\/example\.com\/docs/);
+  assert.match(output, /\*\*Final URL:\*\* https:\/\/www\.example\.com\/docs/);
+  assert.match(output, /\*\*Title:\*\* Example Docs/);
+  assert.match(output, /# Example/);
+});
+
+test("fetchWebUrl converts HTML to markdown and truncates content", async () => {
+  const result = await fetchWebUrl(
+    {
+      url: "https://example.com/page",
+      format: "markdown",
+      maxCharacters: 80,
+    },
+    undefined,
+    {
+      resolveHostname: async () => ["93.184.216.34"],
+      fetchImpl: async () =>
+        new Response(
+          '<html><head><title>Demo</title><script>bad()</script></head><body><h1>Hello</h1><p>See <a href="/docs">docs</a>.</p><p>Extra long content that should be truncated after the useful link.</p></body></html>',
+          { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
+        ),
+    },
+  );
+
+  assert.equal(result.title, "Demo");
+  assert.equal(result.truncated, true);
+  assert.match(result.content, /^# Hello/);
+  assert.match(result.content, /\[docs\]\(https:\/\/example\.com\/docs\)/);
+  assert.doesNotMatch(result.content, /bad/);
+});
+
+test("fetchWebUrl rejects local and private URLs", async () => {
+  await assert.rejects(() => validatePublicWebUrl("http://localhost/page"), /Localhost URLs are not allowed/);
+  await assert.rejects(() => validatePublicWebUrl("http://127.0.0.1/page"), /Private, local, or reserved IP addresses/);
+  await assert.rejects(
+    () => validatePublicWebUrl("https://example.com/page", { resolveHostname: async () => ["10.0.0.10"] }),
+    /resolves to a private, local, or reserved IP address/,
+  );
+});
+
+test("fetchWebUrl validates redirect targets before fetching them", async () => {
+  let calls = 0;
+
+  await assert.rejects(
+    () =>
+      fetchWebUrl(
+        { url: "https://example.com/page", format: "text", maxCharacters: 1000 },
+        undefined,
+        {
+          resolveHostname: async () => ["93.184.216.34"],
+          fetchImpl: async () => {
+            calls += 1;
+            return new Response(null, { status: 302, headers: { location: "http://127.0.0.1/private" } });
+          },
+        },
+      ),
+    /Private, local, or reserved IP addresses/,
+  );
+
+  assert.equal(calls, 1);
+});
+
+test("fetchWebUrl preserves fractional timeout seconds", async () => {
+  let observedTimeoutMs = 0;
+
+  await fetchWebUrl(
+    { url: "https://example.com/page", format: "text", timeoutSeconds: 1.9, maxCharacters: 1000 },
+    undefined,
+    {
+      resolveHostname: async () => ["93.184.216.34"],
+      createTimeoutSignal: ({ timeoutMs }) => {
+        observedTimeoutMs = timeoutMs;
+        return { signal: new AbortController().signal, clear: () => {} };
+      },
+      fetchImpl: async () => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }),
+    },
+  );
+
+  assert.equal(observedTimeoutMs, 1900);
+});
+
+test("fetchWebUrl reports non-OK HTTP status codes", async () => {
+  await assert.rejects(
+    () =>
+      fetchWebUrl(
+        { url: "https://example.com/missing", format: "text", maxCharacters: 1000 },
+        undefined,
+        {
+          resolveHostname: async () => ["93.184.216.34"],
+          fetchImpl: async () => new Response("not found", { status: 404 }),
+        },
+      ),
+    /Request failed with status code: 404/,
+  );
 });
 
 test("formatCodeSearchOutput emits readable markdown sections", () => {

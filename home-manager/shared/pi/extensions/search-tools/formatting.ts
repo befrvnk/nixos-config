@@ -45,6 +45,48 @@ export function formatWebSearchOutput(input: WebSearchFormatInput): string {
   return lines.join("\n");
 }
 
+export interface WebFetchFormatInput {
+  originalUrl: string;
+  finalUrl: string;
+  status: number;
+  contentType: string;
+  format: string;
+  title: string | null;
+  bytes: number;
+  maxCharacters: number;
+  truncated: boolean;
+  content: string;
+  binary: boolean;
+}
+
+export function formatWebFetchOutput(input: WebFetchFormatInput): string {
+  const lines: string[] = [];
+  lines.push("# Web fetch");
+  lines.push("");
+  lines.push(`**URL:** ${input.originalUrl}`);
+  if (input.finalUrl !== input.originalUrl) lines.push(`**Final URL:** ${input.finalUrl}`);
+  lines.push(`**Status:** ${input.status}`);
+  if (input.contentType) lines.push(`**Content type:** ${input.contentType}`);
+  lines.push(`**Format:** ${inlineCode(input.format)}`);
+  if (input.title) lines.push(`**Title:** ${input.title}`);
+  lines.push(`**Bytes:** ${input.bytes}`);
+  if (input.truncated) lines.push(`**Truncated:** yes, limited to ${input.maxCharacters} characters`);
+  if (input.binary) lines.push("**Binary:** yes, body omitted");
+
+  lines.push("");
+  lines.push("## Content");
+  lines.push("");
+
+  const content = input.content.trim() || "No content returned.";
+  if (input.format === "html" && !input.binary) {
+    lines.push(fencedCode(content, "html"));
+  } else {
+    lines.push(content);
+  }
+
+  return lines.join("\n");
+}
+
 export function formatCodeSearchOutput(query: string, maxTokens: number, searchTime: unknown, text: string): string {
   const lines: string[] = [];
   lines.push("# Code search");
@@ -62,4 +104,10 @@ function inlineCode(text: string): string {
   const fence = "`".repeat(longestBacktickRun + 1);
   const padding = text.startsWith("`") || text.endsWith("`") ? " " : "";
   return `${fence}${padding}${text}${padding}${fence}`;
+}
+
+function fencedCode(text: string, language: string): string {
+  const longestBacktickRun = Math.max(2, ...Array.from(text.matchAll(/`+/g), (match) => match[0].length));
+  const fence = "`".repeat(longestBacktickRun + 1);
+  return `${fence}${language}\n${text}\n${fence}`;
 }
