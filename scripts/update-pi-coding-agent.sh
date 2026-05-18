@@ -6,8 +6,8 @@ set -euo pipefail
 source "$(dirname "$0")/update-common.sh"
 
 package_file="pkgs/pi-coding-agent/package.nix"
-owner="badlogic"
-repo="pi-mono"
+owner="earendil-works"
+repo="pi"
 
 echo "Fetching latest $repo release from GitHub..."
 
@@ -29,12 +29,18 @@ if [[ "$version" == "$current" ]]; then
   exit 0
 fi
 
-declare -A assets=(
-  [x86_64-linux]=pi-linux-x64.tar.gz
-  [aarch64-linux]=pi-linux-arm64.tar.gz
-  [x86_64-darwin]=pi-darwin-x64.tar.gz
-  [aarch64-darwin]=pi-darwin-arm64.tar.gz
-)
+asset_for_system() {
+  case "$1" in
+    x86_64-linux) echo "pi-linux-x64.tar.gz" ;;
+    aarch64-linux) echo "pi-linux-arm64.tar.gz" ;;
+    x86_64-darwin) echo "pi-darwin-x64.tar.gz" ;;
+    aarch64-darwin) echo "pi-darwin-arm64.tar.gz" ;;
+    *)
+      echo "Error: Unsupported system $1" >&2
+      return 1
+      ;;
+  esac
+}
 
 tmp_file=$(mktemp)
 cp "$package_file" "$tmp_file"
@@ -42,7 +48,7 @@ cp "$package_file" "$tmp_file"
 sed_in_place "s|version = \".*\";|version = \"$version\";|" "$tmp_file"
 
 for system in x86_64-linux aarch64-linux x86_64-darwin aarch64-darwin; do
-  asset="${assets[$system]}"
+  asset=$(asset_for_system "$system")
   digest=$(jq -r --arg name "$asset" '.assets[] | select(.name == $name) | .digest // empty' <<< "$release_json")
 
   if [[ -z "$digest" ]]; then

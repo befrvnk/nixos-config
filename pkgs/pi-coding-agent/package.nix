@@ -7,23 +7,23 @@
 }:
 
 let
-  version = "0.74.1";
+  version = "0.75.1";
   sources = {
     x86_64-linux = {
-      url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-linux-x64.tar.gz";
-      hash = "sha256:89235e242253ba046b655ae63e0685d91797d94bafe6b17db491220d2a443b99";
+      url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-linux-x64.tar.gz";
+      hash = "sha256:76e91d32af12e7a6a55de3b10ebf38611cc7341f994c5876e16e45e90d7cac5e";
     };
     aarch64-linux = {
-      url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-linux-arm64.tar.gz";
-      hash = "sha256:fc526d05dcf5e95830550ae771f8ee95607035360ca1191b2b39bf3f28108ffb";
+      url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-linux-arm64.tar.gz";
+      hash = "sha256:fa8053aecc75bfb8045205d48e6c0f4b23861f48d8351119195cda0ac0492b3b";
     };
     x86_64-darwin = {
-      url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-darwin-x64.tar.gz";
-      hash = "sha256:4f73ad8f6ea2097c7a6d48c77b22297677d6b0b0adfb54a825582ad27e5beeff";
+      url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-darwin-x64.tar.gz";
+      hash = "sha256:4d94399b198c8c01eeaeaaadb1ff3a1c628f2c5a69ab7c90d4c04bc6b576cc0d";
     };
     aarch64-darwin = {
-      url = "https://github.com/badlogic/pi-mono/releases/download/v${version}/pi-darwin-arm64.tar.gz";
-      hash = "sha256:e1b37f951544650836b5a42dfea4fa4cf6531e44111e85ed29df8f41f6c84a35";
+      url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-darwin-arm64.tar.gz";
+      hash = "sha256:8bf75fe52d154025968ffef5874c7fc67ec65835d93a6553c6b804d1f0222ae9";
     };
   };
   source =
@@ -65,7 +65,7 @@ stdenvNoCC.mkDerivation {
   meta = {
     description = "Coding agent CLI with terminal-first workflows and extensibility";
     homepage = "https://pi.dev/";
-    changelog = "https://github.com/badlogic/pi-mono/releases/tag/v${version}";
+    changelog = "https://github.com/earendil-works/pi/releases/tag/v${version}";
     license = lib.licenses.mit;
     mainProgram = "pi";
     platforms = builtins.attrNames sources;
