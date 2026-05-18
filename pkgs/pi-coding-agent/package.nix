@@ -7,23 +7,23 @@
 }:
 
 let
-  version = "0.75.1";
+  version = "0.75.0";
   sources = {
     x86_64-linux = {
       url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-linux-x64.tar.gz";
-      hash = "sha256:76e91d32af12e7a6a55de3b10ebf38611cc7341f994c5876e16e45e90d7cac5e";
+      hash = "sha256:c63de922a6adbb5031ae046fc341ce15d51021846023bc492dfd72552ab7b1f0";
     };
     aarch64-linux = {
       url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-linux-arm64.tar.gz";
-      hash = "sha256:fa8053aecc75bfb8045205d48e6c0f4b23861f48d8351119195cda0ac0492b3b";
+      hash = "sha256:eecdcf68d9818508e2f2b8ad68d90e5afa792249d5f233128e49544e1e4dc92d";
     };
     x86_64-darwin = {
       url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-darwin-x64.tar.gz";
-      hash = "sha256:4d94399b198c8c01eeaeaaadb1ff3a1c628f2c5a69ab7c90d4c04bc6b576cc0d";
+      hash = "sha256:bd337adfd0edc9c6d281153020714cd5c51ebd6730d79ccce2e3e2447c650688";
     };
     aarch64-darwin = {
       url = "https://github.com/earendil-works/pi/releases/download/v${version}/pi-darwin-arm64.tar.gz";
-      hash = "sha256:8bf75fe52d154025968ffef5874c7fc67ec65835d93a6553c6b804d1f0222ae9";
+      hash = "sha256:e5845d875e7471fea51afdcbf266155d7002b0caac7556c08f8fe389270a1d87";
     };
   };
   source =
