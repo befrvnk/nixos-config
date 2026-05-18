@@ -1,5 +1,6 @@
 {
   inputs,
+  lib,
   pkgs,
   hostConfig,
   ...
@@ -142,7 +143,6 @@
               "caffeine"
               "ghostty"
               "jetbrains-toolbox"
-              "lunar"
               "miro"
               "muxy"
               "notion"
@@ -156,8 +156,9 @@
               "zen"
             ];
         selfUpdatingCasks = [
-          # Slack self-updates; forcing a Homebrew greedy upgrade can fail
-          # activation when Slack is running.
+          # These apps self-update; forcing a Homebrew greedy upgrade can fail
+          # activation when the app is running or has already partially updated.
+          "lunar"
           "slack"
         ];
       in
@@ -178,6 +179,35 @@
       RunAtLoad = true;
     };
   };
+
+  # Supacode's GitHub integration currently expects the GitHub CLI in the
+  # Homebrew prefix. gh is installed by Home Manager via nixpkgs, so expose a
+  # stable compatibility symlink without installing gh through Homebrew.
+  system.activationScripts.postActivation.text = lib.mkAfter ''
+    gh_link="/opt/homebrew/bin/gh"
+    gh_target="/etc/profiles/per-user/${hostConfig.primaryUser}/bin/gh"
+
+    if [ -L "$gh_link" ]; then
+      current_target="$(readlink "$gh_link")"
+      if [ "$current_target" != "$gh_target" ]; then
+        case "$current_target" in
+          /nix/store/*|/etc/profiles/per-user/*)
+            echo "updating $gh_link -> $gh_target"
+            ln -sfn "$gh_target" "$gh_link"
+            ;;
+          *)
+            echo "leaving existing $gh_link -> $current_target"
+            ;;
+        esac
+      fi
+    elif [ -e "$gh_link" ]; then
+      echo "warning: $gh_link exists and is not a symlink; leaving it untouched"
+    else
+      echo "linking $gh_link -> $gh_target"
+      mkdir -p "$(dirname "$gh_link")"
+      ln -s "$gh_target" "$gh_link"
+    fi
+  '';
 
   # Touch ID for sudo
   security.pam.services.sudo_local.touchIdAuth = true;
