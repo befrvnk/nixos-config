@@ -60,18 +60,7 @@ export interface WebFetchFormatInput {
 }
 
 export function formatWebFetchOutput(input: WebFetchFormatInput): string {
-  const lines: string[] = [];
-  lines.push("# Web fetch");
-  lines.push("");
-  lines.push(`**URL:** ${input.originalUrl}`);
-  if (input.finalUrl !== input.originalUrl) lines.push(`**Final URL:** ${input.finalUrl}`);
-  lines.push(`**Status:** ${input.status}`);
-  if (input.contentType) lines.push(`**Content type:** ${input.contentType}`);
-  lines.push(`**Format:** ${inlineCode(input.format)}`);
-  if (input.title) lines.push(`**Title:** ${input.title}`);
-  lines.push(`**Bytes:** ${input.bytes}`);
-  if (input.truncated) lines.push(`**Truncated:** yes, limited to ${input.maxCharacters} characters`);
-  if (input.binary) lines.push("**Binary:** yes, body omitted");
+  const lines = formatWebFetchMetadataLines(input);
 
   lines.push("");
   lines.push("## Content");
@@ -85,6 +74,29 @@ export function formatWebFetchOutput(input: WebFetchFormatInput): string {
   }
 
   return lines.join("\n");
+}
+
+export function formatWebFetchSummaryOutput(input: Partial<WebFetchFormatInput>): string {
+  const lines = formatWebFetchMetadataLines(input);
+  lines.push("");
+  lines.push("_Fetched content omitted from display to keep the conversation compact._");
+  return lines.join("\n");
+}
+
+function formatWebFetchMetadataLines(input: Partial<WebFetchFormatInput>): string[] {
+  const lines: string[] = [];
+  lines.push("# Web fetch");
+  lines.push("");
+  lines.push(`**URL:** ${input.originalUrl || input.finalUrl || "unknown URL"}`);
+  if (input.finalUrl && input.originalUrl && input.finalUrl !== input.originalUrl) lines.push(`**Final URL:** ${input.finalUrl}`);
+  if (input.status != null) lines.push(`**Status:** ${input.status}`);
+  if (input.contentType) lines.push(`**Content type:** ${input.contentType}`);
+  if (input.format) lines.push(`**Format:** ${inlineCode(input.format)}`);
+  if (input.title) lines.push(`**Title:** ${input.title}`);
+  if (input.bytes != null) lines.push(`**Bytes:** ${input.bytes}`);
+  if (input.truncated) lines.push(`**Truncated:** yes, limited to ${input.maxCharacters} characters`);
+  if (input.binary) lines.push("**Binary:** yes, body omitted");
+  return lines;
 }
 
 export function formatCodeSearchOutput(query: string, maxTokens: number, searchTime: unknown, text: string): string {

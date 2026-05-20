@@ -5,7 +5,7 @@ import {
   type ExtensionAPI,
 } from "@mariozechner/pi-coding-agent";
 import { Markdown, Text } from "@mariozechner/pi-tui";
-import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
+import { formatCodeSearchOutput, formatWebFetchOutput, formatWebFetchSummaryOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
 import { fetchWebUrl, type WebFetchFormat } from "./web-fetch.ts";
 
@@ -222,6 +222,14 @@ const webFetchTool = defineTool({
   },
 
   renderResult(result, options) {
+    if (
+      !options.isPartial &&
+      result.details &&
+      typeof result.details === "object" &&
+      ("originalUrl" in result.details || "finalUrl" in result.details)
+    ) {
+      return new Markdown(formatWebFetchSummaryOutput(result.details), 0, 0, getMarkdownTheme());
+    }
     return renderMarkdownToolResult(result, options, "Fetching URL…", "No web content fetched.");
   },
 

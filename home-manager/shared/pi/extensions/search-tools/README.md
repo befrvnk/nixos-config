@@ -14,7 +14,7 @@ The current implementation uses Exa's hosted MCP endpoint internally, but keeps 
 
 - `web_search` defaults to an overview workflow that runs docs, general, repo/release, and recency-focused passes when appropriate.
 - `web_search` returns Markdown with the searched queries and source URLs only, omitting Exa's page-content snippets so the provenance stays clear and compact.
-- `web_fetch` is the follow-up content reader for specific URLs. It rejects non-HTTP(S), localhost, private-network, and reserved-IP targets, follows safe redirects, limits responses to 5 MiB, and truncates returned content by character count.
+- `web_fetch` is the follow-up content reader for specific URLs. It rejects non-HTTP(S), localhost, private-network, and reserved-IP targets, follows safe redirects, limits responses to 5 MiB, and truncates returned content by character count. The TUI renders only compact metadata so fetched page bodies do not flood the visible conversation.
 - `code_search` uses the code-context endpoint and is meant for external library/API usage examples, not local repository search.
 - `code_search` also returns and renders Markdown, including syntax-highlighted fenced code blocks when the provider includes them.
 - Prefer local tools such as `grep`, `find`, and LSP tools for searching the current checkout.
