@@ -128,6 +128,7 @@ let
       };
     })
     # Desktop AI agent apps
+    (import ../overlays/google-antigravity.nix)
     (import ../overlays/openchamber.nix)
     (import ../overlays/orca-ai.nix)
     (import ../overlays/supacode.nix)

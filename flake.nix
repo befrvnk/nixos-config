@@ -164,6 +164,7 @@
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           inherit (pkgs)
+            google-antigravity
             openchamber
             orca-ai
             supacode

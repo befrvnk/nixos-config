@@ -13,6 +13,7 @@ in
 {
   home.packages = with pkgs; [
     # GUI apps
+    google-antigravity
     openchamber
     orca-ai
     supacode
