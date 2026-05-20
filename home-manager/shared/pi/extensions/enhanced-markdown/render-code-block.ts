@@ -86,9 +86,7 @@ export function renderCodeBlockLines(
   const code = token.text ?? "";
   const language = normalizeLanguage(token.lang);
   const border = theme.codeBlockBorder;
-  const hasPrefixRoom = width > 2;
-  const contentWidth = Math.max(1, width - (hasPrefixRoom ? 2 : 0));
-  const prefix = hasPrefixRoom ? border("│ ") : "";
+  const contentWidth = Math.max(1, width);
 
   const highlightedLines = highlightCode
     ? highlightCode(code, language)
@@ -103,10 +101,10 @@ export function renderCodeBlockLines(
   for (const highlightedLine of highlightedLines) {
     const wrapped = utilities.wrapTextWithAnsi(highlightedLine, contentWidth);
     if (wrapped.length === 0) {
-      lines.push(prefix);
+      lines.push("");
     } else {
       for (const wrappedLine of wrapped) {
-        lines.push(`${prefix}${wrappedLine}`);
+        lines.push(wrappedLine);
       }
     }
   }

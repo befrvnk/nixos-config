@@ -37,7 +37,7 @@ test("normalizeLanguage maps common fence aliases", () => {
   assert.equal(normalizeLanguage("kotlin title=Main.kt"), "kotlin");
 });
 
-test("renderCodeBlockLines renders fenced code as bounded highlighted blocks", () => {
+test("renderCodeBlockLines renders fenced code as copy-friendly highlighted blocks", () => {
   const lines = renderCodeBlockLines(
     theme,
     {
@@ -51,9 +51,9 @@ test("renderCodeBlockLines renders fenced code as bounded highlighted blocks", (
 
   assert.deepEqual(lines, [
     "╭─ kt ─────────────────────────────────────────╮",
-    "│ [kotlin] fun main() {",
-    '│ [kotlin]   println("hi")',
-    "│ [kotlin] }",
+    "[kotlin] fun main() {",
+    '[kotlin]   println("hi")',
+    "[kotlin] }",
     "╰──────────────────────────────────────────────╯",
   ]);
 });
@@ -70,9 +70,9 @@ test("renderCodeBlockLines wraps long code lines to the render width", () => {
   assert(lines.every((line) => line.length <= 30));
   assert.deepEqual(lines, [
     "╭─ text ─────────────────────╮",
-    "│ xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "│ xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "│ xxxxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxx",
     "╰────────────────────────────╯",
   ]);
 });
