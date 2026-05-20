@@ -54,25 +54,24 @@ function displayLanguage(lang: string | undefined): string {
   return normalized ? normalized : "code";
 }
 
-function borderedLine(
+function headerSeparator(
   text: string,
   width: number,
   border: (value: string) => string,
   utilities: RenderUtilities,
 ): string {
   if (width <= 0) return "";
-  if (width === 1) return border("─");
+  if (width <= 3) return border("─".repeat(width));
 
-  const visibleText = utilities.truncateToWidth(text, Math.max(0, width - 5), "…");
-  const lineStart = visibleText ? `╭─ ${visibleText} ` : "╭─ ";
-  const remaining = Math.max(0, width - utilities.visibleWidth(lineStart) - 1);
-  return border(`${lineStart}${"─".repeat(remaining)}╮`);
+  const visibleText = utilities.truncateToWidth(text, width - 3, "…");
+  const lineStart = visibleText ? `─ ${visibleText} ` : "─ ";
+  const remaining = Math.max(0, width - utilities.visibleWidth(lineStart));
+  return border(`${lineStart}${"─".repeat(remaining)}`);
 }
 
-function bottomBorder(width: number, border: (value: string) => string): string {
+function bottomSeparator(width: number, border: (value: string) => string): string {
   if (width <= 0) return "";
-  if (width === 1) return border("─");
-  return border(`╰${"─".repeat(Math.max(0, width - 2))}╯`);
+  return border("─".repeat(width));
 }
 
 export function renderCodeBlockLines(
@@ -95,7 +94,7 @@ export function renderCodeBlockLines(
       : code.split("\n").map((line) => theme.codeBlock(line));
 
   const lines: string[] = [
-    borderedLine(displayLanguage(token.lang), width, border, utilities),
+    headerSeparator(displayLanguage(token.lang), width, border, utilities),
   ];
 
   for (const highlightedLine of highlightedLines) {
@@ -109,7 +108,7 @@ export function renderCodeBlockLines(
     }
   }
 
-  lines.push(bottomBorder(width, border));
+  lines.push(bottomSeparator(width, border));
 
   if (nextTokenType && nextTokenType !== "space") {
     lines.push("");

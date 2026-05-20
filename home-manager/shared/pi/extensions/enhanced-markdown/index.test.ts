@@ -50,11 +50,11 @@ test("renderCodeBlockLines renders fenced code as copy-friendly highlighted bloc
   );
 
   assert.deepEqual(lines, [
-    "╭─ kt ─────────────────────────────────────────╮",
+    "─ kt ───────────────────────────────────────────",
     "[kotlin] fun main() {",
     '[kotlin]   println("hi")',
     "[kotlin] }",
-    "╰──────────────────────────────────────────────╯",
+    "────────────────────────────────────────────────",
   ]);
 });
 
@@ -69,12 +69,25 @@ test("renderCodeBlockLines wraps long code lines to the render width", () => {
 
   assert(lines.every((line) => line.length <= 30));
   assert.deepEqual(lines, [
-    "╭─ text ─────────────────────╮",
+    "─ text ───────────────────────",
     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "xxxxxxxxxxxxxxxxxxxx",
-    "╰────────────────────────────╯",
+    "──────────────────────────────",
   ]);
+});
+
+test("renderCodeBlockLines handles very narrow render widths", () => {
+  const lines = renderCodeBlockLines(
+    theme,
+    { lang: "text", text: "abcde" },
+    2,
+    undefined,
+    utilities,
+  );
+
+  assert(lines.every((line) => line.length <= 2));
+  assert.deepEqual(lines, ["──", "ab", "cd", "e", "──"]);
 });
 
 test("highlightKotlinCode colors keywords, functions, and chained functions", () => {
