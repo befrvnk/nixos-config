@@ -1,4 +1,10 @@
 {
+  # This flake tracks nixpkgs-unstable. During the post-release cycle,
+  # nixpkgs reports the next release number before Home Manager updates its
+  # own release metadata, so the release check warns even though both inputs
+  # are intentionally tracking their default branches.
+  home.enableNixpkgsReleaseCheck = false;
+
   imports = [
     ./agent-of-empires.nix
     ./atuin.nix
