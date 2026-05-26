@@ -121,9 +121,13 @@
   homebrew = {
     enable = true;
     onActivation = {
-      autoUpdate = true;
-      upgrade = true;
-      cleanup = "zap";
+      # Keep rebuilds idempotent: install missing Brewfile entries, but don't
+      # auto-update/upgrade/zap casks during nix-darwin activation. Homebrew
+      # cask upgrades can invoke repeated sudo prompts, especially in clamshell
+      # mode when Touch ID is unavailable.
+      autoUpdate = false;
+      upgrade = false;
+      cleanup = "none";
     };
     taps = [
       "BarutSRB/tap"
