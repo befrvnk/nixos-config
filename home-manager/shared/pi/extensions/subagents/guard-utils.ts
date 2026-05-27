@@ -5,8 +5,19 @@ import path from "node:path";
 // It is not repo-bound and it is not a full sandbox. Its job is to keep
 // subagents on read-only inspection tasks and away from obviously irrelevant
 // runtime/system paths.
-const SUSPICIOUS_PATH_PREFIXES = ["/$bunfs", "/proc", "/sys", "/dev"];
+const SUSPICIOUS_PATH_PREFIXES = ["/$bunfs", "/dev", "/etc", "/proc", "/root", "/sys"];
 const PATH_REFERENCE_REGEX = /@?(?:\.\.\/|\.\/|\/)[^\s'"`|;&()<>]+/g;
+const DISALLOWED_FIND_ACTIONS = new Set([
+  "-delete",
+  "-exec",
+  "-execdir",
+  "-fls",
+  "-fprint",
+  "-fprint0",
+  "-fprintf",
+  "-ok",
+  "-okdir",
+]);
 const READ_ONLY_BASH_COMMANDS = new Set([
   "basename",
   "cat",
@@ -84,7 +95,9 @@ export function isSuspiciousPath(value: unknown, cwd: string): boolean {
   return Boolean(
     normalized &&
       !isAllowedDevicePath(normalized) &&
-      SUSPICIOUS_PATH_PREFIXES.some((prefix) => normalized.startsWith(prefix)),
+      SUSPICIOUS_PATH_PREFIXES.some(
+        (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`),
+      ),
   );
 }
 
@@ -224,7 +237,7 @@ export function splitShellSegments(command: string): string[] {
         continue;
       }
 
-      if (char === ";" || char === "|") {
+      if (char === ";" || char === "|" || char === "&") {
         if (current.trim()) segments.push(current.trim());
         current = "";
         continue;
@@ -294,6 +307,10 @@ export function validateReadOnlyBashSegment(segment: string): string | undefined
     }
   }
 
+  if (command === "find" && args.some((arg) => DISALLOWED_FIND_ACTIONS.has(arg))) {
+    return "bash does not allow find actions that execute, delete, or write files in subagents.";
+  }
+
   if (
     command === "sed" &&
     tokens.some((arg) => arg === "-i" || /^-i.+/.test(arg))
@@ -313,6 +330,10 @@ export function blockIfSuspiciousBashCommand(command: unknown, cwd: string) {
 
   if (containsUnquotedCharacter(command, ">")) {
     return "bash does not allow output redirection in subagents.";
+  }
+
+  if (containsUnquotedCharacter(command, "<")) {
+    return "bash does not allow input redirection in subagents.";
   }
 
   const pathReferences = extractCommandPathCandidates(command);

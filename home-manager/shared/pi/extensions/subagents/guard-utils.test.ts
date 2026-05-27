@@ -55,3 +55,40 @@ test("blockIfSuspiciousBashCommand blocks destructive commands and risky syntax"
     /blocked runtime or system paths/,
   );
 });
+
+test("blockIfSuspiciousBashCommand validates every command across a lone & separator", () => {
+  assert.match(
+    blockIfSuspiciousBashCommand("cat x & rm -rf y", cwd) ?? "",
+    /Blocked command: rm/,
+  );
+  assert.equal(blockIfSuspiciousBashCommand("ls & pwd", cwd), undefined);
+});
+
+test("blockIfSuspiciousBashCommand blocks input redirection", () => {
+  assert.match(
+    blockIfSuspiciousBashCommand("cat < /etc/passwd", cwd) ?? "",
+    /input redirection/,
+  );
+  assert.equal(blockIfSuspiciousBashCommand("grep '<div>' page.html", cwd), undefined);
+});
+
+test("blockIfSuspiciousBashCommand blocks find actions that execute, delete, or write", () => {
+  assert.match(
+    blockIfSuspiciousBashCommand("find . -exec rm {} ;", cwd) ?? "",
+    /find actions/,
+  );
+  assert.match(blockIfSuspiciousBashCommand("find . -delete", cwd) ?? "", /find actions/);
+  assert.equal(blockIfSuspiciousBashCommand("find ./src -name '*.ts'", cwd), undefined);
+});
+
+test("blockIfSuspiciousPath blocks sensitive system paths with boundary matching", () => {
+  assert.match(
+    blockIfSuspiciousPath("read", { path: "/etc/passwd" }, cwd) ?? "",
+    /blocked runtime or system path/,
+  );
+  assert.match(
+    blockIfSuspiciousPath("read", { path: "/root/.ssh/id_rsa" }, cwd) ?? "",
+    /blocked runtime or system path/,
+  );
+  assert.equal(blockIfSuspiciousPath("read", { path: "/etcd/data.json" }, cwd), undefined);
+});
