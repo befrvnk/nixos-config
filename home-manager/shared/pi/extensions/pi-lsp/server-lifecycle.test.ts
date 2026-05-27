@@ -541,6 +541,151 @@ test("Kotlin LspServer promotes indexing to ready after a successful semantic re
   await server.stop();
 });
 
+test("LspServer.request rejects and cancels the pending request when aborted", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-abort-"));
+  let cancelledId: unknown;
+  const child = createMockChild((message, childProcess) => {
+    if (message.method === "$/cancelRequest") {
+      cancelledId = (message.params as { id?: unknown } | undefined)?.id;
+      return;
+    }
+    // Respond to initialize so start() resolves, but never answer the hover so it stays pending.
+    if (typeof message.id === "number" && message.method !== "textDocument/hover") {
+      childProcess.stdout.write(encodeMessage({ jsonrpc: "2.0", id: message.id, result: {} }));
+    }
+  });
+
+  const server = new LspServer(
+    "typescript",
+    root,
+    {
+      command: "/bin/mock-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+
+  const controller = new AbortController();
+  const pending = server.request(
+    "textDocument/hover",
+    {
+      textDocument: { uri: pathToFileURL(path.join(root, "App.ts")).href },
+      position: { line: 0, character: 0 },
+    },
+    5_000,
+    controller.signal,
+  );
+  controller.abort();
+
+  await assert.rejects(pending, /abort/i);
+  await waitFor(() => cancelledId !== undefined);
+  assert.equal(typeof cancelledId, "number");
+
+  await server.stop();
+});
+
+test("LspServer.request does not send requests when signal is already aborted", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-pre-abort-"));
+  let hoverRequests = 0;
+  let cancelRequests = 0;
+  const child = createMockChild((message, childProcess) => {
+    if (message.method === "textDocument/hover") hoverRequests++;
+    if (message.method === "$/cancelRequest") cancelRequests++;
+    if (typeof message.id === "number") {
+      childProcess.stdout.write(encodeMessage({ jsonrpc: "2.0", id: message.id, result: {} }));
+    }
+  });
+
+  const server = new LspServer(
+    "typescript",
+    root,
+    {
+      command: "/bin/mock-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+
+  const controller = new AbortController();
+  controller.abort();
+
+  await assert.rejects(
+    server.request(
+      "textDocument/hover",
+      {
+        textDocument: { uri: pathToFileURL(path.join(root, "App.ts")).href },
+        position: { line: 0, character: 0 },
+      },
+      5_000,
+      controller.signal,
+    ),
+    /abort/i,
+  );
+
+  assert.equal(hoverRequests, 0);
+  assert.equal(cancelRequests, 0);
+
+  await server.stop();
+});
+
+test("LspServer.request cleans up pending state when writing the request fails", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-write-failure-"));
+  let cancelRequests = 0;
+  const child = createMockChild((message, childProcess) => {
+    if (message.method === "$/cancelRequest") cancelRequests++;
+    if (typeof message.id === "number") {
+      childProcess.stdout.write(encodeMessage({ jsonrpc: "2.0", id: message.id, result: {} }));
+    }
+  });
+
+  const server = new LspServer(
+    "typescript",
+    root,
+    {
+      command: "/bin/mock-language-server",
+      args: ["--stdio"],
+      startupTimeoutMs: 200,
+    },
+    () => child as any,
+  );
+
+  await server.start();
+
+  const originalWrite = child.stdin.write.bind(child.stdin) as (...args: any[]) => boolean;
+  child.stdin.write = ((chunk: Buffer | string, ...args: any[]) => {
+    if (chunk.toString().includes('"method":"textDocument/hover"')) {
+      throw new Error("synthetic write failure");
+    }
+    return originalWrite(chunk, ...args);
+  }) as typeof child.stdin.write;
+
+  const controller = new AbortController();
+  await assert.rejects(
+    server.request(
+      "textDocument/hover",
+      {
+        textDocument: { uri: pathToFileURL(path.join(root, "App.ts")).href },
+        position: { line: 0, character: 0 },
+      },
+      20,
+      controller.signal,
+    ),
+    /synthetic write failure/,
+  );
+
+  controller.abort();
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(cancelRequests, 0);
+
+  await server.stop();
+});
+
 test("LspServer records initialize timeout failures in status", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pi-lsp-timeout-"));
   const child = createMockChild(() => {

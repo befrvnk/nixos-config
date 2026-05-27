@@ -503,7 +503,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
   ]);
 
   const rememberRun = (run: SubagentRunState) => {
-    recentRuns.unshift(JSON.parse(JSON.stringify(run)) as SubagentRunState);
+    recentRuns.unshift(serializeRun(run) as SubagentRunState);
     if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
   };
 

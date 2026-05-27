@@ -57,7 +57,12 @@ function getConfiguredLanguages(): SupportedLanguage[] {
 }
 
 export function detectLikelyWorkspaceLanguages(startPath: string): SupportedLanguage[] {
-  const startDir = fs.realpathSync.native(startPath);
+  let startDir: string;
+  try {
+    startDir = fs.realpathSync.native(startPath);
+  } catch {
+    return [];
+  }
 
   return getConfiguredLanguages().filter((language) => {
     for (const dir of walkParents(startDir)) {
@@ -252,7 +257,7 @@ async function getReadyServerOrWarmup(
   action: QueryAction,
   signal: AbortSignal | undefined,
   ctx: ExtensionContext,
-): Promise<{ server?: Awaited<ReturnType<ServerManager["getOrCreate"]>>; warmup?: WarmupSummary }> {
+): Promise<{ server?: ReturnType<ServerManager["startInBackground"]>; warmup?: WarmupSummary }> {
   const server = manager.startInBackground(language, root);
   updateStatus(manager, ctx);
 
@@ -265,7 +270,6 @@ async function getReadyServerOrWarmup(
     if (isLspReadinessTimeoutError(error)) {
       return { warmup: summarizeWarmupStatus(server.getStatus()) };
     }
-    if (isAbortError(error)) throw error;
     throw error;
   }
 }
@@ -353,7 +357,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
             continue;
           }
 
-          const result = await ready.server!.request("workspace/symbol", { query: params.query }, 20_000);
+          const result = await ready.server!.request("workspace/symbol", { query: params.query }, 20_000, signal);
           if (Array.isArray(result)) results.push(...result);
         } catch (error) {
           const rootDetectionNoProject = toWorkspaceNoProjectError(language, rootHintPath, error);
@@ -513,6 +517,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
               position,
             },
             15_000,
+            signal,
           );
           updateStatus(serverManager, ctx);
           return {
@@ -530,6 +535,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
               position,
             },
             20_000,
+            signal,
           );
           updateStatus(serverManager, ctx);
           return {
@@ -550,6 +556,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
               },
             },
             20_000,
+            signal,
           );
           updateStatus(serverManager, ctx);
           return {
@@ -575,6 +582,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
               textDocument: toTextDocumentIdentifier(documentPath),
             },
             20_000,
+            signal,
           );
           updateStatus(serverManager, ctx);
           return {

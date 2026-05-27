@@ -1,5 +1,5 @@
 export type AnswerKeybindingsLike = {
-  matches: (first: string, second: string) => boolean;
+  matches: (data: string, keybindingId: string) => boolean;
 };
 
 function matchesKeybinding(
@@ -7,12 +7,7 @@ function matchesKeybinding(
   keybindingId: string,
   data: string,
 ): boolean {
-  // pi's injected keybindings manager uses matches(data, keybindingId),
-  // but keep a fallback for the old local mock ordering so tests can cover both.
-  return (
-    keybindings.matches(data, keybindingId) ||
-    keybindings.matches(keybindingId, data)
-  );
+  return keybindings.matches(data, keybindingId);
 }
 
 export function isAnswerCancel(

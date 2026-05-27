@@ -589,7 +589,12 @@ export class LspServer {
     this.clearProcessBoundState();
   }
 
-  async request(method: string, params: unknown, timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS): Promise<any> {
+  async request(
+    method: string,
+    params: unknown,
+    timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+    signal?: AbortSignal,
+  ): Promise<any> {
     const requestStartedAt = Date.now();
 
     try {
@@ -601,6 +606,10 @@ export class LspServer {
         throw this.lastProcessError ?? new Error(`LSP server is not running for ${this.language}`);
       }
 
+      if (signal?.aborted) {
+        throw new Error(`Aborted ${method} request for ${this.language}`);
+      }
+
       const id = this.requestId++;
       const payload = {
         jsonrpc: "2.0",
@@ -609,26 +618,58 @@ export class LspServer {
         params,
       };
 
+      let cleanupPendingRequest = () => {
+        this.pendingRequests.delete(id);
+      };
       const responsePromise = new Promise<any>((resolve, reject) => {
-        const timer = setTimeout(() => {
+        let timer: ReturnType<typeof setTimeout>;
+
+        const onAbort = () => {
+          cleanupPendingRequest();
+          void this.notify("$/cancelRequest", { id }).catch(() => {});
+          reject(new Error(`Aborted ${method} request for ${this.language}`));
+        };
+
+        const cleanup = () => {
+          clearTimeout(timer);
+          signal?.removeEventListener("abort", onAbort);
+        };
+
+        cleanupPendingRequest = () => {
           this.pendingRequests.delete(id);
+          cleanup();
+        };
+
+        timer = setTimeout(() => {
+          cleanupPendingRequest();
           reject(new Error(`Timed out waiting for ${method} from ${this.language}`));
         }, timeoutMs);
 
         this.pendingRequests.set(id, {
           method,
           reject: (error) => {
-            clearTimeout(timer);
+            cleanupPendingRequest();
             reject(error);
           },
           resolve: (value) => {
-            clearTimeout(timer);
+            cleanupPendingRequest();
             resolve(value);
           },
         });
+
+        if (signal?.aborted) {
+          onAbort();
+        } else {
+          signal?.addEventListener("abort", onAbort, { once: true });
+        }
       });
 
-      this.writeMessage(payload);
+      try {
+        this.writeMessage(payload);
+      } catch (error) {
+        cleanupPendingRequest();
+        throw error;
+      }
       const result = await responsePromise;
       if (this.shouldMarkReadyAfterRequest(method)) {
         this.markSemanticReady();
@@ -637,6 +678,7 @@ export class LspServer {
       return result;
     } catch (error) {
       const normalized = toError(error);
+      if (signal?.aborted) throw normalized;
       this.recordRequestMetric(method, requestStartedAt, false, normalized);
       this.lastFailure = classifyLspFailure(normalized, {
         method,
@@ -1276,10 +1318,6 @@ export class ServerManager {
     return () => {
       this.statusListeners.delete(listener);
     };
-  }
-
-  getOrCreate(language: SupportedLanguage, root: string): LspServer {
-    return this.ensureServer(language, root);
   }
 
   startInBackground(language: SupportedLanguage, root: string): LspServer {

@@ -76,13 +76,6 @@ export function formatWebFetchOutput(input: WebFetchFormatInput): string {
   return lines.join("\n");
 }
 
-export function formatWebFetchSummaryOutput(input: Partial<WebFetchFormatInput>): string {
-  const lines = formatWebFetchMetadataLines(input);
-  lines.push("");
-  lines.push("_Fetched content omitted from display to keep the conversation compact._");
-  return lines.join("\n");
-}
-
 function formatWebFetchMetadataLines(input: Partial<WebFetchFormatInput>): string[] {
   const lines: string[] = [];
   lines.push("# Web fetch");

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatCodeSearchOutput, formatWebFetchOutput, formatWebFetchSummaryOutput, formatWebSearchOutput } from "./formatting.ts";
+import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
 import { fetchWebUrl, validatePublicWebUrl } from "./web-fetch.ts";
 
@@ -94,29 +94,6 @@ test("formatWebFetchOutput emits metadata and content", () => {
   assert.match(output, /\*\*Final URL:\*\* https:\/\/www\.example\.com\/docs/);
   assert.match(output, /\*\*Title:\*\* Example Docs/);
   assert.match(output, /# Example/);
-});
-
-test("formatWebFetchSummaryOutput omits fetched content for compact display", () => {
-  const output = formatWebFetchSummaryOutput({
-    originalUrl: "https://example.com/docs",
-    finalUrl: "https://www.example.com/docs",
-    status: 200,
-    contentType: "text/html; charset=utf-8",
-    format: "markdown",
-    title: "Example Docs",
-    bytes: 1234,
-    maxCharacters: 20_000,
-    truncated: false,
-    content: "# Example\n\nFetched content",
-    binary: false,
-  });
-
-  assert.match(output, /^# Web fetch/);
-  assert.match(output, /\*\*URL:\*\* https:\/\/example\.com\/docs/);
-  assert.match(output, /\*\*Final URL:\*\* https:\/\/www\.example\.com\/docs/);
-  assert.match(output, /Fetched content omitted from display/);
-  assert.doesNotMatch(output, /## Content/);
-  assert.doesNotMatch(output, /# Example/);
 });
 
 test("fetchWebUrl converts HTML to markdown and truncates content", async () => {
