@@ -5,7 +5,7 @@ import {
   type ExtensionAPI,
 } from "@mariozechner/pi-coding-agent";
 import { Markdown, Text } from "@mariozechner/pi-tui";
-import { formatCodeSearchOutput, formatWebFetchOutput, formatWebFetchSummaryOutput, formatWebSearchOutput } from "./formatting.ts";
+import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
 import { fetchWebUrl, type WebFetchFormat } from "./web-fetch.ts";
 
@@ -13,6 +13,135 @@ const EXA_MCP_URL = process.env.EXA_MCP_URL ?? "https://mcp.exa.ai/mcp";
 const EXA_RETRIES = readPositiveIntEnv(["EXA_RETRIES", "EXA_CURL_RETRIES"], 2);
 const EXA_RETRY_DELAY_MS = 1_000;
 const MAX_CONCURRENCY = 2;
+const SUMMARY_MARKER = Symbol.for("frank.pi.tool-summary-ui.marker");
+const STATE = Symbol.for("frank.pi.tool-summary-ui.state");
+const ARROW = "⎿";
+
+type ToolSummaryColor = "accent" | "dim" | "error" | "muted" | "success" | "toolTitle";
+type ToolSummaryBgColor = "toolErrorBg" | "toolPendingBg" | "toolSuccessBg";
+type ToolSummaryStatus = "loading" | "success" | "failed";
+
+type ToolSummaryTheme = {
+  bold(text: string): string;
+  fg(color: ToolSummaryColor, text: string): string;
+  bg?: (color: ToolSummaryBgColor, text: string) => string;
+};
+
+type ToolSummaryData = {
+  id: string;
+  kind: string;
+  title: string;
+  countSingular: string;
+  countPlural: string;
+  item: string;
+  status: ToolSummaryStatus;
+  loadingLabel: string;
+  failedLabel: string;
+  errorLine?: string;
+  expanded: boolean;
+  theme: ToolSummaryTheme;
+};
+
+type ToolSummaryState = {
+  summaries: Map<string, ToolSummaryData>;
+};
+
+type TextContentLike = {
+  type?: unknown;
+  text?: unknown;
+};
+
+function getToolSummaryState(): ToolSummaryState {
+  const globalState = globalThis as typeof globalThis & { [STATE]?: ToolSummaryState };
+  globalState[STATE] ??= { summaries: new Map<string, ToolSummaryData>() };
+  return globalState[STATE];
+}
+
+function getToolSummaries(): Map<string, ToolSummaryData> {
+  return getToolSummaryState().summaries;
+}
+
+class ToolSummaryText extends Text {
+  [SUMMARY_MARKER] = true;
+
+  constructor(
+    public readonly summaryId: string,
+    text: string,
+  ) {
+    super(text, 0, 0);
+  }
+}
+
+function toToolSummaryText(component: unknown, id: string): ToolSummaryText {
+  return component instanceof ToolSummaryText && component.summaryId === id ? component : new ToolSummaryText(id, "");
+}
+
+function firstNonEmptyLineFromResult(result: { content?: unknown }): string | undefined {
+  if (!Array.isArray(result.content)) return undefined;
+
+  return result.content
+    .map((item: TextContentLike) => (item?.type === "text" && typeof item.text === "string" ? item.text : undefined))
+    .filter((text): text is string => Boolean(text))
+    .join("\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .find(Boolean);
+}
+
+function toolSummaryCount(count: number, summary: ToolSummaryData): string {
+  return `${count} ${count === 1 ? summary.countSingular : summary.countPlural}`;
+}
+
+function toolSummaryHeader(count: number, _expanded: boolean, summary: ToolSummaryData): string {
+  return `${summary.theme.fg("toolTitle", summary.theme.bold(summary.title))} ${summary.theme.fg("accent", toolSummaryCount(count, summary))}`;
+}
+
+function toolSummaryLine(summary: ToolSummaryData): string {
+  if (summary.status === "loading") {
+    return `${summary.theme.fg("muted", ARROW)}  ${summary.theme.fg("muted", summary.loadingLabel)} ${summary.theme.fg("accent", summary.item)}`;
+  }
+
+  if (summary.status === "failed") {
+    return `${summary.theme.fg("error", ARROW)}  ${summary.theme.fg("error", summary.failedLabel)} ${summary.theme.fg("accent", summary.item)}`;
+  }
+
+  return `${summary.theme.fg("success", ARROW)}  ${summary.theme.fg("accent", summary.item)}`;
+}
+
+function updateToolSummaryData(next: ToolSummaryData) {
+  const summaries = getToolSummaries();
+  const previous = summaries.get(next.id);
+  summaries.set(next.id, previous ? { ...previous, ...next } : next);
+}
+
+function webFetchUrl(args: { url?: unknown } | undefined): string {
+  const url = typeof args?.url === "string" ? args.url.trim() : "";
+  return url || "url";
+}
+
+function webFetchSummaryData(params: {
+  id: string;
+  args: { url?: unknown } | undefined;
+  status: ToolSummaryStatus;
+  errorLine?: string;
+  expanded: boolean;
+  theme: ToolSummaryTheme;
+}): ToolSummaryData {
+  return {
+    id: params.id,
+    kind: "web_fetch",
+    title: "Web Fetch",
+    countSingular: "URL",
+    countPlural: "URLs",
+    item: webFetchUrl(params.args),
+    status: params.status,
+    loadingLabel: "Fetching",
+    failedLabel: "Failed to fetch",
+    errorLine: params.errorLine,
+    expanded: params.expanded,
+    theme: params.theme,
+  };
+}
 
 const WebSearchMode = StringEnum(["overview", "single"] as const, {
   description:
@@ -212,25 +341,43 @@ const webFetchTool = defineTool({
     ),
   }),
 
-  renderCall(args, theme) {
-    const url = typeof args.url === "string" ? args.url.trim() : "";
-    const format = typeof args.format === "string" ? args.format : "markdown";
-    let text = `${theme.fg("toolTitle", theme.bold("Web Fetch"))} `;
-    text += theme.fg("accent", url || "url");
-    if (format !== "markdown") text += theme.fg("muted", ` (${format})`);
-    return new Text(text, 0, 0);
+  renderCall(args, theme, context) {
+    const summaryId = context.toolCallId;
+    const component = toToolSummaryText(context.lastComponent, summaryId);
+    const current = getToolSummaries().get(summaryId);
+    const data = webFetchSummaryData({
+      id: summaryId,
+      args,
+      status: current?.status ?? "loading",
+      errorLine: current?.errorLine,
+      expanded: context.expanded,
+      theme,
+    });
+    updateToolSummaryData(data);
+    component.setText(toolSummaryHeader(1, context.expanded, data));
+    return component;
   },
 
-  renderResult(result, options) {
-    if (
-      !options.isPartial &&
-      result.details &&
-      typeof result.details === "object" &&
-      ("originalUrl" in result.details || "finalUrl" in result.details)
-    ) {
-      return new Markdown(formatWebFetchSummaryOutput(result.details), 0, 0, getMarkdownTheme());
+  renderResult(result, options, theme, context) {
+    const summaryId = context.toolCallId;
+    const component = toToolSummaryText(context.lastComponent, summaryId);
+    const current = getToolSummaries().get(summaryId);
+    const data = webFetchSummaryData({
+      id: summaryId,
+      args: context.args,
+      status: options.isPartial ? "loading" : context.isError ? "failed" : "success",
+      errorLine: context.isError ? firstNonEmptyLineFromResult(result) : current?.errorLine,
+      expanded: context.expanded,
+      theme,
+    });
+    updateToolSummaryData(data);
+
+    let output = toolSummaryLine(data);
+    if (options.expanded && data.status === "failed" && data.errorLine) {
+      output += `\n   ${theme.fg("dim", data.errorLine)}`;
     }
-    return renderMarkdownToolResult(result, options, "Fetching URL…", "No web content fetched.");
+    component.setText(output);
+    return component;
   },
 
   async execute(_toolCallId, params, signal) {
