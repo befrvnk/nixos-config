@@ -151,6 +151,7 @@
               "muxy"
               "notion"
               "opencode-desktop"
+              "paseo"
               "raycast"
               "signal"
               "spotify"

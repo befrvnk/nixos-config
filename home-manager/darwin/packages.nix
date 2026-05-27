@@ -5,11 +5,8 @@
 # (configured in hosts/macbook-darwin/default.nix). GUI apps without a suitable
 # Homebrew cask can stay in nixpkgs.
 
-{ pkgs, inputs, ... }:
+{ pkgs, ... }:
 
-let
-  paseoCli = inputs.paseo.packages.${pkgs.stdenv.hostPlatform.system}.paseo;
-in
 {
   home.packages = with pkgs; [
     # GUI apps
@@ -22,7 +19,6 @@ in
     _1password-cli # op CLI; the 1Password app cask does not install it
     bun
     marp-cli
-    paseoCli
     slidev-cli
 
     # Fonts
