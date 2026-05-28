@@ -134,9 +134,18 @@ export function formatLogDetails(manager?: ServerManager): string {
 
 const READY_WAIT_TIMEOUT_MS = 1_500;
 
+function isStaleContextError(error: unknown): boolean {
+  return error instanceof Error && /ctx is stale/.test(error.message);
+}
+
 function updateStatus(manager: ServerManager | undefined, ctx: ExtensionContext) {
-  if (!ctx.hasUI) return;
-  ctx.ui.setStatus("pi-lsp", summarizeStatus(manager?.getStatus() ?? []));
+  try {
+    if (!ctx.hasUI) return;
+    ctx.ui.setStatus("pi-lsp", summarizeStatus(manager?.getStatus() ?? []));
+  } catch (error) {
+    if (isStaleContextError(error)) return;
+    throw error;
+  }
 }
 
 function createWarmupToolResult(action: QueryAction, summary: WarmupSummary) {
