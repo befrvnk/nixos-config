@@ -1,8 +1,14 @@
-_:
+{ lib, ... }:
 
 {
   programs.zen-browser = {
     enable = true;
+
+    # Zen itself is installed by the Homebrew cask in hosts/macbook-darwin.
+    # The nix-wrapped Darwin package currently fails in wrapFirefox because the
+    # generated shell buildCommand does not quote the "Zen Browser (Beta).app"
+    # path. Keep this module for policies/defaults only.
+    package = lib.mkForce null;
 
     # Declarative extension management using policies
     # Extensions are auto-installed and force-enabled
@@ -24,7 +30,7 @@ _:
         };
 
         # Browser behavior policies
-        DisableAppUpdate = true; # Updates managed by Nix
+        DisableAppUpdate = true; # Updates managed by Homebrew
         DisableTelemetry = true;
         DisablePocket = true;
         DontCheckDefaultBrowser = true;
