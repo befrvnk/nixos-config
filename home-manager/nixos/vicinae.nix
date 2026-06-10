@@ -14,13 +14,11 @@ let
     general="Noto Sans,11"
   '';
 
-  localGeminiTextTools =
-    inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.mkVicinaeExtension
-      {
-        pname = "vicinae-extension-gemini-text-tools";
-        version = "0";
-        src = ./vicinae/extensions/gemini-text-tools;
-      };
+  localGeminiTextTools = inputs.vicinae.lib.${pkgs.stdenv.hostPlatform.system}.mkVicinaeExtension {
+    pname = "vicinae-extension-gemini-text-tools";
+    version = "0";
+    src = ./vicinae/extensions/gemini-text-tools;
+  };
 in
 {
   services.vicinae = {
@@ -61,7 +59,8 @@ in
 
   # GTK icon theme (which Qt/vicinae will respect)
   gtk = {
-    gtk4.theme = null;
+    # Keep GTK4 on libadwaita; override Stylix's generated GTK4 theme.
+    gtk4.theme = lib.mkForce null;
     iconTheme = {
       package = pkgs.papirus-icon-theme;
       name = "Papirus";

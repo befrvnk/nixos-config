@@ -18,6 +18,8 @@ jobs:
 
       - name: Enable Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
 
       - name: Check Nix flake
         run: nix flake check --accept-flake-config
@@ -58,6 +60,8 @@ jobs:
 
       - name: Enable Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          use-flakehub: false
 
       - name: Verify Darwin configuration (dry-run)
         run: nix build .#darwinConfigurations.macbook.system --dry-run --accept-flake-config
