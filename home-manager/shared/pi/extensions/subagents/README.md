@@ -98,7 +98,7 @@ It returns structured markdown with:
 
 Review is user-controlled via `/review` and always runs the fixed reviewer pair:
 
-- `github-copilot/claude-opus-4.6`
+- `github-copilot/claude-opus-4.8`
 - `github-copilot/gemini-3.1-pro-preview`
 
 Current command forms:

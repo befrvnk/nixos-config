@@ -70,8 +70,8 @@ function createReviewTaskState(): SubagentTaskState {
 		index: 0,
 		taskId: "sub_now_test_task_1",
 		task: "Review changes",
-		label: "Opus 4.6",
-		model: "github-copilot/claude-opus-4.6",
+		label: "Opus 4.8",
+		model: "github-copilot/claude-opus-4.8",
 		thinkingLevel: "medium",
 		cwd: "/tmp/project",
 		metadata: { focus: "correctness and regressions" },
@@ -153,7 +153,7 @@ test("runSingleTask repairs malformed review output once and keeps repair metada
 
 		const result = await runSingleTask(taskState, {
 			parentCtx: {
-				model: { provider: "github-copilot", id: "claude-opus-4.6" } as any,
+				model: { provider: "github-copilot", id: "claude-opus-4.8" } as any,
 			},
 			emitRunUpdate: () => {
 				updateCount += 1;
@@ -243,7 +243,7 @@ test("runSingleTask repairs narrated structured review output that includes a pr
 
 		const result = await runSingleTask(taskState, {
 			parentCtx: {
-				model: { provider: "github-copilot", id: "claude-opus-4.6" } as any,
+				model: { provider: "github-copilot", id: "claude-opus-4.8" } as any,
 			},
 			emitRunUpdate: () => undefined,
 			systemPrompt: "You are a code review subagent.",
@@ -294,7 +294,7 @@ test("runSingleTask keeps streaming repair output separate from the initial malf
 
 		const result = await runSingleTask(taskState, {
 			parentCtx: {
-				model: { provider: "github-copilot", id: "claude-opus-4.6" } as any,
+				model: { provider: "github-copilot", id: "claude-opus-4.8" } as any,
 			},
 			emitRunUpdate: () => {
 				responseSnapshots.push(taskState.responseText);

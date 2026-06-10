@@ -45,7 +45,7 @@ Reshape it into the target design from this plan.
 
 Only the models centralized in `model-policy.ts` may be used for explore:
 
-- `github-copilot/claude-opus-4.6`
+- `github-copilot/claude-opus-4.8`
 - `github-copilot/claude-sonnet-4.6`
 - `github-copilot/gemini-3.1-pro-preview`
 - `FAST_EXPLORE_MODEL`
@@ -59,7 +59,7 @@ Recommended default when `model` is omitted:
 
 Review must remain fixed to:
 
-- `github-copilot/claude-opus-4.6`
+- `github-copilot/claude-opus-4.8`
 - `github-copilot/gemini-3.1-pro-preview`
 
 ### Recommended implementation order
@@ -140,7 +140,7 @@ Optional later:
 
 The main agent may choose **only** from this whitelist centralized in `model-policy.ts`:
 
-- `github-copilot/claude-opus-4.6`
+- `github-copilot/claude-opus-4.8`
 - `github-copilot/claude-sonnet-4.6`
 - `github-copilot/gemini-3.1-pro-preview`
 - `FAST_EXPLORE_MODEL`
@@ -170,7 +170,7 @@ The fallback should be predictable and cheap.
 
 Review remains fixed and user-only:
 
-- `github-copilot/claude-opus-4.6`
+- `github-copilot/claude-opus-4.8`
 - `github-copilot/gemini-3.1-pro-preview`
 
 The user does not choose review models.
@@ -389,7 +389,7 @@ In other words:
   "tasks": [
     { "task": "research topic A", "model": "<FAST_EXPLORE_MODEL>" },
     { "task": "research topic B", "model": "github-copilot/gemini-3.1-pro-preview" },
-    { "task": "inspect module C", "model": "github-copilot/claude-opus-4.6" },
+    { "task": "inspect module C", "model": "github-copilot/claude-opus-4.8" },
     { "task": "inspect module D", "model": "<DEFAULT_EXPLORE_MODEL>" }
   ]
 }

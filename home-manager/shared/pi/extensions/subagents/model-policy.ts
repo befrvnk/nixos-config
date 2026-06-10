@@ -11,7 +11,7 @@ function copilotModel<const T extends string>(
 }
 
 export const SUBAGENT_MODEL_IDS = {
-	claudeOpus: "claude-opus-4.6",
+	claudeOpus: "claude-opus-4.8",
 	claudeSonnet: "claude-sonnet-4.6",
 	geminiPro: "gemini-3.1-pro-preview",
 	fastExplore: "gpt-5.4-mini",
@@ -94,7 +94,7 @@ export type ReviewerConfig = {
 
 export const FIXED_REVIEWERS: readonly ReviewerConfig[] = [
 	{
-		label: "Opus 4.6",
+		label: "Opus 4.8",
 		model: SUBAGENT_MODELS.claudeOpus,
 		focus: "correctness, regressions, hidden bugs, and edge cases",
 		thinkingLevel: "high",

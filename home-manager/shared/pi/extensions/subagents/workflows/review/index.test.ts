@@ -22,8 +22,8 @@ const context: ReviewContext = {
 };
 
 const reviewer: ReviewerConfig = {
-	label: "Opus 4.6",
-	model: "github-copilot/claude-opus-4.6",
+	label: "Opus 4.8",
+	model: "github-copilot/claude-opus-4.8",
 	focus: "correctness and regressions",
 	thinkingLevel: "medium",
 	maxDiffChars: 20,
@@ -163,7 +163,7 @@ test("renderFinalReviewResults preserves malformed raw output, repair metadata, 
 		{
 			taskId: "sub_now_abc123_task_1",
 			task: "Review changes",
-			label: "Opus 4.6",
+			label: "Opus 4.8",
 			model: reviewer.model,
 			thinkingLevel: "medium",
 			cwd: context.repoRoot,
