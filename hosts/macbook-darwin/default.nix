@@ -146,6 +146,7 @@
               "1password"
               "caffeine"
               "ghostty"
+              "github-copilot-app"
               "jetbrains-toolbox"
               "miro"
               "muxy"
