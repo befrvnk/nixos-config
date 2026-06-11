@@ -274,6 +274,23 @@ _:
         ai ...$query
       }
 
+      def copilot-models [] {
+        if (which pi-copilot-live-models-refresh | is-not-empty) {
+          ^pi-copilot-live-models-refresh | complete | ignore
+        }
+
+        let models_file = ($env.HOME | path join ".pi/agent/models.json")
+        if not ($models_file | path exists) {
+          error make { msg: $"No Copilot models cache found at ($models_file). Run `pi --list-models gpt-5.5` once to generate it." }
+        }
+
+        open $models_file
+          | get providers.github-copilot.models
+          | select id contextWindow maxTokens
+          | rename model context_limit output_limit
+          | sort-by model
+      }
+
       def "??" [...query: string] {
         if ($query | is-empty) {
           print "Usage: ?? <command or shell question>"
