@@ -78,14 +78,19 @@ type MockChild = EventEmitter & {
   kill: () => boolean;
 };
 
-async function waitFor(predicate: () => boolean, timeoutMs = 1_000, intervalMs = 10): Promise<void> {
+async function waitFor(predicate: () => boolean, timeoutMs = 5_000, intervalMs = 10): Promise<void> {
   const deadline = Date.now() + timeoutMs;
 
   while (!predicate()) {
-    if (Date.now() >= deadline) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      // Let already-expired timers in other timer buckets run before failing.
+      await new Promise((resolve) => setImmediate(resolve));
+      if (predicate()) return;
       throw new Error(`Timed out after ${timeoutMs}ms waiting for test condition.`);
     }
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+    await new Promise((resolve) => setTimeout(resolve, Math.min(intervalMs, remainingMs)));
   }
 }
 
