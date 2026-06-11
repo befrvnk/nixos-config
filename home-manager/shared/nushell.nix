@@ -286,8 +286,8 @@ _:
 
         open $models_file
           | get providers.github-copilot.models
-          | select id contextWindow maxTokens
-          | rename model context_limit output_limit
+          | select id contextWindow maxTokens cost.input cost.output cost.cacheRead
+          | rename model context_limit output_limit input_cost output_cost cache_read_cost
           | sort-by model
       }
 
