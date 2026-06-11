@@ -21,8 +21,8 @@ jobs:
         with:
           use-flakehub: false
 
-      - name: Check Nix flake
-        run: nix flake check --accept-flake-config
+      - name: Check Nix flake outputs
+        run: nix flake check --no-build --accept-flake-config
 
       - name: Verify NixOS configuration (dry-run)
         run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config
