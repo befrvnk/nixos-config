@@ -15,7 +15,52 @@ let
         || !(lib.hasSuffix ".test.ts" base || lib.hasSuffix ".test.mjs" base || lib.hasSuffix ".md" base);
     };
 
+  piCopilotLiveModelsRefresh = pkgs.writeShellScriptBin "pi-copilot-live-models-refresh" ''
+    set -u
+
+    should_refresh=1
+    for arg in "$@"; do
+      case "$arg" in
+        --help|-h|--version|version)
+          should_refresh=0
+          ;;
+      esac
+    done
+
+    case "''${1:-}" in
+      auth)
+        should_refresh=0
+        ;;
+    esac
+
+    if [ "$should_refresh" != 1 ] || [ "''${PI_COPILOT_LIVE_MODELS:-1}" = 0 ]; then
+      exit 0
+    fi
+
+    if [ "''${PI_COPILOT_LIVE_MODELS_DEBUG:-0}" = 1 ]; then
+      ${pkgs.nodejs}/bin/node --experimental-strip-types \
+        "$HOME/.pi/agent/extensions/copilot-live-models/write-models-json.ts"
+    else
+      ${pkgs.nodejs}/bin/node --experimental-strip-types \
+        "$HOME/.pi/agent/extensions/copilot-live-models/write-models-json.ts" >/dev/null 2>&1
+    fi
+  '';
+
+  piWithCopilotLiveModels = pkgs.writeShellScriptBin "pi" ''
+    if ${piCopilotLiveModelsRefresh}/bin/pi-copilot-live-models-refresh "$@"; then
+      export PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION=1
+    fi
+    exec ${pkgs.pi-coding-agent}/bin/pi "$@"
+  '';
+
   piSettings = {
+    compaction = {
+      enabled = true;
+      # GitHub Copilot's long-context tier reports 922k prompt tokens + 128k output tokens.
+      # Keep Pi's auto-compaction threshold aligned with that prompt budget.
+      keepRecentTokens = 20000;
+      reserveTokens = 128000;
+    };
     defaultModel = "gpt-5.5";
     defaultProvider = "github-copilot";
     defaultThinkingLevel = "high";
@@ -47,6 +92,8 @@ in
     packages = [
       pkgs.kotlin-lsp
       pkgs.nodejs
+      piCopilotLiveModelsRefresh
+      (lib.hiPrio piWithCopilotLiveModels)
       pkgs.pi-coding-agent
       pkgs.typescript-language-server
     ];
@@ -54,6 +101,8 @@ in
     file = {
       ".pi/agent/AGENTS.md".source = ../global-agent-context.md;
       ".pi/agent/extensions/answer".source = runtimeExtension ./extensions/answer;
+      ".pi/agent/extensions/copilot-live-models".source =
+        runtimeExtension ./extensions/copilot-live-models;
       ".pi/agent/extensions/enhanced-markdown".source = runtimeExtension ./extensions/enhanced-markdown;
       ".pi/agent/extensions/nav-tools".source = runtimeExtension ./extensions/nav-tools;
       ".pi/agent/extensions/nix-shell-fallback".source = runtimeExtension ./extensions/nix-shell-fallback;
