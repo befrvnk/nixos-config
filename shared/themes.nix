@@ -1,45 +1,67 @@
-{ pkgs }:
+_:
 
 let
-  inherit (pkgs) lib;
-
-  # Parse the small subset of Base16 YAML we use without import-from-derivation,
-  # so `nix flake check` can evaluate cross-platform configs on any host.
-  parseScheme =
-    schemeFile:
-    let
-      lines = lib.splitString "\n" (builtins.readFile schemeFile);
-
-      parseVariant =
-        line:
-        let
-          match = builtins.match ''variant:[[:space:]]*"([^"]+)".*'' line;
-        in
-        if match == null then null else builtins.elemAt match 0;
-
-      parsePaletteEntry =
-        line:
-        let
-          match = builtins.match ''[[:space:]]*(base[0-9A-F]{2}):[[:space:]]*"([^"]+)".*'' line;
-        in
-        if match == null then
-          null
-        else
-          {
-            name = builtins.elemAt match 0;
-            value = builtins.elemAt match 1;
-          };
-
-      variantMatches = builtins.filter (value: value != null) (map parseVariant lines);
-      paletteEntries = builtins.filter (value: value != null) (map parsePaletteEntry lines);
-    in
+  mkTheme =
     {
-      base16Scheme = schemeFile;
-      polarity = builtins.head variantMatches;
-      palette = builtins.listToAttrs paletteEntries;
+      name,
+      polarity,
+      palette,
+    }:
+    {
+      inherit palette polarity;
+      base16Scheme = palette // {
+        scheme = name;
+        author = "https://github.com/catppuccin/catppuccin";
+      };
     };
 in
 {
-  dark = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-mocha.yaml";
-  light = parseScheme "${pkgs.base16-schemes}/share/themes/catppuccin-latte.yaml";
+  # Keep theme data inline so evaluation does not need to build/read
+  # pkgs.base16-schemes. `nix flake check --no-build` runs with a fresh store
+  # in CI, so reading a package output during evaluation can fail.
+  dark = mkTheme {
+    name = "Catppuccin Mocha";
+    polarity = "dark";
+    palette = {
+      base00 = "#1e1e2e"; # base
+      base01 = "#313244"; # surface0
+      base02 = "#45475a"; # surface1
+      base03 = "#6c7086"; # overlay0
+      base04 = "#a6adc8"; # subtext0
+      base05 = "#cdd6f4"; # text
+      base06 = "#f5e0dc"; # rosewater
+      base07 = "#b4befe"; # lavender
+      base08 = "#f38ba8"; # red
+      base09 = "#fab387"; # peach
+      base0A = "#f9e2af"; # yellow
+      base0B = "#a6e3a1"; # green
+      base0C = "#94e2d5"; # teal
+      base0D = "#89b4fa"; # blue
+      base0E = "#cba6f7"; # mauve
+      base0F = "#f2cdcd"; # flamingo
+    };
+  };
+
+  light = mkTheme {
+    name = "Catppuccin Latte";
+    polarity = "light";
+    palette = {
+      base00 = "#eff1f5"; # base
+      base01 = "#ccd0da"; # surface0
+      base02 = "#bcc0cc"; # surface1
+      base03 = "#9ca0b0"; # overlay0
+      base04 = "#6c6f85"; # subtext0
+      base05 = "#4c4f69"; # text
+      base06 = "#dc8a78"; # rosewater
+      base07 = "#7287fd"; # lavender
+      base08 = "#d20f39"; # red
+      base09 = "#fe640b"; # peach
+      base0A = "#df8e1d"; # yellow
+      base0B = "#40a02b"; # green
+      base0C = "#179299"; # teal
+      base0D = "#1e66f5"; # blue
+      base0E = "#8839ef"; # mauve
+      base0F = "#dd7878"; # flamingo
+    };
+  };
 }
