@@ -3,6 +3,7 @@
 # This overlay provides the latest canary version from Google
 #
 # Update with: ./scripts/update-android-studio-canary.sh
+{ nixpkgsSrc }:
 final: prev:
 let
   versionInfo = import ../pkgs/android-studio-canary/version.nix;
@@ -11,11 +12,12 @@ let
   # common.nix is a function that takes opts and returns another function for callPackage
   mkStudio =
     opts:
-    final.callPackage (import "${prev.path}/pkgs/applications/editors/android-studio/common.nix" opts) {
-      fontsConf = final.makeFontsConf { fontDirectories = [ ]; };
-      inherit (final) buildFHSEnv;
-      tiling_wm = true; # Enable for niri compatibility
-    };
+    final.callPackage (import "${nixpkgsSrc}/pkgs/applications/editors/android-studio/common.nix" opts)
+      {
+        fontsConf = final.makeFontsConf { fontDirectories = [ ]; };
+        inherit (final) buildFHSEnv;
+        tiling_wm = true; # Enable for niri compatibility
+      };
 in
 {
   androidStudioPackages = prev.androidStudioPackages // {

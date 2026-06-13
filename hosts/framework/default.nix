@@ -57,15 +57,25 @@
   services.fwupd.enable = true;
   services.hardware.bolt.enable = false;
 
-  # Disable kmod to avoid infinite recursion with kernel packages
-  hardware.framework.enableKmod = false;
+  # CachyOS' kernel derivation does not expose NixOS' kernel.target/buildDTBs attrs yet.
+  # The Framework is x86_64, so use the standard bzImage target and disable DTBs.
+  system.boot.loader.kernelFile = "bzImage";
 
-  hardware.framework.laptop13.audioEnhancement = {
-    enable = true;
-    hideRawDevice = true;
-    # Device name changed from HiFi to analog-stereo after disabling UCM profiles
-    # When UCM is re-enabled: "alsa_output.pci-0000_c1_00.6.HiFi__Speaker__sink"
-    rawDeviceName = "alsa_output.pci-0000_c1_00.6.analog-stereo";
+  hardware = {
+    deviceTree.enable = false;
+
+    framework = {
+      # Disable kmod to avoid infinite recursion with kernel packages
+      enableKmod = false;
+
+      laptop13.audioEnhancement = {
+        enable = true;
+        hideRawDevice = true;
+        # Device name changed from HiFi to analog-stereo after disabling UCM profiles
+        # When UCM is re-enabled: "alsa_output.pci-0000_c1_00.6.HiFi__Speaker__sink"
+        rawDeviceName = "alsa_output.pci-0000_c1_00.6.analog-stereo";
+      };
+    };
   };
 
   # 1Password - Use NixOS modules for proper CLI/GUI integration

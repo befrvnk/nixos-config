@@ -97,7 +97,7 @@ let
 
   nixosOverlays = sharedOverlays ++ [
     inputs.android-nixpkgs.overlays.default
-    (import ../overlays/android-studio-canary.nix)
+    (import ../overlays/android-studio-canary.nix { nixpkgsSrc = inputs.nixpkgs; })
     (import ../overlays/claude-code.nix)
     (import ../overlays/domain-check.nix)
     (import ../overlays/idea-community.nix)
