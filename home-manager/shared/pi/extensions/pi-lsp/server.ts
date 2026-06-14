@@ -1125,17 +1125,29 @@ export class LspServer {
 
     this.clearKotlinReadyFallbackTimer();
     const delayMs = this.config.kotlinStalledProgressTimeoutMs ?? DEFAULT_KOTLIN_STALLED_PROGRESS_TIMEOUT_MS;
-    this.kotlinReadyFallbackTimer = setTimeout(() => {
-      if (this.state !== "indexing") return;
-      if (!this.kotlinProgressObserved) return;
-      if (!this.kotlinLastProgressAt) return;
-      if (Date.now() - this.kotlinLastProgressAt < delayMs) return;
+    const progressAt = this.kotlinLastProgressAt;
 
-      const activeTokenCount = this.activeProgressTokens.size;
-      const activeTokenSuffix = activeTokenCount > 0 ? ` with ${activeTokenCount} active progress token(s)` : "";
-      this.addLogLine(`[progress] Kotlin progress stalled for ${delayMs}ms${activeTokenSuffix}; assuming ready`);
-      this.markSemanticReady();
-    }, delayMs);
+    const armTimer = (timerDelayMs: number) => {
+      this.kotlinReadyFallbackTimer = setTimeout(() => {
+        if (this.state !== "indexing") return;
+        if (!this.kotlinProgressObserved) return;
+        if (!this.kotlinLastProgressAt) return;
+        if (this.kotlinLastProgressAt !== progressAt) return;
+
+        const elapsedMs = Date.now() - this.kotlinLastProgressAt;
+        if (elapsedMs < delayMs) {
+          armTimer(Math.max(1, delayMs - elapsedMs));
+          return;
+        }
+
+        const activeTokenCount = this.activeProgressTokens.size;
+        const activeTokenSuffix = activeTokenCount > 0 ? ` with ${activeTokenCount} active progress token(s)` : "";
+        this.addLogLine(`[progress] Kotlin progress stalled for ${delayMs}ms${activeTokenSuffix}; assuming ready`);
+        this.markSemanticReady();
+      }, timerDelayMs);
+    };
+
+    armTimer(delayMs);
   }
 
   private clearKotlinReadyFallbackTimer(): void {
