@@ -105,7 +105,6 @@ in
         runtimeExtension ./extensions/copilot-live-models;
       ".pi/agent/extensions/enhanced-markdown".source = runtimeExtension ./extensions/enhanced-markdown;
       ".pi/agent/extensions/nav-tools".source = runtimeExtension ./extensions/nav-tools;
-      ".pi/agent/extensions/nix-shell-fallback".source = runtimeExtension ./extensions/nix-shell-fallback;
       ".pi/agent/extensions/pi-lsp".source = runtimeExtension ./extensions/pi-lsp;
       ".pi/agent/extensions/read-path-ui".source = runtimeExtension ./extensions/read-path-ui;
       ".pi/agent/extensions/search-tools".source = runtimeExtension ./extensions/search-tools;
