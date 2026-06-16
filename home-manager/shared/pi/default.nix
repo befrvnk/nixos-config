@@ -101,6 +101,8 @@ in
     file = {
       ".pi/agent/AGENTS.md".source = ../global-agent-context.md;
       ".pi/agent/extensions/answer".source = runtimeExtension ./extensions/answer;
+      ".pi/agent/extensions/bash-output-control".source =
+        runtimeExtension ./extensions/bash-output-control;
       ".pi/agent/extensions/copilot-live-models".source =
         runtimeExtension ./extensions/copilot-live-models;
       ".pi/agent/extensions/enhanced-markdown".source = runtimeExtension ./extensions/enhanced-markdown;
