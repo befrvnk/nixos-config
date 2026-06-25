@@ -294,7 +294,7 @@ in
 
           # Show changelog links after successful switch
           if [ $exit_code -eq 0 ] && [ "$action" = "switch" ]; then
-            ${showChangelogs}
+            ${lib.getExe showChangelogs}
           fi
 
           exit $exit_code
@@ -416,7 +416,7 @@ in
     # Take README screenshots in light/dark and normal/overview modes
     # Opens Ghostty with fastfetch and captures all combinations
     take-readme-screenshots.exec = ''
-      ${takeReadmeScreenshots}
+      ${lib.getExe takeReadmeScreenshots}
     '';
   };
 
