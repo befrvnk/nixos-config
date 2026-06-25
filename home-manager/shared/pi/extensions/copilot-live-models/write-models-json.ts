@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import fs from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { defaultAgentDir, defaultDeps } from "./index.ts";
@@ -29,7 +30,16 @@ export async function refreshCopilotModelsJson(
 }
 
 function isMainModule(): boolean {
-  return process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
+  const mainPath = process.argv[1];
+  if (mainPath === undefined) return false;
+
+  if (import.meta.url === pathToFileURL(mainPath).href) return true;
+
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(mainPath)).href;
+  } catch {
+    return false;
+  }
 }
 
 if (isMainModule()) {

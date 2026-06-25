@@ -71,23 +71,42 @@ test("discoverCopilotProviderConfig builds a provider from cached auth and live 
 });
 
 test("registerCopilotLiveModels registers github-copilot when discovery succeeds", async () => {
-  const { deps } = createDeps();
-  const calls: Array<{ provider: string; config: any }> = [];
+  const previousSkip = process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
+  const previousEnabled = process.env.PI_COPILOT_LIVE_MODELS;
+  delete process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
+  delete process.env.PI_COPILOT_LIVE_MODELS;
 
-  const registered = await registerCopilotLiveModels(
-    {
-      registerProvider(provider: string, config: any) {
-        calls.push({ provider, config });
-      },
-    } as any,
-    deps,
-    { agentDir: "/tmp/pi-agent" },
-  );
+  try {
+    const { deps } = createDeps();
+    const calls: Array<{ provider: string; config: any }> = [];
 
-  assert.equal(registered, true);
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0]?.provider, "github-copilot");
-  assert.equal(calls[0]?.config.models[0].id, "gpt-5.5");
+    const registered = await registerCopilotLiveModels(
+      {
+        registerProvider(provider: string, config: any) {
+          calls.push({ provider, config });
+        },
+      } as any,
+      deps,
+      { agentDir: "/tmp/pi-agent" },
+    );
+
+    assert.equal(registered, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]?.provider, "github-copilot");
+    assert.equal(calls[0]?.config.models[0].id, "gpt-5.5");
+  } finally {
+    if (previousSkip === undefined) {
+      delete process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
+    } else {
+      process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION = previousSkip;
+    }
+
+    if (previousEnabled === undefined) {
+      delete process.env.PI_COPILOT_LIVE_MODELS;
+    } else {
+      process.env.PI_COPILOT_LIVE_MODELS = previousEnabled;
+    }
+  }
 });
 
 test("fetchWithTimeout supplies an AbortSignal when the caller does not", async () => {
