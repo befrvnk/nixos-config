@@ -16,16 +16,6 @@ RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$USER_ID}"
 export XDG_RUNTIME_DIR="$RUNTIME_DIR"
 export DBUS_SESSION_BUS_ADDRESS="unix:path=$RUNTIME_DIR/bus"
 
-# Serialise darkman-triggered Home Manager specialisation activations. Concurrent
-# linkGeneration runs can kill each other's find/xargs children and make a
-# rebuild fail even though a retry succeeds.
-LOCK_FILE="$RUNTIME_DIR/darkman-home-manager-activation.lock"
-exec 9>"$LOCK_FILE"
-if ! @util_linux@/bin/flock -w 120 9; then
-  echo "Error: Timed out waiting for darkman Home Manager activation lock" >&2
-  exit 1
-fi
-
 # If a normal home-manager-frank.service activation is already running, let it
 # finish before applying a dark/light specialisation. When this script is called
 # from the Home Manager activation hook itself, DARKMAN_FROM_HOME_MANAGER skips
@@ -41,6 +31,18 @@ if [ -z "${DARKMAN_FROM_HOME_MANAGER:-}" ]; then
 
     @coreutils@/bin/sleep 0.5
   done
+fi
+
+# Serialise darkman-triggered Home Manager specialisation activations. Concurrent
+# linkGeneration runs can kill each other's find/xargs children and make a
+# rebuild fail even though a retry succeeds. Acquire this after the HM service
+# wait so a background darkman transition cannot block the activation hook that
+# would let home-manager-frank.service finish.
+LOCK_FILE="$RUNTIME_DIR/darkman-home-manager-activation.lock"
+exec 9>"$LOCK_FILE"
+if ! @util_linux@/bin/flock -w 120 9; then
+  echo "Error: Timed out waiting for darkman Home Manager activation lock" >&2
+  exit 1
 fi
 
 # Set WAYLAND_DISPLAY if not already set (needed for awww to find the correct socket)
