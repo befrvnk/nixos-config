@@ -29,6 +29,7 @@ in
           niri = "${pkgs.niri}";
           coreutils = "${pkgs.coreutils}";
           gnugrep = "${pkgs.gnugrep}";
+          util_linux = "${pkgs.util-linux}";
           gnused = "${pkgs.gnused}";
           awww = "${inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww}";
           wallpaper_light = "${wallpapers.light}";
@@ -63,7 +64,6 @@ in
       ".local/share/restart-darkman.sh" = {
         source = pkgs.replaceVars ./restart-darkman.sh {
           coreutils = "${pkgs.coreutils}";
-          systemd = "${pkgs.systemd}";
           darkman = "${pkgs.darkman}";
           awww = "${inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww}";
         };
@@ -89,11 +89,19 @@ in
       };
     };
 
-    # Restart darkman after home-manager activation to re-evaluate current theme
-    # Only restart if we're not already being run by darkman (avoid infinite loop)
-    activation.restartDarkman = config.lib.dag.entryAfter [ "writeBoundary" ] ''
-      $DRY_RUN_CMD "$HOME/.local/share/restart-darkman.sh"
-    '';
+    # Re-apply the current darkman mode after Home Manager activation.
+    # Run late so the normal generation has finished linking before the Stylix
+    # specialisation activation touches the same files.
+    activation.restartDarkman =
+      config.lib.dag.entryAfter
+        [
+          "reloadSystemd"
+          "stylixLookAndFeel"
+          "zedSettingsActivation"
+        ]
+        ''
+          DARKMAN_FROM_HOME_MANAGER=1 $DRY_RUN_CMD "$HOME/.local/share/restart-darkman.sh"
+        '';
   };
 
   # Systemd service to monitor for display changes and refresh wallpaper

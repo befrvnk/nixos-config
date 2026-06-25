@@ -1,11 +1,14 @@
 #!/run/current-system/sw/bin/bash
-# Restart darkman after Home Manager activation unless darkman is already running.
+# Re-apply the current darkman mode after Home Manager activation.
+#
+# Do not restart darkman here. Starting/restarting darkman immediately runs its
+# mode hook, which itself activates a Home Manager Stylix specialisation. During
+# a NixOS switch that can overlap with home-manager-frank.service and race in
+# linkGeneration. The systemd unit is kept running across rebuilds instead.
 
 if [ -n "${DARKMAN_RUNNING:-}" ]; then
   exit 0
 fi
-
-$DRY_RUN_CMD @systemd@/bin/systemctl --user restart darkman.service || true
 
 if [ -n "$DRY_RUN_CMD" ]; then
   exit 0
