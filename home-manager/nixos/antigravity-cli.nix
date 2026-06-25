@@ -1,5 +1,5 @@
 _: {
-  programs.gemini-cli = {
+  programs.antigravity-cli = {
     enable = true;
     settings = {
       security.auth.selectedType = "oauth-personal";

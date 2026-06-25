@@ -15,7 +15,7 @@
     ./dunst.nix
     ./emacs.nix
     ./gammastep.nix
-    ./gemini-cli.nix
+    ./antigravity-cli.nix
     ./ghostty.nix
 
     ./intellij
