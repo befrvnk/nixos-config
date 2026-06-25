@@ -68,28 +68,44 @@ prefetch_archive_sri_hash_keep_root() {
   store_path=$(nix store prefetch-file --json "$url" | jq -r '.storePath')
   tmp_dir=$(mktemp -d)
 
+  trap 'rm -rf "$tmp_dir"; trap - RETURN' RETURN
+
   case "$url" in
     *.zip)
-      unzip -q "$store_path" -d "$tmp_dir"
+      if ! command -v unzip >/dev/null 2>&1; then
+        echo "Error: unzip is required to prefetch zip archives" >&2
+        return 1
+      fi
+      if ! unzip -q "$store_path" -d "$tmp_dir"; then
+        echo "Error: failed to unpack $url" >&2
+        return 1
+      fi
       ;;
     *.tar.gz|*.tgz)
-      tar -xzf "$store_path" -C "$tmp_dir"
+      if ! tar -xzf "$store_path" -C "$tmp_dir"; then
+        echo "Error: failed to unpack $url" >&2
+        return 1
+      fi
       ;;
     *.tar.xz)
-      tar -xJf "$store_path" -C "$tmp_dir"
+      if ! tar -xJf "$store_path" -C "$tmp_dir"; then
+        echo "Error: failed to unpack $url" >&2
+        return 1
+      fi
       ;;
     *.tar.bz2)
-      tar -xjf "$store_path" -C "$tmp_dir"
+      if ! tar -xjf "$store_path" -C "$tmp_dir"; then
+        echo "Error: failed to unpack $url" >&2
+        return 1
+      fi
       ;;
     *)
-      rm -rf "$tmp_dir"
       echo "Error: Unsupported archive type for $url" >&2
       return 1
       ;;
   esac
 
   hash=$(nix hash path "$tmp_dir")
-  rm -rf "$tmp_dir"
 
   echo "$hash"
 }

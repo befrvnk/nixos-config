@@ -15,7 +15,8 @@ for type in release rc eap; do
   response=$(curl -fsSL "https://data.services.jetbrains.com/products/releases?code=IIU&latest=true&type=$type")
   build=$(jq -r '.IIU[0].build // empty' <<< "$response")
   version=$(jq -r '.IIU[0].version // empty' <<< "$response")
-  if [[ -n "$build" ]]; then
+  url=$(jq -r '.IIU[0].downloads.linux.link // empty' <<< "$response")
+  if [[ -n "$build" && -n "$url" ]]; then
     echo "Found $type: version=$version build=$build"
     break
   fi
@@ -48,13 +49,13 @@ esac
 
 echo "Updating to $formatted_version (build $build)..."
 
-url="https://download.jetbrains.com/idea/idea-${build}.tar.gz"
 sri_hash=$(prefetch_sri_hash "$url" --unpack)
 
 echo "New hash: $sri_hash"
 
 sed_in_place "s|buildNumber = \".*\"|buildNumber = \"$build\"|" "$package_file"
 sed_in_place "s|version = \".*\"|version = \"$formatted_version\"|" "$package_file"
+sed_in_place "s|url = \"https://download.jetbrains.com/idea/idea-[^\"]*\"|url = \"$url\"|" "$package_file"
 sed_in_place "s|hash = \"sha256-.*\"|hash = \"$sri_hash\"|" "$package_file"
 
 echo "Updated $package_file"

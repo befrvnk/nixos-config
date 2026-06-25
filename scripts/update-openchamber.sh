@@ -29,8 +29,15 @@ if [[ "$version" == "$current" ]]; then
   exit 0
 fi
 
-url="https://github.com/$owner/$repo/releases/download/v${version}/OpenChamber.app-darwin-aarch64.tar.gz"
-src_sri=$(prefetch_sri_hash "$url")
+asset_name="OpenChamber-${version}-mac-arm64.zip"
+url=$(jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url // empty' <<< "$release_json")
+
+if [[ -z "$url" ]]; then
+  echo "Error: Could not find asset $asset_name"
+  exit 1
+fi
+
+src_sri=$(prefetch_archive_sri_hash_keep_root "$url")
 
 echo "New hash: $src_sri"
 

@@ -1,30 +1,31 @@
 {
   lib,
   stdenvNoCC,
-  fetchurl,
+  fetchzip,
   makeBinaryWrapper,
 }:
 
 stdenvNoCC.mkDerivation rec {
   pname = "openchamber";
-  version = "1.11.3";
+  version = "1.13.3";
 
   appName = "OpenChamber.app";
-  executable = "openchamber-desktop";
+  executable = "OpenChamber";
 
-  src = fetchurl {
-    url = "https://github.com/openchamber/openchamber/releases/download/v${version}/OpenChamber.app-darwin-aarch64.tar.gz";
-    hash = "sha256-wvE6kxYclrb9ez7aE/yYOl64gZG5U3ZHbkJhVWh1FbU=";
+  src = fetchzip {
+    url = "https://github.com/openchamber/openchamber/releases/download/v${version}/OpenChamber-${version}-mac-arm64.zip";
+    hash = "sha256-xVqsKBb7dYkZ1tpRqDi1qCi1m6OEA7IGNStV9+Jnuqc=";
+    stripRoot = false;
   };
 
-  sourceRoot = ".";
+  dontUnpack = true;
 
   nativeBuildInputs = [ makeBinaryWrapper ];
 
   installPhase = ''
     runHook preInstall
     mkdir -p $out/Applications $out/bin
-    cp -r ${appName} $out/Applications/
+    cp -r "$src/${appName}" $out/Applications/
     makeBinaryWrapper \
       "$out/Applications/${appName}/Contents/MacOS/${executable}" \
       "$out/bin/openchamber"

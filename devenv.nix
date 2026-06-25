@@ -186,12 +186,14 @@ in
     [
       deadnix # Find dead Nix code
       git
+      jq # JSON parsing for update scripts
       nh # NixOS helper
       nixfmt
       nurl # Generate repo fetchers and hashes for package updates
       nvd # Nix version diff (for changelog lookup)
       shellcheck # Shell script linter
       statix # Nix linter
+      unzip # Unpack zip release archives for update scripts
     ]
     ++ lib.optionals isLinux [
       grim # Screenshot tool (for take-readme-screenshots) - Linux only

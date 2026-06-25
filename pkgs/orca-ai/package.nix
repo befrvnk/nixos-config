@@ -42,11 +42,11 @@
 
 stdenv.mkDerivation rec {
   pname = "orca-ai";
-  version = "1.4.1";
+  version = "1.4.98";
 
   src = fetchurl {
-    url = "https://github.com/stablyai/orca/releases/download/v${version}/orca_${version}_amd64.deb";
-    hash = "sha256-tpHTB9XXvP9mNsP18Rl6FrFss4jdvvKO9rUn0cW6KOE=";
+    url = "https://github.com/stablyai/orca/releases/download/v${version}/orca-ide_${version}_amd64.deb";
+    hash = "sha256-9We/PHd24z1b8s90UyR8HTnYSRgSozzYILvUbO4qZMY=";
   };
 
   dontUnpack = true;
@@ -105,23 +105,23 @@ stdenv.mkDerivation rec {
     mkdir -p "$out/share/icons"
     cp -r pkgroot/usr/share/icons/hicolor "$out/share/icons/"
 
-    for icon in "$out"/share/icons/hicolor/*/apps/orca.png; do
-      mv "$icon" "''${icon%/orca.png}/orca-ai.png"
+    for icon in "$out"/share/icons/hicolor/*/apps/orca-ide.png; do
+      mv "$icon" "''${icon%/orca-ide.png}/orca-ai.png"
     done
 
     patchShebangs "$out/lib/orca-ai/resources/bin"
-    chmod +x "$out/lib/orca-ai/resources/bin/orca"
+    chmod +x "$out/lib/orca-ai/resources/bin/orca-ide"
 
     # The app bundle is immutable in the Nix store, so disable in-app updates.
     rm -f "$out/lib/orca-ai/resources/app-update.yml"
 
-    makeWrapper "$out/lib/orca-ai/orca" "$out/bin/orca-ai" \
+    makeWrapper "$out/lib/orca-ai/orca-ide" "$out/bin/orca-ai" \
       "''${gappsWrapperArgs[@]}" \
       --prefix LD_LIBRARY_PATH : "${lib.makeLibraryPath buildInputs}" \
       --prefix PATH : "${lib.makeBinPath [ xdg-utils ]}" \
       --add-flags "--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true"
 
-    makeWrapper "$out/lib/orca-ai/resources/bin/orca" "$out/bin/orca-ai-cli"
+    makeWrapper "$out/lib/orca-ai/resources/bin/orca-ide" "$out/bin/orca-ai-cli"
 
     runHook postInstall
   '';
@@ -139,7 +139,7 @@ stdenv.mkDerivation rec {
         "Utility"
       ];
       startupNotify = true;
-      startupWMClass = "Orca";
+      startupWMClass = "orca";
     })
   ];
 
@@ -147,7 +147,7 @@ stdenv.mkDerivation rec {
   installCheckPhase = ''
     test -x "$out/bin/orca-ai"
     test -x "$out/bin/orca-ai-cli"
-    test -x "$out/lib/orca-ai/orca"
+    test -x "$out/lib/orca-ai/orca-ide"
     test -f "$out/share/applications/orca-ai.desktop"
     test -f "$out/share/icons/hicolor/256x256/apps/orca-ai.png"
   '';
