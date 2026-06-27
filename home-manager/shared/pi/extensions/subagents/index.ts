@@ -42,12 +42,19 @@ import {
 import { buildExploreTaskInputs, findRunOrThrow } from "./tool-validation.js";
 import {
   buildReviewRepairPrompt,
-  createReviewTasks,
+  createReviewBriefTask,
+  createReviewContext,
+  createReviewTasksForContext,
+  parseReviewBriefOutput,
   parseReviewOutput,
   renderFinalReviewResults,
+  withReviewChangeBrief,
 } from "./workflows/review/index.js";
 import { buildReviewContextMessage } from "./review-context.js";
-import { REVIEWER_PROMPT } from "./workflows/review/prompt.js";
+import {
+  REVIEW_BRIEF_PROMPT,
+  REVIEWER_PROMPT,
+} from "./workflows/review/prompt.js";
 import {
   chooseSmartReviewTarget,
   sortReviewBranches,
@@ -63,6 +70,7 @@ import {
   type ParsedSubagentOutput,
   type SubagentRunState,
   type SubagentTaskInput,
+  type SubagentTaskState,
   type SubagentWorkflow,
 } from "./types.js";
 import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
@@ -507,20 +515,58 @@ export default function subagentExtension(pi: ExtensionAPI) {
     if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
   };
 
+  type WorkflowExecutionOptions = {
+    systemPrompt: string;
+    parseOutput: (markdown: string) => ParsedSubagentOutput;
+    buildRepairPrompt?: (
+      parsed: ParsedSubagentOutput,
+      rawResponse: string,
+    ) => string | undefined;
+    onUpdate?: (update: unknown) => void;
+    signal?: AbortSignal;
+    ctx: ExtensionContext | ExtensionCommandContext;
+  };
+
+  const executeInternalTask = async (
+    workflow: SubagentWorkflow,
+    taskInput: SubagentTaskInput,
+    options: WorkflowExecutionOptions,
+  ) => {
+    const taskState: SubagentTaskState = {
+      workflow,
+      index: 0,
+      taskId: createTaskId(createRunId(), 0),
+      task: taskInput.task,
+      label: taskInput.label?.trim() || taskInput.task.trim(),
+      intent: taskInput.intent,
+      model: taskInput.model,
+      thinkingLevel: taskInput.thinkingLevel,
+      cwd: taskInput.cwd,
+      metadata: taskInput.metadata,
+      state: "pending",
+      toolUses: 0,
+      turnCount: 0,
+      tokenCount: 0,
+      responseText: "",
+      history: [],
+      recentTools: [],
+      recentOutputLines: [],
+    };
+
+    return runSingleTask(taskState, {
+      parentCtx: options.ctx,
+      emitRunUpdate: () => undefined,
+      signal: options.signal,
+      systemPrompt: options.systemPrompt,
+      parseOutput: options.parseOutput,
+      buildRepairPrompt: options.buildRepairPrompt,
+    });
+  };
+
   const executeWorkflow = async (
     workflow: SubagentWorkflow,
     taskInputs: SubagentTaskInput[],
-    options: {
-      systemPrompt: string;
-      parseOutput: (markdown: string) => ParsedSubagentOutput;
-      buildRepairPrompt?: (
-        parsed: ParsedSubagentOutput,
-        rawResponse: string,
-      ) => string | undefined;
-      onUpdate?: (update: unknown) => void;
-      signal?: AbortSignal;
-      ctx: ExtensionContext | ExtensionCommandContext;
-    },
+    options: WorkflowExecutionOptions,
   ) => {
     const runId = createRunId();
     const run: SubagentRunState = {
@@ -653,14 +699,57 @@ export default function subagentExtension(pi: ExtensionAPI) {
   ): Promise<ReviewExecutionResult> => {
     let cleanup: (() => Promise<void>) | undefined;
     try {
-      const created = await createReviewTasks(
+      const created = await createReviewContext(
         pi,
         selection.request,
         ctx.cwd,
         signal,
       );
       cleanup = created.cleanup;
-      const { tasks, context } = created;
+      let context = created.context;
+
+      try {
+        const briefTask = await createReviewBriefTask(
+          context,
+          selection.request,
+          ctx.cwd,
+        );
+        const briefResult = await executeInternalTask("review", briefTask, {
+          systemPrompt: REVIEW_BRIEF_PROMPT,
+          parseOutput: parseReviewBriefOutput,
+          signal,
+          ctx,
+        });
+
+        if (signal?.aborted || briefResult.status === "aborted") {
+          return { status: "aborted" };
+        }
+
+        const briefMarkdown =
+          briefResult.rawResponse?.trim() ||
+          (typeof briefResult.data?.changeBriefMarkdown === "string"
+            ? briefResult.data.changeBriefMarkdown.trim()
+            : "");
+        const briefWarnings = briefMarkdown
+          ? []
+          : briefResult.status === "success"
+            ? ["Change brief generation returned no usable brief."]
+            : [
+                `Change brief generation completed with ${briefResult.status} state${briefResult.error ? `: ${briefResult.error}` : "."}`,
+              ];
+        context = withReviewChangeBrief(context, briefMarkdown, briefWarnings);
+      } catch (error) {
+        if (signal?.aborted) return { status: "aborted" };
+        context = withReviewChangeBrief(context, undefined, [
+          `Change brief generation failed: ${error instanceof Error ? error.message : String(error)}`,
+        ]);
+      }
+
+      const tasks = await createReviewTasksForContext(
+        context,
+        selection.request,
+        ctx.cwd,
+      );
       const { run, results } = await executeWorkflow("review", tasks, {
         systemPrompt: REVIEWER_PROMPT,
         parseOutput: parseReviewOutput,

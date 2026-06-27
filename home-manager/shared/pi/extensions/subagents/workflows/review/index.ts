@@ -14,6 +14,7 @@ import {
 	composeAdditionalReviewInstructions,
 	loadProjectReviewGuidelines,
 } from "./guidelines.js";
+import { FAST_EXPLORE_MODEL } from "../../model-policy.js";
 import type { ReviewerConfig } from "../../model-policy.js";
 import type {
 	ParsedOutputMeta,
@@ -58,6 +59,8 @@ export type ReviewContext = {
 	repositoryContextPacket: string;
 	repositoryContextWasTruncated: boolean;
 	inspectionWarnings: string[];
+	changeBrief?: string;
+	changeBriefWarnings?: string[];
 };
 
 type GitCommandResult = {
@@ -929,6 +932,97 @@ function buildReviewerDiffPreview(
 	};
 }
 
+function buildReviewBriefDiffPreview(
+	context: ReviewContext,
+): { preview: string; wasTruncated: boolean } {
+	const maxDiffChars = 40_000;
+	if (context.diffPreview.length <= maxDiffChars) {
+		return {
+			preview: context.diffPreview,
+			wasTruncated: context.diffWasTruncated,
+		};
+	}
+	return {
+		preview: `${context.diffPreview.slice(0, maxDiffChars)}\n\n[diff truncated for brief prompt budget]`,
+		wasTruncated: true,
+	};
+}
+
+export function buildReviewBriefTask(
+	context: ReviewContext,
+	extraPrompt?: string,
+): string {
+	const changedFilesText = context.changedFiles
+		.map((file) => `- ${file}`)
+		.join("\n");
+	const briefDiff = buildReviewBriefDiffPreview(context);
+	const lines: string[] = [
+		`Working directory: ${context.inspectionRoot}`,
+		`Repository root: ${context.repoRoot}`,
+		`Inspection root for read/grep/find/ls/bash: ${context.inspectionRoot}`,
+		`Inspection root kind: ${context.inspectionRootDescription}`,
+		`For repository-local investigation, only inspect paths under ${context.inspectionRoot}.`,
+		"Create a concise orientation brief for later code review agents.",
+		"This is not the final review. Do not decide whether the change is correct; summarize intent, scope, and risk areas to investigate.",
+		"Use the diff and repository context packet as the primary evidence. Inspect repository files only if needed to understand intent or risk.",
+		"Clearly label assumptions and unknowns; do not present guesses as facts.",
+	];
+
+	if (extraPrompt?.trim()) {
+		lines.push("", "Additional briefing context:", extraPrompt.trim());
+	}
+
+	if (context.inspectionWarnings.length > 0) {
+		lines.push("", "Inspection notes:");
+		for (const warning of context.inspectionWarnings) lines.push(`- ${warning}`);
+	}
+
+	lines.push(
+		"",
+		"Return markdown with exactly these sections:",
+		"## Intended Goal",
+		"A short paragraph describing what the change appears intended to achieve.",
+		"",
+		"## Main Changes",
+		"- Bullets describing the important implementation changes.",
+		"",
+		"## Risk Areas for Reviewers",
+		"- Bullets naming behavior, files, contracts, or edge cases reviewers should scrutinize.",
+		"",
+		"## Important Context",
+		"- Bullets with contextual facts that help reviewers understand the change.",
+		"",
+		"## Unknowns / Assumptions",
+		"- Bullets for anything uncertain. If there are none, write `- None`.",
+		"",
+		"Review context:",
+		`- Target: ${context.target}`,
+		`- Base ref: ${context.baseRef}`,
+		`- Repo root: ${context.repoRoot}`,
+		`- Inspection root: ${context.inspectionRoot}`,
+		`- Inspection root kind: ${context.inspectionRootDescription}`,
+		`- Diff truncated: ${briefDiff.wasTruncated ? "yes" : "no"}`,
+		`- Repository context packet truncated: ${context.repositoryContextWasTruncated ? "yes" : "no"}`,
+		"",
+		"Changed files:",
+		changedFilesText,
+		"",
+		"Repository context packet:",
+		context.repositoryContextPacket || "(no repository context packet available)",
+		"",
+		"Git status (--short):",
+		context.statusShort || "(clean status output)",
+		"",
+		"Diff stat:",
+		context.diffStat || "(no diff stat)",
+		"",
+		"Diff preview:",
+		briefDiff.preview || "(no diff)",
+	);
+
+	return lines.join("\n");
+}
+
 export function buildReviewTask(
 	context: ReviewContext,
 	reviewer: ReviewerConfig,
@@ -968,6 +1062,19 @@ export function buildReviewTask(
 	if (context.inspectionWarnings.length > 0) {
 		lines.push("", "Inspection notes:");
 		for (const warning of context.inspectionWarnings) lines.push(`- ${warning}`);
+	}
+
+	if (context.changeBrief?.trim()) {
+		lines.push(
+			"",
+			"Change brief from a separate summarizer:",
+			"Treat this brief as orientation only. Verify all claims independently against the diff and repository state.",
+			context.changeBrief.trim(),
+		);
+	}
+	if ((context.changeBriefWarnings ?? []).length > 0) {
+		lines.push("", "Change brief notes:");
+		for (const warning of context.changeBriefWarnings ?? []) lines.push(`- ${warning}`);
 	}
 
 	lines.push(
@@ -1027,6 +1134,82 @@ export function buildReviewTask(
 	return lines.join("\n");
 }
 
+export function withReviewChangeBrief(
+	context: ReviewContext,
+	changeBrief: string | undefined,
+	warnings: string[] = [],
+): ReviewContext {
+	return {
+		...context,
+		changeBrief: changeBrief?.trim() || undefined,
+		changeBriefWarnings: warnings,
+	};
+}
+
+async function buildAdditionalReviewInstructions(
+	params: ReviewRequest,
+	cwd: string,
+): Promise<string | undefined> {
+	const projectGuidelines = await loadProjectReviewGuidelines(cwd);
+	return composeAdditionalReviewInstructions({
+		extraPrompt: params.prompt,
+		projectGuidelines,
+	});
+}
+
+export async function createReviewBriefTask(
+	context: ReviewContext,
+	params: ReviewRequest,
+	defaultCwd: string,
+): Promise<SubagentTaskInput> {
+	const cwd = params.cwd?.trim() || defaultCwd;
+	const additionalInstructions = await buildAdditionalReviewInstructions(params, cwd);
+	return {
+		task: buildReviewBriefTask(context, additionalInstructions),
+		label: "Change brief",
+		model: FAST_EXPLORE_MODEL,
+		thinkingLevel: "medium",
+		cwd: context.inspectionRoot,
+		metadata: {
+			brief: true,
+			focus: "change intent, scope, and risk areas",
+		},
+	};
+}
+
+export async function createReviewTasksForContext(
+	context: ReviewContext,
+	params: ReviewRequest,
+	defaultCwd: string,
+): Promise<SubagentTaskInput[]> {
+	const cwd = params.cwd?.trim() || defaultCwd;
+	const reviewers = [...DEFAULT_REVIEWERS];
+	const additionalInstructions = await buildAdditionalReviewInstructions(params, cwd);
+	return reviewers.map((reviewer) => ({
+		task: buildReviewTask(context, reviewer, additionalInstructions),
+		label: reviewer.label?.trim() || reviewer.model,
+		model: reviewer.model.trim(),
+		thinkingLevel: reviewer.thinkingLevel,
+		cwd: context.inspectionRoot,
+		metadata: {
+			focus: reviewer.focus?.trim() || undefined,
+			reviewerLabel: reviewer.label?.trim() || reviewer.model.trim(),
+			thinkingLevel: reviewer.thinkingLevel,
+			maxDiffChars: reviewer.maxDiffChars,
+		},
+	}));
+}
+
+export async function createReviewContext(
+	pi: ExtensionAPI,
+	params: ReviewCommandRequest,
+	defaultCwd: string,
+	signal?: AbortSignal,
+): Promise<{ context: ReviewContext; cleanup?: () => Promise<void> }> {
+	const cwd = params.cwd?.trim() || defaultCwd;
+	return collectReviewContextForTarget(pi, cwd, params.target, signal);
+}
+
 export async function createReviewTasks(
 	pi: ExtensionAPI,
 	params: ReviewCommandRequest,
@@ -1037,40 +1220,15 @@ export async function createReviewTasks(
 	context: ReviewContext;
 	cleanup?: () => Promise<void>;
 }> {
-	const cwd = params.cwd?.trim() || defaultCwd;
 	let cleanup: (() => Promise<void>) | undefined;
 	try {
-		const collected = await collectReviewContextForTarget(
-			pi,
-			cwd,
-			params.target,
-			signal,
-		);
+		const collected = await createReviewContext(pi, params, defaultCwd, signal);
 		const { context } = collected;
 		cleanup = collected.cleanup;
-		const reviewers = [...DEFAULT_REVIEWERS];
-		const projectGuidelines = await loadProjectReviewGuidelines(cwd);
-		const additionalInstructions = composeAdditionalReviewInstructions({
-			extraPrompt: params.prompt,
-			projectGuidelines,
-		});
-
 		return {
 			context,
 			cleanup,
-			tasks: reviewers.map((reviewer) => ({
-				task: buildReviewTask(context, reviewer, additionalInstructions),
-				label: reviewer.label?.trim() || reviewer.model,
-				model: reviewer.model.trim(),
-				thinkingLevel: reviewer.thinkingLevel,
-				cwd: context.inspectionRoot,
-				metadata: {
-					focus: reviewer.focus?.trim() || undefined,
-					reviewerLabel: reviewer.label?.trim() || reviewer.model.trim(),
-					thinkingLevel: reviewer.thinkingLevel,
-					maxDiffChars: reviewer.maxDiffChars,
-				},
-			})),
+			tasks: await createReviewTasksForContext(context, params, defaultCwd),
 		};
 	} catch (error) {
 		await cleanupQuietly(cleanup);
@@ -1319,6 +1477,143 @@ function renderTextFence(text: string): string[] {
 	return [`${fence}text`, trimmed || "(empty)", fence];
 }
 
+const REVIEW_BRIEF_EXPECTED_SECTION_ORDER = [
+	"intended goal",
+	"main changes",
+	"risk areas for reviewers",
+	"important context",
+	"unknowns / assumptions",
+] as const;
+const REVIEW_BRIEF_SECTION_TITLES = {
+	"intended goal": "Intended Goal",
+	"main changes": "Main Changes",
+	"risk areas for reviewers": "Risk Areas for Reviewers",
+	"important context": "Important Context",
+	"unknowns / assumptions": "Unknowns / Assumptions",
+} as const;
+
+type ReviewBriefSectionKey = (typeof REVIEW_BRIEF_EXPECTED_SECTION_ORDER)[number];
+
+function parseReviewBriefSections(markdown: string): {
+	sections: Map<ReviewBriefSectionKey, string>;
+	sectionOrder: ReviewBriefSectionKey[];
+	preamble: string;
+	unexpectedSections: string[];
+	duplicateSections: string[];
+} {
+	const normalized = markdown.trim();
+	const sectionRegex = /^##\s+(.+)$/gm;
+	const matches = [...normalized.matchAll(sectionRegex)];
+	const sections = new Map<ReviewBriefSectionKey, string>();
+	const sectionOrder: ReviewBriefSectionKey[] = [];
+	const unexpectedSections: string[] = [];
+	const duplicateSections: string[] = [];
+
+	if (matches.length === 0) {
+		return {
+			sections,
+			sectionOrder,
+			preamble: normalized,
+			unexpectedSections,
+			duplicateSections,
+		};
+	}
+
+	const preamble = normalized.slice(0, matches[0]!.index!).trim();
+	for (let i = 0; i < matches.length; i++) {
+		const match = matches[i]!;
+		const rawTitle = match[1]!.trim();
+		const normalizedTitle = rawTitle.toLowerCase();
+		const canonicalTitle = REVIEW_BRIEF_EXPECTED_SECTION_ORDER.includes(
+			normalizedTitle as ReviewBriefSectionKey,
+		)
+			? (normalizedTitle as ReviewBriefSectionKey)
+			: undefined;
+		const start = match.index! + match[0].length;
+		const end =
+			i + 1 < matches.length ? matches[i + 1]!.index! : normalized.length;
+		const body = normalized.slice(start, end).trim();
+
+		if (!canonicalTitle) {
+			unexpectedSections.push(rawTitle);
+			continue;
+		}
+		if (sections.has(canonicalTitle)) {
+			duplicateSections.push(rawTitle);
+			continue;
+		}
+
+		sections.set(canonicalTitle, body);
+		sectionOrder.push(canonicalTitle);
+	}
+
+	return { sections, sectionOrder, preamble, unexpectedSections, duplicateSections };
+}
+
+export function parseReviewBriefOutput(markdown: string): ParsedSubagentOutput {
+	const normalized = markdown.trim();
+	if (!normalized) {
+		return {
+			summary: "",
+			data: { changeBriefMarkdown: "" },
+			parseMeta: {
+				structure: "invalid",
+				missingSections: Object.values(REVIEW_BRIEF_SECTION_TITLES),
+				warnings: ["Empty review brief output."],
+			},
+		};
+	}
+
+	const parsed = parseReviewBriefSections(normalized);
+	const missingSections = REVIEW_BRIEF_EXPECTED_SECTION_ORDER
+		.filter((key) => !parsed.sections.has(key))
+		.map((key) => REVIEW_BRIEF_SECTION_TITLES[key]);
+	const warnings: string[] = [];
+	if (parsed.preamble) warnings.push("Unexpected preamble before ## Intended Goal.");
+	if (parsed.unexpectedSections.length > 0) {
+		warnings.push(
+			`Unexpected top-level sections: ${parsed.unexpectedSections.join(", ")}.`,
+		);
+	}
+	if (parsed.duplicateSections.length > 0) {
+		warnings.push(
+			`Duplicate top-level sections: ${parsed.duplicateSections.join(", ")}.`,
+		);
+	}
+	if (
+		parsed.sectionOrder.length > 0 &&
+		parsed.sectionOrder.join("|") !== REVIEW_BRIEF_EXPECTED_SECTION_ORDER.join("|")
+	) {
+		warnings.push(
+			`Unexpected section order. Expected: ${REVIEW_BRIEF_EXPECTED_SECTION_ORDER.map((key) => `## ${REVIEW_BRIEF_SECTION_TITLES[key]}`).join(" -> ")}.`,
+		);
+	}
+
+	const recognizedSectionCount = REVIEW_BRIEF_EXPECTED_SECTION_ORDER.filter((key) =>
+		parsed.sections.has(key),
+	).length;
+	const structure =
+		recognizedSectionCount === REVIEW_BRIEF_EXPECTED_SECTION_ORDER.length &&
+		warnings.length === 0
+			? "valid"
+			: recognizedSectionCount > 0
+				? "partial"
+				: "invalid";
+	const intendedGoal = parsed.sections.get("intended goal") ?? "";
+	const summary = structure === "invalid" ? normalized.split("\n")[0]!.trim() : intendedGoal;
+
+	return {
+		summary,
+		data: {
+			changeBriefMarkdown: normalized,
+			riskAreas: normalizeOptionalBullets(
+				parsed.sections.get("risk areas for reviewers"),
+			),
+		},
+		parseMeta: { structure, missingSections, warnings },
+	};
+}
+
 export function parseReviewOutput(markdown: string): ParsedSubagentOutput {
 	const normalized = markdown.trim();
 	if (!normalized) {
@@ -1430,6 +1725,7 @@ export function renderFinalReviewResults(
 		lines.push(`- Base ref: ${context.baseRef}`);
 		lines.push(`- Repo root: ${shortenPath(context.repoRoot)}`);
 		lines.push(`- Inspection root: ${shortenPath(context.inspectionRoot)} (${context.inspectionRootDescription})`);
+		lines.push(`- Change brief: ${context.changeBrief?.trim() ? "available" : "not available"}`);
 		lines.push(`- Changed files: ${context.changedFiles.length}`);
 	}
 	lines.push("");
@@ -1442,6 +1738,19 @@ export function renderFinalReviewResults(
 		lines.push("### Changed Files");
 		for (const file of context.changedFiles) lines.push(`- ${file}`);
 		lines.push("");
+	}
+
+	if (context?.changeBrief?.trim()) {
+		lines.push("### Change Brief");
+		lines.push(context.changeBrief.trim());
+		lines.push("");
+	}
+	if ((context?.changeBriefWarnings ?? []).length > 0) {
+		pushBulletSection(
+			lines,
+			"### Change Brief Notes",
+			context?.changeBriefWarnings ?? [],
+		);
 	}
 
 	const consensus = buildReviewConsensus(results);

@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+	buildReviewBriefTask,
 	buildReviewRepairPrompt,
 	buildReviewTask,
+	parseReviewBriefOutput,
 	parseReviewOutput,
 	renderFinalReviewResults,
+	withReviewChangeBrief,
 	type ReviewContext,
 } from "./index.ts";
 import type { ReviewerConfig } from "../../model-policy.ts";
@@ -50,6 +53,54 @@ test("buildReviewTask includes focus, diff context, and prompt-budget truncation
 	assert.match(task, /Repository context packet/);
 	assert.match(task, /const value = 1;/);
 	assert.match(task, /\[diff truncated for reviewer prompt budget\]/);
+});
+
+test("buildReviewBriefTask and parseReviewBriefOutput provide reviewer orientation", () => {
+	const task = buildReviewBriefTask(context, "User wants a repo-aware review.");
+
+	assert.match(task, /Create a concise orientation brief/);
+	assert.match(task, /## Intended Goal/);
+	assert.match(task, /## Risk Areas for Reviewers/);
+	assert.match(task, /User wants a repo-aware review/);
+
+	const parsed = parseReviewBriefOutput(
+		[
+			"## Intended Goal",
+			"Make review subagents repo-aware.",
+			"",
+			"## Main Changes",
+			"- Add inspection roots",
+			"",
+			"## Risk Areas for Reviewers",
+			"- Snapshot cleanup",
+			"",
+			"## Important Context",
+			"- Reviewers still verify independently",
+			"",
+			"## Unknowns / Assumptions",
+			"- None",
+		].join("\n"),
+	);
+
+	assert.equal(parsed.summary, "Make review subagents repo-aware.");
+	assert.equal(parsed.parseMeta?.structure, "valid");
+	assert.deepEqual(parsed.data?.riskAreas, ["Snapshot cleanup"]);
+	assert.match(
+		String(parsed.data?.changeBriefMarkdown),
+		/## Intended Goal\nMake review subagents repo-aware\./,
+	);
+});
+
+test("buildReviewTask includes change brief as non-authoritative orientation", () => {
+	const contextWithBrief = withReviewChangeBrief(
+		context,
+		"## Intended Goal\nMake review subagents repo-aware.",
+	);
+	const task = buildReviewTask(contextWithBrief, reviewer);
+
+	assert.match(task, /Change brief from a separate summarizer/);
+	assert.match(task, /Treat this brief as orientation only/);
+	assert.match(task, /Make review subagents repo-aware/);
 });
 
 test("parseReviewOutput normalizes None bullets away from structured findings", () => {
