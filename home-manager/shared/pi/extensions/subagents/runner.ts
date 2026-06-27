@@ -143,6 +143,26 @@ function mergeTaskMetadata(
 	};
 }
 
+function parsedReviewHasFindings(parsed: ParsedSubagentOutput): boolean {
+	const findings = parsed.data?.findings;
+	return Array.isArray(findings)
+		? findings.some((item) => typeof item === "string" && item.trim())
+		: false;
+}
+
+function buildReviewRepoInspectionPrompt(
+	parsed: ParsedSubagentOutput,
+): string | undefined {
+	if (!parsedReviewHasFindings(parsed)) return undefined;
+	return [
+		"Your previous review reported actionable finding(s) without using repository inspection tools in this subagent session.",
+		"Before finalizing, inspect the relevant repository files with read, grep, find, ls, or read-only bash/git from the configured inspection root.",
+		"Verify each actionable finding against the actual repository state, including unchanged surrounding code, definitions, callers, tests, config, schemas, or contracts as needed.",
+		"If a finding is not supported after inspection, remove it. If the provided diff/context packet is already sufficient for a finding, state that evidence explicitly.",
+		"Return the full structured review again with exactly the required sections and no preamble.",
+	].join("\n");
+}
+
 function previewTool(
 	toolName: string,
 	args: Record<string, unknown> | undefined,
@@ -314,6 +334,8 @@ export async function runSingleTask(
 	let lastProgressSignature = "";
 	let repairAttempted = false;
 	let repairSucceeded = false;
+	let repoInspectionVerificationAttempted = false;
+	let repoInspectionVerificationUsedTools = false;
 
 	const finish = (result: SubagentTaskResult) => {
 		if (settled) return result;
@@ -576,10 +598,34 @@ export async function runSingleTask(
 
 		try {
 			await session.prompt(taskState.task);
-			const initialState = captureLatestReviewState();
+			let latestState = captureLatestReviewState();
+			const initialToolUses = taskState.toolUses;
+			const inspectionPrompt =
+				taskState.workflow === "review" && initialToolUses === 0
+					? buildReviewRepoInspectionPrompt(latestState.parsed)
+					: undefined;
+			if (!aborted && !promptError && inspectionPrompt?.trim()) {
+				repoInspectionVerificationAttempted = true;
+				pushHistory(
+					taskState,
+					"lifecycle",
+					"verifying review findings with repository inspection tools",
+				);
+				await session.prompt(inspectionPrompt);
+				repoInspectionVerificationUsedTools = taskState.toolUses > initialToolUses;
+				latestState = captureLatestReviewState();
+				pushHistory(
+					taskState,
+					"lifecycle",
+					repoInspectionVerificationUsedTools
+						? "repository inspection verification used tools"
+						: "repository inspection verification completed without tool use",
+				);
+			}
+
 			const repairPrompt = options.buildRepairPrompt?.(
-				initialState.parsed,
-				initialState.response,
+				latestState.parsed,
+				latestState.response,
 			);
 			if (!aborted && !promptError && repairPrompt?.trim()) {
 				repairAttempted = true;
@@ -610,15 +656,22 @@ export async function runSingleTask(
 			session.dispose();
 		}
 
-		const resultMetadata = mergeTaskMetadata(
-			taskState.metadata,
-			repairAttempted
+		const resultMetadata = mergeTaskMetadata(taskState.metadata, {
+			toolUses: taskState.toolUses,
+			repoInspectionUsed: taskState.toolUses > 0,
+			...(repoInspectionVerificationAttempted
+				? {
+					repoInspectionVerificationAttempted: true,
+					repoInspectionVerificationUsedTools,
+				}
+				: {}),
+			...(repairAttempted
 				? {
 					repairAttempted: true,
 					repairSucceeded,
 				}
-				: undefined,
-		);
+				: {}),
+		});
 
 		if (aborted) {
 			return finish({
@@ -718,15 +771,22 @@ export async function runSingleTask(
 			parseMeta: parsed.parseMeta,
 			error: message,
 			rawResponse: response,
-			metadata: mergeTaskMetadata(
-				taskState.metadata,
-				repairAttempted
+			metadata: mergeTaskMetadata(taskState.metadata, {
+				toolUses: taskState.toolUses,
+				repoInspectionUsed: taskState.toolUses > 0,
+				...(repoInspectionVerificationAttempted
+					? {
+						repoInspectionVerificationAttempted: true,
+						repoInspectionVerificationUsedTools,
+					}
+					: {}),
+				...(repairAttempted
 					? {
 						repairAttempted: true,
 						repairSucceeded,
 					}
-					: undefined,
-			),
+					: {}),
+			}),
 		});
 	}
 }

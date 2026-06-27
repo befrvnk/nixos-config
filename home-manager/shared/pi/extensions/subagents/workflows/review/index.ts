@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import {
@@ -22,6 +23,8 @@ import type {
 } from "../../types.js";
 
 const MAX_DIFF_CHARS = 60_000;
+const MAX_CONTEXT_PACKET_CHARS = 80_000;
+const MAX_CONTEXT_FILE_CHARS = 20_000;
 const MAX_UNTRACKED_PREVIEW_BYTES = 16_000;
 const MAX_UNTRACKED_PREVIEW_LINES = 160;
 const EMPTY_TREE_HASH = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
@@ -43,6 +46,8 @@ export type ReviewCommandRequest = ReviewRequest & {
 
 export type ReviewContext = {
 	repoRoot: string;
+	inspectionRoot: string;
+	inspectionRootDescription: string;
 	target: string;
 	baseRef: string;
 	statusShort: string;
@@ -50,6 +55,9 @@ export type ReviewContext = {
 	changedFiles: string[];
 	diffPreview: string;
 	diffWasTruncated: boolean;
+	repositoryContextPacket: string;
+	repositoryContextWasTruncated: boolean;
+	inspectionWarnings: string[];
 };
 
 type GitCommandResult = {
@@ -70,6 +78,14 @@ type DiffReviewContextOptions = {
 	diffMode: DiffMode;
 	diffBaseRef: string;
 	displayBaseRef: string;
+	includeRepositoryContext?: boolean;
+};
+
+type InspectionSnapshot = {
+	root: string;
+	description: string;
+	warnings?: string[];
+	cleanup?: () => Promise<void>;
 };
 
 async function runGit(
@@ -86,6 +102,114 @@ async function runGit(
 		stdout: result.stdout ?? "",
 		stderr: result.stderr ?? "",
 		code: result.code ?? 1,
+	};
+}
+
+function removeDirectoryQuietly(directory: string): void {
+	try {
+		fs.rmSync(directory, { recursive: true, force: true });
+	} catch {
+		// best-effort cleanup only
+	}
+}
+
+async function cleanupQuietly(cleanup: (() => Promise<void>) | undefined): Promise<void> {
+	try {
+		await cleanup?.();
+	} catch {
+		// best-effort cleanup only
+	}
+}
+
+function createTempReviewDirectory(prefix: string): string {
+	return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+}
+
+function ensureTrailingPathSeparator(directory: string): string {
+	return directory.endsWith(path.sep) ? directory : `${directory}${path.sep}`;
+}
+
+async function createStagedInspectionSnapshot(
+	pi: ExtensionAPI,
+	repoRoot: string,
+	signal?: AbortSignal,
+): Promise<InspectionSnapshot> {
+	const tempRoot = createTempReviewDirectory("pi-review-staged-");
+	const snapshotRoot = path.join(tempRoot, "index");
+	fs.mkdirSync(snapshotRoot, { recursive: true });
+
+	const result = await runGit(
+		pi,
+		repoRoot,
+		[
+			"checkout-index",
+			"--force",
+			"--all",
+			`--prefix=${ensureTrailingPathSeparator(snapshotRoot)}`,
+		],
+		signal,
+	);
+	if (result.code !== 0) {
+		removeDirectoryQuietly(tempRoot);
+		throw new Error(
+			result.stderr.trim() ||
+				result.stdout.trim() ||
+				"Failed to create staged index snapshot for review inspection.",
+		);
+	}
+
+	return {
+		root: snapshotRoot,
+		description: "temporary staged-index snapshot",
+		warnings: [
+			"This review inspects a staged-index snapshot. File reads reflect staged content; git commands may not be available inside the snapshot.",
+		],
+		cleanup: async () => removeDirectoryQuietly(tempRoot),
+	};
+}
+
+async function createCommitInspectionSnapshot(
+	pi: ExtensionAPI,
+	repoRoot: string,
+	sha: string,
+	signal?: AbortSignal,
+): Promise<InspectionSnapshot> {
+	const tempRoot = createTempReviewDirectory("pi-review-commit-");
+	const cloneRoot = path.join(tempRoot, "repo");
+	const cloneResult = await runGit(
+		pi,
+		tempRoot,
+		["clone", "--quiet", "--shared", "--no-checkout", repoRoot, cloneRoot],
+		signal,
+	);
+	if (cloneResult.code !== 0) {
+		removeDirectoryQuietly(tempRoot);
+		throw new Error(
+			cloneResult.stderr.trim() ||
+				cloneResult.stdout.trim() ||
+				`Failed to create temporary clone for review inspection: ${sha}`,
+		);
+	}
+
+	const checkoutResult = await runGit(
+		pi,
+		cloneRoot,
+		["checkout", "--quiet", "--detach", sha],
+		signal,
+	);
+	if (checkoutResult.code !== 0) {
+		removeDirectoryQuietly(tempRoot);
+		throw new Error(
+			checkoutResult.stderr.trim() ||
+				checkoutResult.stdout.trim() ||
+				`Failed to checkout commit snapshot for review inspection: ${sha}`,
+		);
+	}
+
+	return {
+		root: cloneRoot,
+		description: `temporary detached clone at ${sha.slice(0, 12)}`,
+		cleanup: async () => removeDirectoryQuietly(tempRoot),
 	};
 }
 
@@ -287,6 +411,203 @@ function buildCombinedDiffPreview(
 	return sections.join("\n\n");
 }
 
+function resolvePathUnderRoot(root: string, file: string): string | undefined {
+	const resolvedRoot = path.resolve(root);
+	const resolvedPath = path.resolve(resolvedRoot, file);
+	const relativePath = path.relative(resolvedRoot, resolvedPath);
+	if (
+		relativePath === "" ||
+		relativePath.startsWith("..") ||
+		path.isAbsolute(relativePath)
+	) {
+		return undefined;
+	}
+	return resolvedPath;
+}
+
+function trimBufferToUtf8Boundary(buffer: Buffer): Buffer {
+	if (buffer.length === 0) return buffer;
+
+	let sequenceStart = buffer.length - 1;
+	while (sequenceStart >= 0 && (buffer[sequenceStart]! & 0xc0) === 0x80) {
+		sequenceStart -= 1;
+	}
+	if (sequenceStart < 0) return Buffer.alloc(0);
+
+	const leadByte = buffer[sequenceStart]!;
+	const continuationBytes = buffer.length - sequenceStart - 1;
+	let expectedContinuationBytes = 0;
+	if ((leadByte & 0x80) === 0) expectedContinuationBytes = 0;
+	else if ((leadByte & 0xe0) === 0xc0) expectedContinuationBytes = 1;
+	else if ((leadByte & 0xf0) === 0xe0) expectedContinuationBytes = 2;
+	else if ((leadByte & 0xf8) === 0xf0) expectedContinuationBytes = 3;
+	else return buffer;
+
+	return continuationBytes < expectedContinuationBytes
+		? buffer.subarray(0, sequenceStart)
+		: buffer;
+}
+
+function getErrorCode(error: unknown): string | undefined {
+	return error &&
+		typeof error === "object" &&
+		"code" in error &&
+		typeof (error as { code?: unknown }).code === "string"
+		? (error as { code: string }).code
+		: undefined;
+}
+
+function sanitizeFileReadError(error: unknown, absolutePath: string): string {
+	const code = getErrorCode(error);
+	if (code === "ENOENT") return "file does not exist in inspection snapshot";
+	if (code === "ENOTDIR") {
+		return "parent path is not a directory in inspection snapshot";
+	}
+
+	const message = error instanceof Error ? error.message : String(error);
+	return message.split(absolutePath).join("<inspection path>");
+}
+
+function truncateByCodePoints(value: string, maxChars: number): string {
+	if (maxChars <= 0) return "";
+	const chars = Array.from(value);
+	return chars.length <= maxChars ? value : chars.slice(0, maxChars).join("");
+}
+
+function closeOpenMarkdownFence(value: string): string {
+	const fenceCount = value.match(/^```/gm)?.length ?? 0;
+	return fenceCount % 2 === 1 ? `${value}\n\`\`\`` : value;
+}
+
+function readContextFilePreview(absolutePath: string): {
+	text?: string;
+	truncated: boolean;
+	binary: boolean;
+	error?: string;
+} {
+	try {
+		const stat = fs.statSync(absolutePath);
+		if (!stat.isFile()) {
+			return {
+				truncated: false,
+				binary: false,
+				error: stat.isDirectory()
+					? "path is a directory"
+					: "path is not a regular file",
+			};
+		}
+
+		const fd = fs.openSync(absolutePath, "r");
+		try {
+			const sample = Buffer.alloc(MAX_CONTEXT_FILE_CHARS + 4);
+			const bytesRead = fs.readSync(fd, sample, 0, sample.length, 0);
+			const previewSample = trimBufferToUtf8Boundary(
+				sample.subarray(0, Math.min(bytesRead, MAX_CONTEXT_FILE_CHARS)),
+			);
+			if (previewSample.includes(0)) {
+				return { truncated: bytesRead > MAX_CONTEXT_FILE_CHARS, binary: true };
+			}
+			return {
+				text: previewSample.toString("utf8").replace(/\r\n/g, "\n"),
+				truncated: bytesRead > MAX_CONTEXT_FILE_CHARS,
+				binary: false,
+			};
+		} finally {
+			fs.closeSync(fd);
+		}
+	} catch (error) {
+		return {
+			truncated: false,
+			binary: false,
+			error: sanitizeFileReadError(error, absolutePath),
+		};
+	}
+}
+
+function buildRepositoryContextPacket(
+	inspectionRoot: string,
+	changedFiles: string[],
+): { packet: string; wasTruncated: boolean; warnings: string[] } {
+	const sections: string[] = [];
+	const warnings: string[] = [];
+	let remainingChars = MAX_CONTEXT_PACKET_CHARS;
+	let wasTruncated = false;
+
+	for (const file of changedFiles) {
+		if (remainingChars <= 0) {
+			wasTruncated = true;
+			break;
+		}
+
+		const absolutePath = resolvePathUnderRoot(inspectionRoot, file);
+		if (!absolutePath) {
+			warnings.push(`Skipped repository context for path outside inspection root: ${file}`);
+			continue;
+		}
+
+		const preview = readContextFilePreview(absolutePath);
+		let section: string;
+		if (preview.error) {
+			section = [`### ${file}`, `Context unavailable: ${preview.error}`].join("\n");
+		} else if (preview.binary) {
+			section = [`### ${file}`, "Binary file context omitted."].join("\n");
+		} else {
+			const truncatedLine = preview.truncated
+				? "\n\n[repository context for this file truncated]"
+				: "";
+			section = [
+				`### ${file}`,
+				"```text",
+				`${preview.text ?? ""}${truncatedLine}`,
+				"```",
+			].join("\n");
+		}
+
+		if (section.length > remainingChars) {
+			const truncatedSection = closeOpenMarkdownFence(
+				truncateByCodePoints(section, remainingChars),
+			);
+			sections.push(
+				`${truncatedSection}\n\n[repository context packet truncated]`,
+			);
+			wasTruncated = true;
+			remainingChars = 0;
+			break;
+		}
+
+		sections.push(section);
+		remainingChars -= section.length + 2;
+	}
+
+	return {
+		packet: sections.join("\n\n"),
+		wasTruncated,
+		warnings,
+	};
+}
+
+function withInspectionContext(
+	context: ReviewContext,
+	snapshot: InspectionSnapshot,
+): ReviewContext {
+	const repositoryContext = buildRepositoryContextPacket(
+		snapshot.root,
+		context.changedFiles,
+	);
+	return {
+		...context,
+		inspectionRoot: snapshot.root,
+		inspectionRootDescription: snapshot.description,
+		repositoryContextPacket: repositoryContext.packet,
+		repositoryContextWasTruncated: repositoryContext.wasTruncated,
+		inspectionWarnings: [
+			...context.inspectionWarnings,
+			...(snapshot.warnings ?? []),
+			...repositoryContext.warnings,
+		],
+	};
+}
+
 async function collectDiffReviewContext(
 	pi: ExtensionAPI,
 	repoRoot: string,
@@ -380,8 +701,10 @@ async function collectDiffReviewContext(
 		? `${fullDiff.slice(0, MAX_DIFF_CHARS)}\n\n[diff truncated]`
 		: fullDiff;
 
-	return {
+	const baseContext: ReviewContext = {
 		repoRoot,
+		inspectionRoot: repoRoot,
+		inspectionRootDescription: "working tree",
 		target: options.targetLabel,
 		baseRef: options.displayBaseRef,
 		statusShort: statusResult.stdout.trim(),
@@ -389,7 +712,17 @@ async function collectDiffReviewContext(
 		changedFiles,
 		diffPreview,
 		diffWasTruncated,
+		repositoryContextPacket: "",
+		repositoryContextWasTruncated: false,
+		inspectionWarnings: [],
 	};
+
+	if (options.includeRepositoryContext === false) return baseContext;
+
+	return withInspectionContext(baseContext, {
+		root: repoRoot,
+		description: "working tree",
+	});
 }
 
 async function resolveCommitRef(
@@ -430,6 +763,7 @@ async function collectCommitReviewContext(
 	repoRoot: string,
 	sha: string,
 	signal?: AbortSignal,
+	includeRepositoryContext = true,
 ): Promise<ReviewContext> {
 	const commit = await resolveCommitRef(pi, repoRoot, sha, signal);
 	const [statResult, filesResult, diffResult] = await Promise.all([
@@ -465,8 +799,10 @@ async function collectCommitReviewContext(
 		? `commit ${shortSha}: ${commit.title}`
 		: `commit ${shortSha}`;
 
-	return {
+	const baseContext: ReviewContext = {
 		repoRoot,
+		inspectionRoot: repoRoot,
+		inspectionRootDescription: "working tree",
 		target: targetLabel,
 		baseRef: commit.sha,
 		statusShort: "(not applicable: commit review)",
@@ -474,7 +810,17 @@ async function collectCommitReviewContext(
 		changedFiles,
 		diffPreview,
 		diffWasTruncated,
+		repositoryContextPacket: "",
+		repositoryContextWasTruncated: false,
+		inspectionWarnings: [],
 	};
+
+	if (!includeRepositoryContext) return baseContext;
+
+	return withInspectionContext(baseContext, {
+		root: repoRoot,
+		description: "working tree",
+	});
 }
 
 async function collectReviewContextForTarget(
@@ -482,27 +828,29 @@ async function collectReviewContextForTarget(
 	cwd: string,
 	target: ReviewTarget,
 	signal?: AbortSignal,
-): Promise<ReviewContext> {
+): Promise<{ context: ReviewContext; cleanup?: () => Promise<void> }> {
 	const repoRoot = await resolveRepoRoot(pi, cwd, signal);
 
 	switch (target.type) {
 		case "uncommitted": {
 			const resolved = await resolveBaseRef(pi, repoRoot, "HEAD", signal);
-			return collectDiffReviewContext(
-				pi,
-				repoRoot,
-				{
-					targetLabel: "uncommitted changes",
-					diffMode: "working-tree",
-					diffBaseRef: resolved.diffBaseRef,
-					displayBaseRef: resolved.displayBaseRef,
-				},
-				signal,
-			);
+			return {
+				context: await collectDiffReviewContext(
+					pi,
+					repoRoot,
+					{
+						targetLabel: "uncommitted changes",
+						diffMode: "working-tree",
+						diffBaseRef: resolved.diffBaseRef,
+						displayBaseRef: resolved.displayBaseRef,
+					},
+					signal,
+				),
+			};
 		}
 		case "staged": {
 			const resolved = await resolveBaseRef(pi, repoRoot, "HEAD", signal);
-			return collectDiffReviewContext(
+			const baseContext = await collectDiffReviewContext(
 				pi,
 				repoRoot,
 				{
@@ -510,9 +858,15 @@ async function collectReviewContextForTarget(
 					diffMode: "staged",
 					diffBaseRef: resolved.diffBaseRef,
 					displayBaseRef: resolved.displayBaseRef,
+					includeRepositoryContext: false,
 				},
 				signal,
 			);
+			const snapshot = await createStagedInspectionSnapshot(pi, repoRoot, signal);
+			return {
+				context: withInspectionContext(baseContext, snapshot),
+				cleanup: snapshot.cleanup,
+			};
 		}
 		case "baseBranch": {
 			const resolved = await resolveMergeBase(
@@ -521,20 +875,39 @@ async function collectReviewContextForTarget(
 				target.branch,
 				signal,
 			);
-			return collectDiffReviewContext(
+			return {
+				context: await collectDiffReviewContext(
+					pi,
+					repoRoot,
+					{
+						targetLabel: `base branch ${target.branch.trim()}`,
+						diffMode: "working-tree",
+						diffBaseRef: resolved.diffBaseRef,
+						displayBaseRef: resolved.displayBaseRef,
+					},
+					signal,
+				),
+			};
+		}
+		case "commit": {
+			const baseContext = await collectCommitReviewContext(
 				pi,
 				repoRoot,
-				{
-					targetLabel: `base branch ${target.branch.trim()}`,
-					diffMode: "working-tree",
-					diffBaseRef: resolved.diffBaseRef,
-					displayBaseRef: resolved.displayBaseRef,
-				},
+				target.sha,
+				signal,
+				false,
+			);
+			const snapshot = await createCommitInspectionSnapshot(
+				pi,
+				repoRoot,
+				baseContext.baseRef,
 				signal,
 			);
+			return {
+				context: withInspectionContext(baseContext, snapshot),
+				cleanup: snapshot.cleanup,
+			};
 		}
-		case "commit":
-			return collectCommitReviewContext(pi, repoRoot, target.sha, signal);
 	}
 }
 
@@ -567,13 +940,20 @@ export function buildReviewTask(
 	const focus = reviewer.focus?.trim() || "general code review";
 	const reviewerDiff = buildReviewerDiffPreview(context, reviewer);
 	const lines: string[] = [
-		`Working directory: ${context.repoRoot}`,
-		`Repository root for local inspection: ${context.repoRoot}`,
-		`For repository-local investigation, only inspect paths under ${context.repoRoot}.`,
+		`Working directory: ${context.inspectionRoot}`,
+		`Repository root: ${context.repoRoot}`,
+		`Inspection root for read/grep/find/ls/bash: ${context.inspectionRoot}`,
+		`Inspection root kind: ${context.inspectionRootDescription}`,
+		`For repository-local investigation, only inspect paths under ${context.inspectionRoot}.`,
 		`Review focus: ${focus}`,
 		"Review only the code changes described below.",
-		"Use the diff as the primary review target, and inspect changed files directly when you need surrounding context.",
-		"If the diff preview is truncated, use repo-local inspection tools to verify the exact hunk before reporting a finding.",
+		"Use the diff as the primary review target, but inspect unchanged surrounding code whenever it affects whether a finding is real.",
+		"You have read-only repository inspection tools: read, grep, find, ls, and read-only bash/git.",
+		"Use those tools to inspect changed files, definitions, callers, tests, configuration, schemas, or contracts when a finding depends on code outside the shown diff.",
+		"Do not rely solely on the diff when unchanged repository code could confirm or refute an issue.",
+		"Before reporting an actionable finding, verify it against the actual repository state available under the inspection root.",
+		"If the diff and repository context packet are sufficient and no further inspection is needed, say so briefly in the Summary.",
+		"If the diff preview or repository context packet is truncated, use repo-local inspection tools to verify the exact code before reporting a finding.",
 		"The changed files list may include untracked working-tree files, which are also included in the review context below.",
 		"Only report actionable issues that are reasonably likely to be real.",
 		"Do not report style-only nits unless the prompt explicitly asks for them.",
@@ -583,6 +963,11 @@ export function buildReviewTask(
 
 	if (extraPrompt?.trim()) {
 		lines.push("", "Additional review instructions:", extraPrompt.trim());
+	}
+
+	if (context.inspectionWarnings.length > 0) {
+		lines.push("", "Inspection notes:");
+		for (const warning of context.inspectionWarnings) lines.push(`- ${warning}`);
 	}
 
 	lines.push(
@@ -618,10 +1003,16 @@ export function buildReviewTask(
 		`- Target: ${context.target}`,
 		`- Base ref: ${context.baseRef}`,
 		`- Repo root: ${context.repoRoot}`,
+		`- Inspection root: ${context.inspectionRoot}`,
+		`- Inspection root kind: ${context.inspectionRootDescription}`,
 		`- Diff truncated: ${reviewerDiff.wasTruncated ? "yes" : "no"}`,
+		`- Repository context packet truncated: ${context.repositoryContextWasTruncated ? "yes" : "no"}`,
 		"",
 		"Changed files:",
 		changedFilesText,
+		"",
+		"Repository context packet (unchanged surrounding code from the inspection root):",
+		context.repositoryContextPacket || "(no repository context packet available)",
 		"",
 		"Git status (--short):",
 		context.statusShort || "(clean status output)",
@@ -641,37 +1032,50 @@ export async function createReviewTasks(
 	params: ReviewCommandRequest,
 	defaultCwd: string,
 	signal?: AbortSignal,
-): Promise<{ tasks: SubagentTaskInput[]; context: ReviewContext }> {
+): Promise<{
+	tasks: SubagentTaskInput[];
+	context: ReviewContext;
+	cleanup?: () => Promise<void>;
+}> {
 	const cwd = params.cwd?.trim() || defaultCwd;
-	const context = await collectReviewContextForTarget(
-		pi,
-		cwd,
-		params.target,
-		signal,
-	);
-	const reviewers = [...DEFAULT_REVIEWERS];
-	const projectGuidelines = await loadProjectReviewGuidelines(cwd);
-	const additionalInstructions = composeAdditionalReviewInstructions({
-		extraPrompt: params.prompt,
-		projectGuidelines,
-	});
+	let cleanup: (() => Promise<void>) | undefined;
+	try {
+		const collected = await collectReviewContextForTarget(
+			pi,
+			cwd,
+			params.target,
+			signal,
+		);
+		const { context } = collected;
+		cleanup = collected.cleanup;
+		const reviewers = [...DEFAULT_REVIEWERS];
+		const projectGuidelines = await loadProjectReviewGuidelines(cwd);
+		const additionalInstructions = composeAdditionalReviewInstructions({
+			extraPrompt: params.prompt,
+			projectGuidelines,
+		});
 
-	return {
-		context,
-		tasks: reviewers.map((reviewer) => ({
-			task: buildReviewTask(context, reviewer, additionalInstructions),
-			label: reviewer.label?.trim() || reviewer.model,
-			model: reviewer.model.trim(),
-			thinkingLevel: reviewer.thinkingLevel,
-			cwd: context.repoRoot,
-			metadata: {
-				focus: reviewer.focus?.trim() || undefined,
-				reviewerLabel: reviewer.label?.trim() || reviewer.model.trim(),
+		return {
+			context,
+			cleanup,
+			tasks: reviewers.map((reviewer) => ({
+				task: buildReviewTask(context, reviewer, additionalInstructions),
+				label: reviewer.label?.trim() || reviewer.model,
+				model: reviewer.model.trim(),
 				thinkingLevel: reviewer.thinkingLevel,
-				maxDiffChars: reviewer.maxDiffChars,
-			},
-		})),
-	};
+				cwd: context.inspectionRoot,
+				metadata: {
+					focus: reviewer.focus?.trim() || undefined,
+					reviewerLabel: reviewer.label?.trim() || reviewer.model.trim(),
+					thinkingLevel: reviewer.thinkingLevel,
+					maxDiffChars: reviewer.maxDiffChars,
+				},
+			})),
+		};
+	} catch (error) {
+		await cleanupQuietly(cleanup);
+		throw error;
+	}
 }
 
 const INLINE_CHANGED_FILES_LIMIT = 8;
@@ -1025,6 +1429,7 @@ export function renderFinalReviewResults(
 		lines.push(`- Target: ${context.target}`);
 		lines.push(`- Base ref: ${context.baseRef}`);
 		lines.push(`- Repo root: ${shortenPath(context.repoRoot)}`);
+		lines.push(`- Inspection root: ${shortenPath(context.inspectionRoot)} (${context.inspectionRootDescription})`);
 		lines.push(`- Changed files: ${context.changedFiles.length}`);
 	}
 	lines.push("");
@@ -1053,6 +1458,15 @@ export function renderFinalReviewResults(
 	lines.push(`- Partial: ${consensus.reviewerOutputQuality.partial}`);
 	lines.push(`- Invalid: ${consensus.reviewerOutputQuality.invalid}`);
 	lines.push(`- Failed runs: ${consensus.reviewerOutputQuality.failed}`);
+	const diffOnlyFindingReviewers = results.filter((result) => {
+		const findings = asStringArray(result.data?.findings);
+		return findings.length > 0 && result.metadata?.repoInspectionUsed !== true;
+	}).length;
+	if (diffOnlyFindingReviewers > 0) {
+		lines.push(
+			`- Caveat: ${diffOnlyFindingReviewers} reviewer(s) reported actionable finding(s) without recorded repository inspection tool use.`,
+		);
+	}
 	if (consensus.reviewerOutputQuality.failed > 0) {
 		lines.push(
 			"- Note: failed runs are also counted in the structured-format buckets above.",
@@ -1089,6 +1503,15 @@ export function renderFinalReviewResults(
 		const rawOutput = (result.rawResponse ?? "").trim();
 		const repairAttempted = result.metadata?.repairAttempted === true;
 		const repairSucceeded = result.metadata?.repairSucceeded === true;
+		const toolUses =
+			typeof result.metadata?.toolUses === "number"
+				? result.metadata.toolUses
+				: undefined;
+		const repoInspectionUsed = result.metadata?.repoInspectionUsed === true;
+		const repoInspectionVerificationAttempted =
+			result.metadata?.repoInspectionVerificationAttempted === true;
+		const repoInspectionVerificationUsedTools =
+			result.metadata?.repoInspectionVerificationUsedTools === true;
 
 		lines.push(`## Reviewer ${i + 1}`);
 		lines.push(`- Status: ${result.status}`);
@@ -1098,6 +1521,19 @@ export function renderFinalReviewResults(
 		if (result.thinkingLevel)
 			lines.push(`- Thinking level: ${result.thinkingLevel}`);
 		if (focus) lines.push(`- Focus: ${focus}`);
+		lines.push(
+			`- Repository inspection tools used: ${repoInspectionUsed ? "yes" : "no"}${toolUses === undefined ? "" : ` (${toolUses} tool call${toolUses === 1 ? "" : "s"})`}`,
+		);
+		if (repoInspectionVerificationAttempted) {
+			lines.push(
+				`- Repository verification retry: ${repoInspectionVerificationUsedTools ? "used tools" : "attempted; no tool use recorded"}`,
+			);
+		}
+		if (!repoInspectionUsed && findings.length > 0) {
+			lines.push(
+				"- Review caveat: actionable finding(s) were reported without recorded repository inspection tool use.",
+			);
+		}
 		if (repairAttempted)
 			lines.push(
 				`- Formatting repair: ${repairSucceeded ? "succeeded" : "attempted; output still partial or invalid"}`,

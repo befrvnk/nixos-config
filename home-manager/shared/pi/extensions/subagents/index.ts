@@ -651,13 +651,16 @@ export default function subagentExtension(pi: ExtensionAPI) {
     ctx: ExtensionCommandContext,
     signal?: AbortSignal,
   ): Promise<ReviewExecutionResult> => {
+    let cleanup: (() => Promise<void>) | undefined;
     try {
-      const { tasks, context } = await createReviewTasks(
+      const created = await createReviewTasks(
         pi,
         selection.request,
         ctx.cwd,
         signal,
       );
+      cleanup = created.cleanup;
+      const { tasks, context } = created;
       const { run, results } = await executeWorkflow("review", tasks, {
         systemPrompt: REVIEWER_PROMPT,
         parseOutput: parseReviewOutput,
@@ -696,6 +699,8 @@ export default function subagentExtension(pi: ExtensionAPI) {
         status: "error",
         message: error instanceof Error ? error.message : String(error),
       };
+    } finally {
+      await cleanup?.();
     }
   };
 

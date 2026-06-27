@@ -12,6 +12,8 @@ import type { SubagentTaskResult } from "../../types.ts";
 
 const context: ReviewContext = {
 	repoRoot: "/tmp/project",
+	inspectionRoot: "/tmp/project",
+	inspectionRootDescription: "working tree",
 	target: "uncommitted changes",
 	baseRef: "HEAD",
 	statusShort: " M src/index.ts",
@@ -19,6 +21,9 @@ const context: ReviewContext = {
 	changedFiles: ["src/index.ts"],
 	diffPreview: "diff --git a/src/index.ts b/src/index.ts\n+new line\n-old line",
 	diffWasTruncated: false,
+	repositoryContextPacket: "### src/index.ts\n```text\nconst value = 1;\n```",
+	repositoryContextWasTruncated: false,
+	inspectionWarnings: [],
 };
 
 const reviewer: ReviewerConfig = {
@@ -39,7 +44,11 @@ test("buildReviewTask includes focus, diff context, and prompt-budget truncation
 	);
 	assert.match(task, /## Verdict/);
 	assert.match(task, /## Non-blocking Callouts/);
+	assert.match(task, /Inspection root for read\/grep\/find\/ls\/bash: \/tmp\/project/);
+	assert.match(task, /read-only repository inspection tools/);
 	assert.match(task, /Changed files:\n- src\/index\.ts/);
+	assert.match(task, /Repository context packet/);
+	assert.match(task, /const value = 1;/);
 	assert.match(task, /\[diff truncated for reviewer prompt budget\]/);
 });
 
@@ -166,7 +175,7 @@ test("renderFinalReviewResults preserves malformed raw output, repair metadata, 
 			label: "Opus 4.8",
 			model: reviewer.model,
 			thinkingLevel: "medium",
-			cwd: context.repoRoot,
+			cwd: context.inspectionRoot,
 			status: "success",
 			summary: "One bug found.",
 			data: {
@@ -180,7 +189,13 @@ test("renderFinalReviewResults preserves malformed raw output, repair metadata, 
 				suggestedNextSteps: ["Add a unit test"],
 			},
 			parseMeta: { structure: "valid", missingSections: [], warnings: [] },
-			metadata: { focus: reviewer.focus, repairAttempted: true, repairSucceeded: true },
+			metadata: {
+				focus: reviewer.focus,
+				repairAttempted: true,
+				repairSucceeded: true,
+				toolUses: 2,
+				repoInspectionUsed: true,
+			},
 		},
 		{
 			taskId: "sub_now_def456_task_2",
@@ -214,6 +229,7 @@ test("renderFinalReviewResults preserves malformed raw output, repair metadata, 
 	const markdown = renderFinalReviewResults("run-1", "parallel", results, context);
 	assert.match(markdown, /# Review Results/);
 	assert.match(markdown, /- Target: uncommitted changes/);
+	assert.match(markdown, /- Inspection root: \/tmp\/project \(working tree\)/);
 	assert.match(markdown, /### Changed Files\n- src\/index\.ts/);
 	assert.match(markdown, /## Consensus/);
 	assert.match(markdown, /### Rationale/);
@@ -226,6 +242,7 @@ test("renderFinalReviewResults preserves malformed raw output, repair metadata, 
 	assert.match(markdown, /No actionable findings were flagged by any reviewer\.|1 actionable finding/);
 	assert.match(markdown, /### Suggested Follow-ups\n- Add a unit test/);
 	assert.match(markdown, /- Focus: correctness and regressions/);
+	assert.match(markdown, /- Repository inspection tools used: yes \(2 tool calls\)/);
 	assert.match(markdown, /- Formatting repair: succeeded/);
 	assert.match(markdown, /- Formatting repair: attempted; output still partial or invalid/);
 	assert.match(markdown, /- Structured format: valid/);

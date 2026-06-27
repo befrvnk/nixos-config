@@ -16,7 +16,10 @@ class MockSession {
 
 	constructor(
 		private readonly outputs: string[],
-		private readonly options?: { emitDeltas?: boolean },
+		private readonly options?: {
+			emitDeltas?: boolean;
+			toolCallsByPrompt?: Record<number, string[]>;
+		},
 	) {}
 
 	subscribe(listener: (event: any) => void) {
@@ -26,7 +29,21 @@ class MockSession {
 
 	async prompt(input: string) {
 		this.prompts.push(input);
-		const assistantText = this.outputs[this.prompts.length - 1] ?? "";
+		const promptIndex = this.prompts.length;
+		const assistantText = this.outputs[promptIndex - 1] ?? "";
+
+		for (const toolName of this.options?.toolCallsByPrompt?.[promptIndex] ?? []) {
+			this.emit({
+				type: "tool_execution_start",
+				toolName,
+				args: toolName === "read" ? { path: "src/index.ts" } : {},
+			});
+			this.emit({
+				type: "tool_execution_end",
+				toolName,
+				result: { content: [{ type: "text", text: "tool result" }] },
+			});
+		}
 
 		this.emit({ type: "message_start", message: { role: "assistant" } });
 		if (this.options?.emitDeltas) {
@@ -258,6 +275,55 @@ test("runSingleTask repairs narrated structured review output that includes a pr
 		assert.equal(session.prompts.length, 2);
 		assert.equal(result.metadata?.repairAttempted, true);
 		assert.equal(result.metadata?.repairSucceeded, true);
+	});
+});
+
+test("runSingleTask asks review agents with findings to verify them with repo tools", async () => {
+	await withMockedCodingAgent(async (runSingleTask) => {
+		const findingReview = [
+			"## Summary",
+			"A repository-context-sensitive bug was found.",
+			"",
+			"## Verdict",
+			"needs attention",
+			"",
+			"## Findings",
+			"- [severity: medium][confidence: high][path: src/index.ts:10] issue | evidence | recommendation",
+			"",
+			"## Non-blocking Callouts",
+			"- None",
+			"",
+			"## Next Steps",
+			"- None",
+		].join("\n");
+		const session = new MockSession([findingReview, findingReview], {
+			toolCallsByPrompt: { 2: ["read"] },
+		});
+		const taskState = createReviewTaskState();
+
+		const result = await runSingleTask(taskState, {
+			parentCtx: {
+				model: { provider: "github-copilot", id: "claude-opus-4.8" } as any,
+			},
+			emitRunUpdate: () => undefined,
+			systemPrompt: "You are a code review subagent.",
+			parseOutput: parseReviewOutput,
+			buildRepairPrompt: buildReviewRepairPrompt,
+			createSession: async () => session,
+		});
+
+		assert.equal(result.status, "success");
+		assert.equal(session.prompts.length, 2);
+		assert.match(session.prompts[1] ?? "", /inspect the relevant repository files/);
+		assert.equal(result.metadata?.toolUses, 1);
+		assert.equal(result.metadata?.repoInspectionUsed, true);
+		assert.equal(result.metadata?.repoInspectionVerificationAttempted, true);
+		assert.equal(result.metadata?.repoInspectionVerificationUsedTools, true);
+		assert.ok(
+			taskState.history.some((entry) =>
+				entry.text.includes("verifying review findings"),
+			),
+		);
 	});
 });
 
