@@ -7,14 +7,14 @@
 
 stdenvNoCC.mkDerivation rec {
   pname = "openchamber";
-  version = "1.13.3";
+  version = "1.13.8";
 
   appName = "OpenChamber.app";
   executable = "OpenChamber";
 
   src = fetchzip {
     url = "https://github.com/openchamber/openchamber/releases/download/v${version}/OpenChamber-${version}-mac-arm64.zip";
-    hash = "sha256-xVqsKBb7dYkZ1tpRqDi1qCi1m6OEA7IGNStV9+Jnuqc=";
+    hash = "sha256-DYJ2Cvj3fwAknl7RcbR0mOvkbIiGpBnDND/pEBUqm88=";
     stripRoot = false;
   };
 
