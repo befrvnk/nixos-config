@@ -225,6 +225,8 @@ in
     ''}
     ${lib.optionalString isDarwin ''
       echo "  rebuild                   - Rebuild Darwin and switch"
+      echo "  brew-update               - Update Homebrew casks explicitly"
+      echo "  zen-update                - Update Zen Browser cask explicitly"
     ''}
     ${lib.optionalString isLinux ''
       echo "  sysinfo                   - Show system information"
@@ -347,6 +349,40 @@ in
 
     '';
 
+  }
+  // lib.optionalAttrs isDarwin {
+    # Update Homebrew casks explicitly, outside nix-darwin activation.
+    brew-update.exec = ''
+      if [ ! -x /opt/homebrew/bin/brew ]; then
+        echo "Homebrew not found at /opt/homebrew/bin/brew" >&2
+        exit 1
+      fi
+
+      echo "+ /opt/homebrew/bin/brew update"
+      /opt/homebrew/bin/brew update
+
+      echo "+ /opt/homebrew/bin/brew upgrade --cask --greedy"
+      /opt/homebrew/bin/brew upgrade --cask --greedy
+    '';
+
+    # Zen's cask is marked auto_updates, but Zen does not expose an in-app updater.
+    zen-update.exec = ''
+      if [ ! -x /opt/homebrew/bin/brew ]; then
+        echo "Homebrew not found at /opt/homebrew/bin/brew" >&2
+        exit 1
+      fi
+
+      if /usr/bin/pgrep -f '/Applications/Zen\.app/Contents/MacOS/zen|/Zen\.app/Contents/MacOS/zen' >/dev/null; then
+        echo "Zen Browser is running; close it before updating." >&2
+        exit 1
+      fi
+
+      echo "+ /opt/homebrew/bin/brew update"
+      /opt/homebrew/bin/brew update
+
+      echo "+ /opt/homebrew/bin/brew upgrade --cask --greedy zen"
+      /opt/homebrew/bin/brew upgrade --cask --greedy zen
+    '';
   }
   // lib.optionalAttrs isLinux {
     # NixOS-specific scripts

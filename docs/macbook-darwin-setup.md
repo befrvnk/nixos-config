@@ -105,7 +105,19 @@ To add a new cask:
 1. Add the cask name to the `homebrew.casks` list
 2. Run `darwin-rebuild switch --flake .#macbook`
 
-Manual Homebrew commands are not needed (cleanup is automatic).
+Rebuilds install missing casks but do not upgrade every Homebrew app during
+activation, because GUI cask upgrades can hang or fail when apps are running. Zen
+Browser is the exception operationally: it is updated by a user launchd agent
+because it does not expose an in-app updater. The agent runs at login and daily
+at 10:00 when Zen is not running, with logs at
+`~/Library/Logs/zen-browser-homebrew-update.log`.
+
+Manual update helpers are also available in the devenv shell:
+
+```bash
+zen-update    # brew update && brew upgrade --cask --greedy zen
+brew-update   # brew update && brew upgrade --cask --greedy
+```
 
 ## What's Included
 
@@ -122,7 +134,7 @@ GUI apps that stay in nixpkgs are the exceptions, used only when there isn't a s
 ### From Homebrew
 
 Selected GUI apps configured via nix-darwin:
-- Raycast, Notion, Slack, and Spotify (Homebrew casks so in-app updates keep working)
+- Raycast, Notion, Slack, and Spotify (Homebrew casks so native app behavior keeps working)
 - Ghostty, JetBrains Toolbox, 1Password app, Signal, WhatsApp, Zed, Zen, and others
 
 ### 1Password CLI app integration

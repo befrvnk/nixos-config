@@ -122,17 +122,27 @@
     enable = true;
     onActivation = {
       # Keep rebuilds idempotent: install missing Brewfile entries, but don't
-      # auto-update/upgrade/zap casks during nix-darwin activation. Homebrew
-      # cask upgrades can invoke repeated sudo prompts, especially in clamshell
-      # mode when Touch ID is unavailable.
+      # auto-update/upgrade/zap every cask during nix-darwin activation.
+      # Homebrew cask upgrades can invoke repeated sudo prompts or hang when
+      # apps are running. Zen Browser is updated by a user launchd agent below
+      # because it does not expose an in-app updater.
       autoUpdate = false;
       upgrade = false;
       cleanup = "none";
     };
     taps = [
-      "BarutSRB/tap"
-      "darrylmorley/whatcable"
-      "muxy-app/tap"
+      {
+        name = "BarutSRB/tap";
+        trusted = true;
+      }
+      {
+        name = "darrylmorley/whatcable";
+        trusted = true;
+      }
+      {
+        name = "muxy-app/tap";
+        trusted = true;
+      }
     ];
     casks =
       let
@@ -175,8 +185,8 @@
   # Expose Nix-managed binaries to GUI apps (Dock/Spotlight launched apps only
   # get launchd's minimal PATH and can't find tools like git, gh, etc.)
   # Runs at login and sets PATH for the entire user launchd session.
-  launchd.user.agents."nix-path" = {
-    serviceConfig = {
+  launchd.user.agents = {
+    "nix-path".serviceConfig = {
       Label = "nix.path";
       ProgramArguments = [
         "/bin/sh"
@@ -184,6 +194,35 @@
         "/bin/launchctl setenv PATH /etc/profiles/per-user/${hostConfig.primaryUser}/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
       ];
       RunAtLoad = true;
+    };
+
+    "zen-browser-homebrew-update".serviceConfig = {
+      Label = "zen.browser.homebrew.update";
+      ProgramArguments = [
+        "/bin/sh"
+        "-lc"
+        ''
+          if [ ! -x /opt/homebrew/bin/brew ]; then
+            exit 0
+          fi
+
+          if /usr/bin/pgrep -f '/Applications/Zen\.app/Contents/MacOS/zen|/Zen\.app/Contents/MacOS/zen' >/dev/null; then
+            echo "Zen Browser is running; skipping Homebrew update"
+            exit 0
+          fi
+
+          /opt/homebrew/bin/brew update && /opt/homebrew/bin/brew upgrade --cask --greedy zen
+        ''
+      ];
+      RunAtLoad = true;
+      StandardErrorPath = "${hostConfig.homeDirectory}/Library/Logs/zen-browser-homebrew-update.log";
+      StandardOutPath = "${hostConfig.homeDirectory}/Library/Logs/zen-browser-homebrew-update.log";
+      StartCalendarInterval = [
+        {
+          Hour = 10;
+          Minute = 0;
+        }
+      ];
     };
   };
 
@@ -214,6 +253,7 @@
       mkdir -p "$(dirname "$gh_link")"
       ln -s "$gh_target" "$gh_link"
     fi
+
   '';
 
   # Touch ID for sudo
