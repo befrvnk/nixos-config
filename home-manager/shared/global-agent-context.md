@@ -4,7 +4,7 @@
 
 On macOS/Darwin, assume only tools installed by default on a clean macOS system are available. For any non-standard CLI tool, use it through Nix rather than relying on Homebrew, npm globals, pip globals, or local machine state.
 
-Before inventing an ad-hoc `nix shell` or `devenv` environment, run `shellpin context` in the project directory. If a suitable stored environment exists, prefer `shellpin run <id> -- <command>` or `shellpin shell <id>`. Do not modify project files just to create a development environment unless asked.
+Before inventing an ad-hoc `nix shell` or `devenv` environment, run `shellpin context` in the project directory. If a suitable stored environment exists, prefer `shellpin run <id> -- <command>` or `shellpin shell <id>`. If no suitable entry exists and you discover a reusable non-trivial environment, ask whether to save it as a shellpin entry. Do not create, edit, or delete shellpin entries without user approval. Do not modify project files just to create a development environment unless asked.
 
 Use `nix shell` to make required packages available temporarily rather than asking the user to install them.
 
