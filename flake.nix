@@ -69,11 +69,6 @@
     # Keep upstream nixpkgs here: Paseo's flake bakes an npmDepsHash that can
     # differ when evaluated against another nixpkgs revision.
     paseo.url = "github:getpaseo/paseo";
-    # Terminal session manager for AI coding agents
-    agent-of-empires = {
-      url = "github:njbrake/agent-of-empires";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     # Git worktree management CLI
     worktrunk = {
       url = "github:max-sixty/worktrunk/v0.36.0";

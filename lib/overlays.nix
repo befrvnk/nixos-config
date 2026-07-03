@@ -91,7 +91,6 @@ let
         doCheck = false;
       };
       worktrunk = inputs.worktrunk.packages.${prev.stdenv.hostPlatform.system}.default;
-      agent-of-empires = inputs.agent-of-empires.packages.${prev.stdenv.hostPlatform.system}.default;
     })
   ];
 

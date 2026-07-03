@@ -6,7 +6,6 @@
   home.enableNixpkgsReleaseCheck = false;
 
   imports = [
-    ./agent-of-empires.nix
     ./atuin.nix
     ./btop.nix
     ./claude-code
