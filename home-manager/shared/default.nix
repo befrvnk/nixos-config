@@ -21,6 +21,7 @@
     ./opencode.nix
     ./packages.nix
     ./pi
+    ./shellpin.nix
     ./ssh.nix
     ./starship.nix
     ./worktrunk.nix

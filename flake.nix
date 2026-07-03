@@ -69,6 +69,11 @@
     # Keep upstream nixpkgs here: Paseo's flake bakes an npmDepsHash that can
     # differ when evaluated against another nixpkgs revision.
     paseo.url = "github:getpaseo/paseo";
+    # User-local project development environment registry
+    shellpin = {
+      url = "github:befrvnk/shellpin";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Git worktree management CLI
     worktrunk = {
       url = "github:max-sixty/worktrunk/v0.36.0";

@@ -1180,6 +1180,7 @@
         "nixpkgs": "nixpkgs_5",
         "opencode": "opencode",
         "paseo": "paseo",
+        "shellpin": "shellpin",
         "stylix": "stylix",
         "vicinae": "vicinae",
         "vicinae-extensions": "vicinae-extensions",
@@ -1268,6 +1269,26 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "shellpin": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1783101216,
+        "narHash": "sha256-jx3dBtUg2tsb0yLaU3dQJOBF3APhMeziTlZp0rj+bGs=",
+        "owner": "befrvnk",
+        "repo": "shellpin",
+        "rev": "9b12705ff85bdff1d1dc2753fb311d292288a5b9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "befrvnk",
+        "repo": "shellpin",
         "type": "github"
       }
     },
