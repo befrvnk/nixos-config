@@ -74,6 +74,11 @@
       url = "github:befrvnk/shellpin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Review-first terminal diff viewer
+    hunk = {
+      url = "github:modem-dev/hunk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # Git worktree management CLI
     worktrunk = {
       url = "github:max-sixty/worktrunk/v0.36.0";

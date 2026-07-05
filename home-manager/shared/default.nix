@@ -12,6 +12,7 @@
     ./direnv.nix
     ./gh.nix
     ./git.nix
+    ./hunk.nix
     ./jujutsu.nix
     ./lazygit.nix
     ./navi
