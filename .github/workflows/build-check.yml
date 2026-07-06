@@ -16,6 +16,19 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
+      # Hunk's pinned bun2nix evaluates cache-entry-creator from a flake-input
+      # subdirectory. On a fresh Linux runner, that subdirectory can be referenced
+      # before Nix has registered it as a valid store path, which breaks
+      # `nix flake check --no-build` while evaluating the Home Manager profile.
+      - name: Realise bun2nix cache-entry-creator source
+        run: |
+          nix eval --raw --impure --accept-flake-config --expr '
+            builtins.path {
+              path = (builtins.getFlake (toString ./.)).inputs.hunk.inputs.bun2nix + "/programs/cache-entry-creator";
+              name = "cache-entry-creator";
+            }
+          '
+
       - name: Check Nix flake outputs
         run: nix flake check --no-build --accept-flake-config
 
