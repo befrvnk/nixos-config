@@ -129,6 +129,6 @@ in
     # existing worktrees into newly-created Gradle worktrees. This intentionally
     # avoids requiring per-repository .worktreeinclude or .gitignore changes.
     [post-start]
-    copy-gradle-build-cache = "worktrunk-copy-gradle-build-cache {{ base_worktree_path }} {{ primary_worktree_path }} {{ worktree_path }}"
+    copy-gradle-build-cache = "worktrunk-copy-gradle-build-cache {{ base_worktree_path | default(\"\") }} {{ primary_worktree_path }} {{ worktree_path }}"
   '';
 }
