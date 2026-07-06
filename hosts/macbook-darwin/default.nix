@@ -73,6 +73,24 @@
   # Nix settings (flakes, substituters) are configured by Determinate instead
   nix.enable = false;
 
+  # nix-darwin's uninstaller internally evaluates a second minimal Darwin
+  # system without this flake's overlays, so its manual currently fails with
+  # nixpkgs unstable's newer nixos-render-docs flags. Disable it until
+  # nix-darwin updates its manual builder.
+  system.tools.darwin-uninstaller.enable = false;
+
+  warnings =
+    let
+      nixDarwinManual = builtins.readFile "${inputs.nix-darwin}/doc/manual/default.nix";
+      nixDarwinStillUsesRemovedTocFlags =
+        lib.hasInfix "--toc-depth 1" nixDarwinManual || lib.hasInfix "--chunk-toc-depth 1" nixDarwinManual;
+    in
+    lib.optional (!nixDarwinStillUsesRemovedTocFlags) ''
+      nix-darwin no longer appears to use the removed nixos-render-docs
+      *-toc-depth flags. Try removing the nixos-render-docs compatibility
+      overlay in lib/overlays.nix and re-enable system.tools.darwin-uninstaller.
+    '';
+
   # Define user for home-manager integration
   # knownUsers + uid required for nix-darwin to manage shell via chsh
   users.knownUsers = [ hostConfig.primaryUser ];
