@@ -73,6 +73,12 @@
   # Nix settings (flakes, substituters) are configured by Determinate instead
   nix.enable = false;
 
+  # nix-darwin's current manual builder still passes removed nixos-render-docs
+  # *-toc-depth flags in some build paths. Avoid pulling the broken HTML manual
+  # and the uninstaller's nested manual build into the Darwin closure.
+  documentation.doc.enable = false;
+  system.tools.darwin-uninstaller.enable = false;
+
   # Define user for home-manager integration
   # knownUsers + uid required for nix-darwin to manage shell via chsh
   users.knownUsers = [ hostConfig.primaryUser ];
