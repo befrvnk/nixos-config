@@ -107,18 +107,6 @@
     };
   };
 
-  services.skhd = {
-    enable = true;
-    skhdConfig = ''
-      cmd - space : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae toggle
-
-      # Temporary Vicinae window-management debug/test bindings.
-      cmd + alt + ctrl - d : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae 'vicinae://launch/@frank/window-management/debug-active-window'
-      cmd + alt + ctrl - left : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae 'vicinae://launch/@frank/window-management/two-thirds-left'
-      cmd + alt + ctrl - right : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae 'vicinae://launch/@frank/window-management/two-thirds-right'
-    '';
-  };
-
   # Shell configuration
   programs.zsh = {
     enable = true;
@@ -211,19 +199,6 @@
   # get launchd's minimal PATH and can't find tools like git, gh, etc.)
   # Runs at login and sets PATH for the entire user launchd session.
   launchd.user.agents = {
-    "vicinae-server".serviceConfig = {
-      Label = "vicinae.server";
-      ProgramArguments = [
-        "/etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae"
-        "server"
-      ];
-      RunAtLoad = true;
-      KeepAlive = true;
-      ProcessType = "Interactive";
-      StandardErrorPath = "${hostConfig.homeDirectory}/Library/Logs/vicinae-server.log";
-      StandardOutPath = "${hostConfig.homeDirectory}/Library/Logs/vicinae-server.log";
-    };
-
     "nix-path".serviceConfig = {
       Label = "nix.path";
       ProgramArguments = [
