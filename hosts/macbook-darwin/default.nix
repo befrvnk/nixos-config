@@ -48,6 +48,13 @@
         "NSGlobalDomain" = {
           NSWindowShouldDragOnGesture = true;
         };
+        "com.apple.symbolichotkeys" = {
+          AppleSymbolicHotKeys = {
+            # Disable Spotlight's Cmd+Space bindings so skhd can use it for Vicinae.
+            "64".enabled = false; # Show Spotlight search
+            "65".enabled = false; # Show Finder search window
+          };
+        };
         "pbs" = {
           NSServicesStatus = {
             "com.apple.Terminal - Search man Page Index in Terminal - searchManPages" = {
@@ -98,6 +105,13 @@
     extraSpecialArgs = {
       inherit inputs hostConfig;
     };
+  };
+
+  services.skhd = {
+    enable = true;
+    skhdConfig = ''
+      cmd - space : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae toggle
+    '';
   };
 
   # Shell configuration
