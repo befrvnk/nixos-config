@@ -1,0 +1,216 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "window-management",
+  "title": "Window Management",
+  "description": "Raycast-style window layout commands for Vicinae on macOS using Vicinae's internal window bounds RPC.",
+  "categories": [
+    "Productivity"
+  ],
+  "license": "MIT",
+  "author": "frank",
+  "icon": "extension_icon.svg",
+  "commands": [
+    {
+      "name": "left-half",
+      "title": "Left Half",
+      "description": "Move the active window to the left half of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "left", "half", "resize"]
+    },
+    {
+      "name": "right-half",
+      "title": "Right Half",
+      "description": "Move the active window to the right half of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "right", "half", "resize"]
+    },
+    {
+      "name": "top-half",
+      "title": "Top Half",
+      "description": "Move the active window to the top half of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "top", "half", "resize"]
+    },
+    {
+      "name": "bottom-half",
+      "title": "Bottom Half",
+      "description": "Move the active window to the bottom half of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "bottom", "half", "resize"]
+    },
+    {
+      "name": "maximize",
+      "title": "Maximize",
+      "description": "Resize the active window to fill the current display",
+      "mode": "no-view",
+      "keywords": ["window", "maximize", "resize"]
+    },
+    {
+      "name": "almost-maximize",
+      "title": "Almost Maximize",
+      "description": "Resize the active window to nearly fill the current display",
+      "mode": "no-view",
+      "keywords": ["window", "almost", "maximize", "resize"]
+    },
+    {
+      "name": "center",
+      "title": "Center",
+      "description": "Center the active window on the current display without resizing",
+      "mode": "no-view",
+      "keywords": ["window", "center", "move"]
+    },
+    {
+      "name": "top-left",
+      "title": "Top Left Quarter",
+      "description": "Move the active window to the top-left quarter of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "top", "left", "quarter"]
+    },
+    {
+      "name": "top-right",
+      "title": "Top Right Quarter",
+      "description": "Move the active window to the top-right quarter of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "top", "right", "quarter"]
+    },
+    {
+      "name": "bottom-left",
+      "title": "Bottom Left Quarter",
+      "description": "Move the active window to the bottom-left quarter of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "bottom", "left", "quarter"]
+    },
+    {
+      "name": "bottom-right",
+      "title": "Bottom Right Quarter",
+      "description": "Move the active window to the bottom-right quarter of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "bottom", "right", "quarter"]
+    },
+    {
+      "name": "first-third",
+      "title": "First Third",
+      "description": "Move the active window to the left third of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "first", "third", "left"]
+    },
+    {
+      "name": "center-third",
+      "title": "Center Third",
+      "description": "Move the active window to the center third of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "center", "third"]
+    },
+    {
+      "name": "last-third",
+      "title": "Last Third",
+      "description": "Move the active window to the right third of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "last", "third", "right"]
+    },
+    {
+      "name": "two-thirds-left",
+      "title": "Two Thirds Left",
+      "description": "Move the active window to the left two thirds of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "two", "thirds", "left"]
+    },
+    {
+      "name": "two-thirds-right",
+      "title": "Two Thirds Right",
+      "description": "Move the active window to the right two thirds of the current display",
+      "mode": "no-view",
+      "keywords": ["window", "two", "thirds", "right"]
+    },
+    {
+      "name": "move-to-next-display",
+      "title": "Move to Next Display",
+      "description": "Move the active window to the next display while preserving its relative position and size",
+      "mode": "no-view",
+      "keywords": ["window", "move", "next", "display", "monitor"]
+    },
+    {
+      "name": "restore-previous-bounds",
+      "title": "Restore Previous Bounds",
+      "description": "Restore the active window bounds saved before the last layout command",
+      "mode": "no-view",
+      "keywords": ["window", "restore", "previous", "bounds"]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "gap",
+      "type": "textfield",
+      "title": "Gap",
+      "description": "Pixels to leave between tiled windows and display edges.",
+      "default": "0",
+      "placeholder": "0",
+      "required": false
+    },
+    {
+      "name": "paddingTop",
+      "type": "textfield",
+      "title": "Top Padding",
+      "description": "Extra pixels to avoid at the top of every display, useful for the macOS menu bar if needed.",
+      "default": "0",
+      "placeholder": "0",
+      "required": false
+    },
+    {
+      "name": "paddingBottom",
+      "type": "textfield",
+      "title": "Bottom Padding",
+      "description": "Extra pixels to avoid at the bottom of every display, useful for the Dock if needed.",
+      "default": "0",
+      "placeholder": "0",
+      "required": false
+    },
+    {
+      "name": "paddingLeft",
+      "type": "textfield",
+      "title": "Left Padding",
+      "description": "Extra pixels to avoid at the left edge of every display.",
+      "default": "0",
+      "placeholder": "0",
+      "required": false
+    },
+    {
+      "name": "paddingRight",
+      "type": "textfield",
+      "title": "Right Padding",
+      "description": "Extra pixels to avoid at the right edge of every display.",
+      "default": "0",
+      "placeholder": "0",
+      "required": false
+    },
+    {
+      "name": "activationDelayMs",
+      "type": "textfield",
+      "title": "Activation Delay (ms)",
+      "description": "Delay after hiding Vicinae before reading the active window.",
+      "default": "120",
+      "placeholder": "120",
+      "required": false
+    },
+    {
+      "name": "almostMaximizePercent",
+      "type": "textfield",
+      "title": "Almost Maximize Percent",
+      "description": "Display percentage used by Almost Maximize.",
+      "default": "90",
+      "placeholder": "90",
+      "required": false
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop"
+  },
+  "dependencies": {
+    "@vicinae/api": "0.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  }
+}
