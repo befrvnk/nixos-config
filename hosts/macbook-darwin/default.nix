@@ -219,6 +219,7 @@
       ];
       RunAtLoad = true;
       KeepAlive = true;
+      ProcessType = "Interactive";
       StandardErrorPath = "${hostConfig.homeDirectory}/Library/Logs/vicinae-server.log";
       StandardOutPath = "${hostConfig.homeDirectory}/Library/Logs/vicinae-server.log";
     };
