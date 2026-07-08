@@ -137,6 +137,10 @@ Selected GUI apps configured via nix-darwin:
 - Raycast, Notion, Slack, and Spotify (Homebrew casks so native app behavior keeps working)
 - Ghostty, JetBrains Toolbox, 1Password app, Signal, WhatsApp, Zed, Zen, and others
 
+### Vicinae evaluation
+
+Vicinae remains installed for manual testing, but Raycast stays the primary macOS launcher/window manager for now. The July 2026 evaluation found that Vicinae v0.23.0 could run on macOS, but its window-management backend returned an empty window list on this machine even after Accessibility permission was granted. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for details and retest steps.
+
 ### 1Password CLI app integration
 
 The 1Password app is installed via Homebrew, while the `op` CLI is installed via nixpkgs.
