@@ -5,11 +5,16 @@ import type { Rect } from "@vicinae/api/dist/api/proto/api";
 export type Bounds = WindowManagement.Window["bounds"];
 
 export function toRect(bounds: Bounds): Rect {
+  const x = Math.round(bounds.position.x);
+  const y = Math.round(bounds.position.y);
+  const right = Math.round(bounds.position.x + bounds.size.width);
+  const bottom = Math.round(bounds.position.y + bounds.size.height);
+
   return {
-    x: Math.round(bounds.position.x),
-    y: Math.round(bounds.position.y),
-    width: Math.round(bounds.size.width),
-    height: Math.round(bounds.size.height),
+    x,
+    y,
+    width: Math.max(1, right - x),
+    height: Math.max(1, bottom - y),
   };
 }
 

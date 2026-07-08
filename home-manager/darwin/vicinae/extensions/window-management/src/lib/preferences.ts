@@ -21,6 +21,8 @@ export type WindowPreferences = {
 };
 
 function parseNumber(value: string | undefined, fallback: number, options: { min?: number; max?: number } = {}): number {
+  if (value === undefined || value.trim() === "") return fallback;
+
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
 
