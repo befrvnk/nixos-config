@@ -18,5 +18,6 @@ in
 
   # Vicinae uses standard Unix data directories on macOS, so Home Manager's
   # xdg.dataFile maps to ~/.local/share/vicinae/extensions/...
-  xdg.dataFile."vicinae/extensions/${windowManagement.name}".source = windowManagement;
+  # Use the manifest/provider id as the directory name so deeplinks stay stable.
+  xdg.dataFile."vicinae/extensions/window-management".source = windowManagement;
 }
