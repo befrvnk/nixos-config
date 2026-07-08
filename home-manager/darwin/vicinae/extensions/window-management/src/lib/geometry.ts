@@ -1,6 +1,7 @@
 import {
   Clipboard,
   closeMainWindow,
+  environment,
   LocalStorage,
   Toast,
   WindowManagement,
@@ -129,6 +130,16 @@ function centeredRect(area: Rect, width: number, height: number): Rect {
   };
 }
 
+function resultErrorMessage<T>(result: PromiseSettledResult<T>): string | undefined {
+  if (result.status === "fulfilled") return undefined;
+  return result.reason instanceof Error ? result.reason.message : String(result.reason);
+}
+
+function resultToDebug<T>(result: PromiseSettledResult<T>): T | { error: string } {
+  if (result.status === "fulfilled") return result.value;
+  return { error: resultErrorMessage(result) ?? "Unknown error" };
+}
+
 function storageKey(window: Window): string {
   return `previous-bounds:${window.id}`;
 }
@@ -205,32 +216,57 @@ export function computeLayout(kind: LayoutKind, ctx: ScreenContext): Rect {
 }
 
 export async function copyActiveWindowDebugInfo(): Promise<void> {
-  try {
-    const ctx = await getActiveWindowContext();
-    const debugInfo = {
-      timestamp: new Date().toISOString(),
-      internalSetWindowBoundsAvailable: hasInternalSetWindowBounds(),
-      window: ctx.window,
-      selectedScreen: ctx.screen,
-      workArea: ctx.workArea,
-      screens: ctx.screens,
-      preferences: getWindowPreferences(),
-    };
-    const debugText = JSON.stringify(debugInfo, null, 2);
+  const preferences = getWindowPreferences();
 
-    console.log("Vicinae window-management debug", debugText);
-    await Clipboard.copy(debugText);
-    await sendDesktopNotification({
-      title: "Vicinae window debug copied",
-      body: `${ctx.window.application?.name ?? ctx.window.title} on ${ctx.screen.name}`,
-    });
-  } catch (error) {
-    console.error("Vicinae window-management debug failed", error);
-    await sendDesktopNotification({
-      title: "Vicinae window debug failed",
-      body: error instanceof Error ? error.message : String(error),
-    });
-  }
+  await closeMainWindow({ clearRootSearch: true });
+  await sleep(preferences.activationDelayMs);
+
+  const [activeWindowResult, screensResult, windowsResult] = await Promise.allSettled([
+    WindowManagement.getActiveWindow(),
+    WindowManagement.getScreens(),
+    WindowManagement.getWindows(),
+  ]);
+
+  const activeWindow = activeWindowResult.status === "fulfilled" ? activeWindowResult.value : undefined;
+  const screens = screensResult.status === "fulfilled" ? screensResult.value : [];
+  const windows = windowsResult.status === "fulfilled" ? windowsResult.value : [];
+  const selectedScreen = activeWindow && screens.length > 0 ? findScreenForWindow(activeWindow, screens) : undefined;
+  const workArea = selectedScreen
+    ? insetRect(screenToRect(selectedScreen), {
+        top: preferences.paddingTop,
+        bottom: preferences.paddingBottom,
+        left: preferences.paddingLeft,
+        right: preferences.paddingRight,
+      })
+    : undefined;
+
+  const debugInfo = {
+    timestamp: new Date().toISOString(),
+    environment: {
+      commandName: environment.commandName,
+      extensionName: environment.extensionName,
+      launchType: environment.launchType,
+      vicinaeVersion: environment.vicinaeVersion,
+    },
+    internalSetWindowBoundsAvailable: hasInternalSetWindowBounds(),
+    activeWindow: resultToDebug(activeWindowResult),
+    selectedScreen,
+    workArea,
+    screens: resultToDebug(screensResult),
+    windows: resultToDebug(windowsResult),
+    activeWindowCandidates: windows.filter((window) => window.active),
+    preferences,
+  };
+  const debugText = JSON.stringify(debugInfo, null, 2);
+
+  console.log("Vicinae window-management debug", debugText);
+  await Clipboard.copy(debugText);
+  await sendDesktopNotification({
+    title: activeWindow ? "Vicinae window debug copied" : "Vicinae window debug copied (no active window)",
+    body: activeWindow
+      ? `${activeWindow.application?.name ?? activeWindow.title} on ${selectedScreen?.name ?? "unknown screen"}`
+      : resultErrorMessage(activeWindowResult) ?? "No active window detected",
+  });
 }
 
 export async function applyLayout(kind: LayoutKind): Promise<void> {
@@ -239,11 +275,13 @@ export async function applyLayout(kind: LayoutKind): Promise<void> {
     await savePreviousBounds(ctx.window);
     await setWindowBounds(ctx.window, rectToBounds(computeLayout(kind, ctx)));
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error(`Vicinae window layout failed (${kind})`, error);
+    await sendDesktopNotification({ title: "Window layout failed", body: message });
     await showToast({
       style: Toast.Style.Failure,
       title: "Window layout failed",
-      message: error instanceof Error ? error.message : String(error),
+      message,
     });
   }
 }
@@ -259,11 +297,13 @@ export async function restorePreviousBounds(): Promise<void> {
     const previous = JSON.parse(stored) as Rect;
     await setWindowBounds(ctx.window, rectToBounds(previous));
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Vicinae restore previous bounds failed", error);
+    await sendDesktopNotification({ title: "Restore failed", body: message });
     await showToast({
       style: Toast.Style.Failure,
       title: "Restore failed",
-      message: error instanceof Error ? error.message : String(error),
+      message,
     });
   }
 }
@@ -302,11 +342,13 @@ export async function moveToNextDisplay(): Promise<void> {
     await savePreviousBounds(ctx.window);
     await setWindowBounds(ctx.window, rectToBounds(target));
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Vicinae move to next display failed", error);
+    await sendDesktopNotification({ title: "Move to display failed", body: message });
     await showToast({
       style: Toast.Style.Failure,
       title: "Move to display failed",
-      message: error instanceof Error ? error.message : String(error),
+      message,
     });
   }
 }
