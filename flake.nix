@@ -33,7 +33,7 @@
     };
     # Don't use inputs.nixpkgs.follows here - vicinae cachix has builds
     # for the flake's own nixpkgs version, using follows causes cache misses
-    vicinae.url = "github:vicinaehq/vicinae";
+    vicinae.url = "github:vicinaehq/vicinae/v0.23.0";
     vicinae-extensions = {
       url = "github:vicinaehq/extensions";
       inputs.vicinae.follows = "vicinae";
