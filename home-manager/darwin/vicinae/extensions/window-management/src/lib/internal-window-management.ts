@@ -9,7 +9,7 @@ type Rect = {
   height: number;
 };
 
-type VicinaeGlobal = typeof globalThis & {
+export type VicinaeGlobal = typeof globalThis & {
   vicinae?: {
     client?: {
       WindowManagement?: {
@@ -18,6 +18,14 @@ type VicinaeGlobal = typeof globalThis & {
     };
   };
 };
+
+export function getInternalWindowManagementClient() {
+  return (globalThis as VicinaeGlobal).vicinae?.client?.WindowManagement;
+}
+
+export function hasInternalSetWindowBounds(): boolean {
+  return typeof getInternalWindowManagementClient()?.setWindowBounds === "function";
+}
 
 export function toRect(bounds: Bounds): Rect {
   const x = Math.round(bounds.position.x);
@@ -42,12 +50,12 @@ export function toRect(bounds: Bounds): Rect {
  * @vicinae/api module at runtime.
  */
 export async function setWindowBounds(window: WindowManagement.Window, bounds: Bounds): Promise<void> {
-  const client = (globalThis as VicinaeGlobal).vicinae?.client;
-  const setBounds = client?.WindowManagement?.setWindowBounds;
+  const windowManagement = getInternalWindowManagementClient();
+  const setBounds = windowManagement?.setWindowBounds;
 
   if (!setBounds) {
     throw new Error("Vicinae runtime does not expose WindowManagement.setWindowBounds");
   }
 
-  await setBounds.call(client.WindowManagement, window.id, toRect(bounds));
+  await setBounds.call(windowManagement, window.id, toRect(bounds));
 }

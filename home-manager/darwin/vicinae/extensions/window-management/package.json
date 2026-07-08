@@ -135,6 +135,13 @@
       "description": "Restore the active window bounds saved before the last layout command",
       "mode": "no-view",
       "keywords": ["window", "restore", "previous", "bounds"]
+    },
+    {
+      "name": "debug-active-window",
+      "title": "Debug Active Window",
+      "description": "Copy diagnostic information for the active window and Vicinae window-management runtime",
+      "mode": "no-view",
+      "keywords": ["window", "debug", "diagnostic", "active"]
     }
   ],
   "preferences": [

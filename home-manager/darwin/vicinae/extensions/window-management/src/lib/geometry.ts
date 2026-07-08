@@ -1,5 +1,13 @@
-import { closeMainWindow, LocalStorage, Toast, WindowManagement, showToast } from "@vicinae/api";
-import { setWindowBounds, type Bounds } from "./internal-window-management";
+import {
+  Clipboard,
+  closeMainWindow,
+  LocalStorage,
+  Toast,
+  WindowManagement,
+  sendDesktopNotification,
+  showToast,
+} from "@vicinae/api";
+import { hasInternalSetWindowBounds, setWindowBounds, type Bounds } from "./internal-window-management";
 import { getWindowPreferences } from "./preferences";
 
 export type Rect = {
@@ -196,12 +204,42 @@ export function computeLayout(kind: LayoutKind, ctx: ScreenContext): Rect {
   }
 }
 
+export async function copyActiveWindowDebugInfo(): Promise<void> {
+  try {
+    const ctx = await getActiveWindowContext();
+    const debugInfo = {
+      timestamp: new Date().toISOString(),
+      internalSetWindowBoundsAvailable: hasInternalSetWindowBounds(),
+      window: ctx.window,
+      selectedScreen: ctx.screen,
+      workArea: ctx.workArea,
+      screens: ctx.screens,
+      preferences: getWindowPreferences(),
+    };
+    const debugText = JSON.stringify(debugInfo, null, 2);
+
+    console.log("Vicinae window-management debug", debugText);
+    await Clipboard.copy(debugText);
+    await sendDesktopNotification({
+      title: "Vicinae window debug copied",
+      body: `${ctx.window.application?.name ?? ctx.window.title} on ${ctx.screen.name}`,
+    });
+  } catch (error) {
+    console.error("Vicinae window-management debug failed", error);
+    await sendDesktopNotification({
+      title: "Vicinae window debug failed",
+      body: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 export async function applyLayout(kind: LayoutKind): Promise<void> {
   try {
     const ctx = await getActiveWindowContext();
     await savePreviousBounds(ctx.window);
     await setWindowBounds(ctx.window, rectToBounds(computeLayout(kind, ctx)));
   } catch (error) {
+    console.error(`Vicinae window layout failed (${kind})`, error);
     await showToast({
       style: Toast.Style.Failure,
       title: "Window layout failed",
@@ -221,6 +259,7 @@ export async function restorePreviousBounds(): Promise<void> {
     const previous = JSON.parse(stored) as Rect;
     await setWindowBounds(ctx.window, rectToBounds(previous));
   } catch (error) {
+    console.error("Vicinae restore previous bounds failed", error);
     await showToast({
       style: Toast.Style.Failure,
       title: "Restore failed",
@@ -263,6 +302,7 @@ export async function moveToNextDisplay(): Promise<void> {
     await savePreviousBounds(ctx.window);
     await setWindowBounds(ctx.window, rectToBounds(target));
   } catch (error) {
+    console.error("Vicinae move to next display failed", error);
     await showToast({
       style: Toast.Style.Failure,
       title: "Move to display failed",

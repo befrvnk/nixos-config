@@ -111,6 +111,11 @@
     enable = true;
     skhdConfig = ''
       cmd - space : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae toggle
+
+      # Temporary Vicinae window-management debug/test bindings.
+      cmd + alt + ctrl - d : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae 'vicinae://launch/window-management/debug-active-window'
+      cmd + alt + ctrl - left : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae 'vicinae://launch/window-management/two-thirds-left'
+      cmd + alt + ctrl - right : /etc/profiles/per-user/${hostConfig.primaryUser}/bin/vicinae 'vicinae://launch/window-management/two-thirds-right'
     '';
   };
 
