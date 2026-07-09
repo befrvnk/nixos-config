@@ -14,8 +14,9 @@ export const SUBAGENT_MODEL_IDS = {
 	claudeOpus: "claude-opus-4.8",
 	claudeSonnet: "claude-sonnet-4.6",
 	geminiPro: "gemini-3.1-pro-preview",
-	fastExplore: "gpt-5.4-mini",
-	defaultExplore: "gpt-5.5",
+	fastExplore: "gpt-5.6-luna",
+	defaultExplore: "gpt-5.6-terra",
+	deepExplore: "gpt-5.6-sol",
 } as const;
 
 export const SUBAGENT_MODELS = {
@@ -24,6 +25,7 @@ export const SUBAGENT_MODELS = {
 	geminiPro: copilotModel(SUBAGENT_MODEL_IDS.geminiPro),
 	fastExplore: copilotModel(SUBAGENT_MODEL_IDS.fastExplore),
 	defaultExplore: copilotModel(SUBAGENT_MODEL_IDS.defaultExplore),
+	deepExplore: copilotModel(SUBAGENT_MODEL_IDS.deepExplore),
 } as const;
 
 export const ALLOWED_SUBAGENT_MODELS = [
@@ -32,6 +34,7 @@ export const ALLOWED_SUBAGENT_MODELS = [
 	SUBAGENT_MODELS.geminiPro,
 	SUBAGENT_MODELS.fastExplore,
 	SUBAGENT_MODELS.defaultExplore,
+	SUBAGENT_MODELS.deepExplore,
 ] as const;
 
 export type AllowedSubagentModel = (typeof ALLOWED_SUBAGENT_MODELS)[number];
@@ -40,6 +43,8 @@ export const FAST_EXPLORE_MODEL: AllowedSubagentModel =
 	SUBAGENT_MODELS.fastExplore;
 export const DEFAULT_EXPLORE_MODEL: AllowedSubagentModel =
 	SUBAGENT_MODELS.defaultExplore;
+export const DEEP_EXPLORE_MODEL: AllowedSubagentModel =
+	SUBAGENT_MODELS.deepExplore;
 
 export const ALLOWED_EXPLORE_INTENTS = ["fast", "balanced", "deep"] as const;
 export const DEFAULT_EXPLORE_INTENT: ExploreIntent = "balanced";
@@ -65,7 +70,7 @@ export const EXPLORE_INTENT_PROFILES: Readonly<
 	},
 	deep: {
 		intent: "deep",
-		model: DEFAULT_EXPLORE_MODEL,
+		model: DEEP_EXPLORE_MODEL,
 		thinkingLevel: "high",
 	},
 } as const;

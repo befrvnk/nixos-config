@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   ALLOWED_EXPLORE_INTENTS,
   ALLOWED_SUBAGENT_MODELS,
+  DEEP_EXPLORE_MODEL,
   DEFAULT_EXPLORE_INTENT,
   DEFAULT_EXPLORE_MODEL,
   EXPLORE_INTENT_PROFILES,
@@ -56,7 +57,7 @@ test("explore intent normalization and profile resolution are safe by default", 
   });
   assert.deepEqual(EXPLORE_INTENT_PROFILES.deep, {
     intent: "deep",
-    model: DEFAULT_EXPLORE_MODEL,
+    model: DEEP_EXPLORE_MODEL,
     thinkingLevel: "high",
   });
 });

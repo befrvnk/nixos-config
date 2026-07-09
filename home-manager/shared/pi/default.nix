@@ -61,7 +61,7 @@ let
       keepRecentTokens = 20000;
       reserveTokens = 128000;
     };
-    defaultModel = "gpt-5.5";
+    defaultModel = "gpt-5.6-sol";
     defaultProvider = "github-copilot";
     defaultThinkingLevel = "high";
     hideThinkingBlock = true;
