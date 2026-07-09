@@ -1199,11 +1199,11 @@
         "nixpkgs": "nixpkgs_7"
       },
       "locked": {
-        "lastModified": 1783618474,
-        "narHash": "sha256-QAH0h1NHmNilepoMCe+bdQ0dG7sJ+IF88PWs+qWrf5o=",
+        "lastModified": 1783621572,
+        "narHash": "sha256-t/liuXbWALo3XSkE6j3APlKe4efweQqtV4f5bqjXU0Q=",
         "owner": "getpaseo",
         "repo": "paseo",
-        "rev": "ebaecace2bd33230c4f27698e73a64e624828366",
+        "rev": "15d309110455f3f966b7e4492840f39b1bbdd92b",
         "type": "github"
       },
       "original": {
