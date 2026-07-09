@@ -953,6 +953,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       "Use intent instead of raw model names: fast for lightweight scans, balanced for the default tradeoff, deep for heavier synthesis.",
       "If intent is omitted or unclear, the extension falls back to a safe balanced profile automatically.",
       "Use multiple tasks when the work is naturally parallel.",
+      "If explore reports an infrastructure or tool-access failure, do not retry the same exploration; report the failure and continue with available local tools.",
       "Do not use explore for formal audits or code review; /review is user-triggered.",
       "Use the structured exploration result directly in your response instead of redoing the exploration yourself.",
       "When the tool returns multiple task results, synthesize across those results instead of discarding their structure.",

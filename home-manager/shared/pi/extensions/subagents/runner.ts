@@ -23,6 +23,7 @@ import {
 	MAX_HISTORY_ITEMS,
 	MAX_RECENT_OUTPUT_LINES,
 	MAX_RECENT_TOOLS,
+	SUBAGENT_TOOLS,
 } from "./types.js";
 
 type ModelRegistryLike = {
@@ -287,7 +288,7 @@ export async function mapWithConcurrencyLimit<TIn, TOut>(
 	return results;
 }
 
-function buildSubagentSessionOptions(
+export function buildSubagentSessionOptions(
 	repositoryRoot: string,
 	agentDir: string,
 	resourceLoader: DefaultResourceLoader,
@@ -301,9 +302,11 @@ function buildSubagentSessionOptions(
 		cwd: repositoryRoot,
 		agentDir,
 		resourceLoader,
-		// pi 0.68+ expects a string allowlist in `tools`; guarded tool objects must go
-		// through `customTools` or child sessions fail before the subagent can run.
-		tools: [],
+		// Subagents need guarded read-only filesystem/shell tools. Disable built-in
+		// tool instances so same-named custom guarded tools win, then explicitly
+		// allowlist those custom tool names.
+		noTools: "builtin",
+		tools: [...SUBAGENT_TOOLS],
 		customTools: createGuardedExplorationTools(repositoryRoot),
 		sessionManager: SessionManager.inMemory(repositoryRoot),
 	};

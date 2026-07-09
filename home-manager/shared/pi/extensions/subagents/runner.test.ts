@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "node:module";
-import type { SubagentTaskState } from "./types.ts";
+import { SUBAGENT_TOOLS, type SubagentTaskState } from "./types.ts";
 import {
 	buildReviewRepairPrompt,
 	parseReviewOutput,
@@ -103,10 +103,18 @@ function createReviewTaskState(): SubagentTaskState {
 	};
 }
 
-async function withMockedCodingAgent<T>(
-	run: (runSingleTask: typeof import("./runner.ts").runSingleTask) => Promise<T>,
+async function withMockedCodingAgentModule<T>(
+	run: (runner: typeof import("./runner.ts")) => Promise<T>,
 ): Promise<T> {
 	const originalLoad = (Module as any)._load;
+	const tool = (name: string) => ({
+		name,
+		label: name,
+		description: `${name} tool`,
+		parameters: {},
+		execute: async () => undefined,
+	});
+
 	(Module as any)._load = function (
 		request: string,
 		parent: unknown,
@@ -120,23 +128,48 @@ async function withMockedCodingAgent<T>(
 				DefaultResourceLoader: class {},
 				getAgentDir: () => "/tmp/agent",
 				SessionManager: { inMemory: () => ({}) },
-				createBashTool: () => ({ execute: async () => undefined }),
-				createFindTool: () => ({ execute: async () => undefined }),
-				createGrepTool: () => ({ execute: async () => undefined }),
-				createLsTool: () => ({ execute: async () => undefined }),
-				createReadTool: () => ({ execute: async () => undefined }),
+				createBashTool: () => tool("bash"),
+				createFindTool: () => tool("find"),
+				createGrepTool: () => tool("grep"),
+				createLsTool: () => tool("ls"),
+				createReadTool: () => tool("read"),
 			};
 		}
 		return originalLoad.call(this, request, parent, isMain);
 	};
 
 	try {
-		const { runSingleTask } = await import("./runner.ts");
-		return await run(runSingleTask);
+		return await run(await import("./runner.ts"));
 	} finally {
 		(Module as any)._load = originalLoad;
 	}
 }
+
+async function withMockedCodingAgent<T>(
+	run: (runSingleTask: typeof import("./runner.ts").runSingleTask) => Promise<T>,
+): Promise<T> {
+	return withMockedCodingAgentModule(async ({ runSingleTask }) =>
+		run(runSingleTask),
+	);
+}
+
+test("buildSubagentSessionOptions enables guarded custom exploration tools", async () => {
+	await withMockedCodingAgentModule(async ({ buildSubagentSessionOptions }) => {
+		const options = buildSubagentSessionOptions(
+			"/tmp/project",
+			"/tmp/agent",
+			{} as any,
+			{},
+		) as any;
+
+		assert.equal(options.noTools, "builtin");
+		assert.deepEqual(options.tools, [...SUBAGENT_TOOLS]);
+		assert.deepEqual(
+			options.customTools.map((tool: { name?: string }) => tool.name),
+			[...SUBAGENT_TOOLS],
+		);
+	});
+});
 
 test("runSingleTask repairs malformed review output once and keeps repair metadata", async () => {
 	await withMockedCodingAgent(async (runSingleTask) => {
