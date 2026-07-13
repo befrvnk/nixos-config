@@ -3,6 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
+	canonicalizeRoot,
+	resolveLexicalPathWithinRoot,
+	resolvePathWithinRoot,
+} from "../../path-security.js";
+import {
 	parseBullets,
 	shortenPath,
 	shortTaskId,
@@ -232,7 +237,7 @@ async function resolveRepoRoot(
 			`Not inside a git repository: ${repoResult.stderr.trim() || repoResult.stdout.trim() || cwd}`,
 		);
 	}
-	return repoResult.stdout.trim();
+	return canonicalizeRoot(repoResult.stdout.trim());
 }
 
 async function resolveBaseRef(
@@ -331,7 +336,10 @@ function readUntrackedPreview(absolutePath: string): {
 	sample: Buffer;
 	truncated: boolean;
 } {
-	const fd = fs.openSync(absolutePath, "r");
+	const fd = fs.openSync(
+		absolutePath,
+		fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0),
+	);
 	try {
 		const sample = Buffer.alloc(MAX_UNTRACKED_PREVIEW_BYTES + 1);
 		const bytesRead = fs.readSync(fd, sample, 0, sample.length, 0);
@@ -345,9 +353,21 @@ function readUntrackedPreview(absolutePath: string): {
 }
 
 function buildUntrackedFilePreview(repoRoot: string, file: string): string {
-	const absolutePath = path.join(repoRoot, file);
+	const absolutePath = resolveLexicalPathWithinRoot(repoRoot, file);
 
 	try {
+		if (!absolutePath || !resolvePathWithinRoot(repoRoot, file)) {
+			throw new Error("path escapes the review inspection root");
+		}
+		if (fs.lstatSync(absolutePath).isSymbolicLink()) {
+			return [
+				`diff --git a/${file} b/${file}`,
+				"new file mode 120000",
+				"--- /dev/null",
+				`+++ b/${file}`,
+				"Symlink target content omitted from untracked preview.",
+			].join("\n");
+		}
 		const { sample, truncated: truncatedByBytes } =
 			readUntrackedPreview(absolutePath);
 		const previewSample = sample.subarray(0, MAX_UNTRACKED_PREVIEW_BYTES);
@@ -415,17 +435,8 @@ function buildCombinedDiffPreview(
 }
 
 function resolvePathUnderRoot(root: string, file: string): string | undefined {
-	const resolvedRoot = path.resolve(root);
-	const resolvedPath = path.resolve(resolvedRoot, file);
-	const relativePath = path.relative(resolvedRoot, resolvedPath);
-	if (
-		relativePath === "" ||
-		relativePath.startsWith("..") ||
-		path.isAbsolute(relativePath)
-	) {
-		return undefined;
-	}
-	return resolvedPath;
+	const lexicalPath = resolveLexicalPathWithinRoot(root, file);
+	return lexicalPath && resolvePathWithinRoot(root, file) ? lexicalPath : undefined;
 }
 
 function trimBufferToUtf8Boundary(buffer: Buffer): Buffer {
@@ -489,19 +500,26 @@ function readContextFilePreview(absolutePath: string): {
 	error?: string;
 } {
 	try {
-		const stat = fs.statSync(absolutePath);
-		if (!stat.isFile()) {
+		const pathStat = fs.lstatSync(absolutePath);
+		if (pathStat.isSymbolicLink()) {
+			return { truncated: false, binary: false, error: "symbolic link content omitted" };
+		}
+		if (!pathStat.isFile()) {
 			return {
 				truncated: false,
 				binary: false,
-				error: stat.isDirectory()
+				error: pathStat.isDirectory()
 					? "path is a directory"
 					: "path is not a regular file",
 			};
 		}
 
-		const fd = fs.openSync(absolutePath, "r");
+		const noFollow = fs.constants.O_NOFOLLOW ?? 0;
+		const fd = fs.openSync(absolutePath, fs.constants.O_RDONLY | noFollow);
 		try {
+			if (!fs.fstatSync(fd).isFile()) {
+				return { truncated: false, binary: false, error: "path is not a regular file" };
+			}
 			const sample = Buffer.alloc(MAX_CONTEXT_FILE_CHARS + 4);
 			const bytesRead = fs.readSync(fd, sample, 0, sample.length, 0);
 			const previewSample = trimBufferToUtf8Boundary(
@@ -593,13 +611,14 @@ function withInspectionContext(
 	context: ReviewContext,
 	snapshot: InspectionSnapshot,
 ): ReviewContext {
+	const inspectionRoot = canonicalizeRoot(snapshot.root);
 	const repositoryContext = buildRepositoryContextPacket(
-		snapshot.root,
+		inspectionRoot,
 		context.changedFiles,
 	);
 	return {
 		...context,
-		inspectionRoot: snapshot.root,
+		inspectionRoot,
 		inspectionRootDescription: snapshot.description,
 		repositoryContextPacket: repositoryContext.packet,
 		repositoryContextWasTruncated: repositoryContext.wasTruncated,

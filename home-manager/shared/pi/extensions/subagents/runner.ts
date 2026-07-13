@@ -17,6 +17,7 @@ import type {
 	SubagentTaskResult,
 	SubagentTaskState,
 	SubagentThinkingLevel,
+	SubagentWorkflow,
 } from "./types.js";
 import {
 	COPILOT_PROVIDER,
@@ -296,6 +297,7 @@ export function buildSubagentSessionOptions(
 		model?: Model<any>;
 		thinkingLevel?: SubagentThinkingLevel;
 		modelRegistry?: ModelRegistryLike;
+		workflow?: SubagentWorkflow;
 	},
 ): Parameters<typeof createAgentSession>[0] {
 	const sessionOptions: Record<string, unknown> = {
@@ -307,7 +309,9 @@ export function buildSubagentSessionOptions(
 		// allowlist those custom tool names.
 		noTools: "builtin",
 		tools: [...SUBAGENT_TOOLS],
-		customTools: createGuardedExplorationTools(repositoryRoot),
+		customTools: createGuardedExplorationTools(repositoryRoot, {
+			restrictToRoot: overrides.workflow === "review",
+		}),
 		sessionManager: SessionManager.inMemory(repositoryRoot),
 	};
 	if (overrides.model) sessionOptions.model = overrides.model;
@@ -425,6 +429,7 @@ export async function runSingleTask(
 								model,
 								thinkingLevel: taskState.thinkingLevel,
 								modelRegistry: parentCtx.modelRegistry,
+								workflow: taskState.workflow,
 							},
 						),
 					);

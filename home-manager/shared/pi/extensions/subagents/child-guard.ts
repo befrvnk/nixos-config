@@ -8,7 +8,9 @@ import {
 import {
   blockIfSuspiciousBashCommand,
   blockIfSuspiciousPath,
+  tokenizeShellSegment,
 } from "./guard-utils.js";
+import { resolvePathWithinRoot } from "./path-security.js";
 
 function wrapGuardedTool(
   original: any,
@@ -40,19 +42,34 @@ function wrapGuardedTool(
 
 export { blockIfSuspiciousBashCommand, blockIfSuspiciousPath };
 
-export function createGuardedExplorationTools(cwd: string) {
+export function createGuardedExplorationTools(
+  cwd: string,
+  options: { restrictToRoot?: boolean } = {},
+) {
+  const validatePath = (toolName: string, params: Record<string, unknown>) => {
+    const suspicious = blockIfSuspiciousPath(toolName, params, cwd);
+    if (suspicious) return suspicious;
+    if (!options.restrictToRoot) return undefined;
+    const value = params.path ?? params.file_path;
+    if (value === undefined) return undefined;
+    if (typeof value !== "string" || !resolvePathWithinRoot(cwd, value)) {
+      return `${toolName} path must remain within the review inspection root.`;
+    }
+    return undefined;
+  };
+
   return [
     wrapGuardedTool(createReadTool(cwd), (params) =>
-      blockIfSuspiciousPath("read", params, cwd),
+      validatePath("read", params),
     ),
     wrapGuardedTool(createGrepTool(cwd), (params) =>
-      blockIfSuspiciousPath("grep", params, cwd),
+      validatePath("grep", params),
     ),
     wrapGuardedTool(createFindTool(cwd), (params) =>
-      blockIfSuspiciousPath("find", params, cwd),
+      validatePath("find", params),
     ),
     wrapGuardedTool(createLsTool(cwd), (params) =>
-      blockIfSuspiciousPath("ls", params, cwd),
+      validatePath("ls", params),
     ),
     wrapGuardedTool(
       createBashTool(cwd, {
@@ -76,7 +93,14 @@ export function createGuardedExplorationTools(cwd: string) {
           },
         }),
       }),
-      (params) => blockIfSuspiciousBashCommand(params.command, cwd),
+      (params) => {
+        const blocked = blockIfSuspiciousBashCommand(params.command, cwd);
+        if (blocked || !options.restrictToRoot || typeof params.command !== "string") return blocked;
+        const command = tokenizeShellSegment(params.command)[0];
+        return command === "git" || command === "pwd"
+          ? undefined
+          : "review subagents use structured tools for repository file inspection; bash is limited to git and pwd.";
+      },
     ),
   ];
 }
