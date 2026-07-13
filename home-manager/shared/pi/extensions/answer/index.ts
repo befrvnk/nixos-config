@@ -18,6 +18,7 @@ import {
 import {
 	type Component,
 	Editor,
+	type Focusable,
 	type EditorTheme,
 	Key,
 	matchesKey,
@@ -42,6 +43,7 @@ import {
 	isAnswerVerticalMove,
 	type AnswerKeybindingsLike,
 } from "./keybindings.ts";
+import { calculateAnswerLayout } from "./layout.ts";
 
 const SYSTEM_PROMPT = `You are a question extractor. Given text from a conversation, extract any questions that need answering.
 
@@ -91,7 +93,7 @@ async function selectExtractionModel(
 	return currentModel;
 }
 
-class QnAComponent implements Component {
+class QnAComponent implements Component, Focusable {
 	private readonly questions: readonly ExtractedQuestion[];
 	private readonly answers: string[];
 	private readonly editor: Editor;
@@ -103,6 +105,17 @@ class QnAComponent implements Component {
 	private showingConfirmation = false;
 	private cachedWidth?: number;
 	private cachedLines?: string[];
+	private _focused = false;
+
+	get focused(): boolean {
+		return this._focused;
+	}
+
+	set focused(value: boolean) {
+		this._focused = value;
+		this.editor.focused = value;
+		this.invalidate();
+	}
 
 	constructor(
 		questions: readonly ExtractedQuestion[],
@@ -270,10 +283,15 @@ class QnAComponent implements Component {
 	render(width: number): string[] {
 		if (this.cachedLines && this.cachedWidth === width) return this.cachedLines;
 
+		const layout = calculateAnswerLayout(width);
+		if (layout.renderWidth === 0) return [];
+		if (layout.compact) {
+			return [truncateToWidth(this.theme.bold("Questions"), layout.renderWidth, "")];
+		}
+
 		const lines: string[] = [];
-		const boxWidth = Math.max(Math.min(width - 4, 120), 30);
-		const contentWidth = boxWidth - 4;
-		const horizontalLine = (count: number) => "─".repeat(count);
+		const { boxWidth, contentWidth, renderWidth } = layout;
+		const horizontalLine = (count: number) => "─".repeat(Math.max(0, count));
 
 		const boxLine = (content: string, leftPad = 2) => {
 			const clippedContent = truncateToWidth(content, Math.max(boxWidth - 2 - leftPad, 0));
@@ -283,8 +301,11 @@ class QnAComponent implements Component {
 			return this.dim("│") + paddedContent + " ".repeat(rightPad) + this.dim("│");
 		};
 
-		const emptyBoxLine = () => this.dim("│") + " ".repeat(boxWidth - 2) + this.dim("│");
-		const padToWidth = (line: string) => line + " ".repeat(Math.max(0, width - visibleWidth(line)));
+		const emptyBoxLine = () => this.dim("│") + " ".repeat(Math.max(0, boxWidth - 2)) + this.dim("│");
+		const padToWidth = (line: string) => {
+			const clipped = truncateToWidth(line, renderWidth, "");
+			return clipped + " ".repeat(Math.max(0, renderWidth - visibleWidth(clipped)));
+		};
 		const question = this.questions[this.currentIndex];
 
 		lines.push(padToWidth(this.dim("╭" + horizontalLine(boxWidth - 2) + "╮")));
@@ -318,8 +339,7 @@ class QnAComponent implements Component {
 
 		lines.push(padToWidth(emptyBoxLine()));
 
-		const editorWidth = Math.max(contentWidth - 7, 10);
-		const editorLines = this.editor.render(editorWidth);
+		const editorLines = this.editor.render(layout.editorWidth);
 		for (let index = 1; index < editorLines.length - 1; index += 1) {
 			if (index === 1) {
 				lines.push(padToWidth(boxLine(`${this.theme.bold("A:")} ${editorLines[index]}`)));
@@ -357,8 +377,8 @@ class QnAComponent implements Component {
 
 export default function answerExtension(pi: ExtensionAPI) {
 	const answerHandler = async (ctx: ExtensionCommandContext) => {
-		if (!ctx.hasUI) {
-			ctx.ui.notify("answer requires interactive mode", "error");
+		if (ctx.mode !== "tui") {
+			ctx.ui.notify("answer requires TUI mode", "error");
 			return;
 		}
 
