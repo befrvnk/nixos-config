@@ -82,6 +82,7 @@ function isMainModule(): boolean {
 }
 
 if (isMainModule()) {
-  const ok = await refreshCopilotModelsJson();
-  process.exitCode = ok ? 0 : 2;
+  void refreshCopilotModelsJson().then((ok) => {
+    process.exitCode = ok ? 0 : 2;
+  });
 }
