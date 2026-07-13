@@ -49,7 +49,7 @@ Child runs are intentionally read-only and use guarded versions of:
 - `ls`
 - `bash`
 
-The bash tool is restricted to read-only inspection commands and blocks shell output redirection, command substitution, and write-capable git subcommands.
+The bash tool accepts one restricted inspection command per call. It blocks shell composition, redirection, expansion, environment assignments, helper execution, write-capable command options, and mutating Git forms. Review subagents additionally limit bash to Git metadata and `pwd`, using canonical-root-confined structured tools for file inspection. This validation is defense in depth, not an OS-level sandbox.
 
 Subagents only support the **GitHub Copilot** models configured in `model-policy.ts`.
 The model IDs are centralized in `SUBAGENT_MODEL_IDS`; changing explore intent models should only require updating the explore entries there.
@@ -118,13 +118,13 @@ Interactive `/review` currently supports:
 3. review against a base branch
 4. review a commit
 
-Interactive review uses a smart default target based on git state, searchable branch and commit pickers, and an optional prompt for one-off extra review instructions. Review runs use a cancellable loader UI; press `Esc` to abort an in-progress review.
+TUI review uses a smart default target, searchable branch and commit pickers, propagated input focus, and a cancellable loader. RPC mode uses Pi's standard selection requests instead of terminal components; JSON and print modes require an explicit target.
 
 After a successful or partial review, the rendered findings are stored as a custom message that participates directly in the main agent context, so you can immediately ask it to apply or address the review.
 
 `/review ... --extra "..."` appends one-off review focus instructions to the fixed reviewer pair.
 
-If a `REVIEW_GUIDELINES.md` file exists next to the repository's `.pi/` directory, its contents are appended to each review task as project-specific review guidance.
+If a real `REVIEW_GUIDELINES.md` file exists next to the repository's real `.pi/` directory, its contents are appended only for trusted projects. Discovery stops at the canonical repository root and ignores symlinked external guidance.
 
 Base-branch review compares the current working tree against the merge base with the selected branch.
 
@@ -153,7 +153,9 @@ If a reviewer returns malformed or partially structured output, the workflow pre
 
 ## Guarding and scope discipline
 
-The child tool guard is intentionally small and pragmatic.
+Review paths are canonicalized and confined to the selected inspection root. Repository context and untracked previews do not follow symlinks, preventing external target contents from entering review prompts.
+
+The child tool guard is intentionally conservative but remains application-level validation.
 It blocks obviously irrelevant runtime/system paths such as:
 
 - `/$bunfs`

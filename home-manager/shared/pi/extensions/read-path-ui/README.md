@@ -17,3 +17,5 @@ Web Fetch 2 URLs
 ```
 
 If a read or fetch fails, expanding the tool row shows the first error line while still hiding normal successful contents.
+
+The shared container-render patch is acquired per session, restored on shutdown, and never overwrites a later third-party patch. Per-call summary state is cleared on session start and shutdown.

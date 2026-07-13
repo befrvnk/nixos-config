@@ -9,3 +9,4 @@ Improves pi's built-in terminal Markdown rendering for fenced code blocks.
 - Uses a richer Kotlin highlighter for `kotlin`/`kt`/`kts` fences, including colored keywords/functions/types and italic chained calls.
 - Adds common language aliases such as `kt`/`kts` -> `kotlin`, `ts` -> `typescript`, and `sh`/`shell`/`zsh` -> `bash`.
 - Treats `text`/`txt`/`plain`/`plaintext` as plain code while still formatting the block.
+- Acquires the Markdown prototype patch per session and restores the exact original method after the final owner shuts down, without clobbering later third-party patches.
