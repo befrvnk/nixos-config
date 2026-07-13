@@ -204,7 +204,7 @@ const webSearchTool = defineTool({
   name: "web_search",
   label: "Web Search",
   description:
-    "Search the web for current documentation, official references, release notes, recent changes, project pages, issues, and technical information beyond the model cutoff. Returns searched queries and source URLs, not page content.",
+    "Search the web for current documentation, official references, release notes, recent changes, project pages, issues, and technical information beyond the model cutoff. Returns searched queries and source URLs, capped at 50 KiB or 2,000 lines; complete output is saved when truncated.",
   promptSnippet:
     "Search the web for current docs, release notes, official pages, recent changes, GitHub/project information, and technical source URLs",
   promptGuidelines: [
@@ -319,13 +319,13 @@ const webFetchTool = defineTool({
   name: "web_fetch",
   label: "Web Fetch",
   description:
-    "Fetch the content of a specific HTTP(S) URL discovered through web_search or provided by the user. Returns markdown, text, or HTML with metadata and truncation.",
+    "Fetch a public HTTP(S) URL with a 5 MiB streaming response limit. Results are capped at 50 KiB or 2,000 lines; complete output is saved when truncated.",
   promptSnippet: "Fetch and read the content of a specific HTTP(S) URL when source content is needed",
   promptGuidelines: [
     "Use web_fetch after web_search when you need to inspect the content of a specific source URL.",
     "Prefer using web_fetch on official documentation, repository, changelog, or release-note URLs before less authoritative sources.",
     "Do not use web_fetch for local files or internal/private network URLs; only HTTP(S) web URLs are supported.",
-    "Keep web_fetch maxCharacters as small as practical; increase it only when the page content is incomplete for the task.",
+    "Keep web_fetch maxCharacters as small as practical; when web_fetch reports a full-output path, use read to inspect only the needed sections.",
   ],
   parameters: Type.Object({
     url: Type.String({ description: "HTTP(S) URL to fetch. Use a specific source URL, not a search query." }),
@@ -431,7 +431,7 @@ const codeSearchTool = defineTool({
   name: "code_search",
   label: "Code Search",
   description:
-    "Search implementation-oriented API, SDK, framework, and library documentation with code examples. Use for usage patterns, configuration examples, and code-context lookups.",
+    "Search implementation-oriented API, SDK, framework, and library documentation with code examples. Results are capped at 50 KiB or 2,000 lines; complete output is saved when truncated.",
   promptSnippet:
     "Find implementation-oriented API, SDK, framework, and library docs with code examples and usage patterns",
   promptGuidelines: [
