@@ -52,8 +52,8 @@ test("stripJsonComments preserves strings while removing line and block comments
   assert.deepEqual(JSON.parse(stripped), { url: "https://example.test//not-comment", ok: true });
 });
 
-test("parseModelsJson accepts commented models.json", () => {
-  assert.deepEqual(parseModelsJson(`{ // comment\n "providers": {} }`), { providers: {} });
+test("parseModelsJson accepts JSONC models.json", () => {
+  assert.deepEqual(parseModelsJson(`{ // comment\n "providers": {}, }`), { providers: {} });
 });
 
 test("mergeCopilotProviderConfig preserves unrelated providers", () => {
