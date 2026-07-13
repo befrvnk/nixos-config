@@ -8,7 +8,7 @@ import {
 import { Markdown, Text } from "@earendil-works/pi-tui";
 import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
-import { fetchWebUrl, type WebFetchFormat } from "./web-fetch.ts";
+import { fetchWebUrl, readResponseBodyLimited, type WebFetchFormat } from "./web-fetch.ts";
 import { prepareToolOutput } from "./tool-output.ts";
 
 const EXA_MCP_URL = process.env.EXA_MCP_URL ?? "https://mcp.exa.ai/mcp";
@@ -622,6 +622,7 @@ async function runSearchPlan(
           const result = await runWebSearchPass(item, settings, signal);
           return { ok: true as const, result };
         } catch (error) {
+          if (signal?.aborted) throw signal.reason ?? error;
           return { ok: false as const, warning: { ...item, error: errorToMessage(error) } };
         }
       }),
@@ -665,13 +666,14 @@ async function callExaMcpWithRetries(
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= EXA_RETRIES; attempt++) {
-    if (signal?.aborted) throw new Error("Search cancelled.");
+    if (signal?.aborted) throw signal.reason ?? new Error("Search cancelled.");
 
     try {
       return await callExaMcpOnce(toolName, args, timeoutMs, signal);
     } catch (error) {
       lastError = error;
-      if (signal?.aborted || attempt >= EXA_RETRIES) break;
+      if (signal?.aborted) throw signal.reason ?? error;
+      if (attempt >= EXA_RETRIES) break;
       await sleep(EXA_RETRY_DELAY_MS, signal);
     }
   }
@@ -708,14 +710,14 @@ async function callExaMcpOnce(
       signal: controller.signal,
     });
 
-    const raw = await response.text();
+    const raw = new TextDecoder().decode(await readResponseBodyLimited(response, controller.signal));
     if (!response.ok) {
       throw new Error(`Exa MCP request failed with HTTP ${response.status}: ${normalizeWhitespace(raw)}`);
     }
 
     return extractMcpResultEvent(raw);
   } catch (error) {
-    if (signal?.aborted) throw new Error("Search cancelled.");
+    if (signal?.aborted) throw signal.reason ?? error;
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -828,13 +830,13 @@ function readPositiveIntEnv(names: string | string[], fallback: number): number 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
-      reject(new Error("Search cancelled."));
+      reject(signal.reason ?? new Error("Search cancelled."));
       return;
     }
 
     const abort = () => {
       clearTimeout(timeout);
-      reject(new Error("Search cancelled."));
+      reject(signal?.reason ?? new Error("Search cancelled."));
     };
     const timeout = setTimeout(() => {
       signal?.removeEventListener("abort", abort);
