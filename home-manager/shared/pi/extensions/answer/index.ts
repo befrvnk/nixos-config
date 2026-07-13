@@ -377,8 +377,8 @@ class QnAComponent implements Component, Focusable {
 
 export default function answerExtension(pi: ExtensionAPI) {
 	const answerHandler = async (ctx: ExtensionCommandContext) => {
-		if (ctx.mode !== "tui") {
-			ctx.ui.notify("answer requires TUI mode", "error");
+		if (ctx.mode !== "tui" && ctx.mode !== "rpc") {
+			ctx.ui.notify("answer requires interactive TUI or RPC mode", "error");
 			return;
 		}
 
@@ -394,38 +394,30 @@ export default function answerExtension(pi: ExtensionAPI) {
 		}
 
 		const extractionModel = await selectExtractionModel(ctx.model, ctx.modelRegistry);
-		const extraction = await ctx.ui.custom<ExtractionUiResult>((tui: TUI, theme: Theme, _kb, done) => {
-			const loader = new BorderedLoader(tui, theme, `Extracting questions using ${extractionModel.id}...`);
-			loader.onAbort = () => done({ status: "cancelled" });
-
-			const extract = async () => {
+		const extract = async (signal?: AbortSignal): Promise<ExtractionUiResult> => {
+			try {
 				const auth = await ctx.modelRegistry.getApiKeyAndHeaders(extractionModel);
 				if (!auth.ok || !auth.apiKey) {
 					return {
 						status: "error",
 						message: auth.ok ? `No API key for ${extractionModel.provider}` : auth.error,
-					} as const;
+					};
 				}
 
 				const message: UserMessage = {
 					role: "user",
-					content: [
-						{
-							type: "text",
-							text: prepareAssistantTextForExtraction(lastAssistant.text!),
-						},
-					],
+					content: [{
+						type: "text",
+						text: prepareAssistantTextForExtraction(lastAssistant.text!),
+					}],
 					timestamp: Date.now(),
 				};
-
 				const response = await complete(
 					extractionModel,
 					{ systemPrompt: SYSTEM_PROMPT, messages: [message] },
-					{ apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal },
+					{ apiKey: auth.apiKey, headers: auth.headers, signal },
 				);
-
-				if (response.stopReason === "aborted") return { status: "cancelled" } as const;
-
+				if (response.stopReason === "aborted") return { status: "cancelled" };
 				const responseText = response.content
 					.filter(
 						(content: { type: string; text?: string }): content is { type: "text"; text: string } =>
@@ -433,29 +425,23 @@ export default function answerExtension(pi: ExtensionAPI) {
 					)
 					.map((content: { type: "text"; text: string }) => content.text)
 					.join("\n");
-
 				const parsed = parseExtractionResult(responseText);
-				if (!parsed) {
-					return {
-						status: "error",
-						message: "Question extraction returned invalid JSON",
-					} as const;
-				}
+				return parsed
+					? { status: "success", value: parsed }
+					: { status: "error", message: "Question extraction returned invalid JSON" };
+			} catch (error) {
+				return { status: "error", message: error instanceof Error ? error.message : String(error) };
+			}
+		};
 
-				return { status: "success", value: parsed } as const;
-			};
-
-			extract()
-				.then(done)
-				.catch((error) => {
-					done({
-						status: "error",
-						message: error instanceof Error ? error.message : String(error),
-					});
-				});
-
-			return loader;
-		});
+		const extraction = ctx.mode === "tui"
+			? await ctx.ui.custom<ExtractionUiResult>((tui: TUI, theme: Theme, _kb, done) => {
+				const loader = new BorderedLoader(tui, theme, `Extracting questions using ${extractionModel.id}...`);
+				loader.onAbort = () => done({ status: "cancelled" });
+				void extract(loader.signal).then(done);
+				return loader;
+			})
+			: await extract();
 
 		if (extraction.status === "cancelled") {
 			ctx.ui.notify("Cancelled", "info");
@@ -472,9 +458,29 @@ export default function answerExtension(pi: ExtensionAPI) {
 			return;
 		}
 
-		const answers = await ctx.ui.custom<string | null>((tui: TUI, theme: Theme, keybindings, done) =>
-			new QnAComponent(extraction.value.questions, tui, theme, keybindings, done),
-		);
+		let answers: string | null;
+		if (ctx.mode === "tui") {
+			answers = await ctx.ui.custom<string | null>((tui: TUI, theme: Theme, keybindings, done) =>
+				new QnAComponent(extraction.value.questions, tui, theme, keybindings, done),
+			);
+		} else {
+			const rpcAnswers: string[] = [];
+			let rpcCancelled = false;
+			for (const question of extraction.value.questions) {
+				const title = question.context
+					? `${question.question}\n\nContext: ${question.context}`
+					: question.question;
+				const answer = await ctx.ui.editor(title, "");
+				if (answer === undefined) {
+					rpcCancelled = true;
+					break;
+				}
+				rpcAnswers.push(answer);
+			}
+			answers = rpcCancelled
+				? null
+				: buildAnswerMessage(extraction.value.questions, rpcAnswers);
+		}
 
 		if (answers === null) {
 			ctx.ui.notify("Cancelled", "info");
