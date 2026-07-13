@@ -1,5 +1,7 @@
 import path from "node:path";
 import { DEFAULT_CONTEXT_RESERVE_TOKENS } from "./constants.ts";
+import { parseJsonc } from "./jsonc.ts";
+import { positiveSafeIntegerOr } from "./token-validation.ts";
 
 export interface PiSettingsLike {
   compaction?: {
@@ -8,11 +10,17 @@ export interface PiSettingsLike {
 }
 
 export function parseContextReserveTokens(text: string): number {
-  const parsed = JSON.parse(text) as PiSettingsLike;
-  const value = parsed.compaction?.reserveTokens;
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : DEFAULT_CONTEXT_RESERVE_TOKENS;
+  const parsed = parseJsonc(text);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return DEFAULT_CONTEXT_RESERVE_TOKENS;
+  }
+
+  const compaction = (parsed as PiSettingsLike).compaction;
+  if (!compaction || typeof compaction !== "object" || Array.isArray(compaction)) {
+    return DEFAULT_CONTEXT_RESERVE_TOKENS;
+  }
+
+  return positiveSafeIntegerOr(compaction.reserveTokens, DEFAULT_CONTEXT_RESERVE_TOKENS);
 }
 
 export async function loadContextReserveTokens(
