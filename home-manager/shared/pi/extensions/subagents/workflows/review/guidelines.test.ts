@@ -22,7 +22,7 @@ test("findProjectReviewGuidelinesPath returns the repo-level REVIEW_GUIDELINES.m
 	await fs.writeFile(guidelinesPath, "Follow the checklist.\n");
 
 	const found = await findProjectReviewGuidelinesPath(nested);
-	assert.equal(found, guidelinesPath);
+	assert.equal(found, await fs.realpath(guidelinesPath));
 
 	await fs.rm(root, { recursive: true, force: true });
 });
@@ -39,6 +39,23 @@ test("loadProjectReviewGuidelines ignores missing or blank files", async () => {
 	assert.equal(await loadProjectReviewGuidelines(nested), undefined);
 
 	await fs.rm(root, { recursive: true, force: true });
+});
+
+test("review guideline discovery stays within the canonical repository and ignores symlinks", async () => {
+	const parent = await makeTempDir();
+	const root = path.join(parent, "repo");
+	const external = path.join(parent, "external");
+	const nested = path.join(root, "src");
+	await fs.mkdir(nested, { recursive: true });
+	await fs.mkdir(path.join(external, ".pi"), { recursive: true });
+	await fs.writeFile(path.join(external, "REVIEW_GUIDELINES.md"), "external secret");
+	await fs.symlink(path.join(external, ".pi"), path.join(root, ".pi"));
+	await fs.symlink(path.join(external, "REVIEW_GUIDELINES.md"), path.join(root, "REVIEW_GUIDELINES.md"));
+
+	assert.equal(await findProjectReviewGuidelinesPath(nested, root), undefined);
+	assert.equal(await loadProjectReviewGuidelines(nested, root), undefined);
+
+	await fs.rm(parent, { recursive: true, force: true });
 });
 
 test("composeAdditionalReviewInstructions combines user focus and project guidelines", () => {

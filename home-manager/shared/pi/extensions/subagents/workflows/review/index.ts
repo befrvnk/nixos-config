@@ -1167,9 +1167,12 @@ export function withReviewChangeBrief(
 
 async function buildAdditionalReviewInstructions(
 	params: ReviewRequest,
-	cwd: string,
+	context: ReviewContext,
 ): Promise<string | undefined> {
-	const projectGuidelines = await loadProjectReviewGuidelines(cwd);
+	const projectGuidelines = await loadProjectReviewGuidelines(
+		context.repoRoot,
+		context.repoRoot,
+	);
 	return composeAdditionalReviewInstructions({
 		extraPrompt: params.prompt,
 		projectGuidelines,
@@ -1179,10 +1182,9 @@ async function buildAdditionalReviewInstructions(
 export async function createReviewBriefTask(
 	context: ReviewContext,
 	params: ReviewRequest,
-	defaultCwd: string,
+	_defaultCwd: string,
 ): Promise<SubagentTaskInput> {
-	const cwd = params.cwd?.trim() || defaultCwd;
-	const additionalInstructions = await buildAdditionalReviewInstructions(params, cwd);
+	const additionalInstructions = await buildAdditionalReviewInstructions(params, context);
 	return {
 		task: buildReviewBriefTask(context, additionalInstructions),
 		label: "Change brief",
@@ -1199,11 +1201,10 @@ export async function createReviewBriefTask(
 export async function createReviewTasksForContext(
 	context: ReviewContext,
 	params: ReviewRequest,
-	defaultCwd: string,
+	_defaultCwd: string,
 ): Promise<SubagentTaskInput[]> {
-	const cwd = params.cwd?.trim() || defaultCwd;
 	const reviewers = [...DEFAULT_REVIEWERS];
-	const additionalInstructions = await buildAdditionalReviewInstructions(params, cwd);
+	const additionalInstructions = await buildAdditionalReviewInstructions(params, context);
 	return reviewers.map((reviewer) => ({
 		task: buildReviewTask(context, reviewer, additionalInstructions),
 		label: reviewer.label?.trim() || reviewer.model,
