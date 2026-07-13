@@ -213,7 +213,7 @@ const webSearchTool = defineTool({
     "Use web_search with focus='recent' for latest/current/release/changelog questions.",
     "Use web_search in default overview mode first when the user needs a broad understanding of a project, library, or tool.",
     "web_search returns source URLs only; use web_fetch on a specific URL if page content is required.",
-    "Preserve user constraints such as site:, repository names, versions, and years in web_search queries.",
+    "Preserve user constraints such as site:, repository names, versions, and years when constructing web_search queries.",
   ],
   parameters: Type.Object({
     query: Type.String({ description: "Search query. Preserve user constraints such as site:, repo names, versions, and years." }),
@@ -319,9 +319,9 @@ const webFetchTool = defineTool({
   promptSnippet: "Fetch and read the content of a specific HTTP(S) URL when source content is needed",
   promptGuidelines: [
     "Use web_fetch after web_search when you need to inspect the content of a specific source URL.",
-    "Prefer fetching official documentation, repository, changelog, or release-note URLs before less authoritative sources.",
+    "Prefer using web_fetch on official documentation, repository, changelog, or release-note URLs before less authoritative sources.",
     "Do not use web_fetch for local files or internal/private network URLs; only HTTP(S) web URLs are supported.",
-    "Keep maxCharacters as small as practical; increase it only when the page content is incomplete for the task.",
+    "Keep web_fetch maxCharacters as small as practical; increase it only when the page content is incomplete for the task.",
   ],
   parameters: Type.Object({
     url: Type.String({ description: "HTTP(S) URL to fetch. Use a specific source URL, not a search query." }),
@@ -420,7 +420,7 @@ const codeSearchTool = defineTool({
   promptGuidelines: [
     "Use code_search for implementation-oriented API, SDK, library, or framework usage examples.",
     "Use code_search when the user asks how to configure or call a library/API and web_search would be too general.",
-    "Prefer local repository tools such as grep/find/LSP for searching the current codebase; use code_search for external docs and code context.",
+    "Prefer local repository tools such as grep/find/LSP over code_search for the current codebase; use code_search for external docs and code context.",
   ],
   parameters: Type.Object({
     query: Type.String({ description: "Implementation-oriented search query, such as an API, framework feature, or configuration task." }),

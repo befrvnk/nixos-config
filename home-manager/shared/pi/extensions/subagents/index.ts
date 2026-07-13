@@ -947,16 +947,16 @@ export default function subagentExtension(pi: ExtensionAPI) {
     promptSnippet:
       "Delegate repo, docs, web, or source exploration to isolated subagents. Use this for information gathering and context compression.",
     promptGuidelines: [
-      "Use this tool for exploration tasks where intermediate retrieval steps do not need to pollute the main context.",
-      "Prefer parallel tasks when the information sources are independent, such as repo scan + web docs + upstream implementation lookup.",
-      "Keep tasks read-only and focused on finding and summarizing information.",
-      "Use intent instead of raw model names: fast for lightweight scans, balanced for the default tradeoff, deep for heavier synthesis.",
-      "If intent is omitted or unclear, the extension falls back to a safe balanced profile automatically.",
-      "Use multiple tasks when the work is naturally parallel.",
+      "Use explore for exploration tasks where intermediate retrieval steps do not need to pollute the main context.",
+      "Prefer parallel explore tasks when the information sources are independent, such as repo scan + web docs + upstream implementation lookup.",
+      "Keep explore tasks read-only and focused on finding and summarizing information.",
+      "Use explore intent instead of raw model names: fast for lightweight scans, balanced for the default tradeoff, deep for heavier synthesis.",
+      "If explore intent is omitted or unclear, the extension falls back to a safe balanced profile automatically.",
+      "Use multiple explore tasks when the work is naturally parallel.",
       "If explore reports an infrastructure or tool-access failure, do not retry the same exploration; report the failure and continue with available local tools.",
       "Do not use explore for formal audits or code review; /review is user-triggered.",
-      "Use the structured exploration result directly in your response instead of redoing the exploration yourself.",
-      "When the tool returns multiple task results, synthesize across those results instead of discarding their structure.",
+      "Use the structured explore result directly in your response instead of redoing the exploration yourself.",
+      "When explore returns multiple task results, synthesize across those results instead of discarding their structure.",
     ],
     parameters: exploreParamsSchema,
     renderCall(args, theme) {
@@ -1014,6 +1014,9 @@ export default function subagentExtension(pi: ExtensionAPI) {
       "Inspect active and recent exploration subagent runs in the current pi session.",
     promptSnippet:
       "Inspect active or recent exploration runs when you need to recall what exploration subagents are doing or what they already found.",
+    promptGuidelines: [
+      "Use explore_status to inspect active or recent explore runs instead of starting duplicate exploration work.",
+    ],
     parameters: statusSchema,
     async execute(_toolCallId, params) {
       return executeStatus(

@@ -618,8 +618,8 @@ export default function piLspExtension(pi: ExtensionAPI) {
     promptSnippet:
       "Use LSP for type information, go-to-definition, references, diagnostics, and symbol discovery in TypeScript, Nix, and Kotlin.",
     promptGuidelines: [
-      "Use this tool on demand when you need semantic code intelligence such as types, definitions, references, or diagnostics.",
-      "Do not assume it runs automatically after edits; call it explicitly when verification is useful.",
+      "Use lsp_query on demand when you need semantic code intelligence such as types, definitions, references, or diagnostics.",
+      "Do not assume lsp_query runs automatically after edits; call lsp_query explicitly when verification is useful.",
     ],
     parameters: LspQueryParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -634,7 +634,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
       "Search semantic symbols across configured language servers. Works best for functions, classes, interfaces, modules, and declarations.",
     promptSnippet: "Search semantic workspace symbols before using plain text grep for code navigation.",
     promptGuidelines: [
-      "Use this before grep when you are looking for functions, classes, interfaces, modules, or declarations in supported languages.",
+      "Use workspace_symbols before grep when you are looking for functions, classes, interfaces, modules, or declarations in supported languages.",
     ],
     parameters: WorkspaceSymbolsParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -648,7 +648,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
     description: "List semantic symbols inside a supported-language file.",
     promptSnippet: "Inspect file structure before reading large supported-language files.",
     promptGuidelines: [
-      "Use this before reading a large TypeScript, Nix, or Kotlin file when you need a structural overview.",
+      "Use document_symbols before reading a large TypeScript, Nix, or Kotlin file when you need a structural overview.",
     ],
     parameters: DocumentSymbolsParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -662,7 +662,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
     description: "Jump to the semantic definition of the symbol at a given file position.",
     promptSnippet: "Jump to symbol definitions semantically instead of searching by text.",
     promptGuidelines: [
-      "Use this when you already know a symbol position and want its declaration or implementation site.",
+      "Use definition when you already know a symbol position and want its declaration or implementation site.",
     ],
     parameters: PositionSearchParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -676,7 +676,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
     description: "Find semantic references to the symbol at a given file position.",
     promptSnippet: "Find semantic symbol usages instead of grep when the target is real code.",
     promptGuidelines: [
-      "Prefer this over grep when you need callers or usages of a real symbol in a supported language.",
+      "Prefer references over grep when you need callers or usages of a real symbol in a supported language.",
     ],
     parameters: ReferencesParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -690,7 +690,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
     description: "Get type or symbol information at a given file position.",
     promptSnippet: "Inspect type and symbol information at a precise position.",
     promptGuidelines: [
-      "Use this for signatures, inferred types, and symbol details at a known position.",
+      "Use hover for signatures, inferred types, and symbol details at a known position.",
     ],
     parameters: PositionParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -704,7 +704,7 @@ export default function piLspExtension(pi: ExtensionAPI) {
     description: "Read current language-server diagnostics for a supported-language file.",
     promptSnippet: "Check language-server diagnostics after edits or when debugging compile issues.",
     promptGuidelines: [
-      "Use this after code changes when you want semantic validation from the language server.",
+      "Use diagnostics after code changes when you want semantic validation from the language server.",
     ],
     parameters: DiagnosticsParams,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
