@@ -77,6 +77,11 @@ export async function fetchWebUrl(
       throw new Error(`Request failed with status code: ${response.status}`);
     }
 
+    const contentEncoding = response.headers.get("content-encoding")?.trim().toLowerCase();
+    if (contentEncoding && contentEncoding !== "identity") {
+      throw new Error(`Unsupported response content encoding: ${contentEncoding}.`);
+    }
+
     const contentLength = response.headers.get("content-length");
     if (contentLength != null && /^\d+$/u.test(contentLength) && Number(contentLength) > MAX_RESPONSE_BYTES) {
       throw new Error("Response too large (exceeds 5MB limit).");

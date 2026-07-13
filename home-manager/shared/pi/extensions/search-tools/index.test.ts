@@ -232,6 +232,23 @@ test("fetchWebUrl preserves fractional timeout seconds", async () => {
   assert.equal(observedTimeoutMs, 1900);
 });
 
+test("fetchWebUrl rejects unexpected compressed responses", async () => {
+  await assert.rejects(
+    () => fetchWebUrl(
+      { url: "https://example.com/page", format: "text", maxCharacters: 1000 },
+      undefined,
+      {
+        resolveHostname: async () => ["93.184.216.34"],
+        fetchImpl: async () => new Response("compressed", {
+          status: 200,
+          headers: { "content-encoding": "gzip" },
+        }),
+      },
+    ),
+    /Unsupported response content encoding/,
+  );
+});
+
 test("fetchWebUrl reports non-OK HTTP status codes", async () => {
   await assert.rejects(
     () =>
