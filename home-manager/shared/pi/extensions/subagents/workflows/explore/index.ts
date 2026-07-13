@@ -1,4 +1,4 @@
-import { Text } from "@mariozechner/pi-tui";
+import { Text } from "@earendil-works/pi-tui";
 import { shortTaskId, shortenPath } from "../../formatting.js";
 import type { SubagentTaskResult } from "../../types.js";
 import type { Theme } from "../../ui.js";

@@ -1,5 +1,5 @@
-import { StringEnum } from "@mariozechner/pi-ai";
-import { Type } from "@sinclair/typebox";
+import { StringEnum } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import { ALLOWED_EXPLORE_INTENTS } from "../../model-policy.js";
 import { MAX_LOGICAL_EXPLORE_TASKS } from "../../types.js";
 

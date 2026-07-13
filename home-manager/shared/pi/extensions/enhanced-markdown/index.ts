@@ -1,13 +1,13 @@
 import type {
   ExtensionAPI,
   ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
   Markdown,
   truncateToWidth,
   visibleWidth,
   wrapTextWithAnsi,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import { highlightKotlinCode } from "./kotlin-highlighter.ts";
 import { renderCodeBlockLines } from "./render-code-block.ts";
 

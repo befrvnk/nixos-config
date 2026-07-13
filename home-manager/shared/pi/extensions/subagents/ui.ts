@@ -1,4 +1,4 @@
-import { Text, truncateToWidth } from "@mariozechner/pi-tui";
+import { Text, truncateToWidth } from "@earendil-works/pi-tui";
 import {
 	formatDuration,
 	shortTaskId,

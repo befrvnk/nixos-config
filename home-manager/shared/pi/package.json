@@ -1,0 +1,33 @@
+{
+  "name": "nixos-config-pi-extensions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/answer/index.ts",
+      "./extensions/bash-output-control/index.ts",
+      "./extensions/copilot-live-models/index.ts",
+      "./extensions/enhanced-markdown/index.ts",
+      "./extensions/nav-tools/index.ts",
+      "./extensions/pi-lsp/index.ts",
+      "./extensions/read-path-ui/index.ts",
+      "./extensions/search-tools/index.ts",
+      "./extensions/subagents/index.ts",
+      "./extensions/system-theme-sync/index.ts"
+    ]
+  },
+  "scripts": {
+    "test": "../../../scripts/test-pi-extensions.sh",
+    "smoke": "../../../scripts/smoke-test-pi-package.sh"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  }
+}

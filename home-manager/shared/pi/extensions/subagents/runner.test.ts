@@ -120,7 +120,7 @@ async function withMockedCodingAgentModule<T>(
 		parent: unknown,
 		isMain: boolean,
 	) {
-		if (request === "@mariozechner/pi-coding-agent") {
+		if (request === "@earendil-works/pi-coding-agent") {
 			return {
 				createAgentSession: async () => {
 					throw new Error("createAgentSession should not be called in this test");

@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { COPILOT_PROVIDER, DEFAULT_FETCH_TIMEOUT_MS } from "./constants.ts";
 import { loadCopilotCredentials, resolveCopilotToken } from "./auth.ts";
 import { buildProviderConfig, fetchCopilotLiveModelsWithReserve } from "./live-models.ts";

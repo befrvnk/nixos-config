@@ -1,10 +1,11 @@
-import { StringEnum, Type } from "@mariozechner/pi-ai";
+import { StringEnum } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import {
   defineTool,
   getMarkdownTheme,
   type ExtensionAPI,
-} from "@mariozechner/pi-coding-agent";
-import { Markdown, Text } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import { Markdown, Text } from "@earendil-works/pi-tui";
 import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
 import { fetchWebUrl, type WebFetchFormat } from "./web-fetch.ts";

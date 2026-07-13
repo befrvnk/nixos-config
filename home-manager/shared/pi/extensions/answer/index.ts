@@ -5,7 +5,7 @@
  * and adjusted for this repo's pi setup.
  */
 
-import { complete, type Api, type Model, type UserMessage } from "@mariozechner/pi-ai";
+import { complete, type Api, type Model, type UserMessage } from "@earendil-works/pi-ai";
 import {
 	BorderedLoader,
 	keyHint,
@@ -14,7 +14,7 @@ import {
 	type ExtensionCommandContext,
 	type ModelRegistry,
 	type Theme,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
 	type Component,
 	Editor,
@@ -25,7 +25,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 	wrapTextWithAnsi,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 
 import {
 	buildAnswerMessage,

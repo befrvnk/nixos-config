@@ -4,8 +4,9 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import { spawn, type ChildProcess } from "node:child_process";
-import { StringEnum, Type } from "@mariozechner/pi-ai";
-import { type ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { StringEnum } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
+import { type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   BashOutputViewAccumulator,
   DEFAULT_BASH_MAX_BYTES,
