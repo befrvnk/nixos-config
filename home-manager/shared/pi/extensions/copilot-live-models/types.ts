@@ -115,7 +115,7 @@ export interface CopilotLiveModelsProviderDeps {
 
 export interface CopilotModelsJsonWriterDeps extends CopilotLiveModelsProviderDeps {
   ensureDir(path: string): Promise<void>;
-  writeTextFile(path: string, text: string): Promise<void>;
+  writeTextFileAtomic(path: string, text: string): Promise<void>;
 }
 
 export interface DiscoverOptions {

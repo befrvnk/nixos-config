@@ -116,7 +116,7 @@ function createWriterDeps(options: { modelsJson?: string; modelsReadError?: Erro
       ensureDir: async (dirPath) => {
         dirs.push(dirPath);
       },
-      writeTextFile: async (filePath, text) => {
+      writeTextFileAtomic: async (filePath, text) => {
         writes[filePath] = text;
       },
       writeDebug: (message) => debug.push(message),

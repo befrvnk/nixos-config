@@ -80,7 +80,7 @@ export async function writeCopilotModelsJson(
   const merged = mergeCopilotProviderConfig(existing, providerConfig);
 
   await deps.ensureDir(path.dirname(filePath));
-  await deps.writeTextFile(filePath, `${JSON.stringify(merged, null, 2)}\n`);
+  await deps.writeTextFileAtomic(filePath, `${JSON.stringify(merged, null, 2)}\n`);
   deps.writeDebug?.(`Updated ${filePath} with ${providerConfig.models?.length ?? 0} live GitHub Copilot models.`);
   return true;
 }

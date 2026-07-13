@@ -1,9 +1,48 @@
+import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
 import fs from "node:fs/promises";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { defaultAgentDir, defaultDeps } from "./index.ts";
 import { writeCopilotModelsJsonFromSettings } from "./models-json.ts";
 import type { CopilotModelsJsonWriterDeps } from "./types.ts";
+
+interface AtomicWriteOperations {
+  open: typeof fs.open;
+  rename: typeof fs.rename;
+  unlink: typeof fs.unlink;
+}
+
+export async function atomicWriteTextFile(
+  filePath: string,
+  text: string,
+  overrides: Partial<AtomicWriteOperations> = {},
+): Promise<void> {
+  const operations: AtomicWriteOperations = {
+    open: overrides.open ?? fs.open,
+    rename: overrides.rename ?? fs.rename,
+    unlink: overrides.unlink ?? fs.unlink,
+  };
+  const tempPath = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`,
+  );
+  let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
+  let renamed = false;
+
+  try {
+    handle = await operations.open(tempPath, "wx", 0o600);
+    await handle.writeFile(text, "utf8");
+    await handle.sync();
+    await handle.close();
+    handle = undefined;
+    await operations.rename(tempPath, filePath);
+    renamed = true;
+  } finally {
+    if (handle) await handle.close().catch(() => undefined);
+    if (!renamed) await operations.unlink(tempPath).catch(() => undefined);
+  }
+}
 
 export function defaultWriterDeps(): CopilotModelsJsonWriterDeps {
   const deps = defaultDeps();
@@ -11,7 +50,7 @@ export function defaultWriterDeps(): CopilotModelsJsonWriterDeps {
   return {
     ...deps,
     ensureDir: (dirPath) => fs.mkdir(dirPath, { recursive: true }).then(() => undefined),
-    writeTextFile: (filePath, text) => fs.writeFile(filePath, text, "utf8"),
+    writeTextFileAtomic: atomicWriteTextFile,
   };
 }
 

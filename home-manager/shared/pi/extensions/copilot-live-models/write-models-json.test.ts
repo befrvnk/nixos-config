@@ -1,13 +1,55 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { atomicWriteTextFile } from "./write-models-json.ts";
 
 const extensionDir = path.dirname(fileURLToPath(import.meta.url));
 const scriptPath = path.join(extensionDir, "write-models-json.ts");
+
+test("atomicWriteTextFile replaces complete content with private permissions", async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-copilot-atomic-"));
+  const destination = path.join(tmpDir, "models.json");
+
+  try {
+    await fs.writeFile(destination, "old complete content", "utf8");
+    await atomicWriteTextFile(destination, "new complete content\n");
+
+    assert.equal(await fs.readFile(destination, "utf8"), "new complete content\n");
+    if (process.platform !== "win32") {
+      assert.equal((await fs.stat(destination)).mode & 0o777, 0o600);
+    }
+    assert.deepEqual(await fs.readdir(tmpDir), ["models.json"]);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("atomicWriteTextFile preserves the destination and cleans up after rename failure", async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "pi-copilot-atomic-"));
+  const destination = path.join(tmpDir, "models.json");
+  await fs.writeFile(destination, "old complete content", "utf8");
+
+  try {
+    await assert.rejects(
+      atomicWriteTextFile(destination, "new content", {
+        rename: async () => {
+          throw new Error("forced rename failure");
+        },
+      }),
+      /forced rename failure/,
+    );
+
+    assert.equal(await fs.readFile(destination, "utf8"), "old complete content");
+    assert.deepEqual(await fs.readdir(tmpDir), ["models.json"]);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
 
 test("write-models-json runs when invoked through a Home Manager-style symlink", () => {
   const tmpDir = mkdtempSync(path.join(os.tmpdir(), "pi-copilot-live-models-"));
