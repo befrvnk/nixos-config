@@ -1,7 +1,3 @@
-import { createWriteStream, type WriteStream } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { randomUUID } from "node:crypto";
 import { StringDecoder } from "node:string_decoder";
 import { spawn, type ChildProcess } from "node:child_process";
 import { StringEnum } from "@earendil-works/pi-ai";
@@ -20,6 +16,7 @@ import {
   type BashOutputViewOptions,
 } from "./filtering.ts";
 import { buildBashToolDetails, shouldPersistFullOutput } from "./details.ts";
+import { LazyOutputLog } from "./output-log.ts";
 
 const TIMEOUT_KILL_GRACE_MS = 2_000;
 
@@ -67,83 +64,6 @@ type BashParams = {
   timeout?: number;
 } & BashOutputViewOptions;
 
-function tempOutputPath(): string {
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return join(tmpdir(), `pi-bash-${stamp}-${randomUUID().slice(0, 8)}.log`);
-}
-
-function finishStream(stream: WriteStream): Promise<void> {
-  if (stream.destroyed || stream.closed) return Promise.resolve();
-
-  return new Promise((resolve, reject) => {
-    stream.once("error", reject);
-    stream.end(() => resolve());
-  });
-}
-
-class LazyOutputLog {
-  private stream: WriteStream | undefined;
-  private chunks: string[] = [];
-  private bufferedBytes = 0;
-  private finishPromise: Promise<string | undefined> | undefined;
-  private streamError: Error | undefined;
-  path: string | undefined;
-
-  constructor(private readonly maxBufferedBytes: number) {}
-
-  append(text: string): void {
-    if (this.finishPromise) return;
-
-    if (!this.stream) {
-      this.chunks.push(text);
-      this.bufferedBytes += Buffer.byteLength(text, "utf8");
-      if (this.bufferedBytes > this.maxBufferedBytes) this.enable();
-      return;
-    }
-
-    this.write(text);
-  }
-
-  enable(): void {
-    if (this.stream || this.finishPromise) return;
-
-    this.path = tempOutputPath();
-    this.stream = createWriteStream(this.path, { encoding: "utf8" });
-    this.stream.on("error", (error) => {
-      this.streamError = error;
-    });
-
-    for (const chunk of this.chunks) this.write(chunk);
-    this.chunks = [];
-    this.bufferedBytes = 0;
-  }
-
-  async finish(): Promise<string | undefined> {
-    this.finishPromise ??= this.finishOnce();
-    return this.finishPromise;
-  }
-
-  private async finishOnce(): Promise<string | undefined> {
-    this.chunks = [];
-    this.bufferedBytes = 0;
-    if (!this.stream) return undefined;
-
-    await finishStream(this.stream);
-    if (this.streamError) throw this.streamError;
-    return this.path;
-  }
-
-  private write(text: string): void {
-    if (!this.stream || this.stream.destroyed || this.streamError) return;
-
-    try {
-      this.stream.write(text);
-    } catch (error) {
-      this.streamError = error instanceof Error ? error : new Error(String(error));
-    }
-  }
-}
-
 function signalProcessGroup(child: ChildProcess, signal: NodeJS.Signals): void {
   if (!child.pid) return;
 
@@ -168,9 +88,23 @@ type LocalBashOptions = {
   command: string;
   timeout?: number;
   signal?: AbortSignal;
-  onStdout: (text: string) => void;
-  onStderr: (text: string) => void;
+  onStdout: (text: string) => Promise<void>;
+  onStderr: (text: string) => Promise<void>;
 };
+
+async function consumeReadable(
+  stream: NodeJS.ReadableStream | null,
+  decoder: StringDecoder,
+  onText: (text: string) => Promise<void>,
+): Promise<void> {
+  if (!stream) return;
+  for await (const chunk of stream) {
+    const text = decoder.write(chunk as Buffer);
+    if (text) await onText(text);
+  }
+  const finalText = decoder.end();
+  if (finalText) await onText(finalText);
+}
 
 function waitForChild(child: ChildProcess): Promise<number | null> {
   return new Promise((resolve, reject) => {
@@ -196,29 +130,13 @@ async function execLocalBash(options: LocalBashOptions): Promise<LocalBashResult
   let timeoutHandle: NodeJS.Timeout | undefined;
   let killHandle: NodeJS.Timeout | undefined;
 
-  const flushStdout = () => {
-    const text = stdoutDecoder.end();
-    if (text) options.onStdout(text);
-  };
-  const flushStderr = () => {
-    const text = stderrDecoder.end();
-    if (text) options.onStderr(text);
-  };
   const onAbort = () => {
     signalProcessGroup(child, "SIGTERM");
     killHandle ??= setTimeout(() => signalProcessGroup(child, "SIGKILL"), TIMEOUT_KILL_GRACE_MS);
   };
 
-  child.stdout?.on("data", (chunk: Buffer) => {
-    const text = stdoutDecoder.write(chunk);
-    if (text) options.onStdout(text);
-  });
-  child.stderr?.on("data", (chunk: Buffer) => {
-    const text = stderrDecoder.write(chunk);
-    if (text) options.onStderr(text);
-  });
-  child.stdout?.once("end", flushStdout);
-  child.stderr?.once("end", flushStderr);
+  const stdoutTask = consumeReadable(child.stdout, stdoutDecoder, options.onStdout);
+  const stderrTask = consumeReadable(child.stderr, stderrDecoder, options.onStderr);
 
   try {
     if (options.timeout !== undefined && options.timeout > 0) {
@@ -231,10 +149,13 @@ async function execLocalBash(options: LocalBashOptions): Promise<LocalBashResult
 
     if (options.signal) options.signal.addEventListener("abort", onAbort, { once: true });
 
-    const exitCode = await waitForChild(child);
+    const [exitCode] = await Promise.all([waitForChild(child), stdoutTask, stderrTask]);
     if (options.signal?.aborted) throw new Error("aborted");
     if (timedOut) throw new Error(`timeout:${options.timeout}`);
     return { exitCode };
+  } catch (error) {
+    signalProcessGroup(child, "SIGKILL");
+    throw error;
   } finally {
     if (timeoutHandle) clearTimeout(timeoutHandle);
     if (killHandle) clearTimeout(killHandle);
@@ -311,7 +232,7 @@ export default function (pi: ExtensionAPI) {
       let view: BashOutputView | undefined;
       const finishOutput = async () => {
         view ??= accumulator.finish();
-        if (shouldPersistFullOutput(view)) outputLog.enable();
+        if (shouldPersistFullOutput(view)) await outputLog.enable();
         const fullOutputPath = await outputLog.finish();
         return { view, fullOutputPath };
       };
@@ -319,9 +240,9 @@ export default function (pi: ExtensionAPI) {
       try {
         let exitCode: number | null;
         try {
-          const appendOutput = (text: string) => {
+          const appendOutput = async (text: string) => {
             accumulator.append(text);
-            outputLog.append(text);
+            await outputLog.append(text);
           };
 
           const result = await execLocalBash({
