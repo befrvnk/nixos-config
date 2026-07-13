@@ -17,6 +17,7 @@ import {
   SelectList,
   Spacer,
   Text,
+  truncateToWidth,
 } from "@earendil-works/pi-tui";
 import {
   parseExploreOutput,
@@ -75,8 +76,9 @@ import {
 } from "./types.js";
 import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
 
-const SUBAGENT_TASK_MESSAGE_TYPE = "subagent-task";
-const SUBAGENT_MARKDOWN_MESSAGE_TYPE = "subagent-markdown";
+const SUBAGENT_TASK_ENTRY_TYPE = "subagent-task";
+const SUBAGENT_MARKDOWN_ENTRY_TYPE = "subagent-markdown";
+const SUBAGENT_REVIEW_MESSAGE_TYPE = "subagent-review";
 const MARKDOWN_PREVIEW_LINES = 8;
 
 function renderMarkdownPreview(
@@ -243,6 +245,16 @@ async function showSelectableList(
     selectedIndex?: number;
   },
 ): Promise<string | undefined> {
+  if (ctx.mode === "rpc") {
+    const labels = options.items.map((item, index) =>
+      `${item.label}${item.description ? ` — ${item.description}` : ""} [${index + 1}]`
+    );
+    const selected = await ctx.ui.select(options.title, labels);
+    const index = selected ? labels.indexOf(selected) : -1;
+    return index >= 0 ? String(options.items[index]!.value) : undefined;
+  }
+  if (ctx.mode !== "tui") return undefined;
+
   return ctx.ui.custom<string | undefined>((tui, theme, keybindings, done) => {
     const container = new Container();
     container.addChild(new DynamicBorder((text) => theme.fg("accent", text)));
@@ -320,11 +332,18 @@ async function showSelectableList(
     applyFilter();
 
     return {
+      get focused() {
+        return searchInput.focused;
+      },
+      set focused(value: boolean) {
+        searchInput.focused = value;
+      },
       render(width: number) {
-        return container.render(width);
+        return container.render(width).map((line) => truncateToWidth(line, Math.max(0, width), ""));
       },
       invalidate() {
         container.invalidate();
+        searchInput.invalidate();
       },
       handleInput(data: string) {
         if (
@@ -381,7 +400,7 @@ async function promptForReviewSelection(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
 ): Promise<ReviewSelection | undefined> {
-  if (!ctx.hasUI) return undefined;
+  if (ctx.mode !== "tui" && ctx.mode !== "rpc") return undefined;
 
   const [statusShort, currentBranch, defaultBranch] = await Promise.all([
     getReviewStatusShort(pi, ctx.cwd),
@@ -489,13 +508,13 @@ async function promptForReviewSelection(
   return promptForOptionalReviewInstructions(ctx, selection);
 }
 
-function showCommandMessage(
-  pi: ExtensionAPI,
-  markdown: string,
-  content: string,
-) {
+function showCommandEntry(pi: ExtensionAPI, markdown: string) {
+  pi.appendEntry(SUBAGENT_MARKDOWN_ENTRY_TYPE, { markdown });
+}
+
+function sendReviewMessage(pi: ExtensionAPI, markdown: string, content: string) {
   pi.sendMessage({
-    customType: SUBAGENT_MARKDOWN_MESSAGE_TYPE,
+    customType: SUBAGENT_REVIEW_MESSAGE_TYPE,
     content,
     display: true,
     details: { markdown },
@@ -611,16 +630,11 @@ export default function subagentExtension(pi: ExtensionAPI) {
 
     activeRuns.set(run.runId, run);
     for (const taskState of run.tasks) {
-      pi.sendMessage({
-        customType: SUBAGENT_TASK_MESSAGE_TYPE,
-        content: `${workflow} ${taskState.label}`,
-        display: true,
-        details: {
-          workflow,
-          taskId: taskState.taskId,
-          label: taskState.label,
-          task: taskState.task,
-        },
+      pi.appendEntry(SUBAGENT_TASK_ENTRY_TYPE, {
+        workflow,
+        taskId: taskState.taskId,
+        label: taskState.label,
+        task: taskState.task,
       });
     }
     emitRunUpdate();
@@ -772,7 +786,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
         results,
         context,
       );
-      showCommandMessage(
+      sendReviewMessage(
         pi,
         reviewMarkdown,
         buildReviewContextMessage(reviewMarkdown) ?? reviewMarkdown,
@@ -806,12 +820,12 @@ export default function subagentExtension(pi: ExtensionAPI) {
     const parsed = parseReviewCommandArgs(args);
     if (parsed && "error" in parsed) {
       if (ctx.hasUI) ctx.ui.notify(parsed.error, "error");
-      else showCommandMessage(pi, parsed.error, "Review command usage");
+      else showCommandEntry(pi, parsed.error);
       return;
     }
 
-    if (!parsed && !ctx.hasUI) {
-      showCommandMessage(pi, REVIEW_COMMAND_USAGE, "Review command usage");
+    if (!parsed && ctx.mode !== "tui" && ctx.mode !== "rpc") {
+      showCommandEntry(pi, REVIEW_COMMAND_USAGE);
       return;
     }
 
@@ -819,7 +833,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
     if (!selection) return;
 
     let result: ReviewExecutionResult;
-    if (ctx.hasUI) {
+    if (ctx.mode === "tui") {
       result = await ctx.ui.custom<ReviewExecutionResult>(
         (tui, theme, _kb, done) => {
           const loader = new BorderedLoader(
@@ -845,11 +859,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 
     if (!ctx.hasUI) {
       if (result.status === "error") {
-        showCommandMessage(
-          pi,
-          `Review failed: ${result.message}`,
-          "Review failed",
-        );
+        showCommandEntry(pi, `Review failed: ${result.message}`);
       }
       return;
     }
@@ -878,7 +888,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     if (!ctx.hasUI) return;
-    widget.setUICtx(ctx.ui);
+    widget.setUICtx(ctx.ui, ctx.mode);
     widget.update();
   });
 
@@ -890,10 +900,10 @@ export default function subagentExtension(pi: ExtensionAPI) {
     widget.dispose();
   });
 
-  pi.registerMessageRenderer(
-    SUBAGENT_TASK_MESSAGE_TYPE,
-    (message, { expanded }, theme) => {
-      const details = message.details as
+  pi.registerEntryRenderer(
+    SUBAGENT_TASK_ENTRY_TYPE,
+    (entry, { expanded }, theme) => {
+      const details = entry.data as
         | {
             workflow: SubagentWorkflow;
             taskId: string;
@@ -906,14 +916,24 @@ export default function subagentExtension(pi: ExtensionAPI) {
     },
   );
 
-  pi.registerMessageRenderer(
-    SUBAGENT_MARKDOWN_MESSAGE_TYPE,
-    (message, { expanded }, theme) => {
-      const details = message.details as { markdown?: string } | undefined;
+  pi.registerEntryRenderer(
+    SUBAGENT_MARKDOWN_ENTRY_TYPE,
+    (entry, { expanded }, theme) => {
+      const details = entry.data as { markdown?: string } | undefined;
       if (!details?.markdown) return undefined;
       if (!expanded) {
         return new Text(renderMarkdownPreview(details.markdown, theme), 0, 0);
       }
+      return new Markdown(details.markdown, 0, 0, getMarkdownTheme());
+    },
+  );
+
+  pi.registerMessageRenderer(
+    SUBAGENT_REVIEW_MESSAGE_TYPE,
+    (message, { expanded }, theme) => {
+      const details = message.details as { markdown?: string } | undefined;
+      if (!details?.markdown) return undefined;
+      if (!expanded) return new Text(renderMarkdownPreview(details.markdown, theme), 0, 0);
       return new Markdown(details.markdown, 0, 0, getMarkdownTheme());
     },
   );
@@ -927,10 +947,9 @@ export default function subagentExtension(pi: ExtensionAPI) {
         return;
       }
 
-      showCommandMessage(
+      showCommandEntry(
         pi,
         renderTaskHistoryMarkdown(result.task, result.run),
-        `Subagent history ${shortTaskId(result.task.taskId)}`,
       );
     },
   });

@@ -29,10 +29,11 @@ export type UICtx = {
 		key: string,
 		content:
 			| undefined
+			| string[]
 			| ((
 					tui: any,
 					theme: Theme,
-			  ) => { render(): string[]; invalidate(): void }),
+			  ) => { render(width: number): string[]; invalidate(): void }),
 		options?: { placement?: "aboveEditor" | "belowEditor" },
 	): void;
 	theme: Theme;
@@ -369,16 +370,20 @@ export class SubagentWidget {
 	private widgetRegistered = false;
 	private tui: any | undefined;
 	private lastStatusText: string | undefined;
+	private lastWidgetSignature: string | undefined;
+	private mode: "tui" | "rpc" | "json" | "print" = "tui";
 
 	constructor(private getRuns: () => SubagentRunState[]) {}
 
-	setUICtx(ctx: UICtx | undefined) {
+	setUICtx(ctx: UICtx | undefined, mode: "tui" | "rpc" | "json" | "print" = "tui") {
 		if (!ctx) return;
-		if (ctx !== this.uiCtx) {
+		if (ctx !== this.uiCtx || mode !== this.mode) {
 			this.uiCtx = ctx;
+			this.mode = mode;
 			this.widgetRegistered = false;
 			this.tui = undefined;
 			this.lastStatusText = undefined;
+			this.lastWidgetSignature = undefined;
 		}
 	}
 
@@ -415,6 +420,7 @@ export class SubagentWidget {
 				this.uiCtx.setStatus("subagents", undefined);
 				this.lastStatusText = undefined;
 			}
+			this.lastWidgetSignature = undefined;
 			if (this.widgetInterval) {
 				clearInterval(this.widgetInterval);
 				this.widgetInterval = undefined;
@@ -422,7 +428,7 @@ export class SubagentWidget {
 			return;
 		}
 
-		this.ensureTimer();
+		if (this.mode === "tui") this.ensureTimer();
 		this.widgetFrame++;
 
 		let newStatusText: string | undefined;
@@ -448,19 +454,22 @@ export class SubagentWidget {
 			this.lastStatusText = newStatusText;
 		}
 
-		if (!this.widgetRegistered) {
+		if (this.mode === "rpc") {
+			const plainTheme: Theme = { fg: (_color, text) => text, bold: (text) => text };
+			const lines = buildWidgetLines(runs, this.widgetFrame, plainTheme, 100);
+			const signature = JSON.stringify(lines);
+			if (signature !== this.lastWidgetSignature) {
+				this.uiCtx.setWidget("subagents", lines, { placement: "aboveEditor" });
+				this.lastWidgetSignature = signature;
+				this.widgetRegistered = true;
+			}
+		} else if (!this.widgetRegistered) {
 			this.uiCtx.setWidget(
 				"subagents",
 				(tui, theme) => {
 					this.tui = tui;
 					return {
-						render: () =>
-							buildWidgetLines(
-								this.getRuns(),
-								this.widgetFrame,
-								theme,
-								tui.terminal.columns,
-							),
+						render: (width: number) => buildWidgetLines(this.getRuns(), this.widgetFrame, theme, width),
 						invalidate: () => {
 							this.widgetRegistered = false;
 							this.tui = undefined;
@@ -487,6 +496,7 @@ export class SubagentWidget {
 		this.widgetRegistered = false;
 		this.tui = undefined;
 		this.lastStatusText = undefined;
+		this.lastWidgetSignature = undefined;
 	}
 }
 
@@ -502,7 +512,7 @@ export function renderSubagentTaskMessage(
 ) {
 	const workflowName = workflowDisplayName(details.workflow);
 	const title = `${theme.bold(workflowName)}  ${theme.fg("muted", truncateLine(details.label || details.task, 48))}`;
-	const status = theme.fg("dim", `  Running (ID: ${details.taskId})`);
+	const status = theme.fg("dim", `  Started (ID: ${details.taskId})`);
 	if (!expanded) return new Text(`${title}\n${status}`, 0, 0);
 	return new Text(
 		`${title}\n${status}\n${theme.fg("dim", `  Task: ${details.task}`)}`,
