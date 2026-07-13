@@ -19,6 +19,7 @@ import {
   type BashOutputView,
   type BashOutputViewOptions,
 } from "./filtering.ts";
+import { buildBashToolDetails, shouldPersistFullOutput } from "./details.ts";
 
 const TIMEOUT_KILL_GRACE_MS = 2_000;
 
@@ -78,10 +79,6 @@ function finishStream(stream: WriteStream): Promise<void> {
     stream.once("error", reject);
     stream.end(() => resolve());
   });
-}
-
-function shouldPersistFullOutput(view: BashOutputView): boolean {
-  return view.stats.omittedMatchingLines > 0 || view.stats.truncatedByBytes || (view.stats.hasFilters && view.stats.matchedLines < view.stats.totalLines);
 }
 
 class LazyOutputLog {
@@ -356,7 +353,7 @@ export default function (pi: ExtensionAPI) {
 
         return {
           content: [{ type: "text", text: outputBody(finalView, params, fullOutputPath) }],
-          details: fullOutputPath ? { fullOutputPath } : undefined,
+          details: buildBashToolDetails(finalView, fullOutputPath),
         };
       } finally {
         try {
