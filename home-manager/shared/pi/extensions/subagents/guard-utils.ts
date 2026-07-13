@@ -24,8 +24,6 @@ const READ_ONLY_BASH_COMMANDS = new Set([
   "cut",
   "dirname",
   "du",
-  "echo",
-  "env",
   "fd",
   "file",
   "find",
@@ -34,7 +32,6 @@ const READ_ONLY_BASH_COMMANDS = new Set([
   "head",
   "ls",
   "pwd",
-  "printf",
   "readlink",
   "realpath",
   "rg",
@@ -291,49 +288,133 @@ export function getGitSubcommand(args: string[]): string | undefined {
   return undefined;
 }
 
-export function validateReadOnlyBashSegment(segment: string): string | undefined {
-  const tokens = getExecutableAndArgs(segment);
-  if (tokens.length === 0) return undefined;
+function hasBlockedOption(args: string[], exact: string[], prefixes: string[] = []): boolean {
+  return args.some((arg) => exact.includes(arg) || prefixes.some((prefix) => arg.startsWith(prefix)));
+}
 
-  const [command, ...args] = tokens;
-  if (!READ_ONLY_BASH_COMMANDS.has(command)) {
-    return `bash only allows read-only inspection commands in subagents. Blocked command: ${command}`;
+function validateReadOnlyGit(args: string[]): string | undefined {
+  const riskyGlobal = ["-c", "-C", "--config-env", "--git-dir", "--work-tree", "--namespace"];
+  if (hasBlockedOption(args, riskyGlobal, riskyGlobal.map((option) => `${option}=`))) {
+    return "bash does not allow git configuration or repository redirection options in subagents.";
   }
 
-  if (command === "git") {
-    const subcommand = getGitSubcommand(args);
-    if (subcommand && !READ_ONLY_GIT_SUBCOMMANDS.has(subcommand)) {
-      return `bash only allows read-only git subcommands in subagents. Blocked subcommand: git ${subcommand}`;
+  const normalized = args[0] === "--no-pager" ? args.slice(1) : args;
+  const [subcommand, ...subcommandArgs] = normalized;
+  if (!subcommand || subcommand.startsWith("-")) {
+    return "bash requires an explicit read-only git subcommand in subagents.";
+  }
+  if (!READ_ONLY_GIT_SUBCOMMANDS.has(subcommand)) {
+    return `bash only allows read-only git subcommands in subagents. Blocked subcommand: git ${subcommand}`;
+  }
+
+  if (hasBlockedOption(subcommandArgs, ["--ext-diff", "--textconv", "--open-files-in-pager", "--filters"], ["--output="])) {
+    return "bash does not allow git options that execute helpers or write output in subagents.";
+  }
+  if (subcommandArgs.includes("--output")) {
+    return "bash does not allow git options that write output in subagents.";
+  }
+
+  if (subcommand === "branch") {
+    const allowed = new Set(["--list", "--show-current", "--all", "-a", "--remotes", "-r", "--verbose", "-v", "--no-color"]);
+    if (subcommandArgs.some((arg) => !allowed.has(arg))) {
+      return "bash only allows listing git branches in subagents.";
     }
   }
-
-  if (command === "find" && args.some((arg) => DISALLOWED_FIND_ACTIONS.has(arg))) {
-    return "bash does not allow find actions that execute, delete, or write files in subagents.";
+  if (subcommand === "tag") {
+    const listing = subcommandArgs.length === 0 || subcommandArgs[0] === "--list" || subcommandArgs[0] === "-l";
+    if (!listing) return "bash only allows listing git tags in subagents.";
   }
-
-  if (
-    command === "sed" &&
-    tokens.some((arg) => arg === "-i" || /^-i.+/.test(arg))
-  ) {
-    return "bash does not allow in-place sed edits in subagents.";
+  if (subcommand === "remote" && subcommandArgs.some((arg) => arg !== "-v" && arg !== "--verbose")) {
+    return "bash only allows listing git remotes in subagents.";
   }
 
   return undefined;
 }
 
+export function validateReadOnlyBashSegment(segment: string): string | undefined {
+  const tokens = tokenizeShellSegment(segment);
+  if (tokens.length === 0) return undefined;
+
+  const [command, ...args] = tokens;
+  if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(command)) {
+    return "bash does not allow environment assignments in subagents.";
+  }
+  if (!READ_ONLY_BASH_COMMANDS.has(command)) {
+    return `bash only allows read-only inspection commands in subagents. Blocked command: ${command}`;
+  }
+
+  if (command === "git") {
+    const blocked = validateReadOnlyGit(args);
+    if (blocked) return blocked;
+  }
+
+  if (command === "fd" && hasBlockedOption(args, ["-x", "-X", "--exec", "--exec-batch"], ["--exec=", "--exec-batch="])) {
+    return "bash does not allow fd execution options in subagents.";
+  }
+
+  if (command === "rg" && hasBlockedOption(args, ["--pre", "--follow", "-L"], ["--pre="])) {
+    return "bash does not allow rg preprocessor or symlink-following options in subagents.";
+  }
+
+  if (command === "find" && (args.includes("-L") || args.some((arg) => DISALLOWED_FIND_ACTIONS.has(arg)))) {
+    return "bash does not allow find actions that execute, delete, or write files in subagents.";
+  }
+
+  if (
+    command === "sed" &&
+    args.some((arg) => arg === "-i" || arg === "-I" || /^-[iI].+/.test(arg) || arg === "--in-place" || arg.startsWith("--in-place="))
+  ) {
+    return "bash does not allow in-place sed edits in subagents.";
+  }
+
+  if (command === "sort" && hasBlockedOption(args, ["-o", "--output", "--compress-program"], ["-o", "--output=", "--compress-program="])) {
+    return "bash does not allow sort output or compressor options in subagents.";
+  }
+  if (command === "tree" && hasBlockedOption(args, ["-o", "--output"], ["-o", "--output="])) {
+    return "bash does not allow tree output options in subagents.";
+  }
+  if (command === "file" && hasBlockedOption(args, ["-C", "--compile"])) {
+    return "bash does not allow file compilation options in subagents.";
+  }
+
+  return undefined;
+}
+
+function containsUnsafeShellSyntax(command: string): boolean {
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let escaped = false;
+
+  for (const char of command) {
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\" && !inSingleQuote) {
+      escaped = true;
+      continue;
+    }
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+    if (inSingleQuote) continue;
+    if (char === "$" || char === "`") return true;
+    if (!inDoubleQuote && ("\n\r;|&<>*?[".includes(char))) return true;
+  }
+
+  return inSingleQuote || inDoubleQuote || escaped;
+}
+
 export function blockIfSuspiciousBashCommand(command: unknown, cwd: string) {
   if (typeof command !== "string") return undefined;
 
-  if (containsUnquotedCommandSubstitution(command)) {
-    return "bash does not allow command substitution in subagents.";
-  }
-
-  if (containsUnquotedCharacter(command, ">")) {
-    return "bash does not allow output redirection in subagents.";
-  }
-
-  if (containsUnquotedCharacter(command, "<")) {
-    return "bash does not allow input redirection in subagents.";
+  if (containsUnsafeShellSyntax(command)) {
+    return "bash only allows one simple inspection command without shell expansion, composition, or redirection in subagents.";
   }
 
   const pathReferences = extractCommandPathCandidates(command);
@@ -341,11 +422,5 @@ export function blockIfSuspiciousBashCommand(command: unknown, cwd: string) {
     return "bash command references blocked runtime or system paths";
   }
 
-  const segments = splitShellSegments(command);
-  for (const segment of segments) {
-    const blocked = validateReadOnlyBashSegment(segment);
-    if (blocked) return blocked;
-  }
-
-  return undefined;
+  return validateReadOnlyBashSegment(command);
 }

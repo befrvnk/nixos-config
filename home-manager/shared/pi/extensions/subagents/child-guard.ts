@@ -54,8 +54,29 @@ export function createGuardedExplorationTools(cwd: string) {
     wrapGuardedTool(createLsTool(cwd), (params) =>
       blockIfSuspiciousPath("ls", params, cwd),
     ),
-    wrapGuardedTool(createBashTool(cwd), (params) =>
-      blockIfSuspiciousBashCommand(params.command, cwd),
+    wrapGuardedTool(
+      createBashTool(cwd, {
+        spawnHook: ({ command, cwd: commandCwd, env }) => ({
+          command,
+          cwd: commandCwd,
+          env: {
+            ...env,
+            GIT_CONFIG_COUNT: "3",
+            GIT_CONFIG_KEY_0: "core.fsmonitor",
+            GIT_CONFIG_VALUE_0: "false",
+            GIT_CONFIG_KEY_1: "diff.external",
+            GIT_CONFIG_VALUE_1: "",
+            GIT_CONFIG_KEY_2: "core.pager",
+            GIT_CONFIG_VALUE_2: "cat",
+            GIT_EXTERNAL_DIFF: "",
+            GIT_OPTIONAL_LOCKS: "0",
+            GIT_PAGER: "cat",
+            PAGER: "cat",
+            RIPGREP_CONFIG_PATH: "",
+          },
+        }),
+      }),
+      (params) => blockIfSuspiciousBashCommand(params.command, cwd),
     ),
   ];
 }

@@ -25,9 +25,12 @@ test("quoted characters and substitutions are ignored, unquoted ones are blocked
   assert.equal(containsUnquotedCommandSubstitution("echo $(pwd)"), true);
 });
 
-test("blockIfSuspiciousBashCommand allows read-only inspection commands", () => {
-  assert.equal(blockIfSuspiciousBashCommand("git status && rg TODO src", cwd), undefined);
-  assert.equal(blockIfSuspiciousBashCommand("env DEBUG=1 find ./src -name '*.ts'", cwd), undefined);
+test("blockIfSuspiciousBashCommand allows one read-only inspection command", () => {
+  assert.equal(blockIfSuspiciousBashCommand("git status", cwd), undefined);
+  assert.equal(blockIfSuspiciousBashCommand("git diff", cwd), undefined);
+  assert.equal(blockIfSuspiciousBashCommand("rg TODO src", cwd), undefined);
+  assert.equal(blockIfSuspiciousBashCommand("find ./src -name '*.ts'", cwd), undefined);
+  assert.equal(blockIfSuspiciousBashCommand("sed -n '1,20p' file.ts", cwd), undefined);
 });
 
 test("blockIfSuspiciousBashCommand blocks destructive commands and risky syntax", () => {
@@ -40,8 +43,8 @@ test("blockIfSuspiciousBashCommand blocks destructive commands and risky syntax"
     blockIfSuspiciousBashCommand("sed -i 's/x/y/' file.txt", cwd) ?? "",
     /in-place sed edits/,
   );
-  assert.match(blockIfSuspiciousBashCommand("echo hi > out.txt", cwd) ?? "", /output redirection/);
-  assert.match(blockIfSuspiciousBashCommand("echo $(pwd)", cwd) ?? "", /command substitution/);
+  assert.match(blockIfSuspiciousBashCommand("cat file > out.txt", cwd) ?? "", /one simple inspection command/);
+  assert.match(blockIfSuspiciousBashCommand("cat $(pwd)", cwd) ?? "", /one simple inspection command/);
   assert.match(
     blockIfSuspiciousBashCommand("cat /proc/cpuinfo", cwd) ?? "",
     /blocked runtime or system paths/,
@@ -56,29 +59,73 @@ test("blockIfSuspiciousBashCommand blocks destructive commands and risky syntax"
   );
 });
 
-test("blockIfSuspiciousBashCommand validates every command across a lone & separator", () => {
-  assert.match(
-    blockIfSuspiciousBashCommand("cat x & rm -rf y", cwd) ?? "",
-    /Blocked command: rm/,
-  );
-  assert.equal(blockIfSuspiciousBashCommand("ls & pwd", cwd), undefined);
+test("blockIfSuspiciousBashCommand rejects shell composition and expansion", () => {
+  for (const command of [
+    "cat x & pwd",
+    "git status && rg TODO",
+    "ls | head",
+    "ls; pwd",
+    "ls\npwd",
+    "PAGER=less git log",
+    "cat $HOME/file",
+    "cat *.ts",
+  ]) {
+    assert.match(blockIfSuspiciousBashCommand(command, cwd) ?? "", /one simple inspection command|environment assignments/, command);
+  }
 });
 
 test("blockIfSuspiciousBashCommand blocks input redirection", () => {
   assert.match(
     blockIfSuspiciousBashCommand("cat < /etc/passwd", cwd) ?? "",
-    /input redirection/,
+    /one simple inspection command/,
   );
   assert.equal(blockIfSuspiciousBashCommand("grep '<div>' page.html", cwd), undefined);
 });
 
-test("blockIfSuspiciousBashCommand blocks find actions that execute, delete, or write", () => {
+test("blockIfSuspiciousBashCommand blocks write and execution options", () => {
+  for (const command of [
+    "fd -x touch {}",
+    "fd -X echo",
+    "rg --pre cat pattern",
+    "sed --in-place file.txt",
+    "sed -I.bak file.txt",
+    "sort -o output.txt input.txt",
+    "sort --compress-program=gzip input.txt",
+    "tree -o output.txt",
+    "file -C",
+  ]) {
+    assert.notEqual(blockIfSuspiciousBashCommand(command, cwd), undefined, command);
+  }
+
   assert.match(
     blockIfSuspiciousBashCommand("find . -exec rm {} ;", cwd) ?? "",
-    /find actions/,
+    /one simple inspection command/,
   );
   assert.match(blockIfSuspiciousBashCommand("find . -delete", cwd) ?? "", /find actions/);
   assert.equal(blockIfSuspiciousBashCommand("find ./src -name '*.ts'", cwd), undefined);
+});
+
+test("blockIfSuspiciousBashCommand restricts mutation-capable git forms", () => {
+  for (const command of [
+    "git branch new-branch",
+    "git branch -D old",
+    "git tag release",
+    "git remote add origin example",
+    "git remote set-url origin example",
+    "git -c core.pager=less log",
+    "git -C /tmp status",
+    "git --git-dir=/tmp/repo status",
+    "git diff --output=result.diff",
+    "git diff --ext-diff",
+    "git show --textconv",
+    "git cat-file --filters HEAD:file",
+  ]) {
+    assert.notEqual(blockIfSuspiciousBashCommand(command, cwd), undefined, command);
+  }
+
+  assert.equal(blockIfSuspiciousBashCommand("git branch --list", cwd), undefined);
+  assert.equal(blockIfSuspiciousBashCommand("git tag --list", cwd), undefined);
+  assert.equal(blockIfSuspiciousBashCommand("git remote -v", cwd), undefined);
 });
 
 test("blockIfSuspiciousPath blocks sensitive system paths with boundary matching", () => {
