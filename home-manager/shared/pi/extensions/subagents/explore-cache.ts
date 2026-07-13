@@ -82,6 +82,15 @@ export function createExploreCacheMetadata(
   };
 }
 
+export function hashWorkspaceRevision(
+  parts: Array<Record<string, unknown>>,
+  generation: number,
+): string {
+  return createHash("sha256")
+    .update(JSON.stringify({ generation, parts }))
+    .digest("hex");
+}
+
 export function createExplorationKey(
   tasks: SubagentTaskInput[],
   workspaceRevision: string,

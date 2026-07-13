@@ -9,6 +9,7 @@ import {
   EXPLORE_FAILURE_COOLDOWN_MS,
   EXPLORE_SUCCESS_TTL_MS,
   findReusableExploration,
+  hashWorkspaceRevision,
   parseFreshExploreArgs,
   rememberExploration,
   restoreExploreCacheState,
@@ -61,6 +62,13 @@ test("createExplorationKey normalizes line endings but preserves meaningful case
   assert.equal(createExplorationKey([base], "rev"), createExplorationKey([normalized], "rev"));
   assert.notEqual(createExplorationKey([base], "rev"), createExplorationKey([changedCase], "rev"));
   assert.notEqual(createExplorationKey([base], "rev"), createExplorationKey([base], "other-rev"));
+});
+
+test("hashWorkspaceRevision invalidates on Git state or mutation generation changes", () => {
+  const clean = [{ repoRoot: "/repo", head: "abc", status: "" }];
+  const dirty = [{ repoRoot: "/repo", head: "abc", status: "1 .M N... file.ts" }];
+  assert.notEqual(hashWorkspaceRevision(clean, 0), hashWorkspaceRevision(dirty, 0));
+  assert.notEqual(hashWorkspaceRevision(dirty, 0), hashWorkspaceRevision(dirty, 1));
 });
 
 test("explorationSimilarity ignores narrow rerun boilerplate but respects execution scope", () => {

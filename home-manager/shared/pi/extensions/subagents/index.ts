@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
@@ -80,6 +79,7 @@ import {
   createExplorationKey,
   EXPLORE_CACHE_ENTRY_TYPE,
   findReusableExploration,
+  hashWorkspaceRevision,
   MAX_ACTIVE_EXPLORE_RUNS,
   MAX_EXPLORE_SESSION_TOKENS,
   parseFreshExploreArgs,
@@ -599,9 +599,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
         status: status.stdout,
       });
     }
-    return createHash("sha256")
-      .update(JSON.stringify({ generation: workspaceGeneration, parts }))
-      .digest("hex");
+    return hashWorkspaceRevision(parts, workspaceGeneration);
   };
 
   type WorkflowExecutionOptions = {
