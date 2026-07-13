@@ -117,6 +117,7 @@ test("blockIfSuspiciousBashCommand restricts mutation-capable git forms", () => 
     "git --git-dir=/tmp/repo status",
     "git diff --output=result.diff",
     "git diff --ext-diff",
+    "git diff --no-index ../secret-a ../secret-b",
     "git show --textconv",
     "git cat-file --filters HEAD:file",
   ]) {

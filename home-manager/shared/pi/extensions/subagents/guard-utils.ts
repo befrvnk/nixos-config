@@ -307,7 +307,7 @@ function validateReadOnlyGit(args: string[]): string | undefined {
     return `bash only allows read-only git subcommands in subagents. Blocked subcommand: git ${subcommand}`;
   }
 
-  if (hasBlockedOption(subcommandArgs, ["--ext-diff", "--textconv", "--open-files-in-pager", "--filters"], ["--output="])) {
+  if (hasBlockedOption(subcommandArgs, ["--ext-diff", "--textconv", "--open-files-in-pager", "--filters", "--no-index"], ["--output="])) {
     return "bash does not allow git options that execute helpers or write output in subagents.";
   }
   if (subcommandArgs.includes("--output")) {
