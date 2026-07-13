@@ -892,7 +892,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
     widget.update();
   });
 
-  pi.on("agent_end", () => {
+  pi.on("agent_settled", () => {
     widget.dispose();
   });
 
