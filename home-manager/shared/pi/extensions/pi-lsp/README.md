@@ -39,7 +39,3 @@ This extension is intentionally conservative:
 - the agent must call an LSP tool explicitly when it wants semantic checks
 
 Configuration is loaded from `~/.pi/agent/pi-lsp.json` unless `PI_LSP_CONFIG` overrides it.
-
-Planning notes:
-- `IMPROVEMENT-OVERVIEW.md` - proposed reliability and UX improvements for Kotlin and other slow-starting LSPs
-- `IMPLEMENTATION-PLAN.md` - concrete phased implementation plan for warmup, lifecycle state, Kotlin root detection, and debuggability

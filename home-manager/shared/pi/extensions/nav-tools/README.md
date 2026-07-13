@@ -8,6 +8,6 @@ Why this exists:
 - the extension keeps them active automatically on session start
 
 Implementation notes:
-- tools are created with pi's built-in tool factories for the current session `cwd`
+- the extension activates Pi's registered built-ins with `getActiveTools()` and `setActiveTools()`
 - no custom rendering or behavior changes are added
 - `bash` remains available for tasks that truly need shell semantics
