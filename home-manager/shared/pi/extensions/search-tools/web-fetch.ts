@@ -1,3 +1,6 @@
+import { isIP } from "node:net";
+import { isLocalHostname, isPublicIpAddress, normalizeHostname } from "./network-safety.ts";
+
 export type WebFetchFormat = "markdown" | "text" | "html";
 
 export interface WebFetchParams {
@@ -65,14 +68,11 @@ export async function fetchWebUrl(
     }
 
     const contentLength = response.headers.get("content-length");
-    if (contentLength != null && Number.parseInt(contentLength, 10) > MAX_RESPONSE_BYTES) {
+    if (contentLength != null && /^\d+$/u.test(contentLength) && Number(contentLength) > MAX_RESPONSE_BYTES) {
       throw new Error("Response too large (exceeds 5MB limit).");
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    if (arrayBuffer.byteLength > MAX_RESPONSE_BYTES) {
-      throw new Error("Response too large (exceeds 5MB limit).");
-    }
+    const body = await readResponseBodyLimited(response, requestSignal);
 
     const contentType = response.headers.get("content-type") ?? "";
     const mime = getMime(contentType);
@@ -87,15 +87,15 @@ export async function fetchWebUrl(
         mime,
         format: params.format,
         title: null,
-        bytes: arrayBuffer.byteLength,
+        bytes: body.byteLength,
         maxCharacters: params.maxCharacters,
         truncated: false,
-        content: `Binary response omitted (${mime || "unknown content type"}, ${arrayBuffer.byteLength} bytes).`,
+        content: `Binary response omitted (${mime || "unknown content type"}, ${body.byteLength} bytes).`,
         binary: true,
       };
     }
 
-    const rawContent = new TextDecoder().decode(arrayBuffer);
+    const rawContent = sanitizeControls(new TextDecoder().decode(body));
     const title = mime === "text/html" || mime === "application/xhtml+xml" ? extractHtmlTitle(rawContent) : null;
     const formatted = formatFetchedContent(rawContent, mime, params.format, finalUrl);
     const truncated = formatted.length > params.maxCharacters;
@@ -108,7 +108,7 @@ export async function fetchWebUrl(
       mime,
       format: params.format,
       title,
-      bytes: arrayBuffer.byteLength,
+      bytes: body.byteLength,
       maxCharacters: params.maxCharacters,
       truncated,
       content: truncated ? formatted.slice(0, params.maxCharacters) : formatted,
@@ -117,6 +117,38 @@ export async function fetchWebUrl(
   } finally {
     clear();
   }
+}
+
+export async function readResponseBodyLimited(response: Response, signal?: AbortSignal): Promise<Uint8Array> {
+  if (!response.body) return new Uint8Array();
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      signal?.throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_RESPONSE_BYTES) {
+        await reader.cancel("Response exceeded 5MB limit.");
+        throw new Error("Response too large (exceeds 5MB limit).");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const output = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return output;
 }
 
 export async function validatePublicWebUrl(url: string, options: WebFetchOptions = {}): Promise<URL> {
@@ -141,11 +173,12 @@ export async function validatePublicWebUrl(url: string, options: WebFetchOptions
   if (!options.allowPrivateNetwork) {
     const hostname = normalizeHostname(parsed.hostname);
     if (isLocalHostname(hostname)) throw new Error("Localhost URLs are not allowed.");
-    if (isPrivateOrReservedAddress(hostname)) throw new Error("Private, local, or reserved IP addresses are not allowed.");
+    if (isIP(hostname) && !isPublicIpAddress(hostname)) throw new Error("Private, local, or reserved IP addresses are not allowed.");
 
     const addresses = await resolveHostname(hostname, options.resolveHostname);
+    if (addresses.length === 0) throw new Error("URL hostname did not resolve to an address.");
     for (const address of addresses) {
-      if (isPrivateOrReservedAddress(normalizeHostname(address))) {
+      if (!isPublicIpAddress(normalizeHostname(address))) {
         throw new Error("URL resolves to a private, local, or reserved IP address.");
       }
     }
@@ -218,7 +251,7 @@ function isRedirect(status: number): boolean {
 }
 
 async function resolveHostname(hostname: string, customResolver?: (hostname: string) => Promise<string[]>): Promise<string[]> {
-  if (getIpVersion(hostname)) return [hostname];
+  if (isIP(hostname)) return [hostname];
   if (customResolver) return customResolver(hostname);
 
   // @ts-expect-error Node builtins are provided by the pi runtime; this extension does not vendor @types/node.
@@ -227,64 +260,6 @@ async function resolveHostname(hostname: string, customResolver?: (hostname: str
   };
   const records = await lookup(hostname, { all: true, verbatim: true });
   return records.map((record) => record.address);
-}
-
-function normalizeHostname(hostname: string): string {
-  const normalized = hostname.trim().toLowerCase();
-  return normalized.startsWith("[") && normalized.endsWith("]") ? normalized.slice(1, -1) : normalized;
-}
-
-function isLocalHostname(hostname: string): boolean {
-  return hostname === "localhost" || hostname.endsWith(".localhost");
-}
-
-function getIpVersion(address: string): 0 | 4 | 6 {
-  if (isIpv4Address(address)) return 4;
-  if (/^[0-9a-f:.]+$/i.test(address) && address.includes(":")) return 6;
-  return 0;
-}
-
-function isIpv4Address(address: string): boolean {
-  const parts = address.split(".");
-  return parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number.parseInt(part, 10) >= 0 && Number.parseInt(part, 10) <= 255);
-}
-
-function isPrivateOrReservedAddress(address: string): boolean {
-  const ipVersion = getIpVersion(address);
-  if (ipVersion === 4) return isPrivateOrReservedIpv4(address);
-  if (ipVersion === 6) return isPrivateOrReservedIpv6(address);
-  return false;
-}
-
-function isPrivateOrReservedIpv4(address: string): boolean {
-  const parts = address.split(".").map((part) => Number.parseInt(part, 10));
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true;
-
-  const [a, b] = parts;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 198 && (b === 18 || b === 19)) ||
-    a >= 224
-  );
-}
-
-function isPrivateOrReservedIpv6(address: string): boolean {
-  const normalized = address.toLowerCase();
-  if (normalized === "::" || normalized === "::1") return true;
-
-  const mappedIpv4 = normalized.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/i)?.[1];
-  if (mappedIpv4) return isPrivateOrReservedIpv4(mappedIpv4);
-
-  const firstHextet = Number.parseInt(normalized.split(":")[0] || "0", 16);
-  if (!Number.isFinite(firstHextet)) return true;
-
-  return (firstHextet & 0xfe00) === 0xfc00 || (firstHextet & 0xffc0) === 0xfe80 || (firstHextet & 0xff00) === 0xff00;
 }
 
 function isBinaryMime(mime: string): boolean {
@@ -379,8 +354,12 @@ function normalizeInline(text: string): string {
   return normalizeText(decodeHtml(text)).replace(/\n+/g, " ");
 }
 
+function sanitizeControls(text: string): string {
+  return text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/gu, "\uFFFD");
+}
+
 function normalizeText(text: string): string {
-  return text
+  return sanitizeControls(text)
     .replace(/\r\n?/g, "\n")
     .replace(/[ \t]+/g, " ")
     .replace(/\n[ \t]+/g, "\n")
@@ -390,7 +369,9 @@ function normalizeText(text: string): string {
 }
 
 function normalizeMarkdown(text: string): string {
-  return normalizeText(text).replace(/\n{3,}/g, "\n\n");
+  return normalizeText(text)
+    .replace(/[<>]/gu, (character) => `\\${character}`)
+    .replace(/\n{3,}/g, "\n\n");
 }
 
 function decodeHtml(text: string): string {
@@ -411,8 +392,22 @@ function decodeHtml(text: string): string {
   });
 }
 
-function safeCodePoint(codePoint: number, fallback: string): string {
-  return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : fallback;
+function safeCodePoint(codePoint: number, _fallback: string): string {
+  const invalidControl =
+    (codePoint >= 0 && codePoint <= 8)
+    || (codePoint >= 11 && codePoint <= 12)
+    || (codePoint >= 14 && codePoint <= 31)
+    || (codePoint >= 0x7f && codePoint <= 0x9f);
+  if (
+    !Number.isInteger(codePoint)
+    || codePoint < 1
+    || codePoint > 0x10ffff
+    || (codePoint >= 0xd800 && codePoint <= 0xdfff)
+    || invalidControl
+  ) {
+    return "\uFFFD";
+  }
+  return String.fromCodePoint(codePoint);
 }
 
 function createTimeoutSignal({ timeoutMs, parent }: TimeoutSignalFactoryInput): TimeoutSignalHandle {

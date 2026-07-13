@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
-import { fetchWebUrl, validatePublicWebUrl } from "./web-fetch.ts";
+import { fetchWebUrl, formatFetchedContent, validatePublicWebUrl } from "./web-fetch.ts";
 
 test("formatWebSearchOutput emits only queries and source URLs", () => {
   const output = formatWebSearchOutput({
@@ -121,12 +121,30 @@ test("fetchWebUrl converts HTML to markdown and truncates content", async () => 
   assert.doesNotMatch(result.content, /bad/);
 });
 
+test("formatFetchedContent safely handles malformed entities and controls", () => {
+  assert.doesNotThrow(() => formatFetchedContent("<p>&#x110000; &#55296; &#27;</p>", "text/html", "text", "https://example.com"));
+  const text = formatFetchedContent("<p>&#x110000; &#55296; &#27;</p>", "text/html", "text", "https://example.com");
+  assert.doesNotMatch(text, /\u001b/u);
+  assert.match(text, /�/u);
+
+  const markdown = formatFetchedContent("<p>&lt;script&gt;safe&lt;/script&gt;</p>", "text/html", "markdown", "https://example.com");
+  assert.match(markdown, /\\<script\\>/u);
+});
+
 test("fetchWebUrl rejects local and private URLs", async () => {
   await assert.rejects(() => validatePublicWebUrl("http://localhost/page"), /Localhost URLs are not allowed/);
   await assert.rejects(() => validatePublicWebUrl("http://127.0.0.1/page"), /Private, local, or reserved IP addresses/);
   await assert.rejects(
     () => validatePublicWebUrl("https://example.com/page", { resolveHostname: async () => ["10.0.0.10"] }),
     /resolves to a private, local, or reserved IP address/,
+  );
+  await assert.rejects(
+    () => validatePublicWebUrl("https://example.com/page", { resolveHostname: async () => ["93.184.216.34", "127.0.0.1"] }),
+    /resolves to a private, local, or reserved IP address/,
+  );
+  await assert.rejects(
+    () => validatePublicWebUrl("https://example.com/page", { resolveHostname: async () => [] }),
+    /did not resolve/,
   );
 });
 
