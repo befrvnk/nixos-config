@@ -9,6 +9,7 @@ import { Markdown, Text } from "@earendil-works/pi-tui";
 import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
 import { fetchWebUrl, type WebFetchFormat } from "./web-fetch.ts";
+import { prepareToolOutput } from "./tool-output.ts";
 
 const EXA_MCP_URL = process.env.EXA_MCP_URL ?? "https://mcp.exa.ai/mcp";
 const EXA_RETRIES = readPositiveIntEnv(["EXA_RETRIES", "EXA_CURL_RETRIES"], 2);
@@ -276,15 +277,16 @@ const webSearchTool = defineTool({
       throw new Error(`All web_search passes failed.${warningText ? `\n${warningText}` : ""}`);
     }
 
-    const text = formatWebSearchOutput({
+    const formatted = formatWebSearchOutput({
       originalQuery: query,
       plan,
       results,
       warnings,
     });
+    const output = await prepareToolOutput(formatted, { prefix: "web-search", signal });
 
     return {
-      content: [{ type: "text", text }],
+      content: [{ type: "text", text: output.text }],
       details: {
         originalQuery: query,
         topicQuery,
@@ -306,6 +308,8 @@ const webSearchTool = defineTool({
         currentYearInjected,
         searches: results,
         warnings,
+        fullOutputPath: output.fullOutputPath,
+        truncation: output.truncation,
       },
     };
   },
@@ -401,11 +405,24 @@ const webFetchTool = defineTool({
       },
       signal,
     );
-    const text = formatWebFetchOutput(result);
+    const formatted = formatWebFetchOutput(result);
+    const fullFormatted = result.fullContent === undefined
+      ? formatted
+      : formatWebFetchOutput({ ...result, content: result.fullContent, fullContent: undefined, truncated: false });
+    const output = await prepareToolOutput(formatted, {
+      fullText: fullFormatted,
+      prefix: "web-fetch",
+      signal,
+    });
+    const { fullContent: _fullContent, ...details } = result;
 
     return {
-      content: [{ type: "text", text }],
-      details: result,
+      content: [{ type: "text", text: output.text }],
+      details: {
+        ...details,
+        fullOutputPath: output.fullOutputPath,
+        truncation: output.truncation,
+      },
     };
   },
 });
@@ -460,15 +477,17 @@ const codeSearchTool = defineTool({
     const event = await callExaMcpWithRetries("get_code_context_exa", { query, tokensNum: maxTokens }, 35_000, signal);
     const searchTime = event?.result?.content?.[0]?._meta?.searchTime ?? null;
     const resultText = event?.result?.content?.[0]?.text ?? "";
-    const text = formatCodeSearchOutput(query, maxTokens, searchTime, resultText);
+    const formatted = formatCodeSearchOutput(query, maxTokens, searchTime, resultText);
+    const output = await prepareToolOutput(formatted, { prefix: "code-search", signal });
 
     return {
-      content: [{ type: "text", text }],
+      content: [{ type: "text", text: output.text }],
       details: {
         query,
         maxTokens,
         searchTime,
-        text: resultText,
+        fullOutputPath: output.fullOutputPath,
+        truncation: output.truncation,
         provider: {
           name: "exa",
           tool: "get_code_context_exa",

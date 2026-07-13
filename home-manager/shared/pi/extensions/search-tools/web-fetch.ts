@@ -32,6 +32,7 @@ export interface WebFetchResult {
   maxCharacters: number;
   truncated: boolean;
   content: string;
+  fullContent?: string;
   binary: boolean;
 }
 
@@ -112,6 +113,7 @@ export async function fetchWebUrl(
       maxCharacters: params.maxCharacters,
       truncated,
       content: truncated ? formatted.slice(0, params.maxCharacters) : formatted,
+      fullContent: truncated ? formatted : undefined,
       binary: false,
     };
   } finally {
