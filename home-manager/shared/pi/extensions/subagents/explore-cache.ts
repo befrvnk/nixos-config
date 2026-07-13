@@ -10,7 +10,8 @@ export const EXPLORE_SUCCESS_TTL_MS = 5 * 60_000;
 export const EXPLORE_FAILURE_COOLDOWN_MS = 30_000;
 export const EXPLORE_SIMILARITY_THRESHOLD = 0.88;
 export const MAX_EXPLORE_CACHE_ENTRIES = 10;
-export const MAX_ACTIVE_EXPLORE_RUNS = 2;
+export const MAX_EXPLORE_CACHE_BYTES = 2 * 1024 * 1024;
+export const MAX_ACTIVE_EXPLORE_RUNS = 1;
 export const MAX_EXPLORE_SESSION_TOKENS = 1_000_000;
 
 export type ExploreCacheRecord = {
@@ -21,6 +22,14 @@ export type ExploreCacheRecord = {
   results: SubagentTaskResult[];
   content: string;
   completedAt: number;
+};
+
+export type ActiveExploration = {
+  key: string;
+  controller: AbortController;
+  promise: Promise<ExploreCacheRecord>;
+  waiters: number;
+  settled: boolean;
 };
 
 export type ExploreCacheMatch = {
@@ -143,16 +152,27 @@ export function findReusableExploration(
   return bestSimilar;
 }
 
+function recordBytes(record: ExploreCacheRecord): number {
+  return Buffer.byteLength(JSON.stringify(record), "utf8");
+}
+
 export function rememberExploration(
   records: Map<string, ExploreCacheRecord>,
   record: ExploreCacheRecord,
 ): void {
   records.delete(record.key);
+  if (recordBytes(record) > MAX_EXPLORE_CACHE_BYTES) return;
   records.set(record.key, record);
-  while (records.size > MAX_EXPLORE_CACHE_ENTRIES) {
+  let totalBytes = [...records.values()].reduce((total, item) => total + recordBytes(item), 0);
+  while (
+    records.size > MAX_EXPLORE_CACHE_ENTRIES
+    || totalBytes > MAX_EXPLORE_CACHE_BYTES
+  ) {
     const oldest = records.keys().next().value as string | undefined;
     if (!oldest) break;
+    const removed = records.get(oldest);
     records.delete(oldest);
+    if (removed) totalBytes -= recordBytes(removed);
   }
 }
 
@@ -162,6 +182,46 @@ export function totalExploreTokens(records: Iterable<ExploreCacheRecord>): numbe
     for (const task of record.run.tasks) total += Math.max(0, task.tokenCount || 0);
   }
   return total;
+}
+
+export function subscribeToActiveExploration(
+  active: ActiveExploration,
+  signal?: AbortSignal,
+): Promise<ExploreCacheRecord> {
+  active.waiters += 1;
+  return new Promise<ExploreCacheRecord>((resolve, reject) => {
+    let finished = false;
+    const cleanup = () => {
+      if (finished) return;
+      finished = true;
+      signal?.removeEventListener("abort", abort);
+      active.waiters = Math.max(0, active.waiters - 1);
+      if (active.waiters === 0 && !active.settled) {
+        active.controller.abort(new Error("All exploration waiters cancelled."));
+      }
+    };
+    const abort = () => {
+      cleanup();
+      reject(signal?.reason ?? new Error("Exploration cancelled."));
+    };
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+    signal?.addEventListener("abort", abort, { once: true });
+    active.promise.then(
+      (value) => {
+        if (finished) return;
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        if (finished) return;
+        cleanup();
+        reject(error);
+      },
+    );
+  });
 }
 
 export function parseFreshExploreArgs(args: string): {

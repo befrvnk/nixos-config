@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createExplorationKey,
+  MAX_EXPLORE_CACHE_BYTES,
   explorationSimilarity,
   EXPLORE_FAILURE_COOLDOWN_MS,
   EXPLORE_SUCCESS_TTL_MS,
   findReusableExploration,
   parseFreshExploreArgs,
   rememberExploration,
+  subscribeToActiveExploration,
+  type ActiveExploration,
   type ExploreCacheRecord,
 } from "./explore-cache.ts";
 import type { SubagentRunState, SubagentTaskInput } from "./types.ts";
@@ -103,6 +106,61 @@ test("rememberExploration refreshes an existing key", () => {
   rememberExploration(records, second);
   assert.equal(records.size, 1);
   assert.equal(records.get(first.key)?.content, "new findings");
+});
+
+test("rememberExploration bounds cache size", () => {
+  const records = new Map<string, ExploreCacheRecord>();
+  const oversized = record({
+    key: "oversized",
+    content: "x".repeat(MAX_EXPLORE_CACHE_BYTES + 1),
+  });
+  rememberExploration(records, oversized);
+  assert.equal(records.size, 0);
+});
+
+test("active exploration subscribers cancel independently", async () => {
+  let resolveRun: ((value: ExploreCacheRecord) => void) | undefined;
+  const sharedController = new AbortController();
+  const active: ActiveExploration = {
+    key: "key",
+    controller: sharedController,
+    promise: new Promise((resolve) => {
+      resolveRun = resolve;
+    }),
+    waiters: 0,
+    settled: false,
+  };
+  const firstController = new AbortController();
+  const secondController = new AbortController();
+  const first = subscribeToActiveExploration(active, firstController.signal);
+  const second = subscribeToActiveExploration(active, secondController.signal);
+
+  firstController.abort(new Error("first stopped waiting"));
+  await assert.rejects(first, /first stopped waiting/);
+  assert.equal(sharedController.signal.aborted, false);
+  assert.equal(active.waiters, 1);
+
+  const completed = record();
+  active.settled = true;
+  resolveRun?.(completed);
+  assert.equal(await second, completed);
+  assert.equal(active.waiters, 0);
+});
+
+test("the final cancelled subscriber aborts shared exploration", async () => {
+  const sharedController = new AbortController();
+  const active: ActiveExploration = {
+    key: "key",
+    controller: sharedController,
+    promise: new Promise(() => undefined),
+    waiters: 0,
+    settled: false,
+  };
+  const waiterController = new AbortController();
+  const waiter = subscribeToActiveExploration(active, waiterController.signal);
+  waiterController.abort(new Error("stop"));
+  await assert.rejects(waiter, /stop/);
+  assert.equal(sharedController.signal.aborted, true);
 });
 
 test("parseFreshExploreArgs accepts an optional intent", () => {

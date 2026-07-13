@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
@@ -30,7 +31,6 @@ import {
   renderRunMarkdown,
   renderTaskHistoryMarkdown,
   serializeRun,
-  shortTaskId,
   uniqueNonEmptyStrings,
 } from "./formatting.js";
 import {
@@ -75,10 +75,25 @@ import {
   type SubagentWorkflow,
 } from "./types.js";
 import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
+import {
+  createExplorationKey,
+  EXPLORE_CACHE_SCHEMA_VERSION,
+  findReusableExploration,
+  MAX_ACTIVE_EXPLORE_RUNS,
+  MAX_EXPLORE_SESSION_TOKENS,
+  parseFreshExploreArgs,
+  rememberExploration,
+  subscribeToActiveExploration,
+  type ActiveExploration,
+  type ExploreCacheRecord,
+} from "./explore-cache.js";
 
 const SUBAGENT_TASK_ENTRY_TYPE = "subagent-task";
 const SUBAGENT_MARKDOWN_ENTRY_TYPE = "subagent-markdown";
 const SUBAGENT_REVIEW_MESSAGE_TYPE = "subagent-review";
+const SUBAGENT_EXPLORE_MESSAGE_TYPE = "subagent-explore";
+const EXPLORE_CACHE_ENTRY_TYPE = "subagent-explore-cache";
+const WORKSPACE_GENERATION_ENTRY_TYPE = "subagent-workspace-generation";
 const MARKDOWN_PREVIEW_LINES = 8;
 
 function renderMarkdownPreview(
@@ -89,6 +104,65 @@ function renderMarkdownPreview(
   const preview = lines.slice(0, MARKDOWN_PREVIEW_LINES).join("\n").trim();
   if (lines.length <= MARKDOWN_PREVIEW_LINES) return preview;
   return `${preview}\n${theme.fg("muted", "(expand to view full formatted markdown)")}`;
+}
+
+type ExploreCacheMetadata = {
+  schemaVersion: number;
+  key: string;
+  workspaceRevision: string;
+  tasks: SubagentTaskInput[];
+  completedAt: number;
+  launched: boolean;
+};
+
+function textFromToolContent(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((item): item is { type: "text"; text: string } =>
+      Boolean(item && typeof item === "object" && item.type === "text" && typeof item.text === "string")
+    )
+    .map((item) => item.text)
+    .join("\n");
+}
+
+function cacheRecordFromToolResult(message: any): ExploreCacheRecord | undefined {
+  if (message?.role !== "toolResult" || message.toolName !== "explore" || message.isError) return undefined;
+  const details = message.details as {
+    cache?: ExploreCacheMetadata;
+    run?: SubagentRunState;
+    results?: unknown;
+  } | undefined;
+  const cache = details?.cache;
+  if (
+    cache?.schemaVersion !== EXPLORE_CACHE_SCHEMA_VERSION
+    || !cache.key
+    || !cache.workspaceRevision
+    || !Array.isArray(cache.tasks)
+    || !details?.run
+    || !Array.isArray(details.results)
+  ) {
+    return undefined;
+  }
+  return {
+    key: cache.key,
+    workspaceRevision: cache.workspaceRevision,
+    tasks: cache.tasks,
+    run: details.run,
+    results: details.results as ExploreCacheRecord["results"],
+    content: textFromToolContent(message.content),
+    completedAt: cache.completedAt,
+  };
+}
+
+function cacheMetadata(record: ExploreCacheRecord, launched: boolean): ExploreCacheMetadata {
+  return {
+    schemaVersion: EXPLORE_CACHE_SCHEMA_VERSION,
+    key: record.key,
+    workspaceRevision: record.workspaceRevision,
+    tasks: record.tasks,
+    completedAt: record.completedAt,
+    launched,
+  };
 }
 
 type ReviewExecutionResult =
@@ -524,6 +598,10 @@ function sendReviewMessage(pi: ExtensionAPI, markdown: string, content: string) 
 export default function subagentExtension(pi: ExtensionAPI) {
   const activeRuns = new Map<string, SubagentRunState>();
   const recentRuns: SubagentRunState[] = [];
+  const completedExploreCache = new Map<string, ExploreCacheRecord>();
+  const activeExploreByKey = new Map<string, ActiveExploration>();
+  let workspaceGeneration = 0;
+  let sessionExploreTokens = 0;
   const widget = new SubagentWidget(() => [
     ...activeRuns.values(),
     ...recentRuns,
@@ -532,6 +610,78 @@ export default function subagentExtension(pi: ExtensionAPI) {
   const rememberRun = (run: SubagentRunState) => {
     recentRuns.unshift(serializeRun(run) as SubagentRunState);
     if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
+  };
+
+  const runTokenCount = (run: SubagentRunState) =>
+    run.tasks.reduce((total, task) => total + Math.max(0, task.tokenCount || 0), 0);
+
+  const restoreExploreState = (ctx: ExtensionContext) => {
+    completedExploreCache.clear();
+    const reviewRuns = recentRuns.filter((run) => run.workflow === "review");
+    recentRuns.splice(0, recentRuns.length, ...reviewRuns);
+    workspaceGeneration = 0;
+    sessionExploreTokens = 0;
+    const restoredRunIds = new Set<string>();
+
+    for (const entry of ctx.sessionManager.getBranch() as any[]) {
+      if (entry?.type === "custom" && entry.customType === WORKSPACE_GENERATION_ENTRY_TYPE) {
+        const generation = entry.data?.generation;
+        if (typeof generation === "number" && Number.isSafeInteger(generation)) {
+          workspaceGeneration = Math.max(workspaceGeneration, generation);
+        }
+        continue;
+      }
+
+      let record: ExploreCacheRecord | undefined;
+      let launched = false;
+      if (entry?.type === "message") {
+        record = cacheRecordFromToolResult(entry.message);
+        launched = entry.message?.details?.cache?.launched === true;
+      } else if (entry?.type === "custom" && entry.customType === EXPLORE_CACHE_ENTRY_TYPE) {
+        record = entry.data?.record as ExploreCacheRecord | undefined;
+        launched = entry.data?.launched === true;
+      }
+      if (!record?.key || !record.run?.runId || !launched) continue;
+
+      rememberExploration(completedExploreCache, record);
+      if (!restoredRunIds.has(record.run.runId)) {
+        restoredRunIds.add(record.run.runId);
+        sessionExploreTokens += runTokenCount(record.run);
+        recentRuns.unshift(record.run);
+      }
+    }
+    if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
+  };
+
+  const workspaceRevisionFor = async (
+    tasks: SubagentTaskInput[],
+    signal?: AbortSignal,
+  ): Promise<string> => {
+    const parts: Array<Record<string, unknown>> = [];
+    const directories = [...new Set(tasks.map((task) => task.cwd).filter((cwd): cwd is string => Boolean(cwd)))].sort();
+    for (const cwd of directories) {
+      signal?.throwIfAborted();
+      const execOptions = { cwd, signal } as { cwd: string; signal?: AbortSignal };
+      const root = await pi.exec("git", ["rev-parse", "--show-toplevel"], execOptions);
+      if ((root.code ?? 1) !== 0) {
+        parts.push({ cwd, kind: "directory" });
+        continue;
+      }
+      const repoRoot = root.stdout.trim();
+      const [head, status] = await Promise.all([
+        pi.exec("git", ["rev-parse", "--verify", "HEAD"], { ...execOptions, cwd: repoRoot }),
+        pi.exec("git", ["status", "--porcelain=v2", "-z", "--untracked-files=normal"], { ...execOptions, cwd: repoRoot }),
+      ]);
+      parts.push({
+        cwd,
+        repoRoot,
+        head: (head.code ?? 1) === 0 ? head.stdout.trim() : "unborn",
+        status: status.stdout,
+      });
+    }
+    return createHash("sha256")
+      .update(JSON.stringify({ generation: workspaceGeneration, parts }))
+      .digest("hex");
   };
 
   type WorkflowExecutionOptions = {
@@ -673,6 +823,153 @@ export default function subagentExtension(pi: ExtensionAPI) {
       widget.update();
       throw error;
     }
+  };
+
+  const exploreToolResult = (
+    record: ExploreCacheRecord,
+    options: {
+      launched: boolean;
+      matchKind?: "active" | "exact" | "similar";
+      similarity?: number;
+    },
+  ) => {
+    let text = record.content;
+    if (!options.launched) {
+      const ageSeconds = Math.max(0, Math.round((Date.now() - record.completedAt) / 1000));
+      if (record.run.state !== "success") {
+        text = [
+          `Equivalent exploration ${record.run.runId} finished with ${record.run.state} state ${ageSeconds}s ago.`,
+          "No retry was launched during the failure cooldown. A deliberate retry requires the user-only /explore-fresh command.",
+          record.content,
+        ].filter(Boolean).join("\n\n");
+      } else if (options.matchKind === "similar") {
+        text = [
+          `This request is ${Math.round((options.similarity ?? 0) * 100)}% similar to successful run ${record.run.runId}.`,
+          "Reusing its findings; no new subagent was launched. A deliberate independent replication requires /explore-fresh.",
+          record.content,
+        ].filter(Boolean).join("\n\n");
+      } else {
+        text = [
+          `Equivalent exploration already ${options.matchKind === "active" ? "completed through the active single-flight run" : "completed"} as ${record.run.runId}.`,
+          "Reusing that result; no new subagent was launched.",
+          record.content,
+        ].filter(Boolean).join("\n\n");
+      }
+    }
+
+    return {
+      content: [{ type: "text" as const, text }],
+      details: {
+        workflow: "explore",
+        mode: record.run.mode,
+        runId: record.run.runId,
+        results: record.results,
+        run: record.run,
+        cache: cacheMetadata(record, options.launched),
+        deduplicated: !options.launched,
+        matchType: options.matchKind,
+        similarity: options.similarity,
+      },
+    };
+  };
+
+  const launchExploration = (
+    tasks: SubagentTaskInput[],
+    workspaceRevision: string,
+    key: string,
+    options: WorkflowExecutionOptions & {
+      forceFresh?: boolean;
+      persistCacheEntry?: boolean;
+    },
+  ): ActiveExploration => {
+    if (activeExploreByKey.size >= MAX_ACTIVE_EXPLORE_RUNS) {
+      throw new Error(
+        `Explore concurrency limit reached (${MAX_ACTIVE_EXPLORE_RUNS} active runs). Use explore_status instead of launching more work.`,
+      );
+    }
+    if (sessionExploreTokens >= MAX_EXPLORE_SESSION_TOKENS) {
+      throw new Error(
+        `Explore session token budget reached (${MAX_EXPLORE_SESSION_TOKENS} child tokens). Start a new session before launching more subagents.`,
+      );
+    }
+
+    const activeKey = options.forceFresh ? `${key}:fresh:${createRunId()}` : key;
+    const controller = new AbortController();
+    const active = {
+      key: activeKey,
+      controller,
+      promise: undefined as unknown as Promise<ExploreCacheRecord>,
+      waiters: 0,
+      settled: false,
+    };
+    active.promise = (async () => {
+      const { run, results } = await executeWorkflow("explore", tasks, {
+        ...options,
+        signal: controller.signal,
+      });
+      const serializedRun = serializeRun(run) as SubagentRunState;
+      const record: ExploreCacheRecord = {
+        key,
+        workspaceRevision,
+        tasks: tasks.map((task) => ({ ...task })),
+        run: serializedRun,
+        results,
+        content: renderFinalExploreResults(run.runId, run.mode, results),
+        completedAt: run.endedAt ?? Date.now(),
+      };
+      sessionExploreTokens += runTokenCount(serializedRun);
+      rememberExploration(completedExploreCache, record);
+      if (options.persistCacheEntry) {
+        pi.appendEntry(EXPLORE_CACHE_ENTRY_TYPE, { record, launched: true });
+      }
+      return record;
+    })().finally(() => {
+      active.settled = true;
+      activeExploreByKey.delete(activeKey);
+    });
+    activeExploreByKey.set(activeKey, active);
+    return active;
+  };
+
+  const executeExploreTasks = async (
+    tasks: SubagentTaskInput[],
+    options: WorkflowExecutionOptions & {
+      forceFresh?: boolean;
+      persistCacheEntry?: boolean;
+    },
+  ) => {
+    const workspaceRevision = await workspaceRevisionFor(tasks, options.signal);
+    const key = createExplorationKey(tasks, workspaceRevision);
+
+    if (!options.forceFresh) {
+      const active = activeExploreByKey.get(key);
+      if (active) {
+        options.onUpdate?.({
+          content: [{ type: "text", text: "Joining an equivalent active exploration run." }],
+          details: { workflow: "explore", deduplicated: true, matchType: "active" },
+        });
+        const record = await subscribeToActiveExploration(active, options.signal);
+        return exploreToolResult(record, { launched: false, matchKind: "active" });
+      }
+
+      const match = findReusableExploration(
+        completedExploreCache.values(),
+        tasks,
+        key,
+        workspaceRevision,
+      );
+      if (match) {
+        return exploreToolResult(match.record, {
+          launched: false,
+          matchKind: match.kind,
+          similarity: match.similarity,
+        });
+      }
+    }
+
+    const active = launchExploration(tasks, workspaceRevision, key, options);
+    const record = await subscribeToActiveExploration(active, options.signal);
+    return exploreToolResult(record, { launched: true });
   };
 
   const executeStatus = (
@@ -886,9 +1183,24 @@ export default function subagentExtension(pi: ExtensionAPI) {
     }
   };
 
+  pi.on("tool_result", (event) => {
+    if (event.isError || !["edit", "write", "bash"].includes(event.toolName)) return;
+    workspaceGeneration += 1;
+    pi.appendEntry(WORKSPACE_GENERATION_ENTRY_TYPE, {
+      generation: workspaceGeneration,
+      timestamp: Date.now(),
+    });
+  });
+
   pi.on("session_start", (_event, ctx) => {
+    restoreExploreState(ctx);
     if (!ctx.hasUI) return;
     widget.setUICtx(ctx.ui, ctx.mode);
+    widget.update();
+  });
+
+  pi.on("session_tree", (_event, ctx) => {
+    restoreExploreState(ctx);
     widget.update();
   });
 
@@ -897,6 +1209,10 @@ export default function subagentExtension(pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
+    for (const active of activeExploreByKey.values()) {
+      active.controller.abort(new Error("Exploration session shut down."));
+    }
+    activeExploreByKey.clear();
     widget.dispose();
   });
 
@@ -938,6 +1254,18 @@ export default function subagentExtension(pi: ExtensionAPI) {
     },
   );
 
+  pi.registerMessageRenderer(
+    SUBAGENT_EXPLORE_MESSAGE_TYPE,
+    (message, { expanded }, theme) => {
+      const details = message.details as { markdown?: string } | undefined;
+      const markdown = details?.markdown
+        ?? (typeof message.content === "string" ? message.content : "");
+      if (!markdown) return undefined;
+      if (!expanded) return new Text(renderMarkdownPreview(markdown, theme), 0, 0);
+      return new Markdown(markdown, 0, 0, getMarkdownTheme());
+    },
+  );
+
   pi.registerCommand("subagent", {
     description: "Show detailed history for a subagent task by ID",
     handler: async (args, ctx) => {
@@ -951,6 +1279,65 @@ export default function subagentExtension(pi: ExtensionAPI) {
         pi,
         renderTaskHistoryMarkdown(result.task, result.run),
       );
+    },
+  });
+
+  pi.registerCommand("explore-fresh", {
+    description: "Explicitly authorize a fresh exploration run, bypassing duplicate reuse",
+    handler: async (args, ctx) => {
+      const parsed = parseFreshExploreArgs(args ?? "");
+      if (!parsed.task) {
+        ctx.ui.notify("Usage: /explore-fresh [fast|balanced|deep] <task>", "warning");
+        return;
+      }
+
+      const tasks = buildExploreTaskInputs(
+        { task: parsed.task, intent: parsed.intent, cwd: ctx.cwd },
+        ctx.cwd,
+      );
+      try {
+        const revision = await workspaceRevisionFor(tasks);
+        const key = createExplorationKey(tasks, revision);
+        const previous = findReusableExploration(
+          completedExploreCache.values(),
+          tasks,
+          key,
+          revision,
+        );
+        if (previous && ctx.hasUI) {
+          const age = Math.max(0, Math.round((Date.now() - previous.record.completedAt) / 1000));
+          const tokens = runTokenCount(previous.record.run);
+          const confirmed = await ctx.ui.confirm(
+            "Launch fresh exploration?",
+            `Matching run ${previous.record.run.runId} completed ${age}s ago with ${tokens} child tokens. Launch another independent run?`,
+          );
+          if (!confirmed) return;
+        }
+
+        const result = await executeExploreTasks(tasks, {
+          systemPrompt: EXPLORER_PROMPT,
+          parseOutput: parseExploreOutput,
+          ctx,
+          forceFresh: true,
+          persistCacheEntry: true,
+        });
+        const markdown = result.content[0]?.text ?? "Fresh exploration completed.";
+        pi.sendMessage(
+          {
+            customType: SUBAGENT_EXPLORE_MESSAGE_TYPE,
+            content: markdown,
+            display: true,
+            details: { markdown, ...(result.details ?? {}) },
+          },
+          { deliverAs: "nextTurn" },
+        );
+        ctx.ui.notify("Fresh exploration completed.", "info");
+      } catch (error) {
+        ctx.ui.notify(
+          `Fresh exploration failed: ${error instanceof Error ? error.message : String(error)}`,
+          "error",
+        );
+      }
     },
   });
 
@@ -978,8 +1365,11 @@ export default function subagentExtension(pi: ExtensionAPI) {
       "Use multiple explore tasks when the work is naturally parallel.",
       "If explore reports an infrastructure or tool-access failure, do not retry the same exploration; report the failure and continue with available local tools.",
       "Do not use explore for formal audits or code review; /review is user-triggered.",
+      "Before calling explore, use explore_status when a relevant exploration may already exist; never automatically rerun an identical or substantially overlapping task.",
+      "Repeated, rephrased, fresh, or independent wording is not sufficient authorization for explore to spend on another run; exact and near-duplicate requests are reused automatically.",
       "Use the structured explore result directly in your response instead of redoing the exploration yourself.",
       "When explore returns multiple task results, synthesize across those results instead of discarding their structure.",
+      "A deliberate independent rerun requires the user-only /explore-fresh command; the agent-facing explore tool cannot bypass duplicate protection.",
     ],
     parameters: exploreParamsSchema,
     renderCall(args, theme) {
@@ -1000,29 +1390,13 @@ export default function subagentExtension(pi: ExtensionAPI) {
       );
 
       try {
-        const { run, results } = await executeWorkflow("explore", tasks, {
+        return await executeExploreTasks(tasks, {
           systemPrompt: EXPLORER_PROMPT,
           parseOutput: parseExploreOutput,
           onUpdate,
           signal,
           ctx,
         });
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: renderFinalExploreResults(run.runId, run.mode, results),
-            },
-          ],
-          details: {
-            workflow: "explore",
-            mode: run.mode,
-            runId: run.runId,
-            results,
-            run: serializeRun(run),
-          },
-        };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`Explore run failed: ${message}`);
