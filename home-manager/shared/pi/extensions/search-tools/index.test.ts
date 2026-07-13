@@ -148,6 +148,49 @@ test("fetchWebUrl rejects local and private URLs", async () => {
   );
 });
 
+test("fetchWebUrl cancellation during DNS never starts a request", async () => {
+  const controller = new AbortController();
+  let resolveDns: ((addresses: string[]) => void) | undefined;
+  let requestCalls = 0;
+  const fetching = fetchWebUrl(
+    { url: "https://example.com/page", format: "text", maxCharacters: 1000 },
+    controller.signal,
+    {
+      resolveHostname: () => new Promise((resolve) => {
+        resolveDns = resolve;
+      }),
+      requestImpl: async () => {
+        requestCalls += 1;
+        return new Response("unexpected");
+      },
+    },
+  );
+
+  controller.abort(new Error("cancelled by test"));
+  await assert.rejects(fetching, /cancelled by test/);
+  resolveDns?.(["93.184.216.34"]);
+  await Promise.resolve();
+  assert.equal(requestCalls, 0);
+});
+
+test("fetchWebUrl pins the validated address passed to the request transport", async () => {
+  const observed: Array<{ hostname: string; address: string; family: number }> = [];
+  const result = await fetchWebUrl(
+    { url: "https://example.com/page", format: "text", maxCharacters: 1000 },
+    undefined,
+    {
+      resolveHostname: async () => ["93.184.216.34"],
+      requestImpl: async (url, address, family) => {
+        observed.push({ hostname: url.hostname, address, family });
+        return new Response("public content", { status: 200, headers: { "content-type": "text/plain" } });
+      },
+    },
+  );
+
+  assert.equal(result.content, "public content");
+  assert.deepEqual(observed, [{ hostname: "example.com", address: "93.184.216.34", family: 4 }]);
+});
+
 test("fetchWebUrl validates redirect targets before fetching them", async () => {
   let calls = 0;
 

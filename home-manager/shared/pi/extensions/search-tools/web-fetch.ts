@@ -1,4 +1,7 @@
+import http from "node:http";
+import https from "node:https";
 import { isIP } from "node:net";
+import { Readable } from "node:stream";
 import { isLocalHostname, isPublicIpAddress, normalizeHostname } from "./network-safety.ts";
 
 export type WebFetchFormat = "markdown" | "text" | "html";
@@ -38,6 +41,12 @@ export interface WebFetchResult {
 
 export interface WebFetchOptions {
   fetchImpl?: typeof fetch;
+  requestImpl?: (
+    url: URL,
+    address: string,
+    family: 4 | 6,
+    init: { signal: AbortSignal; headers: Record<string, string> },
+  ) => Promise<Response>;
   resolveHostname?: (hostname: string) => Promise<string[]>;
   allowPrivateNetwork?: boolean;
   createTimeoutSignal?: (input: TimeoutSignalFactoryInput) => TimeoutSignalHandle;
@@ -56,12 +65,12 @@ export async function fetchWebUrl(
 ): Promise<WebFetchResult> {
   if (params.maxCharacters < 1) throw new Error("web_fetch maxCharacters must be at least 1.");
 
-  const originalUrl = await validatePublicWebUrl(params.url, options);
   const timeoutMs = Math.min(Math.round((params.timeoutSeconds ?? DEFAULT_TIMEOUT_MS / 1000) * 1000), MAX_TIMEOUT_MS);
   if (timeoutMs < 1) throw new Error("web_fetch timeout must be at least 1 second.");
 
   const { signal: requestSignal, clear } = (options.createTimeoutSignal ?? createTimeoutSignal)({ timeoutMs, parent: signal });
   try {
+    const originalUrl = await validatePublicWebUrl(params.url, options, requestSignal);
     const { response, finalUrl } = await fetchWithRedirects(originalUrl, params.format, requestSignal, options);
 
     if (!response.ok) {
@@ -153,7 +162,22 @@ export async function readResponseBodyLimited(response: Response, signal?: Abort
   return output;
 }
 
-export async function validatePublicWebUrl(url: string, options: WebFetchOptions = {}): Promise<URL> {
+async function raceWithAbort<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  signal.throwIfAborted();
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason ?? new Error("web_fetch cancelled."));
+    signal.addEventListener("abort", abort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
+}
+
+export async function validatePublicWebUrl(
+  url: string,
+  options: WebFetchOptions = {},
+  signal?: AbortSignal,
+): Promise<URL> {
+  signal?.throwIfAborted();
   const trimmed = url.trim();
   if (!trimmed) throw new Error("web_fetch requires a non-empty URL.");
 
@@ -177,7 +201,7 @@ export async function validatePublicWebUrl(url: string, options: WebFetchOptions
     if (isLocalHostname(hostname)) throw new Error("Localhost URLs are not allowed.");
     if (isIP(hostname) && !isPublicIpAddress(hostname)) throw new Error("Private, local, or reserved IP addresses are not allowed.");
 
-    const addresses = await resolveHostname(hostname, options.resolveHostname);
+    const addresses = await raceWithAbort(resolveHostname(hostname, options.resolveHostname), signal);
     if (addresses.length === 0) throw new Error("URL hostname did not resolve to an address.");
     for (const address of addresses) {
       if (!isPublicIpAddress(normalizeHostname(address))) {
@@ -215,34 +239,88 @@ function getAcceptHeader(format: WebFetchFormat): string {
   }
 }
 
+async function requestPinnedAddress(
+  url: URL,
+  address: string,
+  family: 4 | 6,
+  init: { signal: AbortSignal; headers: Record<string, string> },
+): Promise<Response> {
+  const client = url.protocol === "https:" ? https : http;
+  return new Promise((resolve, reject) => {
+    const request = client.request(url, {
+      method: "GET",
+      headers: init.headers,
+      signal: init.signal,
+      family,
+      autoSelectFamily: false,
+      servername: url.protocol === "https:" && !isIP(url.hostname) ? url.hostname : undefined,
+      lookup: (_hostname, lookupOptions, callback) => {
+        if (typeof lookupOptions === "object" && lookupOptions.all) {
+          callback(null, [{ address, family }]);
+        } else {
+          callback(null, address, family);
+        }
+      },
+    }, (incoming) => {
+      const headers = new Headers();
+      for (let index = 0; index < incoming.rawHeaders.length; index += 2) {
+        headers.append(incoming.rawHeaders[index]!, incoming.rawHeaders[index + 1]!);
+      }
+      const status = incoming.statusCode ?? 0;
+      const body = status === 204 || status === 205 || status === 304
+        ? null
+        : Readable.toWeb(incoming) as ReadableStream;
+      resolve(new Response(body, { status, statusText: incoming.statusMessage, headers }));
+    });
+    request.once("error", reject);
+    request.end();
+  });
+}
+
 async function fetchWithRedirects(
   initialUrl: URL,
   format: WebFetchFormat,
   signal: AbortSignal,
   options: WebFetchOptions,
 ): Promise<{ response: Response; finalUrl: string }> {
-  const fetchImpl = options.fetchImpl ?? fetch;
   let currentUrl = initialUrl;
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
-    const response = await fetchImpl(currentUrl, {
-      method: "GET",
-      redirect: "manual",
-      signal,
-      headers: {
-        "User-Agent": HONEST_USER_AGENT,
-        Accept: getAcceptHeader(format),
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-    });
+    signal.throwIfAborted();
+    const headers = {
+      "User-Agent": HONEST_USER_AGENT,
+      Accept: getAcceptHeader(format),
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "identity",
+    };
+    let response: Response;
+    if (options.fetchImpl) {
+      response = await options.fetchImpl(currentUrl, {
+        method: "GET",
+        redirect: "manual",
+        signal,
+        headers,
+      });
+    } else {
+      const hostname = normalizeHostname(currentUrl.hostname);
+      const addresses = await raceWithAbort(resolveHostname(hostname, options.resolveHostname), signal);
+      if (addresses.length === 0 || addresses.some((address) => !isPublicIpAddress(normalizeHostname(address)))) {
+        throw new Error("URL resolves to a private, local, or reserved IP address.");
+      }
+      const address = normalizeHostname(addresses[0]!);
+      const family = isIP(address);
+      if (family !== 4 && family !== 6) throw new Error("URL resolved to an invalid IP address.");
+      response = await (options.requestImpl ?? requestPinnedAddress)(currentUrl, address, family, { signal, headers });
+    }
 
     if (!isRedirect(response.status)) return { response, finalUrl: response.url || currentUrl.toString() };
 
     const location = response.headers.get("location");
+    await response.body?.cancel();
     if (!location) throw new Error(`Redirect response ${response.status} did not include a Location header.`);
     if (redirectCount === MAX_REDIRECTS) throw new Error(`Too many redirects (>${MAX_REDIRECTS}).`);
 
-    currentUrl = await validatePublicWebUrl(new URL(location, currentUrl).toString(), options);
+    currentUrl = await validatePublicWebUrl(new URL(location, currentUrl).toString(), options, signal);
   }
 
   throw new Error(`Too many redirects (>${MAX_REDIRECTS}).`);
