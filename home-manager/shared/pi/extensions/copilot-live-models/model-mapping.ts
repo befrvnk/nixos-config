@@ -1,3 +1,5 @@
+import { DEFAULT_CONTEXT_RESERVE_TOKENS } from "./constants.ts";
+import { isPositiveSafeInteger, positiveSafeIntegerOr } from "./token-validation.ts";
 import type {
   CopilotLiveModel,
   CopilotTokenPriceTier,
@@ -39,14 +41,22 @@ export function priceToDollarsPerMillion(value: number | undefined): number {
 
 export function calculatePiContextWindow(model: CopilotLiveModel, reserveTokens: number): number {
   const limits = model.capabilities?.limits;
-  const maxContext = limits?.max_context_window_tokens;
-  const maxPrompt = limits?.max_prompt_tokens;
+  const maxContext = isPositiveSafeInteger(limits?.max_context_window_tokens)
+    ? limits.max_context_window_tokens
+    : undefined;
+  const maxPrompt = isPositiveSafeInteger(limits?.max_prompt_tokens)
+    ? limits.max_prompt_tokens
+    : undefined;
+  const reserve = positiveSafeIntegerOr(reserveTokens, DEFAULT_CONTEXT_RESERVE_TOKENS);
 
-  // Pi subtracts the global compaction reserve from contextWindow to decide
-  // when to compact. Copilot's live catalog exposes an explicit prompt budget,
-  // so make Pi's effective prompt threshold equal that budget. maxTokens below
-  // still caps the requested response size.
-  if (maxPrompt) return maxPrompt + reserveTokens;
+  // Align Pi's effective compaction threshold with Copilot's prompt budget,
+  // without advertising more context than the live catalog supports.
+  if (maxPrompt !== undefined) {
+    const promptWithReserve = maxPrompt > Number.MAX_SAFE_INTEGER - reserve
+      ? Number.MAX_SAFE_INTEGER
+      : maxPrompt + reserve;
+    return maxContext === undefined ? promptWithReserve : Math.min(promptWithReserve, maxContext);
+  }
   return maxContext ?? 128_000;
 }
 
@@ -101,6 +111,12 @@ export function mapCopilotModelToPi(
   const thinkingLevelMap = buildThinkingLevelMap(model);
   const input: ("text" | "image")[] = model.capabilities?.supports?.vision ? ["text", "image"] : ["text"];
 
+  const contextWindow = calculatePiContextWindow(model, reserveTokens);
+  const maxTokens = Math.min(
+    positiveSafeIntegerOr(limits?.max_output_tokens, 16_384),
+    contextWindow,
+  );
+
   return {
     id: model.id!,
     name: model.name ?? model.id!,
@@ -114,8 +130,8 @@ export function mapCopilotModelToPi(
       cacheRead: priceToDollarsPerMillion(tier?.cache_price),
       cacheWrite: 0,
     },
-    contextWindow: calculatePiContextWindow(model, reserveTokens),
-    maxTokens: limits?.max_output_tokens ?? 16_384,
+    contextWindow,
+    maxTokens,
     compat: buildCompat(model, api),
   };
 }

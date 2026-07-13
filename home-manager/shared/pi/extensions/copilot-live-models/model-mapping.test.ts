@@ -54,7 +54,38 @@ test("calculatePiContextWindow respects the prompt budget plus configured respon
       },
       128_000,
     ),
-    256_000,
+    128_000,
+  );
+});
+
+test("calculatePiContextWindow validates metadata and reserve values", () => {
+  assert.equal(
+    calculatePiContextWindow(
+      { id: "context-only", capabilities: { limits: { max_context_window_tokens: 64_000 } } },
+      1,
+    ),
+    64_000,
+  );
+  assert.equal(
+    calculatePiContextWindow(
+      { id: "prompt-only", capabilities: { limits: { max_prompt_tokens: 64_000 } } },
+      16_000,
+    ),
+    80_000,
+  );
+  assert.equal(
+    calculatePiContextWindow(
+      { id: "invalid", capabilities: { limits: { max_context_window_tokens: -1, max_prompt_tokens: 1.5 } } },
+      0,
+    ),
+    128_000,
+  );
+  assert.equal(
+    calculatePiContextWindow(
+      { id: "overflow", capabilities: { limits: { max_prompt_tokens: Number.MAX_SAFE_INTEGER } } },
+      128_000,
+    ),
+    Number.MAX_SAFE_INTEGER,
   );
 });
 
@@ -77,6 +108,23 @@ test("mapCopilotModelToPi maps GPT-5.5 long-context Responses metadata", () => {
   });
 });
 
+test("mapCopilotModelToPi caps output tokens at the context window", () => {
+  const model = mapCopilotModelToPi(
+    {
+      id: "small-context",
+      model_picker_enabled: true,
+      supported_endpoints: ["/responses"],
+      capabilities: {
+        limits: { max_context_window_tokens: 8_000, max_output_tokens: 64_000 },
+      },
+    },
+    128_000,
+  );
+
+  assert.equal(model?.contextWindow, 8_000);
+  assert.equal(model?.maxTokens, 8_000);
+});
+
 test("mapCopilotModelToPi maps Anthropic Messages models and adaptive thinking", () => {
   const model = mapCopilotModelToPi(
     {
@@ -95,7 +143,7 @@ test("mapCopilotModelToPi maps Anthropic Messages models and adaptive thinking",
   );
 
   assert.equal(model?.api, "anthropic-messages");
-  assert.equal(model?.contextWindow, 1_064_000);
+  assert.equal(model?.contextWindow, 1_000_000);
   assert.deepEqual(model?.compat, { forceAdaptiveThinking: true });
   assert.equal(model?.thinkingLevelMap?.xhigh, "max");
 });
