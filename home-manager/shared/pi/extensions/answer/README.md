@@ -15,7 +15,7 @@ Controls:
 - `Esc` to cancel
 - shortcut: `Ctrl+.`
 
-The custom editor is available only in TUI mode. It propagates focus to the embedded editor for hardware-cursor and IME support, and its layout degrades safely on narrow terminals.
+The custom multi-question editor is used in TUI mode. It propagates focus to the embedded editor for hardware-cursor and IME support, and its layout degrades safely on narrow terminals. RPC clients receive standard editor requests for each extracted question.
 
 Notes:
 - adapted from `mitsuhiko/agent-stuff`'s `pi-extensions/answer.ts`
