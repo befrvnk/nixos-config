@@ -44,6 +44,7 @@ export type ReviewTarget =
 export type ReviewRequest = {
 	prompt?: string;
 	cwd?: string;
+	projectGuidelinesAllowed?: boolean;
 };
 
 export type ReviewCommandRequest = ReviewRequest & {
@@ -1169,10 +1170,9 @@ async function buildAdditionalReviewInstructions(
 	params: ReviewRequest,
 	context: ReviewContext,
 ): Promise<string | undefined> {
-	const projectGuidelines = await loadProjectReviewGuidelines(
-		context.repoRoot,
-		context.repoRoot,
-	);
+	const projectGuidelines = params.projectGuidelinesAllowed === false
+		? undefined
+		: await loadProjectReviewGuidelines(context.repoRoot, context.repoRoot);
 	return composeAdditionalReviewInstructions({
 		extraPrompt: params.prompt,
 		projectGuidelines,

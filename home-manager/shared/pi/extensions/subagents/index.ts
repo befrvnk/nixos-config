@@ -698,10 +698,14 @@ export default function subagentExtension(pi: ExtensionAPI) {
     signal?: AbortSignal,
   ): Promise<ReviewExecutionResult> => {
     let cleanup: (() => Promise<void>) | undefined;
+    const request = {
+      ...selection.request,
+      projectGuidelinesAllowed: ctx.isProjectTrusted(),
+    };
     try {
       const created = await createReviewContext(
         pi,
-        selection.request,
+        request,
         ctx.cwd,
         signal,
       );
@@ -711,7 +715,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
       try {
         const briefTask = await createReviewBriefTask(
           context,
-          selection.request,
+          request,
           ctx.cwd,
         );
         const briefResult = await executeInternalTask("review", briefTask, {
@@ -747,7 +751,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
 
       const tasks = await createReviewTasksForContext(
         context,
-        selection.request,
+        request,
         ctx.cwd,
       );
       const { run, results } = await executeWorkflow("review", tasks, {
