@@ -17,9 +17,12 @@ That API version is required for Copilot Enterprise to expose GPT-5.5's long-con
 - Uses the cached Copilot token when valid, otherwise refreshes it through GitHub's Copilot token endpoint.
 - Fetches `${apiBaseUrl}/models` from the token metadata, so Enterprise endpoints are discovered dynamically.
 - Maps live models into Pi provider model configs.
-- Sets Pi `contextWindow` from Copilot's `max_prompt_tokens + compaction.reserveTokens`, because Pi subtracts the reserve to decide when to compact.
+- Sets Pi `contextWindow` from Copilot's prompt budget plus `compaction.reserveTokens`, capped by the catalog's advertised context maximum.
 - Calls `pi.registerProvider("github-copilot", ...)` to replace Pi's built-in static Copilot catalog for normal sessions.
 - Provides `write-models-json.ts`, used by the Home Manager `pi` wrapper to refresh `~/.pi/agent/models.json` before Pi starts. This makes model discovery available even for code paths such as `pi --list-models` that do not load extensions.
+- Accepts comments and trailing commas in existing Pi configuration, preserves unrelated providers and top-level fields, and refuses to replace malformed or unreadable `models.json` files.
+- Replaces successfully generated `models.json` atomically with owner-only permissions, so readers never observe partial output.
+- Accepts only positive safe integers for token settings and limits; invalid reserve settings fall back to `128000`.
 - Fails open: if auth or discovery fails, Pi keeps its built-in catalog or the last successfully generated `models.json`.
 - Uses a 10-second fetch timeout by default (`PI_COPILOT_LIVE_MODELS_TIMEOUT_MS`) so a hanging Copilot endpoint does not block Pi startup indefinitely.
 - The Home Manager wrapper invokes the writer with `node --experimental-strip-types` to make direct `.ts` execution explicit.
@@ -49,7 +52,7 @@ PI_COPILOT_LIVE_MODELS_TIMEOUT_MS=5000 pi
 Run the extension's local unit tests directly; no Nix rebuild or Pi session required:
 
 ```sh
-node --test home-manager/shared/pi/extensions/copilot-live-models/*.test.ts
+./scripts/test-pi-extensions.sh
 ```
 
 The default test run skips the live-network smoke test.
@@ -81,6 +84,4 @@ rm -rf "$tmpdir"
 
 Expected output includes `github-copilot  gpt-5.5  1.1M`.
 
-## Pi 0.79.1 caveat
-
-Pi 0.79.1 appears not to load extensions for `pi --list-models`. The Home Manager wrapper handles this by running `write-models-json.ts` before delegating to the real Pi binary, so `--list-models` sees a freshly generated provider config from `models.json`.
+The Home Manager wrapper runs `write-models-json.ts` before delegation so model-listing and other startup paths consistently see the refreshed provider configuration.
