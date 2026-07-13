@@ -29,6 +29,7 @@ export interface PiProviderConfig {
 
 export interface PiModelsJson {
   providers?: Record<string, PiProviderConfig>;
+  [key: string]: unknown;
 }
 
 export interface CopilotOAuthCredentials {

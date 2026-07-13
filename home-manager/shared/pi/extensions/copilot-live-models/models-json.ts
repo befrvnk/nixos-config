@@ -17,12 +17,19 @@ export function modelsJsonPath(agentDir: string): string {
 }
 
 export function parseModelsJson(text: string): PiModelsJson {
-  const parsed = parseJsonc(text) as PiModelsJson;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-  if (parsed.providers !== undefined && (typeof parsed.providers !== "object" || Array.isArray(parsed.providers))) {
-    return {};
+  const parsed = parseJsonc(text);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new TypeError("models.json must contain a JSON object.");
   }
-  return parsed;
+
+  const modelsJson = parsed as PiModelsJson;
+  if (
+    modelsJson.providers !== undefined
+    && (!modelsJson.providers || typeof modelsJson.providers !== "object" || Array.isArray(modelsJson.providers))
+  ) {
+    throw new TypeError("models.json providers must be a JSON object when present.");
+  }
+  return modelsJson;
 }
 
 export async function loadExistingModelsJson(
@@ -62,11 +69,12 @@ export async function writeCopilotModelsJson(
   }
 
   const filePath = modelsJsonPath(options.agentDir);
-  let existing: PiModelsJson = {};
+  let existing: PiModelsJson;
   try {
     existing = await loadExistingModelsJson(filePath, deps.readTextFile);
   } catch (error) {
-    deps.writeDebug?.(`Ignoring unreadable existing models.json: ${error instanceof Error ? error.message : String(error)}`);
+    deps.writeDebug?.(`Preserving unreadable existing models.json: ${error instanceof Error ? error.message : String(error)}`);
+    return false;
   }
 
   const merged = mergeCopilotProviderConfig(existing, providerConfig);
