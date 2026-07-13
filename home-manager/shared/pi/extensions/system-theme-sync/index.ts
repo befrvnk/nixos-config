@@ -87,14 +87,17 @@ export async function syncThemeSafely(
     currentTheme?: ThemeMode;
     detect?: () => Promise<ThemeMode | undefined>;
     notifyError?: (message: string) => void;
+    shouldApply?: () => boolean;
   } = {},
 ): Promise<ThemeMode | undefined> {
   const currentTheme = options.currentTheme;
   try {
     const detectedTheme = await (options.detect ?? detectTheme)();
+    if (options.shouldApply && !options.shouldApply()) return currentTheme;
     if (!detectedTheme || detectedTheme === currentTheme) return currentTheme;
     return applyTheme(ctx, detectedTheme);
   } catch (error) {
+    if (options.shouldApply && !options.shouldApply()) return currentTheme;
     options.notifyError?.(
       error instanceof Error ? error.message : String(error),
     );
@@ -102,15 +105,51 @@ export async function syncThemeSafely(
   }
 }
 
+export function createSerializedPoller(
+  task: () => Promise<void>,
+  intervalMs: number,
+  timers: {
+    schedule?: (callback: () => void, delay: number) => unknown;
+    cancel?: (handle: unknown) => void;
+  } = {},
+) {
+  const schedule = timers.schedule ?? ((callback, delay) => setTimeout(callback, delay));
+  const cancel = timers.cancel ?? ((handle) => clearTimeout(handle as ReturnType<typeof setTimeout>));
+  let active = false;
+  let timeout: unknown;
+
+  const run = async () => {
+    try {
+      await task();
+    } finally {
+      if (active) timeout = schedule(() => void run(), intervalMs);
+    }
+  };
+
+  return {
+    async start() {
+      if (active) return;
+      active = true;
+      await run();
+    },
+    stop() {
+      active = false;
+      if (timeout !== undefined) cancel(timeout);
+      timeout = undefined;
+    },
+  };
+}
+
 export default function systemThemeSyncExtension(pi: ExtensionAPI) {
-  let intervalId: ReturnType<typeof setInterval> | undefined;
+  let poller: ReturnType<typeof createSerializedPoller> | undefined;
+  let activeOwner: symbol | undefined;
   let currentTheme: ThemeMode | undefined;
   let lastSyncError: string | undefined;
 
   const stop = () => {
-    if (!intervalId) return;
-    clearInterval(intervalId);
-    intervalId = undefined;
+    activeOwner = undefined;
+    poller?.stop();
+    poller = undefined;
   };
 
   const reportSyncError = (ctx: ExtensionContext, message: string) => {
@@ -119,26 +158,27 @@ export default function systemThemeSyncExtension(pi: ExtensionAPI) {
     ctx.ui.notify(`Theme sync failed: ${message}`, "warning");
   };
 
-  const syncTheme = async (ctx: ExtensionContext) => {
-    currentTheme = await syncThemeSafely(ctx, {
-      currentTheme,
-      notifyError: (message) => reportSyncError(ctx, message),
-    });
-    if (currentTheme) lastSyncError = undefined;
-  };
-
   pi.on("session_start", async (_event, ctx) => {
     stop();
     currentTheme = undefined;
     lastSyncError = undefined;
 
-    if (!ctx.hasUI) return;
+    if (ctx.mode !== "tui") return;
 
-    await syncTheme(ctx);
-
-    intervalId = setInterval(() => {
-      void syncTheme(ctx);
+    const owner = Symbol("system-theme-sync-session");
+    activeOwner = owner;
+    poller = createSerializedPoller(async () => {
+      if (activeOwner !== owner) return;
+      const nextTheme = await syncThemeSafely(ctx, {
+        currentTheme,
+        shouldApply: () => activeOwner === owner,
+        notifyError: (message) => reportSyncError(ctx, message),
+      });
+      if (activeOwner !== owner) return;
+      currentTheme = nextTheme;
+      if (currentTheme) lastSyncError = undefined;
     }, POLL_INTERVAL_MS);
+    await poller.start();
   });
 
   pi.on("session_shutdown", () => {
