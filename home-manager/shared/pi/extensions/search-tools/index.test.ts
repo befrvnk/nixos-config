@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import test from "node:test";
 import { formatCodeSearchOutput, formatWebFetchOutput, formatWebSearchOutput } from "./formatting.ts";
 import { extractUrlsFromMcpResult } from "./url-extraction.ts";
-import { fetchWebUrl, formatFetchedContent, validatePublicWebUrl } from "./web-fetch.ts";
+import { fetchWebUrl, formatFetchedContent, requestPinnedAddress, validatePublicWebUrl } from "./web-fetch.ts";
 
 test("formatWebSearchOutput emits only queries and source URLs", () => {
   const output = formatWebSearchOutput({
@@ -171,6 +172,36 @@ test("fetchWebUrl cancellation during DNS never starts a request", async () => {
   resolveDns?.(["93.184.216.34"]);
   await Promise.resolve();
   assert.equal(requestCalls, 0);
+});
+
+test("requestPinnedAddress keeps handling errors after the initial rejection", async () => {
+  const request = new EventEmitter() as EventEmitter & { end(): void };
+  let unhandledLateError: unknown;
+  request.end = () => {
+    queueMicrotask(() => {
+      request.emit("error", new Error("initial connection error"));
+      try {
+        request.emit("error", new Error("late socket error"));
+      } catch (error) {
+        unhandledLateError = error;
+      }
+    });
+  };
+
+  const requestClient: NonNullable<Parameters<typeof requestPinnedAddress>[4]> = {
+    request: (() => request) as unknown as NonNullable<Parameters<typeof requestPinnedAddress>[4]>["request"],
+  };
+  const response = requestPinnedAddress(
+    new URL("https://api.github.com/resource"),
+    "140.82.121.5",
+    4,
+    { signal: new AbortController().signal, headers: {} },
+    requestClient,
+  );
+
+  await assert.rejects(response, /initial connection error/);
+  assert.equal(unhandledLateError, undefined);
+  assert.equal(request.listenerCount("error"), 1);
 });
 
 test("fetchWebUrl pins the validated address passed to the request transport", async () => {

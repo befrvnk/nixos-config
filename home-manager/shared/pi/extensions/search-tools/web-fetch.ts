@@ -244,13 +244,14 @@ function getAcceptHeader(format: WebFetchFormat): string {
   }
 }
 
-async function requestPinnedAddress(
+export async function requestPinnedAddress(
   url: URL,
   address: string,
   family: 4 | 6,
   init: { signal: AbortSignal; headers: Record<string, string> },
+  requestClient?: Pick<typeof http, "request">,
 ): Promise<Response> {
-  const client = url.protocol === "https:" ? https : http;
+  const client = requestClient ?? (url.protocol === "https:" ? https : http);
   return new Promise((resolve, reject) => {
     const request = client.request(url, {
       method: "GET",
@@ -277,7 +278,10 @@ async function requestPinnedAddress(
         : Readable.toWeb(incoming) as ReadableStream;
       resolve(new Response(body, { status, statusText: incoming.statusMessage, headers }));
     });
-    request.once("error", reject);
+    // Keep consuming transport errors after the promise settles. ClientRequest can
+    // emit more than one error during abort/connect races, and a once-listener
+    // would leave a later socket error unhandled and terminate Pi.
+    request.on("error", reject);
     request.end();
   });
 }
