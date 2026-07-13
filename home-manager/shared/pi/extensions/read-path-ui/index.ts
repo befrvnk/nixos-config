@@ -15,6 +15,7 @@ import {
 const SUMMARY_MARKER = Symbol.for("frank.pi.tool-summary-ui.marker");
 const CONTAINER_PATCH_MARKER = Symbol.for("frank.pi.tool-summary-ui.container-patch-v1");
 const ORIGINAL_CONTAINER_RENDER = Symbol.for("frank.pi.tool-summary-ui.original-container-render");
+const CONTAINER_PATCH_STATE = Symbol.for("frank.pi.tool-summary-ui.container-patch-v2");
 const STATE = Symbol.for("frank.pi.tool-summary-ui.state");
 
 type ToolSummaryState = {
@@ -29,6 +30,12 @@ function getState(): ToolSummaryState {
 
 function getSummaries(): Map<string, ToolSummaryData> {
   return getState().summaries;
+}
+
+export function clearSummaryState(): void {
+  const globalState = globalThis as typeof globalThis & { [STATE]?: ToolSummaryState };
+  globalState[STATE]?.summaries.clear();
+  delete globalState[STATE];
 }
 
 class ToolSummaryText extends Text {
@@ -135,27 +142,52 @@ function renderWithGroupedSummaries(
   return lines;
 }
 
-function patchContainerRender() {
+type ContainerPatchState = {
+  original: ContainerRender;
+  installed: ContainerRender;
+  owners: Set<symbol>;
+};
+
+function acquireContainerRenderPatch(owner: symbol): () => void {
   const prototype = Container.prototype as typeof Container.prototype & {
     [CONTAINER_PATCH_MARKER]?: boolean;
     [ORIGINAL_CONTAINER_RENDER]?: ContainerRender;
+    [CONTAINER_PATCH_STATE]?: ContainerPatchState;
   };
 
-  if (prototype[CONTAINER_PATCH_MARKER]) return;
-
-  const original = prototype.render as ContainerRender;
-  prototype[ORIGINAL_CONTAINER_RENDER] = original;
-  prototype.render = function patchedContainerRender(width: number): string[] {
-    // The grouping logic reads pi-tui component internals (children, render).
-    // If an upstream change breaks those assumptions, fall back to the original
-    // renderer instead of throwing on every frame.
-    try {
-      return renderWithGroupedSummaries(this as Container & { children: unknown[] }, width, original);
-    } catch {
-      return original.call(this, width);
+  let state = prototype[CONTAINER_PATCH_STATE];
+  if (!state) {
+    if (prototype[CONTAINER_PATCH_MARKER] && prototype[ORIGINAL_CONTAINER_RENDER]) {
+      prototype.render = prototype[ORIGINAL_CONTAINER_RENDER];
+      delete prototype[CONTAINER_PATCH_MARKER];
+      delete prototype[ORIGINAL_CONTAINER_RENDER];
     }
+
+    const original = prototype.render as ContainerRender;
+    const installed: ContainerRender = function patchedContainerRender(this: Container, width: number): string[] {
+      try {
+        return renderWithGroupedSummaries(this as Container & { children: unknown[] }, width, original);
+      } catch {
+        return original.call(this, width);
+      }
+    };
+    state = { original, installed, owners: new Set() };
+    prototype.render = installed;
+    prototype[CONTAINER_PATCH_STATE] = state;
+  }
+  state.owners.add(owner);
+
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const current = prototype[CONTAINER_PATCH_STATE];
+    if (!current) return;
+    current.owners.delete(owner);
+    if (current.owners.size > 0) return;
+    if (prototype.render === current.installed) prototype.render = current.original;
+    delete prototype[CONTAINER_PATCH_STATE];
   };
-  prototype[CONTAINER_PATCH_MARKER] = true;
 }
 
 function updateSummaryData(next: ToolSummaryData) {
@@ -165,10 +197,13 @@ function updateSummaryData(next: ToolSummaryData) {
 }
 
 export default function readPathUiExtension(pi: ExtensionAPI) {
-  patchContainerRender();
+  const owner = Symbol("read-path-ui-extension-instance");
+  let releasePatch: (() => void) | undefined;
 
   pi.on("session_start", (_event, ctx) => {
-    getSummaries().clear();
+    releasePatch?.();
+    clearSummaryState();
+    releasePatch = acquireContainerRenderPatch(owner);
     const builtinRead = createReadTool(ctx.cwd);
 
     pi.registerTool({
@@ -217,5 +252,11 @@ export default function readPathUiExtension(pi: ExtensionAPI) {
         return component;
       },
     });
+  });
+
+  pi.on("session_shutdown", () => {
+    clearSummaryState();
+    releasePatch?.();
+    releasePatch = undefined;
   });
 }
