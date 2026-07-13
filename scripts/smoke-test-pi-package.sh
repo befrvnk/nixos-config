@@ -31,7 +31,7 @@ if grep -q '"type":"extension_error"' "$tmp_dir/stdout" "$tmp_dir/stderr"; then
   exit 1
 fi
 
-for command in answer review subagent lsp-status lsp-restart lsp-stop lsp-log; do
+for command in answer explore-fresh review subagent lsp-status lsp-restart lsp-stop lsp-log; do
   if ! grep -q "\"name\":\"$command\"" "$tmp_dir/stdout"; then
     cat "$tmp_dir/stderr" >&2
     cat "$tmp_dir/stdout" >&2

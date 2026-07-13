@@ -11,6 +11,7 @@ It currently exposes:
 
 ## User-facing commands
 
+- `/explore-fresh [fast|balanced|deep] <task>` — explicitly authorize a new independent exploration after reviewing any matching cached run
 - `/review` — run the fixed review pair against:
   - uncommitted changes
   - staged changes
@@ -30,7 +31,7 @@ Both workflows share the same subagent engine for:
 - widget/status UI
 - guarded read-only child tools
 
-Any runtime fix or improvement applies to both explore and review.
+Any runtime fix or improvement applies to both explore and review. Exploration additionally has exact single-flight deduplication, conservative near-duplicate reuse, session budgets, and a branch-aware result cache.
 
 ## Layout
 
@@ -78,6 +79,10 @@ Current mapping:
 - `deep` → `DEEP_EXPLORE_MODEL` (`gpt-5.6-sol`) with high thinking
 
 If intent is omitted or invalid, `explore` falls back to `balanced` automatically.
+
+Equivalent active calls join one shared run. Successful exact matches are reused for five minutes, while failed or aborted matches have a 30-second retry cooldown. Substantially similar requests reuse prior findings rather than launching another worker. Cache keys include canonical working directories, resolved model/thinking profiles, and a conservative workspace revision. Successful `edit`, `write`, and `bash` results advance a branch-persisted workspace generation so cached repository findings are invalidated.
+
+Only one explore workflow may be active at a time; independent perspectives should be expressed through one `tasks` array. The cache is limited to ten entries and 2 MiB, and new runs stop after one million tracked child tokens in a session. Cache state is restored from the active branch on session start and tree navigation. A deliberate rerun cannot be requested by the agent-facing tool: the user must invoke `/explore-fresh`, which shows matching run age and token cost before confirmation in interactive modes.
 
 Examples:
 
