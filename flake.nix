@@ -152,6 +152,12 @@
             touch $out
           '';
 
+          pi-package-smoke = pkgs.runCommand "pi-package-smoke" { } ''
+            PI_BIN=${pkgs.pi-coding-agent}/bin/pi \
+              ${pkgs.bash}/bin/bash ${./scripts/smoke-test-pi-package.sh} ${./home-manager/shared/pi}
+            touch $out
+          '';
+
           inherit (pkgs)
             gh-enhance
             kotlin-lsp

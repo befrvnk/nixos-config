@@ -60,6 +60,7 @@ stdenvNoCC.mkDerivation {
   installCheckPhase = ''
     test -x "$out/bin/pi"
     test -x "$out/share/pi/pi"
+    HOME="$TMPDIR/home" PI_OFFLINE=1 "$out/bin/pi" --version
   '';
 
   meta = {
