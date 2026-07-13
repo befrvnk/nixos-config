@@ -6,6 +6,8 @@ import type {
 } from "./types.js";
 
 export const EXPLORE_CACHE_SCHEMA_VERSION = 1;
+export const EXPLORE_CACHE_ENTRY_TYPE = "subagent-explore-cache";
+export const WORKSPACE_GENERATION_ENTRY_TYPE = "subagent-workspace-generation";
 export const EXPLORE_SUCCESS_TTL_MS = 5 * 60_000;
 export const EXPLORE_FAILURE_COOLDOWN_MS = 30_000;
 export const EXPLORE_SIMILARITY_THRESHOLD = 0.88;
@@ -13,6 +15,15 @@ export const MAX_EXPLORE_CACHE_ENTRIES = 10;
 export const MAX_EXPLORE_CACHE_BYTES = 2 * 1024 * 1024;
 export const MAX_ACTIVE_EXPLORE_RUNS = 1;
 export const MAX_EXPLORE_SESSION_TOKENS = 1_000_000;
+
+export type ExploreCacheMetadata = {
+  schemaVersion: number;
+  key: string;
+  workspaceRevision: string;
+  tasks: SubagentTaskInput[];
+  completedAt: number;
+  launched: boolean;
+};
 
 export type ExploreCacheRecord = {
   key: string;
@@ -54,6 +65,20 @@ function taskFingerprintValue(task: SubagentTaskInput) {
     intent: task.intent ?? "",
     model: task.model ?? "",
     thinkingLevel: task.thinkingLevel ?? "",
+  };
+}
+
+export function createExploreCacheMetadata(
+  record: ExploreCacheRecord,
+  launched: boolean,
+): ExploreCacheMetadata {
+  return {
+    schemaVersion: EXPLORE_CACHE_SCHEMA_VERSION,
+    key: record.key,
+    workspaceRevision: record.workspaceRevision,
+    tasks: record.tasks,
+    completedAt: record.completedAt,
+    launched,
   };
 }
 
@@ -176,12 +201,86 @@ export function rememberExploration(
   }
 }
 
-export function totalExploreTokens(records: Iterable<ExploreCacheRecord>): number {
-  let total = 0;
-  for (const record of records) {
-    for (const task of record.run.tasks) total += Math.max(0, task.tokenCount || 0);
+function textFromToolContent(content: unknown): string {
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((item): item is { type: "text"; text: string } =>
+      Boolean(item && typeof item === "object" && item.type === "text" && typeof item.text === "string")
+    )
+    .map((item) => item.text)
+    .join("\n");
+}
+
+function cacheRecordFromToolResult(message: any): ExploreCacheRecord | undefined {
+  if (message?.role !== "toolResult" || message.toolName !== "explore" || message.isError) return undefined;
+  const details = message.details as {
+    cache?: ExploreCacheMetadata;
+    run?: SubagentRunState;
+    results?: unknown;
+  } | undefined;
+  const cache = details?.cache;
+  if (
+    cache?.schemaVersion !== EXPLORE_CACHE_SCHEMA_VERSION
+    || !cache.key
+    || !cache.workspaceRevision
+    || !Array.isArray(cache.tasks)
+    || !details?.run
+    || !Array.isArray(details.results)
+  ) {
+    return undefined;
   }
-  return total;
+  return {
+    key: cache.key,
+    workspaceRevision: cache.workspaceRevision,
+    tasks: cache.tasks,
+    run: details.run,
+    results: details.results as SubagentTaskResult[],
+    content: textFromToolContent(message.content),
+    completedAt: cache.completedAt,
+  };
+}
+
+export function restoreExploreCacheState(entries: readonly any[]): {
+  records: Map<string, ExploreCacheRecord>;
+  runs: SubagentRunState[];
+  tokens: number;
+  workspaceGeneration: number;
+} {
+  const records = new Map<string, ExploreCacheRecord>();
+  const runs: SubagentRunState[] = [];
+  const restoredRunIds = new Set<string>();
+  let tokens = 0;
+  let workspaceGeneration = 0;
+
+  for (const entry of entries) {
+    if (entry?.type === "custom" && entry.customType === WORKSPACE_GENERATION_ENTRY_TYPE) {
+      const generation = entry.data?.generation;
+      if (typeof generation === "number" && Number.isSafeInteger(generation)) {
+        workspaceGeneration = Math.max(workspaceGeneration, generation);
+      }
+      continue;
+    }
+
+    let record: ExploreCacheRecord | undefined;
+    let launched = false;
+    if (entry?.type === "message") {
+      record = cacheRecordFromToolResult(entry.message);
+      launched = entry.message?.details?.cache?.launched === true;
+    } else if (entry?.type === "custom" && entry.customType === EXPLORE_CACHE_ENTRY_TYPE) {
+      record = entry.data?.record as ExploreCacheRecord | undefined;
+      launched = entry.data?.launched === true;
+    }
+    if (!record?.key || !record.run?.runId || !launched) continue;
+
+    rememberExploration(records, record);
+    if (!restoredRunIds.has(record.run.runId)) {
+      restoredRunIds.add(record.run.runId);
+      runs.unshift(record.run);
+      for (const task of record.run.tasks) tokens += Math.max(0, task.tokenCount || 0);
+    }
+  }
+
+  return { records, runs, tokens, workspaceGeneration };
 }
 
 export function subscribeToActiveExploration(

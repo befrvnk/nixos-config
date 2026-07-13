@@ -76,24 +76,25 @@ import {
 } from "./types.js";
 import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
 import {
+  createExploreCacheMetadata,
   createExplorationKey,
-  EXPLORE_CACHE_SCHEMA_VERSION,
+  EXPLORE_CACHE_ENTRY_TYPE,
   findReusableExploration,
   MAX_ACTIVE_EXPLORE_RUNS,
   MAX_EXPLORE_SESSION_TOKENS,
   parseFreshExploreArgs,
   rememberExploration,
+  restoreExploreCacheState,
   subscribeToActiveExploration,
   type ActiveExploration,
   type ExploreCacheRecord,
+  WORKSPACE_GENERATION_ENTRY_TYPE,
 } from "./explore-cache.js";
 
 const SUBAGENT_TASK_ENTRY_TYPE = "subagent-task";
 const SUBAGENT_MARKDOWN_ENTRY_TYPE = "subagent-markdown";
 const SUBAGENT_REVIEW_MESSAGE_TYPE = "subagent-review";
 const SUBAGENT_EXPLORE_MESSAGE_TYPE = "subagent-explore";
-const EXPLORE_CACHE_ENTRY_TYPE = "subagent-explore-cache";
-const WORKSPACE_GENERATION_ENTRY_TYPE = "subagent-workspace-generation";
 const MARKDOWN_PREVIEW_LINES = 8;
 
 function renderMarkdownPreview(
@@ -104,65 +105,6 @@ function renderMarkdownPreview(
   const preview = lines.slice(0, MARKDOWN_PREVIEW_LINES).join("\n").trim();
   if (lines.length <= MARKDOWN_PREVIEW_LINES) return preview;
   return `${preview}\n${theme.fg("muted", "(expand to view full formatted markdown)")}`;
-}
-
-type ExploreCacheMetadata = {
-  schemaVersion: number;
-  key: string;
-  workspaceRevision: string;
-  tasks: SubagentTaskInput[];
-  completedAt: number;
-  launched: boolean;
-};
-
-function textFromToolContent(content: unknown): string {
-  if (!Array.isArray(content)) return "";
-  return content
-    .filter((item): item is { type: "text"; text: string } =>
-      Boolean(item && typeof item === "object" && item.type === "text" && typeof item.text === "string")
-    )
-    .map((item) => item.text)
-    .join("\n");
-}
-
-function cacheRecordFromToolResult(message: any): ExploreCacheRecord | undefined {
-  if (message?.role !== "toolResult" || message.toolName !== "explore" || message.isError) return undefined;
-  const details = message.details as {
-    cache?: ExploreCacheMetadata;
-    run?: SubagentRunState;
-    results?: unknown;
-  } | undefined;
-  const cache = details?.cache;
-  if (
-    cache?.schemaVersion !== EXPLORE_CACHE_SCHEMA_VERSION
-    || !cache.key
-    || !cache.workspaceRevision
-    || !Array.isArray(cache.tasks)
-    || !details?.run
-    || !Array.isArray(details.results)
-  ) {
-    return undefined;
-  }
-  return {
-    key: cache.key,
-    workspaceRevision: cache.workspaceRevision,
-    tasks: cache.tasks,
-    run: details.run,
-    results: details.results as ExploreCacheRecord["results"],
-    content: textFromToolContent(message.content),
-    completedAt: cache.completedAt,
-  };
-}
-
-function cacheMetadata(record: ExploreCacheRecord, launched: boolean): ExploreCacheMetadata {
-  return {
-    schemaVersion: EXPLORE_CACHE_SCHEMA_VERSION,
-    key: record.key,
-    workspaceRevision: record.workspaceRevision,
-    tasks: record.tasks,
-    completedAt: record.completedAt,
-    launched,
-  };
 }
 
 type ReviewExecutionResult =
@@ -616,41 +558,19 @@ export default function subagentExtension(pi: ExtensionAPI) {
     run.tasks.reduce((total, task) => total + Math.max(0, task.tokenCount || 0), 0);
 
   const restoreExploreState = (ctx: ExtensionContext) => {
+    const restored = restoreExploreCacheState(ctx.sessionManager.getBranch() as any[]);
     completedExploreCache.clear();
+    for (const [key, record] of restored.records) completedExploreCache.set(key, record);
     const reviewRuns = recentRuns.filter((run) => run.workflow === "review");
-    recentRuns.splice(0, recentRuns.length, ...reviewRuns);
-    workspaceGeneration = 0;
-    sessionExploreTokens = 0;
-    const restoredRunIds = new Set<string>();
-
-    for (const entry of ctx.sessionManager.getBranch() as any[]) {
-      if (entry?.type === "custom" && entry.customType === WORKSPACE_GENERATION_ENTRY_TYPE) {
-        const generation = entry.data?.generation;
-        if (typeof generation === "number" && Number.isSafeInteger(generation)) {
-          workspaceGeneration = Math.max(workspaceGeneration, generation);
-        }
-        continue;
-      }
-
-      let record: ExploreCacheRecord | undefined;
-      let launched = false;
-      if (entry?.type === "message") {
-        record = cacheRecordFromToolResult(entry.message);
-        launched = entry.message?.details?.cache?.launched === true;
-      } else if (entry?.type === "custom" && entry.customType === EXPLORE_CACHE_ENTRY_TYPE) {
-        record = entry.data?.record as ExploreCacheRecord | undefined;
-        launched = entry.data?.launched === true;
-      }
-      if (!record?.key || !record.run?.runId || !launched) continue;
-
-      rememberExploration(completedExploreCache, record);
-      if (!restoredRunIds.has(record.run.runId)) {
-        restoredRunIds.add(record.run.runId);
-        sessionExploreTokens += runTokenCount(record.run);
-        recentRuns.unshift(record.run);
-      }
-    }
+    recentRuns.splice(
+      0,
+      recentRuns.length,
+      ...restored.runs.slice(0, MAX_RECENT_RUNS),
+      ...reviewRuns,
+    );
     if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
+    workspaceGeneration = restored.workspaceGeneration;
+    sessionExploreTokens = restored.tokens;
   };
 
   const workspaceRevisionFor = async (
@@ -865,7 +785,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
         runId: record.run.runId,
         results: record.results,
         run: record.run,
-        cache: cacheMetadata(record, options.launched),
+        cache: createExploreCacheMetadata(record, options.launched),
         deduplicated: !options.launched,
         matchType: options.matchKind,
         similarity: options.similarity,

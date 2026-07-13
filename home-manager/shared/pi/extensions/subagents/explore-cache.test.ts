@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  createExploreCacheMetadata,
   createExplorationKey,
+  EXPLORE_CACHE_ENTRY_TYPE,
   MAX_EXPLORE_CACHE_BYTES,
   explorationSimilarity,
   EXPLORE_FAILURE_COOLDOWN_MS,
@@ -9,9 +11,11 @@ import {
   findReusableExploration,
   parseFreshExploreArgs,
   rememberExploration,
+  restoreExploreCacheState,
   subscribeToActiveExploration,
   type ActiveExploration,
   type ExploreCacheRecord,
+  WORKSPACE_GENERATION_ENTRY_TYPE,
 } from "./explore-cache.ts";
 import type { SubagentRunState, SubagentTaskInput } from "./types.ts";
 
@@ -116,6 +120,71 @@ test("rememberExploration bounds cache size", () => {
   });
   rememberExploration(records, oversized);
   assert.equal(records.size, 0);
+});
+
+test("restoreExploreCacheState rebuilds launched branch results without duplicate reuse entries", () => {
+  const first = record({
+    run: {
+      ...record().run,
+      runId: "run-original",
+      tasks: [{ tokenCount: 100 }] as any,
+    },
+  });
+  const fresh = record({
+    key: "fresh-key",
+    run: {
+      ...record().run,
+      runId: "run-fresh",
+      tasks: [{ tokenCount: 50 }] as any,
+    },
+  });
+  const entries = [
+    {
+      type: "message",
+      message: {
+        role: "toolResult",
+        toolName: "explore",
+        isError: false,
+        content: [{ type: "text", text: first.content }],
+        details: {
+          cache: createExploreCacheMetadata(first, true),
+          run: first.run,
+          results: first.results,
+        },
+      },
+    },
+    {
+      type: "message",
+      message: {
+        role: "toolResult",
+        toolName: "explore",
+        isError: false,
+        content: [{ type: "text", text: `reuse prefix\n\n${first.content}` }],
+        details: {
+          cache: createExploreCacheMetadata(first, false),
+          run: first.run,
+          results: first.results,
+        },
+      },
+    },
+    {
+      type: "custom",
+      customType: EXPLORE_CACHE_ENTRY_TYPE,
+      data: { record: fresh, launched: true },
+    },
+    {
+      type: "custom",
+      customType: WORKSPACE_GENERATION_ENTRY_TYPE,
+      data: { generation: 3 },
+    },
+  ];
+
+  const restored = restoreExploreCacheState(entries);
+  assert.equal(restored.records.get(first.key)?.content, first.content);
+  assert.equal(restored.records.get(fresh.key), fresh);
+  assert.deepEqual(restored.runs.map((run) => run.runId), ["run-fresh", "run-original"]);
+  assert.equal(restored.tokens, 150);
+  assert.equal(restored.workspaceGeneration, 3);
 });
 
 test("active exploration subscribers cancel independently", async () => {
