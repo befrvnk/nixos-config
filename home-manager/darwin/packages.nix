@@ -18,7 +18,6 @@
     # CLI tools (cross-platform + Darwin-specific)
     _1password-cli # op CLI; the 1Password app cask does not install it
     bun
-    marp-cli
     slidev-cli
 
     # Fonts
