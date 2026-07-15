@@ -324,6 +324,7 @@ const webFetchTool = defineTool({
   promptGuidelines: [
     "Use web_fetch after web_search when you need to inspect the content of a specific source URL.",
     "Prefer using web_fetch on official documentation, repository, changelog, or release-note URLs before less authoritative sources.",
+    "Do not use web_fetch on api.github.com for ordinary GitHub issues, pull requests, comments, or changed-file views. Prefer github.com HTML pages because GitHub's unauthenticated REST quota is limited and shared by source IP. If REST JSON is required, use authenticated gh api; do not retry a 403 when X-RateLimit-Remaining is 0.",
     "Do not use web_fetch for local files or internal/private network URLs; only HTTP(S) web URLs are supported.",
     "Keep web_fetch maxCharacters as small as practical; when web_fetch reports a full-output path, use read to inspect only the needed sections.",
   ],

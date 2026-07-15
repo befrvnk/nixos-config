@@ -53,6 +53,7 @@ export interface WebFetchOptions {
 }
 
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+const MAX_ERROR_BODY_BYTES = 16 * 1024;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_TIMEOUT_MS = 120_000;
 const MAX_REDIRECTS = 5;
@@ -74,7 +75,7 @@ export async function fetchWebUrl(
     const { response, finalUrl } = await fetchWithRedirects(originalUrl, params.format, requestSignal, options);
 
     if (!response.ok) {
-      throw new Error(`Request failed with status code: ${response.status}`);
+      throw new Error(await formatHttpError(response, finalUrl, requestSignal));
     }
 
     const contentEncoding = response.headers.get("content-encoding")?.trim().toLowerCase();
@@ -133,6 +134,96 @@ export async function fetchWebUrl(
   } finally {
     clear();
   }
+}
+
+async function formatHttpError(response: Response, finalUrl: string, signal?: AbortSignal): Promise<string> {
+  const baseMessage = `Request failed with status code: ${response.status}`;
+  const hostname = normalizeHostname(new URL(finalUrl).hostname);
+  if (hostname !== "api.github.com") return baseMessage;
+
+  const remaining = response.headers.get("x-ratelimit-remaining");
+  const limit = response.headers.get("x-ratelimit-limit");
+  const reset = formatRateLimitReset(response.headers.get("x-ratelimit-reset"));
+  const responseMessage = await readErrorResponseMessage(response, signal);
+  const rateDetails = [
+    remaining != null && limit != null ? `${remaining} of ${limit} requests remaining` : undefined,
+    reset == null ? undefined : `resets at ${reset}`,
+  ].filter((value): value is string => value != null);
+
+  if (response.status === 403 && remaining === "0") {
+    const details = rateDetails.length === 0 ? "" : ` (${rateDetails.join("; ")})`;
+    const githubResponse = responseMessage == null ? "" : ` GitHub response: ${responseMessage}`;
+    return `${baseMessage}. GitHub API rate limit exceeded${details}.${githubResponse} Do not retry with web_fetch; use a github.com HTML page or authenticated gh api.`;
+  }
+
+  const details = rateDetails.length === 0 ? "" : ` Rate limit: ${rateDetails.join("; ")}.`;
+  const githubResponse = responseMessage == null ? "" : ` GitHub API response: ${responseMessage}`;
+  return `${baseMessage}.${githubResponse}${details}`;
+}
+
+function formatRateLimitReset(value: string | null): string | undefined {
+  if (value == null || !/^\d+$/u.test(value)) return undefined;
+  const date = new Date(Number(value) * 1000);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+async function readErrorResponseMessage(response: Response, signal?: AbortSignal): Promise<string | undefined> {
+  const contentEncoding = response.headers.get("content-encoding")?.trim().toLowerCase();
+  if (contentEncoding && contentEncoding !== "identity") {
+    await response.body?.cancel();
+    return undefined;
+  }
+
+  const body = await readResponseBodyPrefix(response, MAX_ERROR_BODY_BYTES, signal);
+  const text = sanitizeControls(new TextDecoder().decode(body)).trim();
+  if (!text) return undefined;
+
+  try {
+    const parsed = JSON.parse(text) as unknown;
+    if (typeof parsed === "object" && parsed != null && "message" in parsed) {
+      const message = (parsed as { message?: unknown }).message;
+      if (typeof message === "string") return normalizeText(message).slice(0, 1000);
+    }
+  } catch {
+    // Fall back to a sanitized text prefix for non-JSON error responses.
+  }
+
+  return normalizeText(text).slice(0, 1000);
+}
+
+async function readResponseBodyPrefix(response: Response, maxBytes: number, signal?: AbortSignal): Promise<Uint8Array> {
+  if (!response.body) return new Uint8Array();
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (totalBytes < maxBytes) {
+      signal?.throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      const remainingBytes = maxBytes - totalBytes;
+      const chunk = value.byteLength > remainingBytes ? value.subarray(0, remainingBytes) : value;
+      chunks.push(chunk);
+      totalBytes += chunk.byteLength;
+      if (value.byteLength > remainingBytes || totalBytes === maxBytes) {
+        await reader.cancel("Error response diagnostic limit reached.");
+        break;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const output = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return output;
 }
 
 export async function readResponseBodyLimited(response: Response, signal?: AbortSignal): Promise<Uint8Array> {

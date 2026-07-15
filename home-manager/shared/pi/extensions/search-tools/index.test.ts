@@ -295,6 +295,41 @@ test("fetchWebUrl reports non-OK HTTP status codes", async () => {
   );
 });
 
+test("fetchWebUrl explains exhausted GitHub API rate limits", async () => {
+  await assert.rejects(
+    () =>
+      fetchWebUrl(
+        { url: "https://api.github.com/repos/example/project/issues/1/comments", format: "text", maxCharacters: 1000 },
+        undefined,
+        {
+          resolveHostname: async () => ["140.82.121.5"],
+          fetchImpl: async () => new Response(
+            JSON.stringify({ message: "API rate limit exceeded for 192.0.2.1." }),
+            {
+              status: 403,
+              headers: {
+                "content-type": "application/json",
+                "x-ratelimit-limit": "60",
+                "x-ratelimit-remaining": "0",
+                "x-ratelimit-reset": "1700000000",
+              },
+            },
+          ),
+        },
+      ),
+    (error: unknown) => {
+      if (!(error instanceof Error)) return false;
+      assert.match(error.message, /GitHub API rate limit exceeded/);
+      assert.match(error.message, /0 of 60 requests remaining/);
+      assert.match(error.message, /resets at 2023-11-14T22:13:20\.000Z/);
+      assert.match(error.message, /API rate limit exceeded for 192\.0\.2\.1/);
+      assert.match(error.message, /Do not retry with web_fetch/);
+      assert.match(error.message, /authenticated gh api/);
+      return true;
+    },
+  );
+});
+
 test("formatCodeSearchOutput emits readable markdown sections", () => {
   const output = formatCodeSearchOutput(
     "pi Markdown component example",
