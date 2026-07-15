@@ -221,7 +221,7 @@ _:
           | str trim
           | str replace -r '^`(.*)`$' '$1'
         )
-        let normalized = ($command | str downcase)
+        let normalized = ($command | str lowercase)
 
         {
           explanation: $explanation
