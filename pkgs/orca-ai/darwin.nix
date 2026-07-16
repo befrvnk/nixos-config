@@ -9,15 +9,15 @@ let
   sources = {
     aarch64-darwin = fetchzip {
       url = "https://github.com/stablyai/orca/releases/download/v${version}/Orca-${version}-arm64-mac.zip";
-      hash = "sha256-yx0E00LqO7oB1sHuLOk3ltmImE/96+P3yRSyP0LvTOk=";
+      hash = "sha256-nr9iM9/RRrZaeU6GENwhFK+aCJ32pVV0ZT+y3C8AN6M=";
     };
     x86_64-darwin = fetchzip {
       url = "https://github.com/stablyai/orca/releases/download/v${version}/Orca-${version}-mac.zip";
-      hash = "sha256-BEsBJr+1idS/P3vO8bTQJlbTncJzk15GEQEFuLnSSdo=";
+      hash = "sha256-XUzZ9IyAVWiY+0I70M6VFqUc9/pvU4zC0U5JanT82ew=";
     };
   };
 
-  version = "1.4.141";
+  version = "1.4.143";
 in
 stdenvNoCC.mkDerivation {
   pname = "orca-ai";
