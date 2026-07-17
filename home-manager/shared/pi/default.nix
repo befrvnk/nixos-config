@@ -12,46 +12,13 @@ let
           base = baseNameOf path;
         in
         type == "directory"
-        || !(lib.hasSuffix ".test.ts" base || lib.hasSuffix ".test.mjs" base || lib.hasSuffix ".md" base);
+        || !(
+          lib.hasSuffix ".test.ts" base
+          || lib.hasSuffix ".test.mjs" base
+          || lib.hasSuffix ".md" base
+          || base == "migrate-legacy-models-json.mjs"
+        );
     };
-
-  piCopilotLiveModelsRefresh = pkgs.writeShellScriptBin "pi-copilot-live-models-refresh" ''
-    set -u
-
-    should_refresh=1
-    for arg in "$@"; do
-      case "$arg" in
-        --help|-h|--version|version)
-          should_refresh=0
-          ;;
-      esac
-    done
-
-    case "''${1:-}" in
-      auth)
-        should_refresh=0
-        ;;
-    esac
-
-    if [ "$should_refresh" != 1 ] || [ "''${PI_COPILOT_LIVE_MODELS:-1}" = 0 ]; then
-      exit 0
-    fi
-
-    if [ "''${PI_COPILOT_LIVE_MODELS_DEBUG:-0}" = 1 ]; then
-      ${pkgs.nodejs}/bin/node --experimental-strip-types \
-        "$HOME/.pi/agent/extensions/copilot-live-models/write-models-json.ts"
-    else
-      ${pkgs.nodejs}/bin/node --experimental-strip-types \
-        "$HOME/.pi/agent/extensions/copilot-live-models/write-models-json.ts" >/dev/null 2>&1
-    fi
-  '';
-
-  piWithCopilotLiveModels = pkgs.writeShellScriptBin "pi" ''
-    if ${piCopilotLiveModelsRefresh}/bin/pi-copilot-live-models-refresh "$@"; then
-      export PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION=1
-    fi
-    exec ${pkgs.pi-coding-agent}/bin/pi "$@"
-  '';
 
   piSettings = {
     compaction = {
@@ -89,11 +56,13 @@ let
 in
 {
   home = {
+    activation.removeLegacyCopilotModelsJson = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      ${pkgs.nodejs}/bin/node ${./extensions/copilot-live-models/migrate-legacy-models-json.mjs} \
+        "$HOME/.pi/agent/models.json" || true
+    '';
+
     packages = [
       pkgs.kotlin-lsp
-      pkgs.nodejs
-      piCopilotLiveModelsRefresh
-      (lib.hiPrio piWithCopilotLiveModels)
       pkgs.pi-coding-agent
       pkgs.typescript-language-server
     ];

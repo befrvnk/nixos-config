@@ -18,44 +18,30 @@ export interface PiProviderModelConfig {
   compat?: Record<string, unknown>;
 }
 
-export interface PiProviderConfig {
-  name?: string;
-  baseUrl?: string;
-  api?: PiApi;
-  apiKey?: string;
-  headers?: Record<string, string>;
-  models?: PiProviderModelConfig[];
-}
-
-export interface PiModelsJson {
-  providers?: Record<string, PiProviderConfig>;
+export interface CopilotOAuthCredentials {
+  type?: string;
+  access?: string;
+  apiBaseUrl?: string;
+  enterpriseUrl?: string;
+  endpoints?: {
+    api?: string;
+  };
   [key: string]: unknown;
 }
 
-export interface CopilotOAuthCredentials {
-  type?: string;
-  refresh?: string;
-  access?: string;
-  expires?: number;
-  enterpriseUrl?: string;
+export interface CopilotRefreshModelsContext {
+  credential?: CopilotOAuthCredentials;
+  allowNetwork: boolean;
+  signal?: AbortSignal;
 }
 
-export interface CopilotAuthFile {
-  "github-copilot"?: CopilotOAuthCredentials;
+export interface PiProviderConfig {
+  refreshModels?(context: CopilotRefreshModelsContext): Promise<PiProviderModelConfig[]>;
 }
 
 export interface CopilotTokenInfo {
   token: string;
   apiBaseUrl: string;
-  expires?: number;
-}
-
-export interface CopilotTokenResponse {
-  token?: string;
-  expires_at?: number;
-  endpoints?: {
-    api?: string;
-  };
 }
 
 export interface CopilotLiveModelsResponse {
@@ -110,15 +96,4 @@ export interface CopilotLiveModelsProviderDeps {
   fetchImpl: typeof fetch;
   readTextFile(path: string): Promise<string>;
   writeDebug?(message: string): void;
-  now(): number;
-}
-
-export interface CopilotModelsJsonWriterDeps extends CopilotLiveModelsProviderDeps {
-  ensureDir(path: string): Promise<void>;
-  writeTextFileAtomic(path: string, text: string): Promise<void>;
-}
-
-export interface DiscoverOptions {
-  agentDir: string;
-  contextReserveTokens: number;
 }

@@ -1,6 +1,6 @@
 # Copilot live models Pi extension
 
-This extension replaces Pi's static `github-copilot` model catalog at session startup with the live GitHub Copilot `/models` catalog.
+This extension replaces Pi's static `github-copilot` model catalog during Pi's model refresh with the authenticated GitHub Copilot `/models` catalog.
 
 It specifically sends:
 
@@ -13,19 +13,17 @@ That API version is required for Copilot Enterprise to expose GPT-5.5's long-con
 
 ## Runtime behavior
 
-- Reads existing Pi GitHub Copilot OAuth credentials from `~/.pi/agent/auth.json`.
-- Uses the cached Copilot token when valid, otherwise refreshes it through GitHub's Copilot token endpoint.
-- Fetches `${apiBaseUrl}/models` from the token metadata, so Enterprise endpoints are discovered dynamically.
-- Maps live models into Pi provider model configs.
-- Sets Pi `contextWindow` from Copilot's prompt budget plus `compaction.reserveTokens`, capped by the catalog's advertised context maximum.
-- Calls `pi.registerProvider("github-copilot", ...)` to replace Pi's built-in static Copilot catalog for normal sessions.
-- Provides `write-models-json.ts`, used by the Home Manager `pi` wrapper to refresh `~/.pi/agent/models.json` before Pi starts. This makes model discovery available even for code paths such as `pi --list-models` that do not load extensions.
-- Accepts comments and trailing commas in existing Pi configuration, preserves unrelated providers and top-level fields, and refuses to replace malformed or unreadable `models.json` files.
-- Replaces successfully generated `models.json` atomically with owner-only permissions, so readers never observe partial output.
-- Accepts only positive safe integers for token settings and limits; invalid reserve settings fall back to `128000`.
-- Fails open: if auth or discovery fails, Pi keeps its built-in catalog or the last successfully generated `models.json`.
-- Uses a 10-second fetch timeout by default (`PI_COPILOT_LIVE_MODELS_TIMEOUT_MS`) so a hanging Copilot endpoint does not block Pi startup indefinitely.
-- The Home Manager wrapper invokes the writer with `node --experimental-strip-types` to make direct `.ts` execution explicit.
+- Registers Pi's dynamic provider `refreshModels` callback for the built-in `github-copilot` provider.
+- Uses the canonical OAuth credential supplied by Pi after Pi has refreshed it; the extension does not read or update `auth.json`.
+- Fetches `${apiBaseUrl}/models` using credential endpoint metadata, the endpoint embedded in the Copilot token, or Pi-compatible Enterprise/individual fallbacks.
+- Maps live models into Pi provider model configs, including endpoint/API type, reasoning levels, vision support, token pricing, and context/output limits.
+- Reloads `compaction.reserveTokens` for every refresh, then sets Pi `contextWindow` from Copilot's prompt budget plus that reserve, capped by the catalog's advertised context maximum.
+- Honors Pi's model-refresh cancellation signal and offline mode.
+- Fails open: a failed refresh leaves Pi's previous or built-in Copilot catalog in place.
+- Uses a 10-second fetch timeout by default (`PI_COPILOT_LIVE_MODELS_TIMEOUT_MS`).
+- Does not write `models.json` or manage OAuth token refresh itself.
+
+The extension intentionally does not use Pi's provider-scoped model store. The built-in Copilot provider and Pi's remote catalog already share that store; writing the account-specific live catalog there would overwrite the built-in provider's cache.
 
 ## Controls
 
@@ -49,7 +47,7 @@ PI_COPILOT_LIVE_MODELS_TIMEOUT_MS=5000 pi
 
 ## Unit tests
 
-Run the extension's local unit tests directly; no Nix rebuild or Pi session required:
+Run the extension suite directly; no Nix rebuild or Pi session is required:
 
 ```sh
 ./scripts/test-pi-extensions.sh
@@ -68,20 +66,6 @@ PI_COPILOT_LIVE_MODELS_LIVE_TEST=1 \
 
 This does not print tokens. It asserts that the discovered `gpt-5.5` model is mapped as `openai-responses` with at least a 1M-token context window.
 
-## `models.json` wrapper smoke test
+## Migration from the pre-0.80.9 wrapper
 
-To test the pre-launch `models.json` path without modifying your real Pi config:
-
-```sh
-tmpdir=$(mktemp -d)
-cp ~/.pi/agent/auth.json "$tmpdir/auth.json"
-printf '%s\n' '{"compaction":{"reserveTokens":128000}}' > "$tmpdir/settings.json"
-PI_CODING_AGENT_DIR="$tmpdir" node --experimental-strip-types \
-  home-manager/shared/pi/extensions/copilot-live-models/write-models-json.ts
-PI_CODING_AGENT_DIR="$tmpdir" COPILOT_GITHUB_TOKEN=dummy pi --list-models gpt-5.5
-rm -rf "$tmpdir"
-```
-
-Expected output includes `github-copilot  gpt-5.5  1.1M`.
-
-The Home Manager wrapper runs `write-models-json.ts` before delegation so model-listing and other startup paths consistently see the refreshed provider configuration.
+The previous implementation generated a `github-copilot` provider in `~/.pi/agent/models.json` before every Pi launch. Home Manager removes that provider during activation when its name matches the generated `GitHub Copilot (live catalog)` marker. Unrelated providers and top-level configuration are preserved; an otherwise empty generated file is deleted.

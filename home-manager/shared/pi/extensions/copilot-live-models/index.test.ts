@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  discoverCopilotProviderConfig,
   fetchWithTimeout,
   parseFetchTimeoutMs,
+  refreshCopilotLiveModels,
   registerCopilotLiveModels,
 } from "./index.ts";
-import type { CopilotLiveModel, CopilotLiveModelsProviderDeps } from "./types.ts";
+import type { CopilotLiveModel, CopilotLiveModelsProviderDeps, PiProviderConfig } from "./types.ts";
 
 const ACCESS_TOKEN = "tid=abc;proxy-ep=proxy.enterprise.githubcopilot.com;exp=999";
 
@@ -23,29 +23,26 @@ const liveModel: CopilotLiveModel = {
   },
 };
 
-function createDeps(): { deps: CopilotLiveModelsProviderDeps; urls: string[] } {
+function createDeps(options: { getReserveTokens?: () => number } = {}): {
+  deps: CopilotLiveModelsProviderDeps;
+  urls: string[];
+  signals: (AbortSignal | null)[];
+} {
   const urls: string[] = [];
+  const signals: (AbortSignal | null)[] = [];
   return {
     urls,
+    signals,
     deps: {
-      now: () => 1_000,
       readTextFile: async (filePath) => {
-        if (filePath.endsWith("auth.json")) {
-          return JSON.stringify({
-            "github-copilot": {
-              type: "oauth",
-              access: ACCESS_TOKEN,
-              expires: 100_000,
-            },
-          });
-        }
         if (filePath.endsWith("settings.json")) {
-          return JSON.stringify({ compaction: { reserveTokens: 128_000 } });
+          return JSON.stringify({ compaction: { reserveTokens: options.getReserveTokens?.() ?? 128_000 } });
         }
         throw new Error(`unexpected file: ${filePath}`);
       },
-      fetchImpl: (async (url) => {
+      fetchImpl: (async (url, init) => {
         urls.push(String(url));
+        signals.push(init?.signal ?? null);
         return new Response(JSON.stringify({ data: [liveModel] }), {
           status: 200,
           headers: { "content-type": "application/json" },
@@ -56,33 +53,37 @@ function createDeps(): { deps: CopilotLiveModelsProviderDeps; urls: string[] } {
   };
 }
 
-test("discoverCopilotProviderConfig builds a provider from cached auth and live models", async () => {
-  const { deps, urls } = createDeps();
+test("refreshCopilotLiveModels uses Pi's OAuth credential and live model endpoint", async () => {
+  const { deps, urls, signals } = createDeps();
+  const signal = new AbortController().signal;
 
-  const provider = await discoverCopilotProviderConfig(deps, {
-    agentDir: "/tmp/pi-agent",
-    contextReserveTokens: 128_000,
-  });
+  const models = await refreshCopilotLiveModels(
+    {
+      credential: { type: "oauth", access: ACCESS_TOKEN },
+      allowNetwork: true,
+      signal,
+    },
+    deps,
+    128_000,
+  );
 
-  assert.equal(urls.length, 1);
-  assert.equal(urls[0], "https://api.enterprise.githubcopilot.com/models");
-  assert.equal(provider?.baseUrl, "https://api.enterprise.githubcopilot.com");
-  assert.equal(provider?.models?.[0]?.contextWindow, 1_050_000);
+  assert.deepEqual(urls, ["https://api.enterprise.githubcopilot.com/models"]);
+  assert.equal(signals[0], signal);
+  assert.equal(models[0]?.id, "gpt-5.5");
+  assert.equal(models[0]?.contextWindow, 1_050_000);
 });
 
-test("registerCopilotLiveModels registers github-copilot when discovery succeeds", async () => {
-  const previousSkip = process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
+test("registerCopilotLiveModels registers a refresh callback without fetching during the factory", async () => {
   const previousEnabled = process.env.PI_COPILOT_LIVE_MODELS;
-  delete process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
   delete process.env.PI_COPILOT_LIVE_MODELS;
 
   try {
-    const { deps } = createDeps();
-    const calls: Array<{ provider: string; config: any }> = [];
+    const { deps, urls } = createDeps();
+    const calls: Array<{ provider: string; config: PiProviderConfig }> = [];
 
     const registered = await registerCopilotLiveModels(
       {
-        registerProvider(provider: string, config: any) {
+        registerProvider(provider: string, config: PiProviderConfig) {
           calls.push({ provider, config });
         },
       } as any,
@@ -91,16 +92,17 @@ test("registerCopilotLiveModels registers github-copilot when discovery succeeds
     );
 
     assert.equal(registered, true);
+    assert.equal(urls.length, 0);
     assert.equal(calls.length, 1);
     assert.equal(calls[0]?.provider, "github-copilot");
-    assert.equal(calls[0]?.config.models[0].id, "gpt-5.5");
-  } finally {
-    if (previousSkip === undefined) {
-      delete process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
-    } else {
-      process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION = previousSkip;
-    }
+    assert.equal(typeof calls[0]?.config.refreshModels, "function");
 
+    const models = await calls[0]!.config.refreshModels!({
+      credential: { type: "oauth", access: ACCESS_TOKEN },
+      allowNetwork: true,
+    });
+    assert.equal(models[0]?.id, "gpt-5.5");
+  } finally {
     if (previousEnabled === undefined) {
       delete process.env.PI_COPILOT_LIVE_MODELS;
     } else {
@@ -109,7 +111,53 @@ test("registerCopilotLiveModels registers github-copilot when discovery succeeds
   }
 });
 
-test("fetchWithTimeout supplies an AbortSignal when the caller does not", async () => {
+test("dynamic refresh reloads the compaction reserve setting", async () => {
+  const previousEnabled = process.env.PI_COPILOT_LIVE_MODELS;
+  delete process.env.PI_COPILOT_LIVE_MODELS;
+  let reserveTokens = 1_000;
+
+  try {
+    const { deps } = createDeps({ getReserveTokens: () => reserveTokens });
+    let config: PiProviderConfig | undefined;
+    await registerCopilotLiveModels(
+      { registerProvider: (_provider: string, value: PiProviderConfig) => { config = value; } } as any,
+      deps,
+      { agentDir: "/tmp/pi-agent" },
+    );
+
+    const context = { credential: { type: "oauth", access: ACCESS_TOKEN }, allowNetwork: true };
+    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 923_000);
+
+    reserveTokens = 2_000;
+    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 924_000);
+  } finally {
+    if (previousEnabled === undefined) {
+      delete process.env.PI_COPILOT_LIVE_MODELS;
+    } else {
+      process.env.PI_COPILOT_LIVE_MODELS = previousEnabled;
+    }
+  }
+});
+
+test("refreshCopilotLiveModels rejects offline and unauthenticated refreshes", async () => {
+  const { deps } = createDeps();
+
+  await assert.rejects(
+    refreshCopilotLiveModels(
+      { credential: { type: "oauth", access: ACCESS_TOKEN }, allowNetwork: false },
+      deps,
+      128_000,
+    ),
+    /requires network access/,
+  );
+  await assert.rejects(
+    refreshCopilotLiveModels({ allowNetwork: true }, deps, 128_000),
+    /OAuth credentials are unavailable/,
+  );
+});
+
+test("fetchWithTimeout combines the caller signal with a timeout", async () => {
+  const caller = new AbortController();
   let observedSignal: AbortSignal | undefined;
   const wrapped = fetchWithTimeout(
     (async (_url, init) => {
@@ -119,8 +167,11 @@ test("fetchWithTimeout supplies an AbortSignal when the caller does not", async 
     5_000,
   );
 
-  await wrapped("https://example.test");
+  await wrapped("https://example.test", { signal: caller.signal });
   assert.ok(observedSignal instanceof AbortSignal);
+  assert.notEqual(observedSignal, caller.signal);
+  caller.abort();
+  assert.equal(observedSignal?.aborted, true);
 });
 
 test("parseFetchTimeoutMs falls back for invalid values", () => {
@@ -129,9 +180,9 @@ test("parseFetchTimeoutMs falls back for invalid values", () => {
   assert.equal(parseFetchTimeoutMs("2500"), 2_500);
 });
 
-test("registerCopilotLiveModels can skip duplicate session registration after wrapper refresh", async () => {
-  const previous = process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
-  process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION = "1";
+test("registerCopilotLiveModels can be disabled", async () => {
+  const previous = process.env.PI_COPILOT_LIVE_MODELS;
+  process.env.PI_COPILOT_LIVE_MODELS = "0";
   try {
     const calls: unknown[] = [];
     const registered = await registerCopilotLiveModels(
@@ -144,28 +195,9 @@ test("registerCopilotLiveModels can skip duplicate session registration after wr
     assert.equal(calls.length, 0);
   } finally {
     if (previous === undefined) {
-      delete process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION;
+      delete process.env.PI_COPILOT_LIVE_MODELS;
     } else {
-      process.env.PI_COPILOT_LIVE_MODELS_SKIP_EXTENSION = previous;
+      process.env.PI_COPILOT_LIVE_MODELS = previous;
     }
   }
-});
-
-test("registerCopilotLiveModels keeps built-ins when auth is unavailable", async () => {
-  const calls: unknown[] = [];
-  const registered = await registerCopilotLiveModels(
-    { registerProvider: () => calls.push(true) } as any,
-    {
-      now: () => 1_000,
-      readTextFile: async () => {
-        throw new Error("missing");
-      },
-      fetchImpl: (async () => new Response("{}")) as typeof fetch,
-      writeDebug: () => undefined,
-    },
-    { agentDir: "/tmp/pi-agent", contextReserveTokens: 128_000 },
-  );
-
-  assert.equal(registered, false);
-  assert.equal(calls.length, 0);
 });

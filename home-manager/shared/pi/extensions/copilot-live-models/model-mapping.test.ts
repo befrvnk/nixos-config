@@ -177,8 +177,16 @@ test("resolvePiApi falls back to chat completions for older chat metadata", () =
   assert.equal(resolvePiApi({ id: "gemini-2.5-pro", capabilities: { type: "chat" } }), "openai-completions");
 });
 
-test("mapCopilotModelToPi skips disabled, non-picker, and slash-delimited custom models", () => {
+test("mapCopilotModelToPi skips disabled, hidden, tool-less, and slash-delimited custom models", () => {
   assert.equal(mapCopilotModelToPi({ ...gpt55, policy: { state: "disabled" } }, 128_000), undefined);
   assert.equal(mapCopilotModelToPi({ ...gpt55, model_picker_enabled: false }, 128_000), undefined);
+  assert.equal(mapCopilotModelToPi({ ...gpt55, model_picker_enabled: undefined }, 128_000), undefined);
+  assert.equal(
+    mapCopilotModelToPi({
+      ...gpt55,
+      capabilities: { ...gpt55.capabilities, supports: { tool_calls: false } },
+    }, 128_000),
+    undefined,
+  );
   assert.equal(mapCopilotModelToPi({ ...gpt55, id: "org/custom/model" }, 128_000), undefined);
 });

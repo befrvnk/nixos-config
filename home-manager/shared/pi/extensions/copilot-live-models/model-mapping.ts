@@ -13,7 +13,8 @@ export function isUsableCopilotModel(model: CopilotLiveModel): boolean {
   // provider/model shorthand also uses '/', so skip them until we handle aliases explicitly.
   if (model.id.includes("/")) return false;
   if (model.policy?.state === "disabled") return false;
-  if (model.model_picker_enabled === false) return false;
+  if (model.model_picker_enabled !== true) return false;
+  if (model.capabilities?.supports?.tool_calls === false) return false;
   return true;
 }
 

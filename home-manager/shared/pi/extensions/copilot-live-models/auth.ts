@@ -1,22 +1,26 @@
-import path from "node:path";
-import { COPILOT_HEADERS } from "./constants.ts";
-import type { CopilotAuthFile, CopilotOAuthCredentials, CopilotTokenInfo, CopilotTokenResponse } from "./types.ts";
+import type { CopilotOAuthCredentials } from "./types.ts";
 
-export function normalizeEnterpriseDomain(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
+function normalizeHttpsBaseUrl(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
 
   try {
-    const url = trimmed.includes("://") ? new URL(trimmed) : new URL(`https://${trimmed}`);
-    return url.hostname;
+    const url = new URL(value);
+    if (url.protocol !== "https:") return undefined;
+    return url.href.replace(/\/$/, "");
   } catch {
     return undefined;
   }
 }
 
-export function getCopilotTokenUrl(enterpriseUrl: string | undefined): string {
-  const domain = normalizeEnterpriseDomain(enterpriseUrl) ?? "github.com";
-  return `https://api.${domain}/copilot_internal/v2/token`;
+function normalizeEnterpriseDomain(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+
+  try {
+    const input = value.includes("://") ? value : `https://${value}`;
+    return new URL(input).hostname || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function getApiBaseUrlFromCopilotToken(token: string | undefined): string | undefined {
@@ -28,93 +32,17 @@ export function getApiBaseUrlFromCopilotToken(token: string | undefined): string
   return `https://${apiHost}`;
 }
 
-export function parseAuthFile(text: string): CopilotOAuthCredentials | undefined {
-  const parsed = JSON.parse(text) as CopilotAuthFile;
-  const credentials = parsed["github-copilot"];
-  if (credentials?.type !== "oauth") return undefined;
-  return credentials;
-}
+export function getApiBaseUrlFromCopilotCredential(credentials: CopilotOAuthCredentials): string {
+  const endpoints = credentials.endpoints as { api?: string } | undefined;
+  const credentialEndpoint = normalizeHttpsBaseUrl(credentials.apiBaseUrl)
+    ?? normalizeHttpsBaseUrl(endpoints?.api);
+  if (credentialEndpoint) return credentialEndpoint;
 
-export function authJsonPath(agentDir: string): string {
-  return path.join(agentDir, "auth.json");
-}
+  const tokenEndpoint = getApiBaseUrlFromCopilotToken(credentials.access);
+  if (tokenEndpoint) return tokenEndpoint;
 
-export async function loadCopilotCredentials(
-  agentDir: string,
-  readTextFile: (path: string) => Promise<string>,
-): Promise<CopilotOAuthCredentials | undefined> {
-  try {
-    return parseAuthFile(await readTextFile(authJsonPath(agentDir)));
-  } catch {
-    return undefined;
-  }
-}
-
-export function normalizeExpiresMs(expires: number | undefined): number | undefined {
-  if (expires === undefined) return undefined;
-  // Pi currently stores OAuth expiry in epoch milliseconds, while GitHub's
-  // Copilot token endpoint returns epoch seconds. Accept either to keep this
-  // helper robust across upstream schema changes.
-  return expires < 10_000_000_000 ? expires * 1000 : expires;
-}
-
-export function getValidCachedToken(
-  credentials: CopilotOAuthCredentials | undefined,
-  now: number,
-): CopilotTokenInfo | undefined {
-  if (!credentials?.access) return undefined;
-
-  const expires = normalizeExpiresMs(credentials.expires);
-  if (expires !== undefined && expires <= now + 60_000) return undefined;
-
-  const apiBaseUrl = getApiBaseUrlFromCopilotToken(credentials.access);
-  if (!apiBaseUrl) return undefined;
-
-  return {
-    token: credentials.access,
-    apiBaseUrl,
-    expires,
-  };
-}
-
-export async function refreshCopilotToken(
-  credentials: CopilotOAuthCredentials,
-  fetchImpl: typeof fetch,
-): Promise<CopilotTokenInfo | undefined> {
-  if (!credentials.refresh) return undefined;
-
-  const response = await fetchImpl(getCopilotTokenUrl(credentials.enterpriseUrl), {
-    headers: {
-      ...COPILOT_HEADERS,
-      Accept: "application/json",
-      Authorization: `Bearer ${credentials.refresh}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`GitHub Copilot token refresh failed: ${response.status} ${response.statusText}`);
-  }
-
-  const payload = (await response.json()) as CopilotTokenResponse;
-  if (!payload.token) return undefined;
-
-  const apiBaseUrl = payload.endpoints?.api ?? getApiBaseUrlFromCopilotToken(payload.token);
-  if (!apiBaseUrl) return undefined;
-
-  return {
-    token: payload.token,
-    apiBaseUrl,
-    expires: payload.expires_at ? payload.expires_at * 1000 : undefined,
-  };
-}
-
-export async function resolveCopilotToken(
-  credentials: CopilotOAuthCredentials | undefined,
-  fetchImpl: typeof fetch,
-  now: number,
-): Promise<CopilotTokenInfo | undefined> {
-  const cached = getValidCachedToken(credentials, now);
-  if (cached) return cached;
-  if (!credentials) return undefined;
-  return refreshCopilotToken(credentials, fetchImpl);
+  const enterpriseDomain = normalizeEnterpriseDomain(credentials.enterpriseUrl);
+  return enterpriseDomain
+    ? `https://copilot-api.${enterpriseDomain}`
+    : "https://api.individual.githubcopilot.com";
 }

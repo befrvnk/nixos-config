@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { COPILOT_API_VERSION } from "./constants.ts";
-import { buildProviderConfig, fetchCopilotLiveModelsWithReserve } from "./live-models.ts";
+import { fetchCopilotLiveModelsWithReserve } from "./live-models.ts";
 import type { CopilotLiveModel } from "./types.ts";
 
 const liveModel: CopilotLiveModel = {
@@ -21,6 +21,8 @@ test("fetchCopilotLiveModelsWithReserve queries the 2026 model API and maps the 
   let observedUrl = "";
   let observedApiVersion = "";
   let observedAuthorization = "";
+  let observedSignal: AbortSignal | null | undefined;
+  const signal = new AbortController().signal;
 
   const models = await fetchCopilotLiveModelsWithReserve(
     { token: "copilot-token", apiBaseUrl: "https://api.enterprise.githubcopilot.com" },
@@ -29,37 +31,20 @@ test("fetchCopilotLiveModelsWithReserve queries the 2026 model API and maps the 
       observedUrl = String(url);
       observedApiVersion = headers["X-GitHub-Api-Version"];
       observedAuthorization = headers.Authorization;
+      observedSignal = init?.signal;
       return new Response(JSON.stringify({ data: [liveModel] }), {
         status: 200,
         headers: { "content-type": "application/json" },
       });
     }) as typeof fetch,
     128_000,
+    signal,
   );
 
   assert.equal(observedUrl, "https://api.enterprise.githubcopilot.com/models");
   assert.equal(observedApiVersion, COPILOT_API_VERSION);
   assert.equal(observedAuthorization, "Bearer copilot-token");
+  assert.equal(observedSignal, signal);
   assert.equal(models[0]?.id, "gpt-5.5");
   assert.equal(models[0]?.contextWindow, 1_050_000);
-});
-
-test("buildProviderConfig registers a GitHub Copilot provider replacement", () => {
-  const provider = buildProviderConfig("https://api.enterprise.githubcopilot.com", [
-    {
-      id: "gpt-5.5",
-      name: "GPT-5.5",
-      api: "openai-responses",
-      reasoning: true,
-      input: ["text"],
-      cost: { input: 10, output: 45, cacheRead: 1, cacheWrite: 0 },
-      contextWindow: 1_050_000,
-      maxTokens: 128_000,
-    },
-  ]);
-
-  assert.equal(provider.baseUrl, "https://api.enterprise.githubcopilot.com");
-  assert.equal(provider.apiKey, "$COPILOT_GITHUB_TOKEN");
-  assert.equal(provider.headers?.["X-GitHub-Api-Version"], COPILOT_API_VERSION);
-  assert.equal(provider.models?.[0]?.id, "gpt-5.5");
 });
