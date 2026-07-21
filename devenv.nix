@@ -332,10 +332,6 @@ in
       ./scripts/update-gh-enhance.sh || echo "⚠️  gh-enhance update failed (may already be up to date)"
 
       echo ""
-      echo "Updating OpenChamber package..."
-      ./scripts/update-openchamber.sh || echo "⚠️  OpenChamber update failed (may already be up to date)"
-
-      echo ""
       echo "Updating Supacode package..."
       ./scripts/update-supacode.sh || echo "⚠️  Supacode update failed (may already be up to date)"
 

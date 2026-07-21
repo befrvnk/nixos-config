@@ -17,7 +17,6 @@
       mission-center
       nautilus
       gnome-disk-utility
-      opencode-desktop
       powertop
       sushi # nautilus preview
       # Icon theme for ironbar

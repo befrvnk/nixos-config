@@ -114,9 +114,9 @@ nix eval nixpkgs#<package>.meta.platforms --json
 Add to `darwin/packages.nix` for CLI apps and GUI apps that do not need native macOS self-updates:
 ```nix
 home.packages = with pkgs; [
-  openchamber
   bat
   fd
+  material-symbols
 ];
 ```
 

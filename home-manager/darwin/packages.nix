@@ -11,7 +11,6 @@
   home.packages = with pkgs; [
     # GUI apps
     google-antigravity
-    openchamber
     supacode
 
     # CLI tools (cross-platform + Darwin-specific)

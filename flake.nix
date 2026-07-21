@@ -57,12 +57,6 @@
       url = "github:nix-community/nix-jetbrains-plugins";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # TUI for AI coding agents
-    # Temporarily pinned to last known working revision until upstream fixes
-    # the missing `glob` dependency regression in the shared package split.
-    opencode = {
-      url = "github:anomalyco/opencode/e14e874e513178ac056cec7be5bac4ff5fd842ef";
-    };
     # User-local project development environment registry
     shellpin = {
       url = "github:befrvnk/shellpin";
@@ -167,7 +161,6 @@
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           inherit (pkgs)
             google-antigravity
-            openchamber
             supacode
             ;
         }

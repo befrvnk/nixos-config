@@ -1,8 +1,7 @@
 { pkgs, ... }:
 
 {
-  # Reusable Anytype MCP server wrapper
-  # Can be used with OpenCode, Claude Code, or other MCP clients
+  # Reusable Anytype MCP server wrapper for Claude Code and other MCP clients
 
   anytype-mcp-wrapper = pkgs.writeShellScript "anytype-mcp-wrapper" ''
     # Add nodejs to PATH so npx can find node

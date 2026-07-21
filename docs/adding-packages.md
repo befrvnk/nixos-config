@@ -40,7 +40,6 @@ Prefer putting the package in the shared module that configures it under:
 Examples already following this pattern:
 - `home-manager/shared/gh.nix`
 - `home-manager/shared/navi/default.nix`
-- `home-manager/shared/opencode.nix`
 - `home-manager/shared/pi/default.nix`
 
 ## Package Ownership Rule

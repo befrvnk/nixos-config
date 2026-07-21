@@ -174,7 +174,6 @@
               "miro"
               "muxy"
               "notion"
-              "opencode-desktop"
               "raycast"
               "signal"
               "spotify"

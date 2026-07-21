@@ -831,22 +831,6 @@
     },
     "nixpkgs_5": {
       "locked": {
-        "lastModified": 1772091128,
-        "narHash": "sha256-TnrYykX8Mf/Ugtkix6V+PjW7miU2yClA6uqWl/v6KWM=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "3f0336406035444b4a24b942788334af5f906259",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_6": {
-      "locked": {
         "lastModified": 1772542754,
         "narHash": "sha256-WGV2hy+VIeQsYXpsLjdr4GvHv5eECMISX1zKLTedhdg=",
         "owner": "NixOS",
@@ -861,7 +845,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_7": {
+    "nixpkgs_6": {
       "locked": {
         "lastModified": 1779560665,
         "narHash": "sha256-tpyBcxPpcQb8ukyNF7DoCwfSY3VPsxHoYwj00Cayv5o=",
@@ -902,25 +886,6 @@
         "type": "github"
       }
     },
-    "opencode": {
-      "inputs": {
-        "nixpkgs": "nixpkgs_5"
-      },
-      "locked": {
-        "lastModified": 1773719253,
-        "narHash": "sha256-4LRyvmdtx5gyMh8+iRS8OHLkUhobWnlhOfOWqHeC3Qk=",
-        "owner": "anomalyco",
-        "repo": "opencode",
-        "rev": "e14e874e513178ac056cec7be5bac4ff5fd842ef",
-        "type": "github"
-      },
-      "original": {
-        "owner": "anomalyco",
-        "repo": "opencode",
-        "rev": "e14e874e513178ac056cec7be5bac4ff5fd842ef",
-        "type": "github"
-      }
-    },
     "pre-commit": {
       "inputs": {
         "flake-compat": "flake-compat_2",
@@ -958,7 +923,6 @@
         "nix-jetbrains-plugins": "nix-jetbrains-plugins",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_4",
-        "opencode": "opencode",
         "shellpin": "shellpin",
         "stylix": "stylix",
         "vicinae": "vicinae",
@@ -1291,7 +1255,7 @@
     },
     "vicinae": {
       "inputs": {
-        "nixpkgs": "nixpkgs_6",
+        "nixpkgs": "nixpkgs_5",
         "systems": "systems_6"
       },
       "locked": {
@@ -1312,7 +1276,7 @@
     "vicinae-extensions": {
       "inputs": {
         "flake-compat": "flake-compat_5",
-        "nixpkgs": "nixpkgs_7",
+        "nixpkgs": "nixpkgs_6",
         "systems": "systems_7",
         "vicinae": [
           "vicinae"
