@@ -12,7 +12,6 @@
     # GUI apps
     google-antigravity
     openchamber
-    orca-ai
     supacode
 
     # CLI tools (cross-platform + Darwin-specific)

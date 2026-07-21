@@ -66,9 +66,6 @@
     # Don't use inputs.nixpkgs.follows here - devenv cachix has builds
     # for the flake's own nixpkgs version, and its nix fork requires matching nixpkgs
     devenv.url = "github:cachix/devenv";
-    # Keep upstream nixpkgs here: Paseo's flake bakes an npmDepsHash that can
-    # differ when evaluated against another nixpkgs revision.
-    paseo.url = "github:getpaseo/paseo";
     # User-local project development environment registry
     shellpin = {
       url = "github:befrvnk/shellpin";
@@ -143,7 +140,6 @@
               else
                 overlayLib.nixosOverlays;
           };
-          paseoPackages = inputs.paseo.packages.${system};
         in
         {
           pi-extension-tests = pkgs.runCommand "pi-extension-tests" { } ''
@@ -169,18 +165,14 @@
           inherit (pkgs)
             domain-check
             idea-community
-            orca-ai
             ;
-          paseo = paseoPackages.desktop;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
           inherit (pkgs)
             google-antigravity
             openchamber
-            orca-ai
             supacode
             ;
-          inherit (paseoPackages) paseo;
         }
       );
 
