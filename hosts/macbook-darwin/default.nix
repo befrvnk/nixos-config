@@ -188,6 +188,7 @@
           "claude"
           "lunar"
           "slack"
+          "visual-studio-code"
         ];
       in
       selfUpdatingCasks ++ greedyCasks;

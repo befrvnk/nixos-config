@@ -19,6 +19,7 @@
       gnome-disk-utility
       powertop
       sushi # nautilus preview
+      vscode
       # Icon theme for ironbar
       papirus-icon-theme
 
