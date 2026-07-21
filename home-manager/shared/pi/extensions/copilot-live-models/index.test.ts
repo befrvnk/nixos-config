@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { COPILOT_HEADERS } from "./constants.ts";
 import {
   fetchWithTimeout,
   parseFetchTimeoutMs,
@@ -95,6 +96,8 @@ test("registerCopilotLiveModels registers a refresh callback without fetching du
     assert.equal(urls.length, 0);
     assert.equal(calls.length, 1);
     assert.equal(calls[0]?.provider, "github-copilot");
+    assert.deepEqual(calls[0]?.config.headers, COPILOT_HEADERS);
+    assert.equal(calls[0]?.config.headers?.["Editor-Version"], "vscode/1.107.0");
     assert.equal(typeof calls[0]?.config.refreshModels, "function");
 
     const models = await calls[0]!.config.refreshModels!({

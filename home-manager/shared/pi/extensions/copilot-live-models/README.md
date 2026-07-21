@@ -14,6 +14,7 @@ That API version is required for Copilot Enterprise to expose GPT-5.5's long-con
 ## Runtime behavior
 
 - Registers Pi's dynamic provider `refreshModels` callback for the built-in `github-copilot` provider.
+- Restores Copilot's IDE identity headers at provider scope because refreshed models replace Pi's header-bearing built-in model definitions.
 - Uses the canonical OAuth credential supplied by Pi after Pi has refreshed it; the extension does not read or update `auth.json`.
 - Fetches `${apiBaseUrl}/models` using credential endpoint metadata, the endpoint embedded in the Copilot token, or Pi-compatible Enterprise/individual fallbacks.
 - Maps live models into Pi provider model configs, including endpoint/API type, reasoning levels, vision support, token pricing, and context/output limits.

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getApiBaseUrlFromCopilotCredential } from "./auth.ts";
-import { COPILOT_PROVIDER, DEFAULT_FETCH_TIMEOUT_MS } from "./constants.ts";
+import { COPILOT_HEADERS, COPILOT_PROVIDER, DEFAULT_FETCH_TIMEOUT_MS } from "./constants.ts";
 import { fetchCopilotLiveModelsWithReserve } from "./live-models.ts";
 import { loadContextReserveTokens } from "./settings.ts";
 import type {
@@ -83,6 +83,10 @@ export async function registerCopilotLiveModels(
   const agentDir = options.agentDir ?? defaultAgentDir();
 
   const providerConfig: PiProviderConfig = {
+    // Refreshed models replace Pi's built-in definitions, including their
+    // per-model IDE identity headers. Keep those headers at provider scope so
+    // both normal requests and independently created sessions can resolve them.
+    headers: { ...COPILOT_HEADERS },
     refreshModels: async (context) => {
       try {
         const contextReserveTokens =

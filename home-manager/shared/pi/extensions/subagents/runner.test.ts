@@ -171,6 +171,33 @@ test("buildSubagentSessionOptions enables guarded custom exploration tools", asy
 	});
 });
 
+test("withResolvedModelHeaders carries provider headers into the child model", async () => {
+	await withMockedCodingAgentModule(async ({ withResolvedModelHeaders }) => {
+		const model = {
+			provider: "github-copilot",
+			id: "gpt-5.6-luna",
+			headers: { "Existing-Header": "preserved" },
+		} as any;
+		const childModel = await withResolvedModelHeaders(model, {
+			find: () => model,
+			getApiKeyAndHeaders: async () => ({
+				ok: true,
+				headers: {
+					"Editor-Version": "vscode/1.107.0",
+					"Copilot-Integration-Id": "vscode-chat",
+				},
+			}),
+		});
+
+		assert.notEqual(childModel, model);
+		assert.deepEqual(childModel.headers, {
+			"Existing-Header": "preserved",
+			"Editor-Version": "vscode/1.107.0",
+			"Copilot-Integration-Id": "vscode-chat",
+		});
+	});
+});
+
 test("runSingleTask repairs malformed review output once and keeps repair metadata", async () => {
 	await withMockedCodingAgent(async (runSingleTask) => {
 		const taskState = createReviewTaskState();

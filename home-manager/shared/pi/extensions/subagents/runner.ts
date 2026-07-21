@@ -30,6 +30,12 @@ import {
 type ModelRegistryLike = {
 	find(provider: string, modelId: string): Model<any> | undefined;
 	getAvailable?(): Promise<Model<any>[]>;
+	getApiKeyAndHeaders?(
+		model: Model<any>,
+	): Promise<
+		| { ok: true; headers?: Record<string, string> }
+		| { ok: false; error: string }
+	>;
 };
 
 type ParentContextLike = {
@@ -197,6 +203,22 @@ function parseModelRef(
 	const slash = trimmed.indexOf("/");
 	if (slash === -1) return { id: trimmed };
 	return { provider: trimmed.slice(0, slash), id: trimmed.slice(slash + 1) };
+}
+
+export async function withResolvedModelHeaders(
+	model: Model<any>,
+	modelRegistry: ModelRegistryLike | undefined,
+): Promise<Model<any>> {
+	const requestConfig = await modelRegistry?.getApiKeyAndHeaders?.(model);
+	if (!requestConfig?.ok || !requestConfig.headers) return model;
+
+	return {
+		...model,
+		headers: {
+			...model.headers,
+			...requestConfig.headers,
+		},
+	};
 }
 
 async function resolveModel(
@@ -399,7 +421,15 @@ export async function runSingleTask(
 	};
 
 	try {
-		const model = await resolveModel(taskState.model, parentCtx);
+		const resolvedModel = await resolveModel(taskState.model, parentCtx);
+		// Pi's extension context exposes the compatibility model registry, while
+		// createAgentSession() creates a separate ModelRuntime. Materialize the
+		// parent's resolved provider/model headers onto the child model so dynamic
+		// Copilot models retain the IDE identity headers required by OAuth.
+		const model = await withResolvedModelHeaders(
+			resolvedModel,
+			parentCtx.modelRegistry,
+		);
 		pushHistory(taskState, "lifecycle", `started ${taskState.workflow} task`);
 		const repositoryRoot = taskState.cwd ?? process.cwd();
 		const session = options.createSession
