@@ -86,10 +86,7 @@ let
     )
 
     # Extra packages from flakes
-    (final: prev: {
-      devenvLatest = inputs.devenv.packages.${prev.stdenv.hostPlatform.system}.devenv.overrideAttrs {
-        doCheck = false;
-      };
+    (_final: prev: {
       worktrunk = inputs.worktrunk.packages.${prev.stdenv.hostPlatform.system}.default;
     })
   ];
