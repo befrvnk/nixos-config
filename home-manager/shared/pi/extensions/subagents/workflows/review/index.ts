@@ -19,7 +19,7 @@ import {
 	composeAdditionalReviewInstructions,
 	loadProjectReviewGuidelines,
 } from "./guidelines.js";
-import { FAST_EXPLORE_MODEL } from "../../model-policy.js";
+import { REVIEW_BRIEF_MODEL } from "../../model-policy.js";
 import type { ReviewerConfig } from "../../model-policy.js";
 import type {
 	ParsedOutputMeta,
@@ -1188,7 +1188,7 @@ export async function createReviewBriefTask(
 	return {
 		task: buildReviewBriefTask(context, additionalInstructions),
 		label: "Change brief",
-		model: FAST_EXPLORE_MODEL,
+		model: REVIEW_BRIEF_MODEL,
 		thinkingLevel: "medium",
 		cwd: context.inspectionRoot,
 		metadata: {

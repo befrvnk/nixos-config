@@ -1,28 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_EXPLORE_MODEL, FAST_EXPLORE_MODEL } from "./model-policy.ts";
+import { REVIEW_BRIEF_MODEL, SUBAGENT_MODELS } from "./model-policy.ts";
 import { describeTaskExecutionProfile } from "./task-profile.ts";
 
 function shortModelName(model: string): string {
   return model.slice(model.indexOf("/") + 1);
 }
 
-test("describeTaskExecutionProfile renders compact intent, model, and thinking details", () => {
+test("describeTaskExecutionProfile renders compact model and thinking details", () => {
   assert.equal(
     describeTaskExecutionProfile({
-      intent: "fast",
-      model: FAST_EXPLORE_MODEL,
+      model: REVIEW_BRIEF_MODEL,
       thinkingLevel: "medium",
     }),
-    `fast · ${shortModelName(FAST_EXPLORE_MODEL)} · medium`,
+    `${shortModelName(REVIEW_BRIEF_MODEL)} · medium`,
   );
 
   assert.equal(
     describeTaskExecutionProfile({
-      model: DEFAULT_EXPLORE_MODEL,
+      model: SUBAGENT_MODELS.claudeOpus,
       thinkingLevel: "high",
     }),
-    `${shortModelName(DEFAULT_EXPLORE_MODEL)} · high`,
+    `${shortModelName(SUBAGENT_MODELS.claudeOpus)} · high`,
   );
 
   assert.equal(describeTaskExecutionProfile({}), "");

@@ -8,10 +8,9 @@ function shortModelName(model: string | undefined): string | undefined {
 }
 
 export function describeTaskExecutionProfile(
-	task: Pick<SubagentTaskState | SubagentTaskResult, "intent" | "model" | "thinkingLevel">,
+	task: Pick<SubagentTaskState | SubagentTaskResult, "model" | "thinkingLevel">,
 ): string {
 	const parts: string[] = [];
-	if (task.intent) parts.push(task.intent);
 	const model = shortModelName(task.model);
 	if (model) parts.push(model);
 	if (task.thinkingLevel) parts.push(task.thinkingLevel);

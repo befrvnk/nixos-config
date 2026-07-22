@@ -5,7 +5,7 @@ import {
 	getAgentDir,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
-import { createGuardedExplorationTools } from "./child-guard.js";
+import { createGuardedReviewTools } from "./child-guard.js";
 import { isAllowedSubagentModel } from "./model-policy.js";
 import {
 	cleanParsedOutput,
@@ -17,7 +17,6 @@ import type {
 	SubagentTaskResult,
 	SubagentTaskState,
 	SubagentThinkingLevel,
-	SubagentWorkflow,
 } from "./types.js";
 import {
 	COPILOT_PROVIDER,
@@ -125,13 +124,10 @@ function pushHistory(
 
 function hasMeaningfulParsedOutput(
 	parsed: ParsedSubagentOutput,
-	workflow: SubagentTaskState["workflow"],
 	rawResponse?: string,
 ): boolean {
-	if (workflow === "review") {
-		if ((rawResponse ?? "").trim()) return true;
-		if (parsed.parseMeta?.structure === "valid") return true;
-	}
+	if ((rawResponse ?? "").trim()) return true;
+	if (parsed.parseMeta?.structure === "valid") return true;
 	if (parsed.summary.trim()) return true;
 	return Object.values(parsed.data ?? {}).some((value) => {
 		if (Array.isArray(value)) return value.length > 0;
@@ -319,7 +315,6 @@ export function buildSubagentSessionOptions(
 		model?: Model<any>;
 		thinkingLevel?: SubagentThinkingLevel;
 		modelRegistry?: ModelRegistryLike;
-		workflow?: SubagentWorkflow;
 	},
 ): Parameters<typeof createAgentSession>[0] {
 	const sessionOptions: Record<string, unknown> = {
@@ -331,9 +326,7 @@ export function buildSubagentSessionOptions(
 		// allowlist those custom tool names.
 		noTools: "builtin",
 		tools: [...SUBAGENT_TOOLS],
-		customTools: createGuardedExplorationTools(repositoryRoot, {
-			restrictToRoot: overrides.workflow === "review",
-		}),
+		customTools: createGuardedReviewTools(repositoryRoot),
 		sessionManager: SessionManager.inMemory(repositoryRoot),
 	};
 	if (overrides.model) sessionOptions.model = overrides.model;
@@ -384,10 +377,7 @@ export async function runSingleTask(
 		if (!hasAssistantHistory) {
 			if (result.summary.trim()) {
 				pushHistory(taskState, "assistant", result.summary);
-			} else if (
-				taskState.workflow === "review" &&
-				result.status === "success"
-			) {
+			} else if (result.status === "success") {
 				pushHistory(
 					taskState,
 					"assistant",
@@ -398,7 +388,7 @@ export async function runSingleTask(
 			}
 		}
 
-		if (taskState.workflow === "review" && result.status === "success") {
+		if (result.status === "success") {
 			const findings = Array.isArray(result.data?.findings)
 				? (result.data.findings as string[])
 				: [];
@@ -459,7 +449,6 @@ export async function runSingleTask(
 								model,
 								thinkingLevel: taskState.thinkingLevel,
 								modelRegistry: parentCtx.modelRegistry,
-								workflow: taskState.workflow,
 							},
 						),
 					);
@@ -638,10 +627,9 @@ export async function runSingleTask(
 			await session.prompt(taskState.task);
 			let latestState = captureLatestReviewState();
 			const initialToolUses = taskState.toolUses;
-			const inspectionPrompt =
-				taskState.workflow === "review" && initialToolUses === 0
-					? buildReviewRepoInspectionPrompt(latestState.parsed)
-					: undefined;
+			const inspectionPrompt = initialToolUses === 0
+				? buildReviewRepoInspectionPrompt(latestState.parsed)
+				: undefined;
 			if (!aborted && !promptError && inspectionPrompt?.trim()) {
 				repoInspectionVerificationAttempted = true;
 				pushHistory(
@@ -716,7 +704,6 @@ export async function runSingleTask(
 				taskId: taskState.taskId,
 				task: taskState.task,
 				label: taskState.label,
-				intent: taskState.intent,
 				model: model ? `${model.provider}/${model.id}` : taskState.model,
 				thinkingLevel: taskState.thinkingLevel,
 				cwd: taskState.cwd,
@@ -735,7 +722,6 @@ export async function runSingleTask(
 				taskId: taskState.taskId,
 				task: taskState.task,
 				label: taskState.label,
-				intent: taskState.intent,
 				model: model ? `${model.provider}/${model.id}` : taskState.model,
 				thinkingLevel: taskState.thinkingLevel,
 				cwd: taskState.cwd,
@@ -749,17 +735,13 @@ export async function runSingleTask(
 			});
 		}
 
-		if (
-			!bestResponse.trim() ||
-			!hasMeaningfulParsedOutput(parsed, taskState.workflow, bestResponse)
-		) {
+		if (!bestResponse.trim() || !hasMeaningfulParsedOutput(parsed, bestResponse)) {
 			const error = taskState.error || "Subagent returned no structured content.";
 			pushHistory(taskState, "error", error);
 			return finish({
 				taskId: taskState.taskId,
 				task: taskState.task,
 				label: taskState.label,
-				intent: taskState.intent,
 				model: model ? `${model.provider}/${model.id}` : taskState.model,
 				thinkingLevel: taskState.thinkingLevel,
 				cwd: taskState.cwd,
@@ -777,7 +759,6 @@ export async function runSingleTask(
 			taskId: taskState.taskId,
 			task: taskState.task,
 			label: taskState.label,
-			intent: taskState.intent,
 			model: model ? `${model.provider}/${model.id}` : taskState.model,
 			thinkingLevel: taskState.thinkingLevel,
 			cwd: taskState.cwd,
@@ -799,7 +780,6 @@ export async function runSingleTask(
 			taskId: taskState.taskId,
 			task: taskState.task,
 			label: taskState.label,
-			intent: taskState.intent,
 			model: taskState.model,
 			thinkingLevel: taskState.thinkingLevel,
 			cwd: taskState.cwd,

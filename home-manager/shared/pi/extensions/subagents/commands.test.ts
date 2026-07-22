@@ -10,7 +10,7 @@ import type { SubagentRunState } from "./types.ts";
 
 function makeRun(taskId: string, label: string): SubagentRunState {
   return {
-    workflow: "explore",
+    workflow: "review",
     runId: `run-${label}`,
     mode: "single",
     state: "success",
@@ -18,7 +18,7 @@ function makeRun(taskId: string, label: string): SubagentRunState {
     endedAt: 1000,
     tasks: [
       {
-        workflow: "explore",
+        workflow: "review",
         index: 0,
         taskId,
         task: label,

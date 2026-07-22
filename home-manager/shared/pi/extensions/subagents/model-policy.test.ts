@@ -1,63 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  ALLOWED_EXPLORE_INTENTS,
   ALLOWED_SUBAGENT_MODELS,
-  DEEP_EXPLORE_MODEL,
-  DEFAULT_EXPLORE_INTENT,
-  DEFAULT_EXPLORE_MODEL,
-  EXPLORE_INTENT_PROFILES,
-  FAST_EXPLORE_MODEL,
   FIXED_REVIEWERS,
   isAllowedSubagentModel,
-  normalizeExploreIntent,
-  resolveExploreExecutionProfile,
+  REVIEW_BRIEF_MODEL,
+  SUBAGENT_MODELS,
 } from "./model-policy.ts";
 
-test("default explore configuration stays within the allowed model policy", () => {
-  const profile = resolveExploreExecutionProfile(undefined);
-  assert.equal(profile.intent, DEFAULT_EXPLORE_INTENT);
-  assert.ok(ALLOWED_SUBAGENT_MODELS.includes(profile.model));
-  assert.equal(profile.model, DEFAULT_EXPLORE_MODEL);
-  assert.equal(profile.thinkingLevel, "medium");
-});
+test("review models stay within the allowed model policy", () => {
+  assert.deepEqual(ALLOWED_SUBAGENT_MODELS, [
+    SUBAGENT_MODELS.claudeOpus,
+    SUBAGENT_MODELS.geminiPro,
+    REVIEW_BRIEF_MODEL,
+  ]);
 
-test("fixed reviewers only use allowed models", () => {
   for (const reviewer of FIXED_REVIEWERS) {
     assert.ok(isAllowedSubagentModel(reviewer.model), reviewer.model);
   }
+  assert.ok(isAllowedSubagentModel(REVIEW_BRIEF_MODEL));
 });
 
 test("isAllowedSubagentModel accepts approved models and rejects everything else", () => {
   assert.equal(isAllowedSubagentModel(ALLOWED_SUBAGENT_MODELS[0]!), true);
   assert.equal(isAllowedSubagentModel("github-copilot/not-a-real-model"), false);
   assert.equal(isAllowedSubagentModel("anthropic/claude-sonnet-4"), false);
-});
-
-test("explore intent normalization and profile resolution are safe by default", () => {
-  assert.deepEqual(ALLOWED_EXPLORE_INTENTS, ["fast", "balanced", "deep"]);
-  assert.equal(normalizeExploreIntent(undefined), "balanced");
-  assert.equal(normalizeExploreIntent("FAST"), "fast");
-  assert.equal(normalizeExploreIntent("unknown"), "balanced");
-
-  assert.deepEqual(resolveExploreExecutionProfile("fast"), EXPLORE_INTENT_PROFILES.fast);
-  assert.deepEqual(resolveExploreExecutionProfile("balanced"), EXPLORE_INTENT_PROFILES.balanced);
-  assert.deepEqual(resolveExploreExecutionProfile("deep"), EXPLORE_INTENT_PROFILES.deep);
-  assert.deepEqual(resolveExploreExecutionProfile("wrong"), EXPLORE_INTENT_PROFILES.balanced);
-
-  assert.deepEqual(EXPLORE_INTENT_PROFILES.fast, {
-    intent: "fast",
-    model: FAST_EXPLORE_MODEL,
-    thinkingLevel: "medium",
-  });
-  assert.deepEqual(EXPLORE_INTENT_PROFILES.balanced, {
-    intent: "balanced",
-    model: DEFAULT_EXPLORE_MODEL,
-    thinkingLevel: "medium",
-  });
-  assert.deepEqual(EXPLORE_INTENT_PROFILES.deep, {
-    intent: "deep",
-    model: DEEP_EXPLORE_MODEL,
-    thinkingLevel: "high",
-  });
 });

@@ -3,13 +3,12 @@ import assert from "node:assert/strict";
 import {
   formatDuration,
   parseBullets,
-  renderRunMarkdown,
   renderTaskHistoryMarkdown,
   shortTaskId,
   splitMarkdownSections,
   uniqueNonEmptyStrings,
 } from "./formatting.ts";
-import { FAST_EXPLORE_MODEL } from "./model-policy.ts";
+import { REVIEW_BRIEF_MODEL } from "./model-policy.ts";
 import type { SubagentRunState, SubagentTaskState } from "./types.ts";
 
 test("formatDuration renders milliseconds, seconds, and minutes", () => {
@@ -40,15 +39,14 @@ test("shortTaskId prefers compact ids for generated subagent ids", () => {
   assert.equal(shortTaskId("plain-id-1234567890"), "-id-1234567890");
 });
 
-test("renderTaskHistoryMarkdown and renderRunMarkdown include key run details", () => {
+test("renderTaskHistoryMarkdown includes key task details", () => {
   const task: SubagentTaskState = {
-    workflow: "explore",
+    workflow: "review",
     index: 0,
     taskId: "sub_now_abc123_task_1",
     task: "Investigate prompt flow",
     label: "Prompt flow",
-    intent: "balanced",
-    model: FAST_EXPLORE_MODEL,
+    model: REVIEW_BRIEF_MODEL,
     thinkingLevel: "medium",
     cwd: "/tmp/project",
     state: "success",
@@ -71,7 +69,7 @@ test("renderTaskHistoryMarkdown and renderRunMarkdown include key run details", 
   };
 
   const run: SubagentRunState = {
-    workflow: "explore",
+    workflow: "review",
     runId: "sub_now_abc123",
     mode: "single",
     state: "success",
@@ -82,13 +80,7 @@ test("renderTaskHistoryMarkdown and renderRunMarkdown include key run details", 
 
   const taskMarkdown = renderTaskHistoryMarkdown(task, run);
   assert.match(taskMarkdown, /# Subagent abc123\/1/);
-  assert.match(taskMarkdown, /- Intent: balanced/);
+  assert.match(taskMarkdown, new RegExp(`- Model: ${REVIEW_BRIEF_MODEL}`));
   assert.match(taskMarkdown, /## Summary/);
   assert.match(taskMarkdown, /Everything looks good\./);
-
-  const runMarkdown = renderRunMarkdown(run);
-  assert.match(runMarkdown, /# Explore sub_now_abc123/);
-  assert.match(runMarkdown, /- Intent: balanced/);
-  assert.match(runMarkdown, /- Tool uses: 2/);
-  assert.match(runMarkdown, /- Progress:/);
 });

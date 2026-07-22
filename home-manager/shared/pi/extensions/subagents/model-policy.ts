@@ -1,6 +1,5 @@
 import {
 	COPILOT_PROVIDER,
-	type ExploreIntent,
 	type SubagentThinkingLevel,
 } from "./types.js";
 
@@ -12,82 +11,26 @@ function copilotModel<const T extends string>(
 
 export const SUBAGENT_MODEL_IDS = {
 	claudeOpus: "claude-opus-4.8",
-	claudeSonnet: "claude-sonnet-4.6",
 	geminiPro: "gemini-3.1-pro-preview",
-	fastExplore: "gpt-5.6-luna",
-	defaultExplore: "gpt-5.6-terra",
-	deepExplore: "gpt-5.6-sol",
+	reviewBrief: "gpt-5.6-luna",
 } as const;
 
 export const SUBAGENT_MODELS = {
 	claudeOpus: copilotModel(SUBAGENT_MODEL_IDS.claudeOpus),
-	claudeSonnet: copilotModel(SUBAGENT_MODEL_IDS.claudeSonnet),
 	geminiPro: copilotModel(SUBAGENT_MODEL_IDS.geminiPro),
-	fastExplore: copilotModel(SUBAGENT_MODEL_IDS.fastExplore),
-	defaultExplore: copilotModel(SUBAGENT_MODEL_IDS.defaultExplore),
-	deepExplore: copilotModel(SUBAGENT_MODEL_IDS.deepExplore),
+	reviewBrief: copilotModel(SUBAGENT_MODEL_IDS.reviewBrief),
 } as const;
 
 export const ALLOWED_SUBAGENT_MODELS = [
 	SUBAGENT_MODELS.claudeOpus,
-	SUBAGENT_MODELS.claudeSonnet,
 	SUBAGENT_MODELS.geminiPro,
-	SUBAGENT_MODELS.fastExplore,
-	SUBAGENT_MODELS.defaultExplore,
-	SUBAGENT_MODELS.deepExplore,
+	SUBAGENT_MODELS.reviewBrief,
 ] as const;
 
 export type AllowedSubagentModel = (typeof ALLOWED_SUBAGENT_MODELS)[number];
 
-export const FAST_EXPLORE_MODEL: AllowedSubagentModel =
-	SUBAGENT_MODELS.fastExplore;
-export const DEFAULT_EXPLORE_MODEL: AllowedSubagentModel =
-	SUBAGENT_MODELS.defaultExplore;
-export const DEEP_EXPLORE_MODEL: AllowedSubagentModel =
-	SUBAGENT_MODELS.deepExplore;
-
-export const ALLOWED_EXPLORE_INTENTS = ["fast", "balanced", "deep"] as const;
-export const DEFAULT_EXPLORE_INTENT: ExploreIntent = "balanced";
-
-export type ExploreExecutionProfile = {
-	intent: ExploreIntent;
-	model: AllowedSubagentModel;
-	thinkingLevel: SubagentThinkingLevel;
-};
-
-export const EXPLORE_INTENT_PROFILES: Readonly<
-	Record<ExploreIntent, ExploreExecutionProfile>
-> = {
-	fast: {
-		intent: "fast",
-		model: FAST_EXPLORE_MODEL,
-		thinkingLevel: "medium",
-	},
-	balanced: {
-		intent: "balanced",
-		model: DEFAULT_EXPLORE_MODEL,
-		thinkingLevel: "medium",
-	},
-	deep: {
-		intent: "deep",
-		model: DEEP_EXPLORE_MODEL,
-		thinkingLevel: "high",
-	},
-} as const;
-
-export function normalizeExploreIntent(intent: string | undefined): ExploreIntent {
-	const normalized = intent?.trim().toLowerCase();
-	if (normalized === "fast" || normalized === "balanced" || normalized === "deep") {
-		return normalized;
-	}
-	return DEFAULT_EXPLORE_INTENT;
-}
-
-export function resolveExploreExecutionProfile(
-	intent: string | undefined,
-): ExploreExecutionProfile {
-	return EXPLORE_INTENT_PROFILES[normalizeExploreIntent(intent)];
-}
+export const REVIEW_BRIEF_MODEL: AllowedSubagentModel =
+	SUBAGENT_MODELS.reviewBrief;
 
 export type ReviewerConfig = {
 	label: string;

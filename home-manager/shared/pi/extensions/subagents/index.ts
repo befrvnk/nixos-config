@@ -20,26 +20,16 @@ import {
   truncateToWidth,
 } from "@earendil-works/pi-tui";
 import {
-  parseExploreOutput,
-  renderExploreToolCall,
-  renderExploreToolResult,
-  renderFinalExploreResults,
-} from "./workflows/explore/index.js";
-import { EXPLORER_PROMPT } from "./workflows/explore/prompt.js";
-import {
-  renderRunMarkdown,
   renderTaskHistoryMarkdown,
   serializeRun,
   uniqueNonEmptyStrings,
 } from "./formatting.js";
 import {
-  filterRuns,
   findTaskById,
   parseReviewCommandArgs,
   REVIEW_COMMAND_USAGE,
   type ReviewSelection,
 } from "./commands.js";
-import { buildExploreTaskInputs, findRunOrThrow } from "./tool-validation.js";
 import {
   buildReviewRepairPrompt,
   createReviewBriefTask,
@@ -61,40 +51,17 @@ import {
 } from "./workflows/review/selection.js";
 import { mapWithConcurrencyLimit, runSingleTask } from "./runner.js";
 import {
-  exploreParamsSchema,
-  statusSchema,
-} from "./workflows/explore/schema.js";
-import {
   MAX_PARALLEL_TASKS,
   MAX_RECENT_RUNS,
   type ParsedSubagentOutput,
   type SubagentRunState,
   type SubagentTaskInput,
   type SubagentTaskState,
-  type SubagentWorkflow,
 } from "./types.js";
 import { renderSubagentTaskMessage, SubagentWidget } from "./ui.js";
-import {
-  createExploreCacheMetadata,
-  createExplorationKey,
-  EXPLORE_CACHE_ENTRY_TYPE,
-  findReusableExploration,
-  hashWorkspaceRevision,
-  MAX_ACTIVE_EXPLORE_RUNS,
-  MAX_EXPLORE_SESSION_TOKENS,
-  parseFreshExploreArgs,
-  rememberExploration,
-  restoreExploreCacheState,
-  subscribeToActiveExploration,
-  type ActiveExploration,
-  type ExploreCacheRecord,
-  WORKSPACE_GENERATION_ENTRY_TYPE,
-} from "./explore-cache.js";
-
 const SUBAGENT_TASK_ENTRY_TYPE = "subagent-task";
 const SUBAGENT_MARKDOWN_ENTRY_TYPE = "subagent-markdown";
 const SUBAGENT_REVIEW_MESSAGE_TYPE = "subagent-review";
-const SUBAGENT_EXPLORE_MESSAGE_TYPE = "subagent-explore";
 const MARKDOWN_PREVIEW_LINES = 8;
 
 function renderMarkdownPreview(
@@ -540,10 +507,6 @@ function sendReviewMessage(pi: ExtensionAPI, markdown: string, content: string) 
 export default function subagentExtension(pi: ExtensionAPI) {
   const activeRuns = new Map<string, SubagentRunState>();
   const recentRuns: SubagentRunState[] = [];
-  const completedExploreCache = new Map<string, ExploreCacheRecord>();
-  const activeExploreByKey = new Map<string, ActiveExploration>();
-  let workspaceGeneration = 0;
-  let sessionExploreTokens = 0;
   const widget = new SubagentWidget(() => [
     ...activeRuns.values(),
     ...recentRuns,
@@ -554,54 +517,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
     if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
   };
 
-  const runTokenCount = (run: SubagentRunState) =>
-    run.tasks.reduce((total, task) => total + Math.max(0, task.tokenCount || 0), 0);
-
-  const restoreExploreState = (ctx: ExtensionContext) => {
-    const restored = restoreExploreCacheState(ctx.sessionManager.getBranch() as any[]);
-    completedExploreCache.clear();
-    for (const [key, record] of restored.records) completedExploreCache.set(key, record);
-    const reviewRuns = recentRuns.filter((run) => run.workflow === "review");
-    recentRuns.splice(
-      0,
-      recentRuns.length,
-      ...restored.runs.slice(0, MAX_RECENT_RUNS),
-      ...reviewRuns,
-    );
-    if (recentRuns.length > MAX_RECENT_RUNS) recentRuns.splice(MAX_RECENT_RUNS);
-    workspaceGeneration = restored.workspaceGeneration;
-    sessionExploreTokens = restored.tokens;
-  };
-
-  const workspaceRevisionFor = async (
-    tasks: SubagentTaskInput[],
-    signal?: AbortSignal,
-  ): Promise<string> => {
-    const parts: Array<Record<string, unknown>> = [];
-    const directories = [...new Set(tasks.map((task) => task.cwd).filter((cwd): cwd is string => Boolean(cwd)))].sort();
-    for (const cwd of directories) {
-      signal?.throwIfAborted();
-      const execOptions = { cwd, signal } as { cwd: string; signal?: AbortSignal };
-      const root = await pi.exec("git", ["rev-parse", "--show-toplevel"], execOptions);
-      if ((root.code ?? 1) !== 0) {
-        parts.push({ cwd, kind: "directory" });
-        continue;
-      }
-      const repoRoot = root.stdout.trim();
-      const [head, status] = await Promise.all([
-        pi.exec("git", ["rev-parse", "--verify", "HEAD"], { ...execOptions, cwd: repoRoot }),
-        pi.exec("git", ["status", "--porcelain=v2", "-z", "--untracked-files=normal"], { ...execOptions, cwd: repoRoot }),
-      ]);
-      parts.push({
-        cwd,
-        repoRoot,
-        head: (head.code ?? 1) === 0 ? head.stdout.trim() : "unborn",
-        status: status.stdout,
-      });
-    }
-    return hashWorkspaceRevision(parts, workspaceGeneration);
-  };
-
   type WorkflowExecutionOptions = {
     systemPrompt: string;
     parseOutput: (markdown: string) => ParsedSubagentOutput;
@@ -609,23 +524,20 @@ export default function subagentExtension(pi: ExtensionAPI) {
       parsed: ParsedSubagentOutput,
       rawResponse: string,
     ) => string | undefined;
-    onUpdate?: (update: unknown) => void;
     signal?: AbortSignal;
     ctx: ExtensionContext | ExtensionCommandContext;
   };
 
   const executeInternalTask = async (
-    workflow: SubagentWorkflow,
     taskInput: SubagentTaskInput,
     options: WorkflowExecutionOptions,
   ) => {
     const taskState: SubagentTaskState = {
-      workflow,
+      workflow: "review",
       index: 0,
       taskId: createTaskId(createRunId(), 0),
       task: taskInput.task,
       label: taskInput.label?.trim() || taskInput.task.trim(),
-      intent: taskInput.intent,
       model: taskInput.model,
       thinkingLevel: taskInput.thinkingLevel,
       cwd: taskInput.cwd,
@@ -651,24 +563,22 @@ export default function subagentExtension(pi: ExtensionAPI) {
   };
 
   const executeWorkflow = async (
-    workflow: SubagentWorkflow,
     taskInputs: SubagentTaskInput[],
     options: WorkflowExecutionOptions,
   ) => {
     const runId = createRunId();
     const run: SubagentRunState = {
-      workflow,
+      workflow: "review",
       runId,
       mode: taskInputs.length === 1 ? "single" : "parallel",
       state: "running",
       startedAt: Date.now(),
       tasks: taskInputs.map((task, index) => ({
-        workflow,
+        workflow: "review",
         index,
         taskId: createTaskId(runId, index),
         task: task.task,
         label: task.label?.trim() || task.task.trim(),
-        intent: task.intent,
         model: task.model,
         thinkingLevel: task.thinkingLevel,
         cwd: task.cwd,
@@ -685,21 +595,13 @@ export default function subagentExtension(pi: ExtensionAPI) {
     };
 
     const emitRunUpdate = () => {
-      const serialized = serializeRun(run);
       widget.update();
-      if (!options.onUpdate) return;
-      options.onUpdate({
-        content: [
-          { type: "text", text: `${workflow} run ${run.runId} in progress.` },
-        ],
-        details: { workflow, run: serialized },
-      });
     };
 
     activeRuns.set(run.runId, run);
     for (const taskState of run.tasks) {
       pi.appendEntry(SUBAGENT_TASK_ENTRY_TYPE, {
-        workflow,
+        workflow: "review",
         taskId: taskState.taskId,
         label: taskState.label,
         task: taskState.task,
@@ -743,184 +645,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
     }
   };
 
-  const exploreToolResult = (
-    record: ExploreCacheRecord,
-    options: {
-      launched: boolean;
-      matchKind?: "active" | "exact" | "similar";
-      similarity?: number;
-    },
-  ) => {
-    let text = record.content;
-    if (!options.launched) {
-      const ageSeconds = Math.max(0, Math.round((Date.now() - record.completedAt) / 1000));
-      if (record.run.state !== "success") {
-        text = [
-          `Equivalent exploration ${record.run.runId} finished with ${record.run.state} state ${ageSeconds}s ago.`,
-          "No retry was launched during the failure cooldown. A deliberate retry requires the user-only /explore-fresh command.",
-          record.content,
-        ].filter(Boolean).join("\n\n");
-      } else if (options.matchKind === "similar") {
-        text = [
-          `This request is ${Math.round((options.similarity ?? 0) * 100)}% similar to successful run ${record.run.runId}.`,
-          "Reusing its findings; no new subagent was launched. A deliberate independent replication requires /explore-fresh.",
-          record.content,
-        ].filter(Boolean).join("\n\n");
-      } else {
-        text = [
-          `Equivalent exploration already ${options.matchKind === "active" ? "completed through the active single-flight run" : "completed"} as ${record.run.runId}.`,
-          "Reusing that result; no new subagent was launched.",
-          record.content,
-        ].filter(Boolean).join("\n\n");
-      }
-    }
-
-    return {
-      content: [{ type: "text" as const, text }],
-      details: {
-        workflow: "explore",
-        mode: record.run.mode,
-        runId: record.run.runId,
-        results: record.results,
-        run: record.run,
-        cache: createExploreCacheMetadata(record, options.launched),
-        deduplicated: !options.launched,
-        matchType: options.matchKind,
-        similarity: options.similarity,
-      },
-    };
-  };
-
-  const launchExploration = (
-    tasks: SubagentTaskInput[],
-    workspaceRevision: string,
-    key: string,
-    options: WorkflowExecutionOptions & {
-      forceFresh?: boolean;
-      persistCacheEntry?: boolean;
-    },
-  ): ActiveExploration => {
-    if (activeExploreByKey.size >= MAX_ACTIVE_EXPLORE_RUNS) {
-      throw new Error(
-        `Explore concurrency limit reached (${MAX_ACTIVE_EXPLORE_RUNS} active runs). Use explore_status instead of launching more work.`,
-      );
-    }
-    if (sessionExploreTokens >= MAX_EXPLORE_SESSION_TOKENS) {
-      throw new Error(
-        `Explore session token budget reached (${MAX_EXPLORE_SESSION_TOKENS} child tokens). Start a new session before launching more subagents.`,
-      );
-    }
-
-    const activeKey = options.forceFresh ? `${key}:fresh:${createRunId()}` : key;
-    const controller = new AbortController();
-    const active = {
-      key: activeKey,
-      controller,
-      promise: undefined as unknown as Promise<ExploreCacheRecord>,
-      waiters: 0,
-      settled: false,
-    };
-    active.promise = (async () => {
-      const { run, results } = await executeWorkflow("explore", tasks, {
-        ...options,
-        signal: controller.signal,
-      });
-      const serializedRun = serializeRun(run) as SubagentRunState;
-      const record: ExploreCacheRecord = {
-        key,
-        workspaceRevision,
-        tasks: tasks.map((task) => ({ ...task })),
-        run: serializedRun,
-        results,
-        content: renderFinalExploreResults(run.runId, run.mode, results),
-        completedAt: run.endedAt ?? Date.now(),
-      };
-      sessionExploreTokens += runTokenCount(serializedRun);
-      rememberExploration(completedExploreCache, record);
-      if (options.persistCacheEntry) {
-        pi.appendEntry(EXPLORE_CACHE_ENTRY_TYPE, { record, launched: true });
-      }
-      return record;
-    })().finally(() => {
-      active.settled = true;
-      activeExploreByKey.delete(activeKey);
-    });
-    activeExploreByKey.set(activeKey, active);
-    return active;
-  };
-
-  const executeExploreTasks = async (
-    tasks: SubagentTaskInput[],
-    options: WorkflowExecutionOptions & {
-      forceFresh?: boolean;
-      persistCacheEntry?: boolean;
-    },
-  ) => {
-    const workspaceRevision = await workspaceRevisionFor(tasks, options.signal);
-    const key = createExplorationKey(tasks, workspaceRevision);
-
-    if (!options.forceFresh) {
-      const active = activeExploreByKey.get(key);
-      if (active) {
-        options.onUpdate?.({
-          content: [{ type: "text", text: "Joining an equivalent active exploration run." }],
-          details: { workflow: "explore", deduplicated: true, matchType: "active" },
-        });
-        const record = await subscribeToActiveExploration(active, options.signal);
-        return exploreToolResult(record, { launched: false, matchKind: "active" });
-      }
-
-      const match = findReusableExploration(
-        completedExploreCache.values(),
-        tasks,
-        key,
-        workspaceRevision,
-      );
-      if (match) {
-        return exploreToolResult(match.record, {
-          launched: false,
-          matchKind: match.kind,
-          similarity: match.similarity,
-        });
-      }
-    }
-
-    const active = launchExploration(tasks, workspaceRevision, key, options);
-    const record = await subscribeToActiveExploration(active, options.signal);
-    return exploreToolResult(record, { launched: true });
-  };
-
-  const executeStatus = (
-    workflow: SubagentWorkflow,
-    params: { action: "list" | "get"; runId?: string },
-  ) => {
-    const runs = filterRuns(workflow, activeRuns, recentRuns);
-
-    if (params.action === "list") {
-      const lines: string[] = [];
-      if (runs.length === 0) {
-        lines.push(`No ${workflow} runs recorded in this session.`);
-      } else {
-        for (const run of runs) {
-          lines.push(
-            `- ${run.runId} | ${run.state} | ${run.mode} | ${run.tasks.length} task(s)`,
-          );
-        }
-      }
-      return {
-        content: [{ type: "text", text: lines.join("\n") }],
-        details: { runs: runs.map(serializeRun) },
-      };
-    }
-
-    const run = findRunOrThrow(runs, params.runId);
-
-    return {
-      content: [{ type: "text", text: renderRunMarkdown(run) }],
-      details: serializeRun(run),
-    };
-  };
-
   const runReviewSelection = async (
     selection: ReviewSelection,
     ctx: ExtensionCommandContext,
@@ -947,7 +671,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
           request,
           ctx.cwd,
         );
-        const briefResult = await executeInternalTask("review", briefTask, {
+        const briefResult = await executeInternalTask(briefTask, {
           systemPrompt: REVIEW_BRIEF_PROMPT,
           parseOutput: parseReviewBriefOutput,
           signal,
@@ -983,7 +707,7 @@ export default function subagentExtension(pi: ExtensionAPI) {
         request,
         ctx.cwd,
       );
-      const { run, results } = await executeWorkflow("review", tasks, {
+      const { run, results } = await executeWorkflow(tasks, {
         systemPrompt: REVIEWER_PROMPT,
         parseOutput: parseReviewOutput,
         buildRepairPrompt: buildReviewRepairPrompt,
@@ -1101,24 +825,13 @@ export default function subagentExtension(pi: ExtensionAPI) {
     }
   };
 
-  pi.on("tool_result", (event) => {
-    if (event.isError || !["edit", "write", "bash"].includes(event.toolName)) return;
-    workspaceGeneration += 1;
-    pi.appendEntry(WORKSPACE_GENERATION_ENTRY_TYPE, {
-      generation: workspaceGeneration,
-      timestamp: Date.now(),
-    });
-  });
-
   pi.on("session_start", (_event, ctx) => {
-    restoreExploreState(ctx);
     if (!ctx.hasUI) return;
     widget.setUICtx(ctx.ui, ctx.mode);
     widget.update();
   });
 
-  pi.on("session_tree", (_event, ctx) => {
-    restoreExploreState(ctx);
+  pi.on("session_tree", () => {
     widget.update();
   });
 
@@ -1127,10 +840,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
-    for (const active of activeExploreByKey.values()) {
-      active.controller.abort(new Error("Exploration session shut down."));
-    }
-    activeExploreByKey.clear();
     widget.dispose();
   });
 
@@ -1139,14 +848,18 @@ export default function subagentExtension(pi: ExtensionAPI) {
     (entry, { expanded }, theme) => {
       const details = entry.data as
         | {
-            workflow: SubagentWorkflow;
+            workflow?: unknown;
             taskId: string;
             label: string;
             task: string;
           }
         | undefined;
-      if (!details) return undefined;
-      return renderSubagentTaskMessage(details, expanded, theme);
+      if (!details || details.workflow !== "review") return undefined;
+      return renderSubagentTaskMessage(
+        { ...details, workflow: "review" },
+        expanded,
+        theme,
+      );
     },
   );
 
@@ -1172,18 +885,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
     },
   );
 
-  pi.registerMessageRenderer(
-    SUBAGENT_EXPLORE_MESSAGE_TYPE,
-    (message, { expanded }, theme) => {
-      const details = message.details as { markdown?: string } | undefined;
-      const markdown = details?.markdown
-        ?? (typeof message.content === "string" ? message.content : "");
-      if (!markdown) return undefined;
-      if (!expanded) return new Text(renderMarkdownPreview(markdown, theme), 0, 0);
-      return new Markdown(markdown, 0, 0, getMarkdownTheme());
-    },
-  );
-
   pi.registerCommand("subagent", {
     description: "Show detailed history for a subagent task by ID",
     handler: async (args, ctx) => {
@@ -1200,65 +901,6 @@ export default function subagentExtension(pi: ExtensionAPI) {
     },
   });
 
-  pi.registerCommand("explore-fresh", {
-    description: "Explicitly authorize a fresh exploration run, bypassing duplicate reuse",
-    handler: async (args, ctx) => {
-      const parsed = parseFreshExploreArgs(args ?? "");
-      if (!parsed.task) {
-        ctx.ui.notify("Usage: /explore-fresh [fast|balanced|deep] <task>", "warning");
-        return;
-      }
-
-      const tasks = buildExploreTaskInputs(
-        { task: parsed.task, intent: parsed.intent, cwd: ctx.cwd },
-        ctx.cwd,
-      );
-      try {
-        const revision = await workspaceRevisionFor(tasks);
-        const key = createExplorationKey(tasks, revision);
-        const previous = findReusableExploration(
-          completedExploreCache.values(),
-          tasks,
-          key,
-          revision,
-        );
-        if (previous && ctx.hasUI) {
-          const age = Math.max(0, Math.round((Date.now() - previous.record.completedAt) / 1000));
-          const tokens = runTokenCount(previous.record.run);
-          const confirmed = await ctx.ui.confirm(
-            "Launch fresh exploration?",
-            `Matching run ${previous.record.run.runId} completed ${age}s ago with ${tokens} child tokens. Launch another independent run?`,
-          );
-          if (!confirmed) return;
-        }
-
-        const result = await executeExploreTasks(tasks, {
-          systemPrompt: EXPLORER_PROMPT,
-          parseOutput: parseExploreOutput,
-          ctx,
-          forceFresh: true,
-          persistCacheEntry: true,
-        });
-        const markdown = result.content[0]?.text ?? "Fresh exploration completed.";
-        pi.sendMessage(
-          {
-            customType: SUBAGENT_EXPLORE_MESSAGE_TYPE,
-            content: markdown,
-            display: true,
-            details: { markdown, ...(result.details ?? {}) },
-          },
-          { deliverAs: "nextTurn" },
-        );
-        ctx.ui.notify("Fresh exploration completed.", "info");
-      } catch (error) {
-        ctx.ui.notify(
-          `Fresh exploration failed: ${error instanceof Error ? error.message : String(error)}`,
-          "error",
-        );
-      }
-    },
-  });
-
   pi.registerCommand("review", {
     description:
       "Run the fixed review pair against uncommitted changes, staged changes, a base branch, or a commit",
@@ -1267,77 +909,4 @@ export default function subagentExtension(pi: ExtensionAPI) {
     },
   });
 
-  pi.registerTool({
-    name: "explore",
-    label: "Explore",
-    description:
-      "Run one or more isolated read-only exploration subagents and return compressed findings. Use optional intent hints like fast, balanced, or deep; the extension maps them to safe internal models.",
-    promptSnippet:
-      "Delegate repo, docs, web, or source exploration to isolated subagents. Use this for information gathering and context compression.",
-    promptGuidelines: [
-      "Use explore for exploration tasks where intermediate retrieval steps do not need to pollute the main context.",
-      "Prefer parallel explore tasks when the information sources are independent, such as repo scan + web docs + upstream implementation lookup.",
-      "Keep explore tasks read-only and focused on finding and summarizing information.",
-      "Use explore intent instead of raw model names: fast for lightweight scans, balanced for the default tradeoff, deep for heavier synthesis.",
-      "If explore intent is omitted or unclear, the extension falls back to a safe balanced profile automatically.",
-      "Use multiple explore tasks when the work is naturally parallel.",
-      "If explore reports an infrastructure or tool-access failure, do not retry the same exploration; report the failure and continue with available local tools.",
-      "Do not use explore for formal audits or code review; /review is user-triggered.",
-      "Before calling explore, use explore_status when a relevant exploration may already exist; never automatically rerun an identical or substantially overlapping task.",
-      "Repeated, rephrased, fresh, or independent wording is not sufficient authorization for explore to spend on another run; exact and near-duplicate requests are reused automatically.",
-      "Use the structured explore result directly in your response instead of redoing the exploration yourself.",
-      "When explore returns multiple task results, synthesize across those results instead of discarding their structure.",
-      "A deliberate independent rerun requires the user-only /explore-fresh command; the agent-facing explore tool cannot bypass duplicate protection.",
-    ],
-    parameters: exploreParamsSchema,
-    renderCall(args, theme) {
-      return renderExploreToolCall(args, theme);
-    },
-    renderResult(result, options, theme) {
-      return renderExploreToolResult(result, options, theme);
-    },
-    async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      const tasks = buildExploreTaskInputs(
-        params as {
-          task?: string;
-          intent?: string;
-          cwd?: string;
-          tasks?: Array<{ task: string; intent?: string; cwd?: string }>;
-        },
-        ctx.cwd,
-      );
-
-      try {
-        return await executeExploreTasks(tasks, {
-          systemPrompt: EXPLORER_PROMPT,
-          parseOutput: parseExploreOutput,
-          onUpdate,
-          signal,
-          ctx,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(`Explore run failed: ${message}`);
-      }
-    },
-  });
-
-  pi.registerTool({
-    name: "explore_status",
-    label: "Explore Status",
-    description:
-      "Inspect active and recent exploration subagent runs in the current pi session.",
-    promptSnippet:
-      "Inspect active or recent exploration runs when you need to recall what exploration subagents are doing or what they already found.",
-    promptGuidelines: [
-      "Use explore_status to inspect active or recent explore runs instead of starting duplicate exploration work.",
-    ],
-    parameters: statusSchema,
-    async execute(_toolCallId, params) {
-      return executeStatus(
-        "explore",
-        params as { action: "list" | "get"; runId?: string },
-      );
-    },
-  });
 }

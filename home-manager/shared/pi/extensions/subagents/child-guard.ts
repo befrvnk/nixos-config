@@ -42,14 +42,10 @@ function wrapGuardedTool(
 
 export { blockIfSuspiciousBashCommand, blockIfSuspiciousPath };
 
-export function createGuardedExplorationTools(
-  cwd: string,
-  options: { restrictToRoot?: boolean } = {},
-) {
+export function createGuardedReviewTools(cwd: string) {
   const validatePath = (toolName: string, params: Record<string, unknown>) => {
     const suspicious = blockIfSuspiciousPath(toolName, params, cwd);
     if (suspicious) return suspicious;
-    if (!options.restrictToRoot) return undefined;
     const value = params.path ?? params.file_path;
     if (value === undefined) return undefined;
     if (typeof value !== "string" || !resolvePathWithinRoot(cwd, value)) {
@@ -95,7 +91,7 @@ export function createGuardedExplorationTools(
       }),
       (params) => {
         const blocked = blockIfSuspiciousBashCommand(params.command, cwd);
-        if (blocked || !options.restrictToRoot || typeof params.command !== "string") return blocked;
+        if (blocked || typeof params.command !== "string") return blocked;
         const command = tokenizeShellSegment(params.command)[0];
         return command === "git" || command === "pwd"
           ? undefined

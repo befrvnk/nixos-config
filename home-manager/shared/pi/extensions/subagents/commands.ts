@@ -1,5 +1,5 @@
 import { shortTaskId } from "./formatting.js";
-import type { SubagentRunState, SubagentWorkflow } from "./types.js";
+import type { SubagentRunState } from "./types.js";
 import type { ReviewCommandRequest } from "./workflows/review/index.js";
 
 export const REVIEW_COMMAND_USAGE = [
@@ -129,16 +129,6 @@ export function parseReviewCommandArgs(
   }
 
   return { error: REVIEW_COMMAND_USAGE };
-}
-
-export function filterRuns(
-  workflow: SubagentWorkflow,
-  activeRuns: Map<string, SubagentRunState>,
-  recentRuns: SubagentRunState[],
-): SubagentRunState[] {
-  return [...activeRuns.values(), ...recentRuns].filter(
-    (run) => run.workflow === workflow,
-  );
 }
 
 export function getAllRuns(

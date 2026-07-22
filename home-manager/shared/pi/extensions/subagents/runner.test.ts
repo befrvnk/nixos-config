@@ -153,7 +153,7 @@ async function withMockedCodingAgent<T>(
 	);
 }
 
-test("buildSubagentSessionOptions enables guarded custom exploration tools", async () => {
+test("buildSubagentSessionOptions enables guarded review tools", async () => {
 	await withMockedCodingAgentModule(async ({ buildSubagentSessionOptions }) => {
 		const options = buildSubagentSessionOptions(
 			"/tmp/project",

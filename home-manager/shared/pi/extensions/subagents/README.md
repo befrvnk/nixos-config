@@ -1,112 +1,24 @@
 # subagents
 
-Shared subagent extension for pi.
+User-controlled code review subagents for Pi.
 
-It currently exposes:
+## Commands
 
-## Agent-facing tools
+- `/review` — run the fixed review pair against uncommitted changes, staged changes, a selected base branch, or a commit
+- `/subagent <id>` — show detailed history for one review task from the current session
 
-- `explore`
-- `explore_status`
-
-## User-facing commands
-
-- `/explore-fresh [fast|balanced|deep] <task>` — explicitly authorize a new independent exploration after reviewing any matching cached run
-- `/review` — run the fixed review pair against:
-  - uncommitted changes
-  - staged changes
-  - a selected base branch
-- `/subagent <id>` — show detailed history for one subagent task from the current session
-
-## Shared runtime
-
-Both workflows share the same subagent engine for:
-
-- isolated child agent sessions
-- parallel task execution
-- GitHub Copilot model resolution
-- abort propagation
-- run state tracking
-- recent run history
-- widget/status UI
-- guarded read-only child tools
-
-Any runtime fix or improvement applies to both explore and review. Exploration additionally has exact single-flight deduplication, conservative near-duplicate reuse, session budgets, and a branch-aware result cache.
-
-## Layout
-
-- `index.ts` wires commands, tools, and shared orchestration
-- `workflows/explore/` contains the explore prompt, schema, and rendering/parsing logic
-- `workflows/review/` contains the review prompt, config, and rendering/parsing logic
-- the top-level shared files remain the reusable subagent runtime used by both workflows
-
-## Tooling and model constraints
-
-Child runs are intentionally read-only and use guarded versions of:
-
-- `read`
-- `grep`
-- `find`
-- `ls`
-- `bash`
-
-The bash tool accepts one restricted inspection command per call. It blocks shell composition, redirection, expansion, environment assignments, helper execution, write-capable command options, and mutating Git forms. Review subagents additionally limit bash to Git metadata and `pwd`, using canonical-root-confined structured tools for file inspection. This validation is defense in depth, not an OS-level sandbox.
-
-Subagents only support the **GitHub Copilot** models configured in `model-policy.ts`.
-The model IDs are centralized in `SUBAGENT_MODEL_IDS`; changing explore intent models should only require updating the explore entries there.
-
-## Explore workflow
-
-`explore` is agent-controlled and optimized for:
-
-- repository investigation
-- docs/source lookup
-- compressed context gathering
-- parallel information collection
-
-The agent does **not** choose raw model IDs anymore.
-Instead it can provide an optional intent per task:
-
-- `fast`
-- `balanced` (default/fallback)
-- `deep`
-
-The extension maps those intents to safe internal GitHub Copilot model profiles from `model-policy.ts`.
-Current mapping:
-
-- `fast` → `FAST_EXPLORE_MODEL` (`gpt-5.6-luna`) with medium thinking
-- `balanced` → `DEFAULT_EXPLORE_MODEL` (`gpt-5.6-terra`) with medium thinking
-- `deep` → `DEEP_EXPLORE_MODEL` (`gpt-5.6-sol`) with high thinking
-
-If intent is omitted or invalid, `explore` falls back to `balanced` automatically.
-
-Equivalent active calls join one shared run. Successful exact matches are reused for five minutes, while failed or aborted matches have a 30-second retry cooldown. Substantially similar requests reuse prior findings rather than launching another worker. Cache keys include canonical working directories, resolved model/thinking profiles, and a conservative workspace revision. Successful `edit`, `write`, and `bash` results advance a branch-persisted workspace generation so cached repository findings are invalidated.
-
-Only one explore workflow may be active at a time; independent perspectives should be expressed through one `tasks` array. The cache is limited to ten entries and 2 MiB, and new runs stop after one million tracked child tokens in a session. Cache state is restored from the active branch on session start and tree navigation. A deliberate rerun cannot be requested by the agent-facing tool: the user must invoke `/explore-fresh`, which shows matching run age and token cost before confirmation in interactive modes.
-
-Examples:
-
-- one explore task with the default or an explicit intent
-- multiple parallel tasks with mixed intents
-- repo scan + docs lookup + upstream inspection in parallel
-
-It is not for formal audits or severity-ranked bug finding; `/review` is user-triggered.
-
-It returns structured markdown with:
-
-- `## Summary`
-- `## Sources`
-- `## Key Findings`
-- `## Next Steps`
+The extension does not expose agent-facing tools. The main agent performs its own repository and documentation research with its regular tools.
 
 ## Review workflow
 
-Review is user-controlled via `/review` and always runs the fixed reviewer pair:
+Review is user-controlled via `/review` and runs the fixed reviewer pair:
 
 - `github-copilot/claude-opus-4.8`
 - `github-copilot/gemini-3.1-pro-preview`
 
-Current command forms:
+A preliminary change brief uses `github-copilot/gpt-5.6-luna` to orient the reviewers.
+
+Supported command forms:
 
 - `/review`
 - `/review uncommitted`
@@ -116,35 +28,15 @@ Current command forms:
 - `/review staged --extra "focus on rollback safety"`
 - `/review branch main --extra "look for dependency churn"`
 
-Interactive `/review` currently supports:
+Interactive `/review` supports searchable target selection and a cancellable loader. RPC mode uses Pi's standard selection requests; JSON and print modes require an explicit target.
 
-1. review uncommitted changes
-2. review staged changes
-3. review against a base branch
-4. review a commit
+After a successful or partial review, the rendered findings are stored as a custom message in the main agent context so the user can immediately ask it to apply or address the review.
 
-TUI review uses a smart default target, searchable branch and commit pickers, propagated input focus, and a cancellable loader. RPC mode uses Pi's standard selection requests instead of terminal components; JSON and print modes require an explicit target.
+If a real `REVIEW_GUIDELINES.md` exists next to the repository's real `.pi/` directory, its contents are appended only for trusted projects. Discovery stops at the canonical repository root and ignores symlinked external guidance.
 
-After a successful or partial review, the rendered findings are stored as a custom message that participates directly in the main agent context, so you can immediately ask it to apply or address the review.
+Review gathers the repository root, changed files, status, diff statistics, a bounded diff preview, and relevant untracked files. Uncommitted and staged reviews in an unborn repository compare against the empty tree.
 
-`/review ... --extra "..."` appends one-off review focus instructions to the fixed reviewer pair.
-
-If a real `REVIEW_GUIDELINES.md` file exists next to the repository's real `.pi/` directory, its contents are appended only for trusted projects. Discovery stops at the canonical repository root and ignores symlinked external guidance.
-
-Base-branch review compares the current working tree against the merge base with the selected branch.
-
-Review gathers:
-
-- repository root
-- changed files
-- `git status --short`
-- diff stat
-- diff preview (truncated when large)
-- untracked working-tree files when relevant
-
-When a repository has an unborn `HEAD`, uncommitted/staged review falls back to diffing against the empty tree so first-commit changes can still be inspected.
-
-It returns structured markdown with:
+Results contain:
 
 - `## Summary`
 - `## Verdict`
@@ -152,47 +44,44 @@ It returns structured markdown with:
 - `## Non-blocking Callouts`
 - `## Next Steps`
 
-Rendered review results include a top-level consensus section with a rolled-up verdict, an output-quality summary, a reviewer-agreement summary, deduplicated findings, non-blocking callouts, and suggested follow-ups, followed by per-reviewer details.
+The final output includes consensus, output-quality and agreement summaries, deduplicated findings, callouts, suggested follow-ups, and per-reviewer details. Malformed output is preserved for inspection, and each reviewer gets one strict formatting retry when necessary.
 
-If a reviewer returns malformed or partially structured output, the workflow preserves it, marks the structured-format quality, and includes a fenced preserved-raw-output section for manual inspection. Review subagents also get one strict formatting retry when the first answer drifts from the required schema.
+## Runtime
 
-## Guarding and scope discipline
+The shared runtime provides:
 
-Review paths are canonicalized and confined to the selected inspection root. Repository context and untracked previews do not follow symlinks, preventing external target contents from entering review prompts.
+- isolated in-process child sessions
+- parallel reviewer execution
+- GitHub Copilot model resolution
+- abort propagation
+- run state and recent history
+- widget/status UI
+- guarded read-only child tools
 
-The child tool guard is intentionally conservative but remains application-level validation.
-It blocks obviously irrelevant runtime/system paths such as:
+Child sessions use `createAgentSession`, `DefaultResourceLoader`, and `SessionManager.inMemory`. Extensions and themes are disabled in child resource loaders.
 
-- `/$bunfs`
-- `/proc`
-- `/sys`
-- `/dev`
+## Tool and path constraints
 
-Path validation normalizes both absolute paths and relative traversals such as `../../proc/...` before applying the denylist.
+Review children use guarded versions of:
 
-This is not a full sandbox. Focus still primarily comes from:
+- `read`
+- `grep`
+- `find`
+- `ls`
+- `bash`
 
-- the workflow prompt
-- the task body
-- read-only tool selection
-- parent-run abort handling
+Structured file tools are confined to the canonical inspection root. The bash tool is limited to Git metadata inspection and `pwd`; it blocks shell composition, redirection, expansion, environment assignments, helper execution, write-capable options, and mutating Git forms.
 
-## Runtime assumptions
+Repository context and untracked previews do not follow symlinks. Runtime and system paths such as `/$bunfs`, `/proc`, `/sys`, and `/dev` are rejected after path normalization.
 
-This extension is built against pi's in-process agent-session APIs:
+These checks are defense in depth, not an OS-level sandbox.
 
-- `createAgentSession`
-- `DefaultResourceLoader`
-- `SessionManager.inMemory`
+## Model policy
 
-Child runs are started with extensions and themes disabled through the resource loader so they stay minimal and predictable.
+Subagents only support GitHub Copilot models declared in `model-policy.ts`. The allowed set contains the fixed reviewers and the change-brief model.
 
-## Status inspection
+## Status and history
 
-- `explore_status` shows only explore runs
-- `/subagent <id>` shows the detailed per-task history for any subagent task from the current session
+Task IDs appear in the widget and result rendering in short form, such as `abc123/1`. `/subagent` accepts either a full task ID or an unambiguous short ID.
 
-Task IDs are shown in the widget and result rendering using a short form such as `abc123/1`.
-The command accepts either the full task id or the displayed short id, as long as it is unambiguous.
-
-Run tracking and subagent history are session-local and not persisted across sessions.
+Run state and detailed task history are session-local and are not persisted across sessions.

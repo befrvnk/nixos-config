@@ -4,12 +4,10 @@ import type {
 	SubagentRunState,
 	SubagentTaskState,
 } from "./types.js";
-import { MAX_RECENT_OUTPUT_LINES, MAX_RECENT_TOOLS } from "./types.js";
-
 export function workflowDisplayName(
-	workflow: SubagentRunState["workflow"],
+	_workflow: SubagentRunState["workflow"],
 ): string {
-	return workflow === "review" ? "Review" : "Explore";
+	return "Review";
 }
 
 export function shortenPath(filePath: string): string {
@@ -102,7 +100,6 @@ export function renderTaskHistoryMarkdown(
 	lines.push(`- Run ID: ${run.runId}`);
 	lines.push(`- State: ${task.state}`);
 	lines.push(`- Label: ${task.label}`);
-	if (task.intent) lines.push(`- Intent: ${task.intent}`);
 	if (task.model) lines.push(`- Model: ${task.model}`);
 	if (task.thinkingLevel)
 		lines.push(`- Thinking level: ${task.thinkingLevel}`);
@@ -142,58 +139,6 @@ export function renderTaskHistoryMarkdown(
 	return lines.join("\n").trim();
 }
 
-export function renderRunMarkdown(run: SubagentRunState): string {
-	const lines: string[] = [];
-	const workflowName = workflowDisplayName(run.workflow);
-	lines.push(`# ${workflowName} ${run.runId}`);
-	lines.push("");
-	lines.push(`- Workflow: ${run.workflow}`);
-	lines.push(`- Mode: ${run.mode}`);
-	lines.push(`- State: ${run.state}`);
-	lines.push(`- Started: ${new Date(run.startedAt).toLocaleTimeString()}`);
-	lines.push(`- Elapsed: ${formatDuration(run.startedAt, run.endedAt)}`);
-	lines.push("");
-
-	for (const task of run.tasks) {
-		lines.push(`## Task ${task.index + 1} — ${task.state}`);
-		lines.push(`- Task ID: ${task.taskId} (${shortTaskId(task.taskId)})`);
-		lines.push(`- Label: ${task.label}`);
-		lines.push(`- Task: ${task.task}`);
-		if (task.intent) lines.push(`- Intent: ${task.intent}`);
-		if (task.model) lines.push(`- Model: ${task.model}`);
-		if (task.thinkingLevel)
-			lines.push(`- Thinking level: ${task.thinkingLevel}`);
-		if (task.cwd) lines.push(`- CWD: ${shortenPath(task.cwd)}`);
-		if (task.currentTool) lines.push(`- Current tool: ${task.currentTool}`);
-		if (task.turnCount > 0) lines.push(`- Turns: ${task.turnCount}`);
-		if (task.toolUses > 0) lines.push(`- Tool uses: ${task.toolUses}`);
-		if (task.tokenCount > 0) lines.push(`- Tokens: ${task.tokenCount}`);
-		if (task.progressItems && task.progressItems.length > 0) {
-			lines.push("- Progress:");
-			for (const item of task.progressItems.slice(0, 6)) {
-				lines.push(`  - [${item.done ? "x" : " "}] ${item.text}`);
-			}
-		}
-		if (task.recentTools.length > 0) {
-			lines.push("- Recent tools:");
-			for (const tool of task.recentTools.slice(-MAX_RECENT_TOOLS))
-				lines.push(`  - ${tool}`);
-		}
-		if (task.recentOutputLines.length > 0) {
-			lines.push("- Recent output:");
-			for (const line of task.recentOutputLines.slice(-MAX_RECENT_OUTPUT_LINES))
-				lines.push(`  - ${line}`);
-		}
-		if (task.parseMeta?.structure)
-			lines.push(`- Structured output: ${task.parseMeta.structure}`);
-		if (task.summary) lines.push(`- Summary: ${task.summary}`);
-		if (task.error) lines.push(`- Error: ${task.error}`);
-		lines.push("");
-	}
-
-	return lines.join("\n").trim();
-}
-
 export function serializeRun(run: SubagentRunState) {
 	return {
 		workflow: run.workflow,
@@ -208,7 +153,6 @@ export function serializeRun(run: SubagentRunState) {
 			taskId: task.taskId,
 			task: task.task,
 			label: task.label,
-			intent: task.intent,
 			model: task.model,
 			thinkingLevel: task.thinkingLevel,
 			cwd: task.cwd,
