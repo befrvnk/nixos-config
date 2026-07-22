@@ -39,7 +39,7 @@ Options for clean:
   --help, -h   Show this help
 
 The standard cleanup removes Android Studio generated indexes/caches,
-Gradle's local build cache, Homebrew downloads, ~/.cache, and npm caches.
+Gradle's local build cache, Homebrew downloads, the contents of ~/.cache, and npm caches.
 Android Studio or Gradle caches are skipped while the corresponding process
 is running. Project cleanup only removes build/ directories confirmed ignored
 by Git.
@@ -216,6 +216,7 @@ func printSkipped(output io.Writer, skipped []cleanup.Skip) {
 		"a Gradle daemon is running",
 		"Git ignore status cannot be verified",
 		"directory is no longer confirmed ignored by Git",
+		"cache contents changed while cleanup was running",
 	} {
 		current, exists := byReason[reason]
 		if !exists {

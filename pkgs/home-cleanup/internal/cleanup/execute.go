@@ -1,8 +1,11 @@
 package cleanup
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"syscall"
 )
 
 type Skip struct {
@@ -16,6 +19,34 @@ type Result struct {
 }
 
 type RemoveFunc func(path string) error
+
+func clearDirectoryContents(path string, remove RemoveFunc) (bool, error) {
+	const attempts = 3
+	for range attempts {
+		entries, err := os.ReadDir(path)
+		if os.IsNotExist(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		if len(entries) == 0 {
+			return true, nil
+		}
+		for _, entry := range entries {
+			err := remove(filepath.Join(path, entry.Name()))
+			if err == nil || os.IsNotExist(err) || errors.Is(err, syscall.ENOTEMPTY) {
+				continue
+			}
+			return false, err
+		}
+	}
+	entries, err := os.ReadDir(path)
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+	return len(entries) == 0, err
+}
 
 func Execute(home string, candidates []Candidate, status Status, ignores IgnoreChecker, remove RemoveFunc) (Result, error) {
 	if remove == nil {
@@ -60,7 +91,16 @@ func Execute(home string, candidates []Candidate, status Status, ignores IgnoreC
 		if err := ValidateHomePath(home, item.Path); err != nil {
 			return result, err
 		}
-		if err := remove(item.Path); err != nil {
+		if item.Kind == KindUserCache {
+			complete, err := clearDirectoryContents(item.Path, remove)
+			if err != nil {
+				return result, fmt.Errorf("clear %s: %w", item.Path, err)
+			}
+			if !complete {
+				result.Skipped = append(result.Skipped, Skip{Candidate: item, Reason: "cache contents changed while cleanup was running"})
+				continue
+			}
+		} else if err := remove(item.Path); err != nil {
 			return result, fmt.Errorf("remove %s: %w", item.Path, err)
 		}
 		result.RemovedBytes += item.Bytes

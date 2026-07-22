@@ -92,8 +92,12 @@ func TestCleanYesRemovesSelectedCache(t *testing.T) {
 	if exitCode != 0 {
 		t.Fatalf("exit=%d stderr=%s", exitCode, errorOutput.String())
 	}
-	if _, err := os.Stat(cache); !os.IsNotExist(err) {
-		t.Fatalf("cache still exists: %v", err)
+	entries, err := os.ReadDir(cache)
+	if err != nil {
+		t.Fatalf("cache root was not preserved: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("cache still contains %d entries", len(entries))
 	}
 	if !strings.Contains(output.String(), "Cleanup complete") {
 		t.Fatalf("missing completion output: %s", output.String())

@@ -2,6 +2,7 @@ package cleanup
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -268,6 +269,40 @@ func TestExecuteRejectsPathsThroughSymlinksOutsideHome(t *testing.T) {
 	}
 	if _, statErr := os.Stat(outsideCache); statErr != nil {
 		t.Fatalf("outside path was modified: %v", statErr)
+	}
+}
+
+func TestExecuteToleratesUserCacheBeingRecreated(t *testing.T) {
+	home := canonicalTempHome(t)
+	cache := filepath.Join(home, ".cache")
+	writeFile(t, filepath.Join(cache, "initial", "data"), 4096)
+	recreations := 0
+
+	result, err := Execute(
+		home,
+		[]Candidate{{Kind: KindUserCache, Path: cache, Bytes: 4096}},
+		Status{},
+		nil,
+		func(path string) error {
+			if err := os.RemoveAll(path); err != nil {
+				return err
+			}
+			recreations++
+			writeFile(t, filepath.Join(cache, fmt.Sprintf("recreated-%d", recreations), "data"), 4096)
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.RemovedBytes != 0 || len(result.Skipped) != 1 {
+		t.Fatalf("unexpected result: %#v", result)
+	}
+	if result.Skipped[0].Reason != "cache contents changed while cleanup was running" {
+		t.Fatalf("unexpected skip reason: %s", result.Skipped[0].Reason)
+	}
+	if _, err := os.Stat(cache); err != nil {
+		t.Fatalf("cache root was removed: %v", err)
 	}
 }
 
