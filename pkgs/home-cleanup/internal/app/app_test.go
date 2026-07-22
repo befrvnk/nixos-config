@@ -26,7 +26,7 @@ func createCache(t *testing.T, home string) string {
 	return filepath.Join(home, ".cache")
 }
 
-func TestReportDoesNotDelete(t *testing.T) {
+func TestDryRunDoesNotDelete(t *testing.T) {
 	home := t.TempDir()
 	cache := createCache(t, home)
 	var output bytes.Buffer
@@ -44,10 +44,10 @@ func TestReportDoesNotDelete(t *testing.T) {
 		t.Fatalf("exit code = %d", exitCode)
 	}
 	if removeCalls != 0 {
-		t.Fatalf("report invoked removal %d times", removeCalls)
+		t.Fatalf("dry-run invoked removal %d times", removeCalls)
 	}
 	if _, err := os.Stat(cache); err != nil {
-		t.Fatalf("report changed cache: %v", err)
+		t.Fatalf("dry-run changed cache: %v", err)
 	}
 	if !strings.Contains(output.String(), "Standard total") {
 		t.Fatalf("missing report output: %s", output.String())
@@ -152,6 +152,17 @@ func TestCleanWithoutInteractiveInputFailsSafely(t *testing.T) {
 	}
 	if !strings.Contains(errorOutput.String(), "pass --yes") {
 		t.Fatalf("missing safety hint: %s", errorOutput.String())
+	}
+}
+
+func TestReportCommandIsNotAccepted(t *testing.T) {
+	var errorOutput bytes.Buffer
+	exitCode := Run([]string{"report"}, strings.NewReader(""), &bytes.Buffer{}, &errorOutput, Dependencies{})
+	if exitCode != 2 {
+		t.Fatalf("exit code = %d, want 2", exitCode)
+	}
+	if !strings.Contains(errorOutput.String(), "unknown command: report") {
+		t.Fatalf("missing command error: %s", errorOutput.String())
 	}
 }
 

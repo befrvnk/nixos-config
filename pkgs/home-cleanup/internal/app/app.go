@@ -25,13 +25,12 @@ type parsedArgs struct {
 }
 
 const usage = `Usage:
-  home-cleanup [report|dry-run]
+  home-cleanup [dry-run]
   home-cleanup clean [--all-gradle] [--projects] [--yes]
 
 Commands:
-  report       Show reclaimable space without deleting anything (default)
-  dry-run      Alias for report
-  clean        Show the report, ask for confirmation, then remove safe caches
+  dry-run      Show reclaimable space without deleting anything (default)
+  clean        Show the dry-run report, ask for confirmation, then remove safe caches
 
 Options for clean:
   --all-gradle Remove all ~/.gradle/caches instead of only build-cache-1
@@ -47,7 +46,7 @@ by Git.
 `
 
 func parseArgs(args []string) (parsedArgs, error) {
-	parsed := parsedArgs{command: "report"}
+	parsed := parsedArgs{command: "dry-run"}
 	if len(args) == 0 {
 		return parsed, nil
 	}
@@ -61,7 +60,7 @@ func parseArgs(args []string) (parsedArgs, error) {
 		}
 		parsed.help = true
 		return parsed, nil
-	case "report", "dry-run":
+	case "dry-run":
 		if len(args) > 0 {
 			return parsedArgs{}, fmt.Errorf("%s does not accept options", parsed.command)
 		}

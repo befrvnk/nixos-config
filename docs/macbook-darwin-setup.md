@@ -121,13 +121,14 @@ brew-update   # brew update && brew upgrade --cask --greedy
 
 ### Cleaning Developer Caches
 
-Home Manager installs `home-cleanup`, a report-first command for the large
+Home Manager installs `home-cleanup`, a dry-run-first command for the large
 reproducible caches created by Android Studio, Gradle, Homebrew, npm, and other
 developer tools:
 
 ```bash
-home-cleanup                         # Report only; this is the default
-home-cleanup clean                   # Report, confirm, then clear standard caches
+home-cleanup                         # Dry run; this is the default
+home-cleanup dry-run                 # Explicit dry run
+home-cleanup clean                   # Dry run, confirm, then clear standard caches
 home-cleanup clean --projects        # Also clear Git-ignored build/ directories
 home-cleanup clean --all-gradle      # Clear every Gradle cache
 home-cleanup clean --all-gradle --projects --yes

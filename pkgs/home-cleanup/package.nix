@@ -32,7 +32,7 @@ buildGoModule {
   '';
 
   meta = {
-    description = "Report-first cleanup for reproducible developer caches";
+    description = "Dry-run-first cleanup for reproducible developer caches";
     license = lib.licenses.mit;
     mainProgram = "home-cleanup";
     platforms = lib.platforms.unix;

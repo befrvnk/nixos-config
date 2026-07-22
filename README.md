@@ -641,7 +641,7 @@ nh os generations
 # Garbage collect old generations
 nh clean all --keep 5
 
-# Report and clean reproducible developer caches (macOS)
+# Dry-run and clean reproducible developer caches (macOS)
 home-cleanup
 home-cleanup clean
 ```
