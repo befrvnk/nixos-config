@@ -46,7 +46,6 @@ jobs:
           nix shell --accept-flake-config --inputs-from . nixpkgs#shellcheck --command bash -lc '
             shellcheck \
               scripts/*.sh \
-              home-manager/darwin/home-cleanup.sh \
               home-manager/nixos/audio-keep-alive/audio-keep-alive.sh \
               home-manager/nixos/darkman/darkman-switch-mode.sh \
               home-manager/nixos/darkman/monitor-hotplug.sh \
@@ -54,6 +53,9 @@ jobs:
               home-manager/nixos/niri/toggle-abm.sh \
               home-manager/nixos/spotify-suspend/handle-spotify-suspend.sh
           '
+
+      - name: Run home cleanup tests
+        run: nix build .#checks.x86_64-linux.home-cleanup --accept-flake-config
 
       - name: Run pi extension tests
         run: nix build .#checks.x86_64-linux.pi-extension-tests --accept-flake-config
