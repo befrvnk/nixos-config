@@ -19,6 +19,7 @@
     # Darwin-specific modules
     inputs.zen-browser.homeModules.beta
     ./ghostty.nix
+    ./home-cleanup.nix
     ./zed.nix
     ./nushell.nix
     ./packages.nix

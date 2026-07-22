@@ -46,6 +46,7 @@ jobs:
           nix shell --accept-flake-config --inputs-from . nixpkgs#shellcheck --command bash -lc '
             shellcheck \
               scripts/*.sh \
+              home-manager/darwin/home-cleanup.sh \
               home-manager/nixos/audio-keep-alive/audio-keep-alive.sh \
               home-manager/nixos/darkman/darkman-switch-mode.sh \
               home-manager/nixos/darkman/monitor-hotplug.sh \

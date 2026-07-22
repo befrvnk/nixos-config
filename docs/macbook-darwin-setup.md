@@ -119,6 +119,28 @@ zen-update    # brew update && brew upgrade --cask --greedy zen
 brew-update   # brew update && brew upgrade --cask --greedy
 ```
 
+### Cleaning Developer Caches
+
+Home Manager installs `home-cleanup`, a report-first command for the large
+reproducible caches created by Android Studio, Gradle, Homebrew, npm, and other
+developer tools:
+
+```bash
+home-cleanup                         # Report only; this is the default
+home-cleanup clean                   # Report, confirm, then clear standard caches
+home-cleanup clean --projects        # Also clear Git-ignored build/ directories
+home-cleanup clean --all-gradle      # Clear every Gradle cache
+home-cleanup clean --all-gradle --projects --yes
+```
+
+The standard cleanup removes Android Studio's generated `caches/` and `index/`
+directories, Gradle's local build cache, Homebrew downloads, `~/.cache`, and npm
+caches. It preserves Android Studio local history, Gradle wrappers and managed
+JDKs, project sources, emulator data, and application support data. Android
+Studio and Gradle caches are skipped while their processes are running. The
+`--projects` option only removes `build/` directories that Git confirms are
+ignored.
+
 ## What's Included
 
 ### From nixpkgs (via home-manager)
