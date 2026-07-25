@@ -71,6 +71,7 @@ test("refreshCopilotLiveModels uses Pi's OAuth credential and live model endpoin
   assert.deepEqual(urls, ["https://api.enterprise.githubcopilot.com/models"]);
   assert.equal(signals[0], signal);
   assert.equal(models[0]?.id, "gpt-5.5");
+  assert.equal(models[0]?.baseUrl, "https://api.enterprise.githubcopilot.com");
   assert.equal(models[0]?.contextWindow, 1_050_000);
 });
 
@@ -105,6 +106,7 @@ test("registerCopilotLiveModels registers a refresh callback without fetching du
       allowNetwork: true,
     });
     assert.equal(models[0]?.id, "gpt-5.5");
+    assert.equal(models[0]?.baseUrl, "https://api.enterprise.githubcopilot.com");
   } finally {
     if (previousEnabled === undefined) {
       delete process.env.PI_COPILOT_LIVE_MODELS;

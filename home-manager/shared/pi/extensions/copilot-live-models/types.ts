@@ -4,6 +4,7 @@ export interface PiProviderModelConfig {
   id: string;
   name: string;
   api?: PiApi;
+  baseUrl?: string;
   reasoning: boolean;
   thinkingLevelMap?: Partial<Record<"off" | "minimal" | "low" | "medium" | "high" | "xhigh", string | null>>;
   input: ("text" | "image")[];

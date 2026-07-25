@@ -46,5 +46,6 @@ test("fetchCopilotLiveModelsWithReserve queries the 2026 model API and maps the 
   assert.equal(observedAuthorization, "Bearer copilot-token");
   assert.equal(observedSignal, signal);
   assert.equal(models[0]?.id, "gpt-5.5");
+  assert.equal(models[0]?.baseUrl, "https://api.enterprise.githubcopilot.com");
   assert.equal(models[0]?.contextWindow, 1_050_000);
 });

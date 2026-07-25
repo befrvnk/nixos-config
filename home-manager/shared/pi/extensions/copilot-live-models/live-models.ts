@@ -26,5 +26,10 @@ export async function fetchCopilotLiveModelsWithReserve(
   }
 
   const payload = (await response.json()) as CopilotLiveModelsResponse;
-  return mapCopilotModelsToPi(payload.data ?? [], reserveTokens);
+  return mapCopilotModelsToPi(payload.data ?? [], reserveTokens).map((model) => ({
+    ...model,
+    // Copilot Enterprise tokens are routed to an account-specific API host.
+    // Refreshed models otherwise inherit Pi's built-in Individual endpoint.
+    baseUrl: tokenInfo.apiBaseUrl,
+  }));
 }
