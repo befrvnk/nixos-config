@@ -168,6 +168,7 @@
             [
               "1password"
               "caffeine"
+              "calibre"
               "ghostty"
               "github-copilot-app"
               "jetbrains-toolbox"
