@@ -33,7 +33,7 @@ export function resolvePiApi(model: CopilotLiveModel): PiApi | undefined {
 
 export function selectPricingTier(model: CopilotLiveModel): CopilotTokenPriceTier | undefined {
   const prices = model.billing?.token_prices;
-  return prices?.long_context ?? prices?.default;
+  return prices?.default ?? prices?.long_context;
 }
 
 export function priceToDollarsPerMillion(value: number | undefined): number {
@@ -45,13 +45,18 @@ export function calculatePiContextWindow(model: CopilotLiveModel, reserveTokens:
   const maxContext = isPositiveSafeInteger(limits?.max_context_window_tokens)
     ? limits.max_context_window_tokens
     : undefined;
-  const maxPrompt = isPositiveSafeInteger(limits?.max_prompt_tokens)
-    ? limits.max_prompt_tokens
-    : undefined;
+  const defaultTierPrompt = model.billing?.token_prices?.default?.context_max;
+  const maxPrompt = isPositiveSafeInteger(defaultTierPrompt)
+    ? defaultTierPrompt
+    : isPositiveSafeInteger(limits?.max_prompt_tokens)
+      ? limits.max_prompt_tokens
+      : undefined;
   const reserve = positiveSafeIntegerOr(reserveTokens, DEFAULT_CONTEXT_RESERVE_TOKENS);
 
-  // Align Pi's effective compaction threshold with Copilot's prompt budget,
-  // without advertising more context than the live catalog supports.
+  // Pi cannot select Copilot's long_context tier yet. Prefer the default tier's
+  // prompt boundary so auto-compaction runs before a standalone summary request
+  // is routed to a smaller context backend. Fall back to capability limits when
+  // the catalog does not expose tiered billing metadata.
   if (maxPrompt !== undefined) {
     const promptWithReserve = maxPrompt > Number.MAX_SAFE_INTEGER - reserve
       ? Number.MAX_SAFE_INTEGER

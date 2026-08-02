@@ -73,6 +73,27 @@ export async function refreshCopilotLiveModels(
   return models;
 }
 
+export function ensureCopilotRoutingHeaders(
+  headers: Record<string, string | null>,
+  createRequestId: () => string,
+): void {
+  if (headers.session_id && headers["x-client-request-id"]) return;
+
+  const requestId = headers.session_id ?? headers["x-client-request-id"] ?? createRequestId();
+  headers.session_id ??= requestId;
+  headers["x-client-request-id"] ??= requestId;
+}
+
+export function registerCopilotRoutingHeaders(pi: Pick<ExtensionAPI, "on">): void {
+  pi.on("before_provider_headers", (
+    event: { headers: Record<string, string | null> },
+    context: { model?: { provider: string }; sessionManager: { getSessionId(): string } },
+  ) => {
+    if (context.model?.provider !== COPILOT_PROVIDER) return;
+    ensureCopilotRoutingHeaders(event.headers, () => context.sessionManager.getSessionId());
+  });
+}
+
 export async function registerCopilotLiveModels(
   pi: Pick<ExtensionAPI, "registerProvider">,
   deps: CopilotLiveModelsProviderDeps = defaultDeps(),
@@ -107,5 +128,6 @@ export async function registerCopilotLiveModels(
 }
 
 export default async function (pi: ExtensionAPI) {
+  registerCopilotRoutingHeaders(pi);
   await registerCopilotLiveModels(pi);
 }

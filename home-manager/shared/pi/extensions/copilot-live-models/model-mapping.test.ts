@@ -41,9 +41,9 @@ test("priceToDollarsPerMillion converts Copilot cent-style prices to Pi dollar p
   assert.equal(priceToDollarsPerMillion(undefined), 0);
 });
 
-test("calculatePiContextWindow respects the prompt budget plus configured response reserve", () => {
-  assert.equal(calculatePiContextWindow(gpt55, 128_000), 1_050_000);
-  assert.equal(calculatePiContextWindow(gpt55, 16_384), 938_384);
+test("calculatePiContextWindow uses the default tier prompt budget plus configured response reserve", () => {
+  assert.equal(calculatePiContextWindow(gpt55, 128_000), 400_000);
+  assert.equal(calculatePiContextWindow(gpt55, 16_384), 288_384);
   assert.equal(
     calculatePiContextWindow(
       {
@@ -89,15 +89,15 @@ test("calculatePiContextWindow validates metadata and reserve values", () => {
   );
 });
 
-test("mapCopilotModelToPi maps GPT-5.5 long-context Responses metadata", () => {
+test("mapCopilotModelToPi maps GPT-5.5 default-tier Responses metadata", () => {
   const model = mapCopilotModelToPi(gpt55, 128_000);
 
   assert.equal(model?.id, "gpt-5.5");
   assert.equal(model?.api, "openai-responses");
-  assert.equal(model?.contextWindow, 1_050_000);
+  assert.equal(model?.contextWindow, 400_000);
   assert.equal(model?.maxTokens, 128_000);
   assert.deepEqual(model?.input, ["text", "image"]);
-  assert.deepEqual(model?.cost, { input: 10, output: 45, cacheRead: 1, cacheWrite: 0 });
+  assert.deepEqual(model?.cost, { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 0 });
   assert.deepEqual(model?.thinkingLevelMap, {
     off: "none",
     minimal: "low",

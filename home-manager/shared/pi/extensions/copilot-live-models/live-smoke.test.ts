@@ -7,7 +7,7 @@ import type { CopilotOAuthCredentials } from "./types.ts";
 
 const runLiveSmoke = process.env.PI_COPILOT_LIVE_MODELS_LIVE_TEST === "1";
 
-test("live Copilot catalog exposes GPT-5.5 long-context metadata", { skip: !runLiveSmoke }, async () => {
+test("live Copilot catalog maps GPT-5.5 to the default context tier", { skip: !runLiveSmoke }, async () => {
   const agentDir = defaultAgentDir();
   const auth = JSON.parse(await fs.readFile(path.join(agentDir, "auth.json"), "utf8")) as {
     "github-copilot"?: CopilotOAuthCredentials;
@@ -23,7 +23,7 @@ test("live Copilot catalog exposes GPT-5.5 long-context metadata", { skip: !runL
   assert.equal(gpt55.api, "openai-responses");
   assert.equal(gpt55.maxTokens, 128_000);
   assert.ok(
-    gpt55.contextWindow >= 1_000_000,
-    `expected GPT-5.5 long-context metadata, got ${gpt55.contextWindow}`,
+    gpt55.contextWindow < 1_000_000,
+    `expected GPT-5.5 default-tier context metadata, got ${gpt55.contextWindow}`,
   );
 });

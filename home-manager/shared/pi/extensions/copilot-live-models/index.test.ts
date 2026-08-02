@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { COPILOT_HEADERS } from "./constants.ts";
 import {
+  ensureCopilotRoutingHeaders,
   fetchWithTimeout,
   parseFetchTimeoutMs,
   refreshCopilotLiveModels,
   registerCopilotLiveModels,
+  registerCopilotRoutingHeaders,
 } from "./index.ts";
 import type { CopilotLiveModel, CopilotLiveModelsProviderDeps, PiProviderConfig } from "./types.ts";
 
@@ -17,6 +19,12 @@ const liveModel: CopilotLiveModel = {
   vendor: "OpenAI",
   model_picker_enabled: true,
   supported_endpoints: ["/responses"],
+  billing: {
+    token_prices: {
+      default: { context_max: 272_000, input_price: 500, output_price: 3_000, cache_price: 50 },
+      long_context: { context_max: 922_000, input_price: 1_000, output_price: 4_500, cache_price: 100 },
+    },
+  },
   capabilities: {
     type: "chat",
     limits: { max_context_window_tokens: 1_050_000, max_prompt_tokens: 922_000, max_output_tokens: 128_000 },
@@ -72,7 +80,7 @@ test("refreshCopilotLiveModels uses Pi's OAuth credential and live model endpoin
   assert.equal(signals[0], signal);
   assert.equal(models[0]?.id, "gpt-5.5");
   assert.equal(models[0]?.baseUrl, "https://api.enterprise.githubcopilot.com");
-  assert.equal(models[0]?.contextWindow, 1_050_000);
+  assert.equal(models[0]?.contextWindow, 400_000);
 });
 
 test("registerCopilotLiveModels registers a refresh callback without fetching during the factory", async () => {
@@ -131,10 +139,10 @@ test("dynamic refresh reloads the compaction reserve setting", async () => {
     );
 
     const context = { credential: { type: "oauth", access: ACCESS_TOKEN }, allowNetwork: true };
-    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 923_000);
+    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 273_000);
 
     reserveTokens = 2_000;
-    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 924_000);
+    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 274_000);
   } finally {
     if (previousEnabled === undefined) {
       delete process.env.PI_COPILOT_LIVE_MODELS;
@@ -159,6 +167,45 @@ test("refreshCopilotLiveModels rejects offline and unauthenticated refreshes", a
     refreshCopilotLiveModels({ allowNetwork: true }, deps, 128_000),
     /OAuth credentials are unavailable/,
   );
+});
+
+test("ensureCopilotRoutingHeaders preserves affinity without enabling prompt caching", () => {
+  const headers: Record<string, string | null> = {};
+  ensureCopilotRoutingHeaders(headers, () => "summary-request");
+
+  assert.equal(headers.session_id, "summary-request");
+  assert.equal(headers["x-client-request-id"], "summary-request");
+  assert.equal(headers.prompt_cache_key, undefined);
+
+  const existing: Record<string, string | null> = { session_id: "existing-session" };
+  ensureCopilotRoutingHeaders(existing, () => "unused");
+  assert.equal(existing.session_id, "existing-session");
+  assert.equal(existing["x-client-request-id"], "existing-session");
+});
+
+test("registerCopilotRoutingHeaders only patches Copilot requests", () => {
+  let handler: ((event: any, context: any) => void) | undefined;
+  registerCopilotRoutingHeaders({
+    on(event: string, value: (event: any, context: any) => void) {
+      assert.equal(event, "before_provider_headers");
+      handler = value;
+    },
+  } as any);
+
+  const otherHeaders: Record<string, string | null> = {};
+  handler!({ headers: otherHeaders }, { model: { provider: "openai" } });
+  assert.deepEqual(otherHeaders, {});
+
+  const copilotHeaders: Record<string, string | null> = {};
+  handler!(
+    { headers: copilotHeaders },
+    {
+      model: { provider: "github-copilot" },
+      sessionManager: { getSessionId: () => "active-session" },
+    },
+  );
+  assert.equal(copilotHeaders.session_id, "active-session");
+  assert.equal(copilotHeaders["x-client-request-id"], "active-session");
 });
 
 test("fetchWithTimeout combines the caller signal with a timeout", async () => {
