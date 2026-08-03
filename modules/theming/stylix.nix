@@ -10,7 +10,7 @@ in
     enable = true;
     autoEnable = true;
     inherit (themes.dark) base16Scheme;
-    image = ../../home-manager/wallpapers/mountain.jpg;
+    image = ../../home-manager/nixos/wallpapers/mountain.jpg;
 
     # Disable version check warnings (we use nixpkgs-unstable for everything)
     enableReleaseChecks = false;
