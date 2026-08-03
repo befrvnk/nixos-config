@@ -9,8 +9,8 @@ build commands, Gradle configuration, or Falcon configuration.
 The daemon polls macOS `libproc` APIs from one long-running process. It reads
 arguments only for Java, Gradle, and Kotlin candidates and recognizes Gradle
 clients, daemons, Kotlin tools, `aapt2`, and descendant native build tools. A
-Gradle client triggers immediately; daemon-only activity must exceed the CPU
-threshold for multiple samples. Idle Gradle daemons do not trigger collection.
+Gradle client triggers immediately; daemon-only activity must exceed the
+configured CPU threshold. Idle Gradle daemons do not trigger collection.
 
 ## Collection
 

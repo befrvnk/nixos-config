@@ -5,7 +5,7 @@
 
 buildGoModule rec {
   pname = "falcon-observer";
-  version = "0.1.0";
+  version = "0.1.1";
 
   src = ./.;
   vendorHash = null;
