@@ -161,6 +161,8 @@
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isDarwin {
+          falcon-observer = pkgs.callPackage ./pkgs/falcon-observer/package.nix { };
+
           inherit (pkgs)
             google-antigravity
             supacode

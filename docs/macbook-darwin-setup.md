@@ -142,6 +142,43 @@ Studio and Gradle caches are skipped while their processes are running. The
 `--projects` option only removes `build/` directories that Git confirms are
 ignored.
 
+### Monitoring Falcon During Gradle Activity
+
+The system configuration installs `falcon-observer`, a root LaunchDaemon that
+automatically detects active Gradle builds and records bounded CrowdStrike Falcon
+performance traces. Idle Gradle daemons do not trigger collection, and projects
+and build commands do not need to be changed.
+
+The daemon keeps lightweight CPU and memory context in memory while idle. During
+a detected Gradle session it collects Falcon filesystem activity, process I/O,
+energy and thermal metrics, start/end Falcon statistics, and at most one Falcon
+stack sample for sustained high CPU. It never disables or reconfigures Falcon and
+does not automatically create heavy Falcon diagnostic archives.
+
+Sensitive output is root-only under `/var/log/falcon-observer`:
+
+```bash
+sudo launchctl print system/dev.befrvnk.falcon-observer
+sudo tail -f /var/log/falcon-observer/daemon.log
+sudo find /var/log/falcon-observer -maxdepth 2 -type f -print
+```
+
+Sessions stop after 90 seconds without Gradle activity or after 45 minutes. Raw
+sessions are retained for 14 days, individual collector files are capped at 512
+MiB, and total session storage is capped at 5 GiB. Full process arguments are
+used only for in-memory Gradle classification and are not written to session
+logs. Raw traces can still contain repository paths and Falcon identifiers; do
+not publish them.
+
+For detector troubleshooting without waiting for a build:
+
+```bash
+falcon-observer scan
+```
+
+Implementation and output details are documented in
+[`pkgs/falcon-observer/README.md`](../pkgs/falcon-observer/README.md).
+
 ## What's Included
 
 ### From nixpkgs (via home-manager)

@@ -644,6 +644,10 @@ nh clean all --keep 5
 # Dry-run and clean reproducible developer caches (macOS)
 home-cleanup
 home-cleanup clean
+
+# Check the automatic Gradle/Falcon observer (macOS)
+sudo launchctl print system/dev.befrvnk.falcon-observer
+falcon-observer scan
 ```
 
 ### Where to Add Things

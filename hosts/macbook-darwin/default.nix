@@ -6,6 +6,9 @@
   ...
 }:
 
+let
+  falconObserver = pkgs.callPackage ../../pkgs/falcon-observer/package.nix { };
+in
 {
   system = {
     stateVersion = 5;
@@ -124,6 +127,7 @@
 
   environment.systemPackages = with pkgs; [
     curl
+    falconObserver
     git
     vim
     wget
@@ -198,44 +202,107 @@
   # Expose Nix-managed binaries to GUI apps (Dock/Spotlight launched apps only
   # get launchd's minimal PATH and can't find tools like git, gh, etc.)
   # Runs at login and sets PATH for the entire user launchd session.
-  launchd.user.agents = {
-    "nix-path".serviceConfig = {
-      Label = "nix.path";
-      ProgramArguments = [
-        "/bin/sh"
-        "-c"
-        "/bin/launchctl setenv PATH /etc/profiles/per-user/${hostConfig.primaryUser}/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-      ];
-      RunAtLoad = true;
+  launchd = {
+    user.agents = {
+      "nix-path".serviceConfig = {
+        Label = "nix.path";
+        ProgramArguments = [
+          "/bin/sh"
+          "-c"
+          "/bin/launchctl setenv PATH /etc/profiles/per-user/${hostConfig.primaryUser}/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        ];
+        RunAtLoad = true;
+      };
+
+      "zen-browser-homebrew-update".serviceConfig = {
+        Label = "zen.browser.homebrew.update";
+        ProgramArguments = [
+          "/bin/sh"
+          "-lc"
+          ''
+            if [ ! -x /opt/homebrew/bin/brew ]; then
+              exit 0
+            fi
+
+            if /usr/bin/pgrep -f '/Applications/Zen\.app/Contents/MacOS/zen|/Zen\.app/Contents/MacOS/zen' >/dev/null; then
+              echo "Zen Browser is running; skipping Homebrew update"
+              exit 0
+            fi
+
+            /opt/homebrew/bin/brew update && /opt/homebrew/bin/brew upgrade --cask --greedy zen
+          ''
+        ];
+        RunAtLoad = true;
+        StandardErrorPath = "${hostConfig.homeDirectory}/Library/Logs/zen-browser-homebrew-update.log";
+        StandardOutPath = "${hostConfig.homeDirectory}/Library/Logs/zen-browser-homebrew-update.log";
+        StartCalendarInterval = [
+          {
+            Hour = 10;
+            Minute = 0;
+          }
+        ];
+      };
     };
 
-    "zen-browser-homebrew-update".serviceConfig = {
-      Label = "zen.browser.homebrew.update";
-      ProgramArguments = [
-        "/bin/sh"
-        "-lc"
-        ''
-          if [ ! -x /opt/homebrew/bin/brew ]; then
-            exit 0
-          fi
+    daemons = {
+      # Observe CrowdStrike Falcon resource usage during automatically detected
+      # Gradle activity without changing projects or build commands.
+      falcon-observer.serviceConfig = {
+        Label = "dev.befrvnk.falcon-observer";
+        ProgramArguments = [
+          "${lib.getExe falconObserver}"
+          "run"
+          "--output-dir"
+          "/var/log/falcon-observer"
+          "--poll-interval"
+          "2s"
+          "--pre-roll"
+          "5m"
+          "--gradle-cpu-threshold"
+          "15"
+          "--trigger-samples"
+          "3"
+          "--inactivity"
+          "90s"
+          "--max-session"
+          "45m"
+          "--falcon-sample-threshold"
+          "50"
+          "--falcon-sample-count"
+          "3"
+          "--powermetrics-interval"
+          "2s"
+          "--max-collector-bytes"
+          "536870912"
+          "--retention-age"
+          "336h"
+          "--retention-bytes"
+          "5368709120"
+        ];
+        KeepAlive = true;
+        LowPriorityIO = true;
+        Nice = 5;
+        ProcessType = "Standard";
+        RunAtLoad = true;
+        StandardErrorPath = "/var/log/falcon-observer/daemon.log";
+        StandardOutPath = "/var/log/falcon-observer/daemon.log";
+        ThrottleInterval = 10;
+        Umask = 63; # Decimal representation of 0077.
+      };
 
-          if /usr/bin/pgrep -f '/Applications/Zen\.app/Contents/MacOS/zen|/Zen\.app/Contents/MacOS/zen' >/dev/null; then
-            echo "Zen Browser is running; skipping Homebrew update"
-            exit 0
-          fi
-
-          /opt/homebrew/bin/brew update && /opt/homebrew/bin/brew upgrade --cask --greedy zen
-        ''
-      ];
-      RunAtLoad = true;
-      StandardErrorPath = "${hostConfig.homeDirectory}/Library/Logs/zen-browser-homebrew-update.log";
-      StandardOutPath = "${hostConfig.homeDirectory}/Library/Logs/zen-browser-homebrew-update.log";
-      StartCalendarInterval = [
-        {
-          Hour = 10;
-          Minute = 0;
-        }
-      ];
+      # Increase file descriptor limit for Nix operations to avoid failures
+      # during flake updates.
+      limit-maxfiles.serviceConfig = {
+        Label = "limit.maxfiles";
+        ProgramArguments = [
+          "/bin/launchctl"
+          "limit"
+          "maxfiles"
+          "524288"
+          "524288"
+        ];
+        RunAtLoad = true;
+      };
     };
   };
 
@@ -272,20 +339,10 @@
   # Touch ID for sudo
   security.pam.services.sudo_local.touchIdAuth = true;
 
-  # Increase file descriptor limit for Nix operations
-  # Fixes "Too many open files" errors during flake updates
-  launchd.daemons.limit-maxfiles = {
-    serviceConfig = {
-      Label = "limit.maxfiles";
-      ProgramArguments = [
-        "/bin/launchctl"
-        "limit"
-        "maxfiles"
-        "524288"
-        "524288"
-      ];
-      RunAtLoad = true;
-    };
-  };
+  # Observe CrowdStrike Falcon resource usage during automatically detected
+  # Gradle activity without changing projects or build commands.
+  system.activationScripts.falconObserver.text = ''
+    /usr/bin/install -d -o root -g wheel -m 0700 /var/log/falcon-observer
+  '';
 
 }
