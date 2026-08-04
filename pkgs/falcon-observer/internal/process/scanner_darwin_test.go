@@ -9,6 +9,16 @@ import (
 	"testing"
 )
 
+func TestMachAbsoluteTimeConversion(t *testing.T) {
+	converted := absoluteToNanos(1_000_000)
+	if converted < 1_000_000 {
+		t.Fatalf("absoluteToNanos() = %d, want at least input value", converted)
+	}
+	if converted == 1_000_000 {
+		t.Log("platform uses a 1:1 Mach timebase")
+	}
+}
+
 func TestParseProcArgs(t *testing.T) {
 	buffer := make([]byte, 4)
 	binary.LittleEndian.PutUint32(buffer, 3)

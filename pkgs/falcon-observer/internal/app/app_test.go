@@ -21,21 +21,33 @@ func TestVersion(t *testing.T) {
 	}
 }
 
-func TestValidateDurations(t *testing.T) {
-	if err := validateDurations(2*time.Second, time.Minute, 10*time.Second, 3, 3); err != nil {
+func TestValidateConfig(t *testing.T) {
+	if err := validateConfig(2*time.Second, time.Minute, 10*time.Second, time.Minute, 3, 3, "daily"); err != nil {
 		t.Fatal(err)
 	}
 	for _, test := range []struct {
 		name string
 		err  error
 	}{
-		{"short poll", validateDurations(10*time.Millisecond, time.Minute, time.Second, 1, 1)},
-		{"zero maximum", validateDurations(time.Second, 0, time.Second, 1, 1)},
-		{"zero samples", validateDurations(time.Second, time.Minute, time.Second, 0, 1)},
+		{"short poll", validateConfig(10*time.Millisecond, time.Minute, time.Second, time.Minute, 1, 1, "daily")},
+		{"zero maximum", validateConfig(time.Second, 0, time.Second, time.Minute, 1, 1, "daily")},
+		{"zero samples", validateConfig(time.Second, time.Minute, time.Second, time.Minute, 0, 1, "daily")},
+		{"invalid deep mode", validateConfig(time.Second, time.Minute, time.Second, time.Minute, 1, 1, "invalid")},
 	} {
 		if test.err == nil {
 			t.Errorf("%s unexpectedly passed", test.name)
 		}
+	}
+}
+
+func TestRequestDeepTrace(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	root := t.TempDir()
+	code := Run(context.Background(), []string{
+		"request-deep-trace", "--output-dir", root, "--project", "app", "--build-system", "gradle",
+	}, &stdout, &stderr)
+	if code != 0 || !strings.Contains(stdout.String(), "app") {
+		t.Fatalf("code = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
 	}
 }
 

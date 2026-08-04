@@ -19,6 +19,18 @@ type directory struct {
 	path    string
 	modTime time.Time
 	size    int64
+	active  bool
+}
+
+func Reserve(root string, now time.Time, config Config, bytes int64) error {
+	reserved := config
+	if reserved.MaximumTotalBytes > 0 {
+		if bytes >= reserved.MaximumTotalBytes {
+			return fmt.Errorf("requested reservation %d exceeds retention budget %d", bytes, reserved.MaximumTotalBytes)
+		}
+		reserved.MaximumTotalBytes -= bytes
+	}
+	return Apply(root, "", now, reserved)
 }
 
 func Apply(root, active string, now time.Time, config Config) error {
@@ -36,9 +48,6 @@ func Apply(root, active string, now time.Time, config Config) error {
 			continue
 		}
 		path := filepath.Join(root, entry.Name())
-		if samePath(path, active) {
-			continue
-		}
 		info, err := entry.Info()
 		if err != nil {
 			return fmt.Errorf("stat session %s: %w", path, err)
@@ -47,7 +56,9 @@ func Apply(root, active string, now time.Time, config Config) error {
 		if err != nil {
 			return err
 		}
-		directories = append(directories, directory{path: path, modTime: info.ModTime(), size: size})
+		directories = append(directories, directory{
+			path: path, modTime: info.ModTime(), size: size, active: samePath(path, active),
+		})
 	}
 	sort.Slice(directories, func(left, right int) bool {
 		return directories[left].modTime.Before(directories[right].modTime)
@@ -57,12 +68,13 @@ func Apply(root, active string, now time.Time, config Config) error {
 	if config.MaximumAge > 0 {
 		cutoff := now.Add(-config.MaximumAge)
 		for _, candidate := range directories {
-			if candidate.modTime.Before(cutoff) {
-				if err := os.RemoveAll(candidate.path); err != nil {
-					return fmt.Errorf("remove expired session %s: %w", candidate.path, err)
-				}
-				removed[candidate.path] = true
+			if candidate.active || !candidate.modTime.Before(cutoff) {
+				continue
 			}
+			if err := os.RemoveAll(candidate.path); err != nil {
+				return fmt.Errorf("remove expired session %s: %w", candidate.path, err)
+			}
+			removed[candidate.path] = true
 		}
 	}
 
@@ -79,7 +91,7 @@ func Apply(root, active string, now time.Time, config Config) error {
 		if total <= config.MaximumTotalBytes {
 			break
 		}
-		if removed[candidate.path] {
+		if candidate.active || removed[candidate.path] {
 			continue
 		}
 		if err := os.RemoveAll(candidate.path); err != nil {

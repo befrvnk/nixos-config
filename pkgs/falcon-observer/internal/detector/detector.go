@@ -10,15 +10,19 @@ import (
 
 type Process struct {
 	proc.Process
-	Kind       string  `json:"kind"`
-	CPUPercent float64 `json:"cpu_percent"`
+	Kind        string  `json:"kind"`
+	BuildSystem string  `json:"build_system,omitempty"`
+	Project     string  `json:"project,omitempty"`
+	CPUPercent  float64 `json:"cpu_percent"`
 }
 
 type Activity struct {
 	At                time.Time `json:"at"`
 	Busy              bool      `json:"busy"`
 	Immediate         bool      `json:"immediate"`
-	GradleCPUPercent  float64   `json:"gradle_cpu_percent"`
+	Project           string    `json:"project,omitempty"`
+	BuildSystem       string    `json:"build_system,omitempty"`
+	BuildCPUPercent   float64   `json:"build_cpu_percent"`
 	FalconCPUPercent  float64   `json:"falcon_cpu_percent"`
 	RelevantProcesses []Process `json:"processes,omitempty"`
 }
@@ -117,93 +121,224 @@ func (detector *Detector) stop() {
 	detector.candidateCount = 0
 }
 
+type classification struct {
+	kind      string
+	system    string
+	project   string
+	immediate bool
+}
+
 func Classify(now time.Time, processes []proc.Process, cpu map[proc.Identity]float64, threshold float64) Activity {
+	return ClassifyUnderRoot(now, processes, cpu, threshold, "")
+}
+
+func ClassifyUnderRoot(now time.Time, processes []proc.Process, cpu map[proc.Identity]float64, threshold float64, projectRoot string) Activity {
 	activity := Activity{At: now}
-	kinds := make(map[int]string)
+	classes := make(map[int]classification)
 
 	for _, current := range processes {
-		kind := directKind(current)
-		if kind != "" {
-			kinds[current.PID] = kind
+		if value, ok := directClassification(current, projectRoot); ok {
+			classes[current.PID] = value
 		}
 	}
 
-	// Include native build tools only when they descend from a Gradle-related process.
+	// Attribute compiler and packaging subprocesses to an already recognized
+	// build ancestor instead of treating every compiler on the machine as a build.
 	changed := true
 	for changed {
 		changed = false
 		for _, current := range processes {
-			if _, exists := kinds[current.PID]; exists {
+			if _, exists := classes[current.PID]; exists {
 				continue
 			}
-			if parentKind, exists := kinds[current.PPID]; exists && parentKind != "falcon" && isBuildTool(current) {
-				kinds[current.PID] = "gradle-tool"
-				changed = true
+			parent, exists := classes[current.PPID]
+			if !exists || parent.kind == "falcon" || !isBuildTool(current) {
+				continue
 			}
+			classes[current.PID] = classification{
+				kind:    "build-tool",
+				system:  parent.system,
+				project: firstNonEmpty(projectForProcess(current, projectRoot), parent.project),
+			}
+			changed = true
 		}
 	}
 
+	type projectScore struct {
+		project string
+		system  string
+		score   float64
+	}
+	scores := make(map[string]projectScore)
 	for _, current := range processes {
-		kind, relevant := kinds[current.PID]
+		class, relevant := classes[current.PID]
 		if !relevant {
 			continue
 		}
 		usage := cpu[current.Identity]
 		activity.RelevantProcesses = append(activity.RelevantProcesses, Process{
-			Process:    current,
-			Kind:       kind,
-			CPUPercent: usage,
+			Process:     current,
+			Kind:        class.kind,
+			BuildSystem: class.system,
+			Project:     class.project,
+			CPUPercent:  usage,
 		})
-		if kind == "falcon" {
+		if class.kind == "falcon" {
 			activity.FalconCPUPercent += usage
 			continue
 		}
-		activity.GradleCPUPercent += usage
-		if kind == "gradle-client" {
-			activity.Immediate = true
+		activity.BuildCPUPercent += usage
+		activity.Immediate = activity.Immediate || class.immediate
+		key := class.project + "\x00" + class.system
+		score := scores[key]
+		score.project = class.project
+		score.system = class.system
+		score.score += usage
+		if class.immediate {
+			score.score += 100_000
+		}
+		scores[key] = score
+	}
+	best := projectScore{}
+	for _, score := range scores {
+		if score.score > best.score {
+			best = score
 		}
 	}
-	activity.Busy = activity.Immediate || activity.GradleCPUPercent >= threshold
+	activity.Project = best.project
+	activity.BuildSystem = best.system
+	activity.Busy = activity.Immediate || activity.BuildCPUPercent >= threshold
 	return activity
 }
 
-func directKind(current proc.Process) string {
+func directClassification(current proc.Process, projectRoot string) (classification, bool) {
 	name := strings.ToLower(current.Name)
 	base := strings.ToLower(filepath.Base(current.Path))
 	arguments := strings.ToLower(strings.Join(current.Args, "\x00"))
 	combined := name + " " + base + " " + strings.ToLower(current.Path)
+	project := projectForProcess(current, projectRoot)
 
 	if strings.Contains(combined, "com.crowdstrike.falcon.agent") {
-		return "falcon"
+		return classification{kind: "falcon"}, true
 	}
 	if strings.Contains(arguments, "org.gradle.wrapper.gradlewrappermain") ||
-		strings.Contains(arguments, "org.gradle.launcher.gradlemain") {
-		return "gradle-client"
+		strings.Contains(arguments, "org.gradle.launcher.gradlemain") ||
+		name == "gradle" || base == "gradle" || name == "gradlew" || base == "gradlew" {
+		return classification{kind: "build-client", system: "gradle", project: project, immediate: true}, true
 	}
 	if strings.Contains(arguments, "org.gradle.launcher.daemon.bootstrap.gradledaemon") {
-		return "gradle-daemon"
+		return classification{kind: "build-daemon", system: "gradle", project: project}, true
 	}
-	if strings.Contains(arguments, "org.jetbrains.kotlin.daemon") ||
-		strings.Contains(arguments, "kotlinc") ||
-		strings.Contains(name, "kotlin-daemon") {
-		return "gradle-tool"
-	}
-	if name == "gradle" || base == "gradle" || name == "gradlew" || base == "gradlew" {
-		return "gradle-client"
+	if strings.Contains(arguments, "org.jetbrains.kotlin.daemon") || strings.Contains(arguments, "kotlinc") || strings.Contains(name, "kotlin-daemon") {
+		return classification{kind: "build-tool", system: "gradle", project: project}, true
 	}
 	if name == "aapt2" || base == "aapt2" {
-		return "gradle-tool"
+		return classification{kind: "build-tool", system: "gradle", project: project}, true
+	}
+	if project == "" {
+		return classification{}, false
+	}
+
+	args := lowerArgs(current.Args)
+	switch {
+	case name == "cargo" || base == "cargo":
+		return classification{kind: "build-client", system: "rust", project: project, immediate: hasAny(args, "build", "check", "test", "run", "install")}, true
+	case name == "rustc" || base == "rustc":
+		return classification{kind: "build-tool", system: "rust", project: project}, true
+	case name == "go" || base == "go":
+		return classification{kind: "build-client", system: "go", project: project, immediate: hasAny(args, "build", "test", "run", "install", "generate")}, true
+	case isOneOf(name, base, "npm", "pnpm", "yarn", "bun", "npx"):
+		return classification{kind: "build-client", system: "node", project: project, immediate: hasAny(args, "build", "test", "run", "compile", "bundle")}, true
+	case name == "node" || base == "node":
+		if hasAny(args, "webpack", "vite", "rollup", "esbuild", "tsc", "jest", "vitest") {
+			return classification{kind: "build-tool", system: "node", project: project}, true
+		}
+	case isOneOf(name, base, "cmake", "ninja", "make", "gmake"):
+		return classification{kind: "build-client", system: "native", project: project, immediate: true}, true
+	case isOneOf(name, base, "clang", "clang++", "cc", "c++"):
+		return classification{kind: "build-tool", system: "native", project: project}, true
+	case name == "xcodebuild" || base == "xcodebuild":
+		return classification{kind: "build-client", system: "xcode", project: project, immediate: true}, true
+	case strings.Contains(name, "swiftc") || strings.Contains(base, "swiftc"):
+		return classification{kind: "build-tool", system: "xcode", project: project}, true
+	case name == "nix" || base == "nix":
+		return classification{kind: "build-client", system: "nix", project: project, immediate: hasAny(args, "build", "develop", "shell", "check")}, true
+	}
+	return classification{}, false
+}
+
+func projectForProcess(current proc.Process, projectRoot string) string {
+	if projectRoot == "" {
+		return ""
+	}
+	for _, candidate := range append([]string{current.WorkingDirectory}, current.Args...) {
+		candidate = strings.TrimPrefix(candidate, "-Duser.dir=")
+		if project := projectFromPath(candidate, projectRoot); project != "" {
+			return project
+		}
 	}
 	return ""
+}
+
+func projectFromPath(candidate, projectRoot string) string {
+	if candidate == "" || !filepath.IsAbs(candidate) {
+		return ""
+	}
+	absoluteRoot, err := filepath.Abs(projectRoot)
+	if err != nil {
+		return ""
+	}
+	relative, err := filepath.Rel(absoluteRoot, filepath.Clean(candidate))
+	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return ""
+	}
+	return strings.Split(relative, string(filepath.Separator))[0]
 }
 
 func isBuildTool(current proc.Process) bool {
 	name := strings.ToLower(current.Name)
 	base := strings.ToLower(filepath.Base(current.Path))
-	for _, candidate := range []string{"aapt2", "clang", "clang++", "cmake", "d8", "java", "kotlinc", "ninja", "r8"} {
-		if name == candidate || base == candidate {
+	for _, candidate := range []string{"aapt2", "clang", "clang++", "cmake", "d8", "java", "kotlinc", "ninja", "r8", "rustc", "swiftc", "tsc"} {
+		if name == candidate || base == candidate || strings.Contains(name, candidate) {
 			return true
 		}
 	}
 	return false
+}
+
+func lowerArgs(arguments []string) []string {
+	result := make([]string, len(arguments))
+	for index, argument := range arguments {
+		result[index] = strings.ToLower(argument)
+	}
+	return result
+}
+
+func hasAny(arguments []string, values ...string) bool {
+	for _, argument := range arguments {
+		for _, value := range values {
+			if argument == value || strings.Contains(argument, value) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isOneOf(name, base string, values ...string) bool {
+	for _, value := range values {
+		if name == value || base == value {
+			return true
+		}
+	}
+	return false
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }

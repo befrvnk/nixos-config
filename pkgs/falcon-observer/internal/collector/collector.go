@@ -14,14 +14,29 @@ import (
 )
 
 type Config struct {
-	Enabled              bool
-	FalconctlPath        string
-	FSUsagePath          string
-	PowermetricsPath     string
-	SamplePath           string
-	MaximumDuration      time.Duration
-	PowermetricsInterval time.Duration
-	MaximumFileBytes     int64
+	Enabled                 bool
+	FalconctlPath           string
+	FSUsagePath             string
+	PowermetricsPath        string
+	SamplePath              string
+	MaximumDuration         time.Duration
+	PowermetricsInterval    time.Duration
+	MaximumFileBytes        int64
+	FSUsageDuration         time.Duration
+	FSUsageMaximumFileBytes int64
+}
+
+type Status struct {
+	DeepTrace             bool `json:"deep_trace"`
+	FSUsageTruncated      bool `json:"fs_usage_truncated"`
+	PowermetricsTruncated bool `json:"powermetrics_truncated"`
+	FalconSampled         bool `json:"falcon_sampled"`
+}
+
+type Notice struct {
+	Message  string
+	Err      error
+	Expected bool
 }
 
 type Session struct {
@@ -29,7 +44,7 @@ type Session struct {
 	dir      string
 	mu       sync.Mutex
 	commands []*managedCommand
-	sampled  bool
+	status   Status
 }
 
 type managedCommand struct {
@@ -40,17 +55,17 @@ type managedCommand struct {
 	stopped     bool
 }
 
-func Start(config Config, dir string) (*Session, error) {
-	session := &Session{config: config, dir: dir}
+func Start(config Config, dir string, deepTrace bool) (*Session, error) {
+	session := &Session{config: config, dir: dir, status: Status{DeepTrace: deepTrace}}
 	if !config.Enabled {
 		return session, nil
 	}
 
 	var failures []error
-	// Start the continuous collectors first so Falcon stats collection cannot
-	// make us miss the beginning of a short Gradle build.
-	if err := session.startFSUsage(); err != nil {
-		failures = append(failures, err)
+	if deepTrace {
+		if err := session.startFSUsage(); err != nil {
+			failures = append(failures, err)
+		}
 	}
 	if err := session.startPowermetrics(); err != nil {
 		failures = append(failures, err)
@@ -64,7 +79,7 @@ func Start(config Config, dir string) (*Session, error) {
 func (session *Session) MaybeSampleFalcon(pid int) error {
 	session.mu.Lock()
 	defer session.mu.Unlock()
-	if !session.config.Enabled || session.sampled || pid <= 0 {
+	if !session.config.Enabled || session.status.FalconSampled || pid <= 0 {
 		return nil
 	}
 	output := filepath.Join(session.dir, "falcon-sample.txt")
@@ -80,40 +95,51 @@ func (session *Session) MaybeSampleFalcon(pid int) error {
 	}
 	managed.outputPaths = append(managed.outputPaths, output)
 	session.commands = append(session.commands, managed)
-	session.sampled = true
+	session.status.FalconSampled = true
 	return nil
 }
 
-func (session *Session) EnforceFileLimits() []error {
-	if session.config.MaximumFileBytes <= 0 {
-		return nil
-	}
+func (session *Session) EnforceFileLimits() []Notice {
 	session.mu.Lock()
 	defer session.mu.Unlock()
-	var failures []error
+	var notices []Notice
 	for _, command := range session.commands {
 		if command.stopped {
+			continue
+		}
+		limit := session.config.MaximumFileBytes
+		if command.name == "fs_usage" && session.config.FSUsageMaximumFileBytes > 0 {
+			limit = session.config.FSUsageMaximumFileBytes
+		}
+		if limit <= 0 {
 			continue
 		}
 		for _, path := range command.outputPaths {
 			info, err := os.Stat(path)
 			if err != nil {
 				if !os.IsNotExist(err) {
-					failures = append(failures, fmt.Errorf("stat %s output: %w", command.name, err))
+					notices = append(notices, Notice{Err: fmt.Errorf("stat %s output: %w", command.name, err)})
 				}
 				continue
 			}
-			if info.Size() >= session.config.MaximumFileBytes {
-				if err := stopCommand(command); err != nil {
-					failures = append(failures, fmt.Errorf("stop %s at file limit: %w", command.name, err))
-				} else {
-					failures = append(failures, fmt.Errorf("%s stopped after reaching the %d-byte file limit", command.name, session.config.MaximumFileBytes))
-				}
-				break
+			if info.Size() < limit {
+				continue
 			}
+			if err := stopCommand(command, stopSignal(command.name)); err != nil {
+				notices = append(notices, Notice{Err: fmt.Errorf("stop %s at file limit: %w", command.name, err)})
+			} else {
+				if command.name == "fs_usage" {
+					session.status.FSUsageTruncated = true
+				}
+				if command.name == "powermetrics" {
+					session.status.PowermetricsTruncated = true
+				}
+				notices = append(notices, Notice{Message: fmt.Sprintf("%s stopped after reaching the %d-byte file limit", command.name, limit), Expected: true})
+			}
+			break
 		}
 	}
-	return failures
+	return notices
 }
 
 func (session *Session) Stop() error {
@@ -123,7 +149,7 @@ func (session *Session) Stop() error {
 
 	var failures []error
 	for _, command := range commands {
-		if err := stopCommand(command); err != nil {
+		if err := stopCommand(command, stopSignal(command.name)); err != nil {
 			failures = append(failures, fmt.Errorf("stop %s: %w", command.name, err))
 		}
 	}
@@ -135,10 +161,23 @@ func (session *Session) Stop() error {
 	return errors.Join(failures...)
 }
 
+func (session *Session) Status() Status {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	return session.status
+}
+
+func (session *Session) FSUsagePath() string {
+	if !session.status.DeepTrace {
+		return ""
+	}
+	return filepath.Join(session.dir, "falcon-fs-usage.log")
+}
+
 func (session *Session) startFSUsage() error {
-	seconds := int(session.config.MaximumDuration.Round(time.Second) / time.Second)
+	seconds := int(session.config.FSUsageDuration.Round(time.Second) / time.Second)
 	if seconds < 1 {
-		seconds = 2700
+		seconds = 60
 	}
 	output := filepath.Join(session.dir, "falcon-fs-usage.log")
 	managed, err := startCommand(
@@ -227,7 +266,7 @@ func startCommand(name, path string, arguments []string, logPath string) (*manag
 	return managed, nil
 }
 
-func stopCommand(command *managedCommand) error {
+func stopCommand(command *managedCommand, signal syscall.Signal) error {
 	if command.stopped {
 		return nil
 	}
@@ -242,14 +281,14 @@ func stopCommand(command *managedCommand) error {
 	}
 
 	pid := command.command.Process.Pid
-	_ = syscall.Kill(-pid, syscall.SIGINT)
+	_ = syscall.Kill(-pid, signal)
 	select {
 	case err := <-command.done:
 		if isExpectedExit(err) {
 			return nil
 		}
 		return err
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		_ = syscall.Kill(-pid, syscall.SIGKILL)
 		err := <-command.done
 		if isExpectedExit(err) {
@@ -257,6 +296,13 @@ func stopCommand(command *managedCommand) error {
 		}
 		return err
 	}
+}
+
+func stopSignal(name string) syscall.Signal {
+	if name == "powermetrics" {
+		return syscall.SIGTERM
+	}
+	return syscall.SIGINT
 }
 
 func isExpectedExit(err error) bool {

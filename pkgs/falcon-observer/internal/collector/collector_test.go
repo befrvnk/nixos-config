@@ -4,12 +4,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
 
 func TestDisabledSessionDoesNotStartCommands(t *testing.T) {
-	session, err := Start(Config{Enabled: false}, t.TempDir())
+	session, err := Start(Config{Enabled: false}, t.TempDir(), false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,6 +20,30 @@ func TestDisabledSessionDoesNotStartCommands(t *testing.T) {
 	if err := session.Stop(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestDeepTraceControlsFSUsage(t *testing.T) {
+	config := Config{
+		Enabled: true, FalconctlPath: "/usr/bin/true", FSUsagePath: "/usr/bin/true",
+		PowermetricsPath: "/usr/bin/true", SamplePath: "/usr/bin/true", FSUsageDuration: time.Second,
+	}
+	standard, err := Start(config, t.TempDir(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(standard.commands) != 1 || standard.Status().DeepTrace {
+		t.Fatalf("standard commands = %d, status = %#v", len(standard.commands), standard.Status())
+	}
+	_ = standard.Stop()
+
+	deep, err := Start(config, t.TempDir(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(deep.commands) != 2 || !deep.Status().DeepTrace {
+		t.Fatalf("deep commands = %d, status = %#v", len(deep.commands), deep.Status())
+	}
+	_ = deep.Stop()
 }
 
 func TestStartCommandCapturesOutputAndStopsCleanly(t *testing.T) {
@@ -41,7 +66,7 @@ func TestStartCommandCapturesOutputAndStopsCleanly(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if err := stopCommand(command); err != nil {
+	if err := stopCommand(command, syscall.SIGTERM); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(content), "expected-argument") {

@@ -9,16 +9,17 @@ type Identity struct {
 
 type Process struct {
 	Identity
-	PPID          int      `json:"ppid"`
-	UID           uint32   `json:"uid"`
-	Name          string   `json:"name"`
-	Path          string   `json:"path,omitempty"`
-	Args          []string `json:"-"`
-	UserNanos     uint64   `json:"user_nanos"`
-	SystemNanos   uint64   `json:"system_nanos"`
-	ResidentBytes uint64   `json:"resident_bytes"`
-	ReadBytes     uint64   `json:"read_bytes"`
-	WrittenBytes  uint64   `json:"written_bytes"`
+	PPID             int      `json:"ppid"`
+	UID              uint32   `json:"uid"`
+	Name             string   `json:"name"`
+	Path             string   `json:"path,omitempty"`
+	Args             []string `json:"-"`
+	WorkingDirectory string   `json:"-"`
+	UserNanos        uint64   `json:"user_nanos"`
+	SystemNanos      uint64   `json:"system_nanos"`
+	ResidentBytes    uint64   `json:"resident_bytes"`
+	ReadBytes        uint64   `json:"read_bytes"`
+	WrittenBytes     uint64   `json:"written_bytes"`
 }
 
 func (process Process) TotalCPUNanos() uint64 {

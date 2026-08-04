@@ -4,8 +4,8 @@ package process
 
 /*
 #cgo LDFLAGS: -lproc
-#include <errno.h>
 #include <libproc.h>
+#include <mach/mach_time.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +25,17 @@ struct fo_proc_info {
 	uint64_t written_bytes;
 	char name[2 * MAXCOMLEN];
 };
+
+static uint64_t fo_absolute_to_nanos(uint64_t value) {
+	mach_timebase_info_data_t info;
+	if (mach_timebase_info(&info) != KERN_SUCCESS || info.denom == 0) {
+		return value;
+	}
+	// Divide before multiplying where possible to avoid overflowing long-lived
+	// process counters while retaining the remainder's precision.
+	return (value / info.denom) * info.numer +
+	       ((value % info.denom) * info.numer) / info.denom;
+}
 
 static int fo_list_pids(int *buffer, int buffer_bytes) {
 	return proc_listallpids(buffer, buffer_bytes);
@@ -57,14 +68,26 @@ static int fo_proc_path(int pid, char *buffer, uint32_t size) {
 	return proc_pidpath(pid, buffer, size);
 }
 
+static int fo_proc_cwd(int pid, char *buffer, uint32_t size) {
+	struct proc_vnodepathinfo info;
+	memset(&info, 0, sizeof(info));
+	int result = proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &info, sizeof(info));
+	if (result != sizeof(info)) {
+		return -1;
+	}
+	strlcpy(buffer, info.pvi_cdir.vip_path, size);
+	return buffer[0] == '\0' ? -1 : 0;
+}
+
 static int fo_proc_rusage_for_pid(int pid, struct fo_proc_info *result) {
 	struct rusage_info_v4 usage;
 	memset(&usage, 0, sizeof(usage));
 	if (proc_pid_rusage(pid, RUSAGE_INFO_V4, (rusage_info_t *)&usage) != 0) {
 		return -1;
 	}
-	result->user_nanos = usage.ri_user_time;
-	result->system_nanos = usage.ri_system_time;
+	// rusage CPU counters use mach_absolute_time units, not nanoseconds.
+	result->user_nanos = fo_absolute_to_nanos(usage.ri_user_time);
+	result->system_nanos = fo_absolute_to_nanos(usage.ri_system_time);
 	result->resident_bytes = usage.ri_resident_size;
 	result->read_bytes = usage.ri_diskio_bytesread;
 	result->written_bytes = usage.ri_diskio_byteswritten;
@@ -103,7 +126,6 @@ func (DarwinScanner) Scan() ([]Process, error) {
 		return nil, fmt.Errorf("proc_listallpids returned %d", count)
 	}
 
-	// Leave room for processes created between the sizing and collection calls.
 	pids := make([]C.int, count+128)
 	count = int(C.fo_list_pids((*C.int)(unsafe.Pointer(&pids[0])), C.int(len(pids)*int(unsafe.Sizeof(pids[0])))))
 	if count < 0 {
@@ -141,6 +163,10 @@ func (DarwinScanner) Scan() ([]Process, error) {
 			if C.fo_proc_path(C.int(pid), &path[0], C.uint32_t(len(path))) > 0 {
 				current.Path = C.GoString(&path[0])
 			}
+			var cwd [C.PROC_PIDPATHINFO_MAXSIZE]C.char
+			if C.fo_proc_cwd(C.int(pid), &cwd[0], C.uint32_t(len(cwd))) == 0 {
+				current.WorkingDirectory = C.GoString(&cwd[0])
+			}
 			if C.fo_proc_rusage_for_pid(C.int(pid), &info) == 0 {
 				current.UserNanos = uint64(info.user_nanos)
 				current.SystemNanos = uint64(info.system_nanos)
@@ -158,32 +184,31 @@ func (DarwinScanner) Scan() ([]Process, error) {
 }
 
 func needsDetails(current Process) bool {
-	candidate := strings.ToLower(current.Name)
-	for _, name := range []string{
-		"aapt2",
-		"clang",
-		"cmake",
-		"crowdstrike",
-		"d8",
-		"falcon",
-		"gradle",
-		"java",
-		"kotlin",
-		"ninja",
-		"r8",
-	} {
-		if strings.Contains(candidate, name) {
-			return true
-		}
-	}
-	return false
+	return isCandidateName(strings.ToLower(current.Name))
 }
 
 func needsArguments(current Process) bool {
-	candidate := strings.ToLower(current.Name + " " + filepath.Base(current.Path))
-	return strings.Contains(candidate, "java") ||
+	return isCandidateName(strings.ToLower(current.Name)) || isCandidateName(strings.ToLower(filepath.Base(current.Path)))
+}
+
+func isCandidateName(candidate string) bool {
+	for _, name := range buildProcessNames {
+		if candidate == name {
+			return true
+		}
+	}
+	return strings.Contains(candidate, "crowdstrike") ||
+		strings.Contains(candidate, "falcon") ||
 		strings.Contains(candidate, "gradle") ||
-		strings.Contains(candidate, "kotlin")
+		strings.Contains(candidate, "kotlin") ||
+		strings.Contains(candidate, "swiftc")
+}
+
+var buildProcessNames = []string{
+	"aapt2", "bun", "c++", "cargo", "cc", "clang", "clang++", "cmake", "d8",
+	"gmake", "go", "gradle", "gradlew", "java", "kotlin", "make", "ninja", "nix",
+	"node", "npm", "npx", "pnpm", "r8", "rustc", "swift", "swiftc", "tsc",
+	"xcodebuild", "yarn",
 }
 
 func readArguments(pid int) []string {
@@ -228,4 +253,8 @@ func parseProcArgs(buffer []byte) []string {
 		position = end + 1
 	}
 	return arguments
+}
+
+func absoluteToNanos(value uint64) uint64 {
+	return uint64(C.fo_absolute_to_nanos(C.uint64_t(value)))
 }

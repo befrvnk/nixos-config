@@ -34,10 +34,11 @@ func (scanner *sequenceScanner) Scan() ([]proc.Process, error) {
 func TestRunCreatesAutomaticSessionWithoutPersistingArguments(t *testing.T) {
 	root := t.TempDir()
 	gradle := proc.Process{
-		Identity: proc.Identity{PID: 42, StartTime: 1},
-		Name:     "java",
-		Path:     "/usr/bin/java",
-		Args:     []string{"java", "org.gradle.wrapper.GradleWrapperMain", "secret-project-name"},
+		Identity:         proc.Identity{PID: 42, StartTime: 1},
+		Name:             "java",
+		Path:             "/usr/bin/java",
+		Args:             []string{"java", "org.gradle.wrapper.GradleWrapperMain", "secret-project-name"},
+		WorkingDirectory: "/Users/frank/projects/example-app",
 	}
 	scanner := &sequenceScanner{items: [][]proc.Process{{gradle}, {}, {}, {}}}
 	base := time.Unix(1000, 0)
@@ -60,14 +61,17 @@ func TestRunCreatesAutomaticSessionWithoutPersistingArguments(t *testing.T) {
 	defer cancel()
 	config := Config{
 		OutputDirectory:       root,
+		ProjectRoot:           "/Users/frank/projects",
 		PollInterval:          5 * time.Millisecond,
 		PreRoll:               time.Minute,
-		GradleCPUThreshold:    15,
+		BuildCPUThreshold:     15,
 		TriggerSamples:        1,
 		Inactivity:            30 * time.Millisecond,
 		MaximumSession:        time.Minute,
 		FalconSampleThreshold: 50,
 		FalconSampleCount:     3,
+		DeepTraceMode:         "off",
+		RetainRawData:         true,
 		Collectors:            collector.Config{Enabled: false},
 		Retention:             retention.Config{MaximumAge: time.Hour, MaximumTotalBytes: 1024 * 1024},
 	}
@@ -80,7 +84,10 @@ func TestRunCreatesAutomaticSessionWithoutPersistingArguments(t *testing.T) {
 		t.Fatalf("sessions = %v, err = %v", sessions, err)
 	}
 	if _, err := os.Stat(filepath.Join(sessions[0], "summary.json")); err != nil {
-		t.Fatalf("summary missing: %v", err)
+		t.Fatalf("JSON summary missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(sessions[0], "summary.md")); err != nil {
+		t.Fatalf("Markdown summary missing: %v", err)
 	}
 	observations, err := os.ReadFile(filepath.Join(sessions[0], "observations.jsonl"))
 	if err != nil {
@@ -93,7 +100,7 @@ func TestRunCreatesAutomaticSessionWithoutPersistingArguments(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(metadata), "Gradle client process") {
+	if !strings.Contains(string(metadata), "build client process") || !strings.Contains(string(metadata), "example-app") {
 		t.Fatalf("unexpected metadata: %s", metadata)
 	}
 }

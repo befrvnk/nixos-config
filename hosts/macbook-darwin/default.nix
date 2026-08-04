@@ -246,7 +246,7 @@ in
 
     daemons = {
       # Observe CrowdStrike Falcon resource usage during automatically detected
-      # Gradle activity without changing projects or build commands.
+      # local builds without changing projects or build commands.
       falcon-observer.serviceConfig = {
         Label = "dev.befrvnk.falcon-observer";
         ProgramArguments = [
@@ -254,12 +254,14 @@ in
           "run"
           "--output-dir"
           "/var/log/falcon-observer"
+          "--project-root"
+          "${hostConfig.homeDirectory}/projects"
           "--poll-interval"
           "1s"
           "--pre-roll"
           "5m"
-          "--gradle-cpu-threshold"
-          "5"
+          "--build-cpu-threshold"
+          "25"
           "--trigger-samples"
           "1"
           "--inactivity"
@@ -267,17 +269,26 @@ in
           "--max-session"
           "45m"
           "--falcon-sample-threshold"
-          "50"
+          "150"
           "--falcon-sample-count"
           "3"
           "--powermetrics-interval"
           "2s"
           "--max-collector-bytes"
-          "536870912"
+          "134217728"
+          "--deep-trace"
+          "off"
+          "--deep-trace-interval"
+          "24h"
+          "--deep-trace-duration"
+          "60s"
+          "--deep-trace-bytes"
+          "67108864"
+          "--retain-raw-data=false"
           "--retention-age"
           "336h"
           "--retention-bytes"
-          "5368709120"
+          "2147483648"
         ];
         KeepAlive = true;
         LowPriorityIO = true;

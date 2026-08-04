@@ -142,18 +142,23 @@ Studio and Gradle caches are skipped while their processes are running. The
 `--projects` option only removes `build/` directories that Git confirms are
 ignored.
 
-### Monitoring Falcon During Gradle Activity
+### Monitoring Falcon During Local Builds
 
 The system configuration installs `falcon-observer`, a root LaunchDaemon that
-automatically detects active Gradle builds and records bounded CrowdStrike Falcon
-performance traces. Idle Gradle daemons do not trigger collection, and projects
-and build commands do not need to be changed.
+automatically detects Gradle/Android, Rust, Go, Node, native, Xcode, and Nix
+builds below `~/projects`. It attributes sessions to project/worktree basenames
+without persisting command lines.
 
-The daemon keeps lightweight CPU and memory context in memory while idle. During
-a detected Gradle session it collects Falcon filesystem activity, process I/O,
-energy and thermal metrics, start/end Falcon statistics, and at most one Falcon
-stack sample for sustained high CPU. It never disables or reconfigures Falcon and
-does not automatically create heavy Falcon diagnostic archives.
+Standard sessions collect low-overhead native counters, `powermetrics`, start/end
+Falcon statistics, and at most one Falcon stack sample for sustained high CPU.
+A privacy-preserving summary records baseline/build percentiles, physical I/O,
+system pressure, collector overhead, and Falcon statistics deltas.
+
+Expensive `fs_usage` collection is disabled by default. A manually requested
+deep trace is bounded to 60 seconds and 64 MiB; optional daily mode rate-limits
+it per project/build-system pair. Paths are reduced to aggregate categories and
+extensions. Raw observations and collector output are deleted after
+summarization by default.
 
 Sensitive output is root-only under `/var/log/falcon-observer`:
 
@@ -163,17 +168,24 @@ sudo tail -f /var/log/falcon-observer/daemon.log
 sudo find /var/log/falcon-observer -maxdepth 2 -type f -print
 ```
 
-Sessions stop after 90 seconds without Gradle activity or after 45 minutes. Raw
-sessions are retained for 14 days, individual collector files are capped at 512
-MiB, and total session storage is capped at 5 GiB. Full process arguments are
-used only for in-memory Gradle classification and are not written to session
-logs. Raw traces can still contain repository paths and Falcon identifiers; do
-not publish them.
+Sessions stop after 90 seconds without build activity or after 45 minutes.
+Summaries are retained for 14 days, standard collector files are capped at 128
+MiB, and active plus completed session storage is capped at 2 GiB. The daemon
+never disables or reconfigures Falcon and does not create Falcon diagnostic
+archives automatically.
 
 For detector troubleshooting without waiting for a build:
 
 ```bash
-falcon-observer scan
+falcon-observer scan --project-root "$HOME/projects"
+```
+
+Request a one-off bounded deep trace for the next matching build with:
+
+```bash
+sudo falcon-observer request-deep-trace \
+  --project galaxy-android-app \
+  --build-system gradle
 ```
 
 Implementation and output details are documented in

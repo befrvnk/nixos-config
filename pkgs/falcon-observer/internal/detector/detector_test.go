@@ -1,6 +1,7 @@
 package detector
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -101,7 +102,42 @@ func TestClassifyGradleAndFalcon(t *testing.T) {
 	if !activity.Busy || activity.Immediate {
 		t.Fatalf("activity = %#v, want busy non-immediate", activity)
 	}
-	if activity.GradleCPUPercent != 80 || activity.FalconCPUPercent != 40 {
+	if activity.BuildCPUPercent != 80 || activity.FalconCPUPercent != 40 {
 		t.Fatalf("unexpected CPU totals: %#v", activity)
+	}
+}
+
+func TestClassifyProjectAndBuildSystems(t *testing.T) {
+	tests := []struct {
+		name   string
+		proc   proc.Process
+		system string
+	}{
+		{
+			name:   "cargo",
+			proc:   proc.Process{Identity: proc.Identity{PID: 1, StartTime: 1}, Name: "cargo", WorkingDirectory: "/Users/frank/projects/rust-app", Args: []string{"cargo", "build"}},
+			system: "rust",
+		},
+		{
+			name:   "node",
+			proc:   proc.Process{Identity: proc.Identity{PID: 2, StartTime: 2}, Name: "pnpm", WorkingDirectory: "/Users/frank/projects/web-app", Args: []string{"pnpm", "run", "build"}},
+			system: "node",
+		},
+		{
+			name:   "nix",
+			proc:   proc.Process{Identity: proc.Identity{PID: 3, StartTime: 3}, Name: "nix", WorkingDirectory: "/Users/frank/projects/nix-app", Args: []string{"nix", "build"}},
+			system: "nix",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			activity := ClassifyUnderRoot(time.Unix(1000, 0), []proc.Process{test.proc}, map[proc.Identity]float64{test.proc.Identity: 20}, 5, "/Users/frank/projects")
+			if !activity.Busy || !activity.Immediate || activity.BuildSystem != test.system {
+				t.Fatalf("activity = %#v", activity)
+			}
+			if activity.Project != filepath.Base(test.proc.WorkingDirectory) {
+				t.Fatalf("project = %q", activity.Project)
+			}
+		})
 	}
 }

@@ -25,6 +25,23 @@ func TestApplyRemovesExpiredAndPreservesActiveSession(t *testing.T) {
 	}
 }
 
+func TestActiveSessionCountsTowardSizeLimit(t *testing.T) {
+	root := t.TempDir()
+	now := time.Unix(2_000_000, 0)
+	oldest := createSession(t, root, "session-oldest", 10, now.Add(-3*time.Hour))
+	active := createSession(t, root, "session-active", 15, now)
+
+	if err := Apply(root, active, now, Config{MaximumTotalBytes: 20}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(oldest); !os.IsNotExist(err) {
+		t.Fatalf("old session still exists: %v", err)
+	}
+	if _, err := os.Stat(active); err != nil {
+		t.Fatalf("active session removed: %v", err)
+	}
+}
+
 func TestApplyRemovesOldestSessionsToMeetSizeLimit(t *testing.T) {
 	root := t.TempDir()
 	now := time.Unix(2_000_000, 0)
