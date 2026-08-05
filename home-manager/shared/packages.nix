@@ -2,6 +2,7 @@
 
 {
   home.packages = with pkgs; [
+    acli
     bat
     devenv
     eza
