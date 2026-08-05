@@ -7,7 +7,26 @@ export interface ExtractionResult {
 	questions: ExtractedQuestion[];
 }
 
+export type ExtractionResponseResult =
+	| { status: "success"; value: ExtractionResult }
+	| { status: "cancelled" }
+	| { status: "error"; message: string };
+
+export type ExtractionResponseLike = {
+	stopReason: string;
+	errorMessage?: string;
+	content: readonly { type: string; text?: string }[];
+};
+
 export const MAX_EXTRACTION_TEXT_CHARS = 20_000;
+
+export function withResolvedModelBaseUrl<T extends { baseUrl: string }>(
+	model: T,
+	resolvedBaseUrl: string | undefined,
+): T {
+	if (!resolvedBaseUrl || resolvedBaseUrl === model.baseUrl) return model;
+	return { ...model, baseUrl: resolvedBaseUrl };
+}
 
 export function prepareAssistantTextForExtraction(
 	text: string,
@@ -129,6 +148,36 @@ export function parseExtractionResult(text: string): ExtractionResult | null {
 			];
 		}),
 	};
+}
+
+export function parseExtractionResponse(
+	response: ExtractionResponseLike,
+): ExtractionResponseResult {
+	if (response.stopReason === "aborted") return { status: "cancelled" };
+	if (response.stopReason === "error") {
+		return {
+			status: "error",
+			message: response.errorMessage ?? "Question extraction request failed",
+		};
+	}
+	if (response.stopReason !== "stop") {
+		return {
+			status: "error",
+			message: `Question extraction stopped unexpectedly (${response.stopReason})`,
+		};
+	}
+
+	const responseText = response.content
+		.filter(
+			(content): content is { type: "text"; text: string } =>
+				content.type === "text" && typeof content.text === "string",
+		)
+		.map((content) => content.text)
+		.join("\n");
+	const parsed = parseExtractionResult(responseText);
+	return parsed
+		? { status: "success", value: parsed }
+		: { status: "error", message: "Question extraction returned invalid JSON" };
 }
 
 export function findLastAssistantText(

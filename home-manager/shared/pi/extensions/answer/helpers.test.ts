@@ -4,8 +4,10 @@ import assert from "node:assert/strict";
 import {
 	buildAnswerMessage,
 	findLastAssistantText,
+	parseExtractionResponse,
 	parseExtractionResult,
 	prepareAssistantTextForExtraction,
+	withResolvedModelBaseUrl,
 } from "./helpers.ts";
 
 test("parseExtractionResult accepts plain JSON, fenced JSON, and prose-wrapped JSON", () => {
@@ -51,6 +53,74 @@ test("parseExtractionResult rejects invalid payloads and normalizes blanks", () 
 			questions: [
 				{ question: "Preferred shell?", context: "nushell or bash" },
 			],
+		},
+	);
+});
+
+test("withResolvedModelBaseUrl applies provider-auth endpoint overrides", () => {
+	const model = {
+		id: "gpt-5.4-mini",
+		baseUrl: "https://api.individual.githubcopilot.com",
+	};
+
+	assert.deepEqual(
+		withResolvedModelBaseUrl(model, "https://api.enterprise.githubcopilot.com"),
+		{
+			id: "gpt-5.4-mini",
+			baseUrl: "https://api.enterprise.githubcopilot.com",
+		},
+	);
+	assert.equal(withResolvedModelBaseUrl(model, undefined), model);
+	assert.equal(withResolvedModelBaseUrl(model, model.baseUrl), model);
+});
+
+test("parseExtractionResponse preserves provider failures and unexpected stops", () => {
+	assert.deepEqual(
+		parseExtractionResponse({
+			stopReason: "error",
+			errorMessage: "OpenAI API error (421): Misdirected Request",
+			content: [],
+		}),
+		{
+			status: "error",
+			message: "OpenAI API error (421): Misdirected Request",
+		},
+	);
+	assert.deepEqual(
+		parseExtractionResponse({ stopReason: "length", content: [] }),
+		{
+			status: "error",
+			message: "Question extraction stopped unexpectedly (length)",
+		},
+	);
+	assert.deepEqual(
+		parseExtractionResponse({ stopReason: "aborted", content: [] }),
+		{ status: "cancelled" },
+	);
+});
+
+test("parseExtractionResponse parses successful text content", () => {
+	assert.deepEqual(
+		parseExtractionResponse({
+			stopReason: "stop",
+			content: [
+				{ type: "thinking" },
+				{ type: "text", text: '{"questions":[{"question":"Use SQLite?"}]}' },
+			],
+		}),
+		{
+			status: "success",
+			value: { questions: [{ question: "Use SQLite?" }] },
+		},
+	);
+	assert.deepEqual(
+		parseExtractionResponse({
+			stopReason: "stop",
+			content: [{ type: "text", text: "not json" }],
+		}),
+		{
+			status: "error",
+			message: "Question extraction returned invalid JSON",
 		},
 	);
 });

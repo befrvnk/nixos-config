@@ -31,10 +31,11 @@ import {
 import {
 	buildAnswerMessage,
 	findLastAssistantText,
-	parseExtractionResult,
+	parseExtractionResponse,
 	prepareAssistantTextForExtraction,
+	withResolvedModelBaseUrl,
 	type ExtractedQuestion,
-	type ExtractionResult,
+	type ExtractionResponseResult,
 } from "./helpers.ts";
 import {
 	isAnswerCancel,
@@ -69,11 +70,6 @@ const EXTRACTION_MODEL_CANDIDATES = [
 	["github-copilot", "claude-sonnet-4.6"],
 	["github-copilot", "gemini-3.1-pro-preview"],
 ] as const;
-
-type ExtractionUiResult =
-	| { status: "success"; value: ExtractionResult }
-	| { status: "cancelled" }
-	| { status: "error"; message: string };
 
 async function hasModelAuth(model: Model<Api>, modelRegistry: ModelRegistry) {
 	const auth = await modelRegistry.getApiKeyAndHeaders(model);
@@ -394,7 +390,7 @@ export default function answerExtension(pi: ExtensionAPI) {
 		}
 
 		const extractionModel = await selectExtractionModel(ctx.model, ctx.modelRegistry);
-		const extract = async (signal?: AbortSignal): Promise<ExtractionUiResult> => {
+		const extract = async (signal?: AbortSignal): Promise<ExtractionResponseResult> => {
 			try {
 				const auth = await ctx.modelRegistry.getApiKeyAndHeaders(extractionModel);
 				if (!auth.ok || !auth.apiKey) {
@@ -404,6 +400,11 @@ export default function answerExtension(pi: ExtensionAPI) {
 					};
 				}
 
+				const providerAuth = await ctx.modelRegistry.getProviderAuth(extractionModel.provider);
+				const requestModel = withResolvedModelBaseUrl(
+					extractionModel,
+					providerAuth?.auth.baseUrl,
+				);
 				const message: UserMessage = {
 					role: "user",
 					content: [{
@@ -413,29 +414,23 @@ export default function answerExtension(pi: ExtensionAPI) {
 					timestamp: Date.now(),
 				};
 				const response = await complete(
-					extractionModel,
+					requestModel,
 					{ systemPrompt: SYSTEM_PROMPT, messages: [message] },
-					{ apiKey: auth.apiKey, headers: auth.headers, signal },
+					{
+						apiKey: auth.apiKey,
+						headers: auth.headers,
+						env: auth.env,
+						signal,
+					},
 				);
-				if (response.stopReason === "aborted") return { status: "cancelled" };
-				const responseText = response.content
-					.filter(
-						(content: { type: string; text?: string }): content is { type: "text"; text: string } =>
-							content.type === "text" && typeof content.text === "string",
-					)
-					.map((content: { type: "text"; text: string }) => content.text)
-					.join("\n");
-				const parsed = parseExtractionResult(responseText);
-				return parsed
-					? { status: "success", value: parsed }
-					: { status: "error", message: "Question extraction returned invalid JSON" };
+				return parseExtractionResponse(response);
 			} catch (error) {
 				return { status: "error", message: error instanceof Error ? error.message : String(error) };
 			}
 		};
 
 		const extraction = ctx.mode === "tui"
-			? await ctx.ui.custom<ExtractionUiResult>((tui: TUI, theme: Theme, _kb, done) => {
+			? await ctx.ui.custom<ExtractionResponseResult>((tui: TUI, theme: Theme, _kb, done) => {
 				const loader = new BorderedLoader(tui, theme, `Extracting questions using ${extractionModel.id}...`);
 				loader.onAbort = () => done({ status: "cancelled" });
 				void extract(loader.signal).then(done);
