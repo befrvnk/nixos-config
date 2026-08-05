@@ -17,6 +17,7 @@
     _1password-cli # op CLI; the 1Password app cask does not install it
     bun
     slidev-cli
+    smartmontools
 
     # Fonts
     material-symbols
