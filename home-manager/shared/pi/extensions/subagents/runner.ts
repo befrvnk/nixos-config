@@ -32,7 +32,7 @@ type ModelRegistryLike = {
 	getApiKeyAndHeaders?(
 		model: Model<any>,
 	): Promise<
-		| { ok: true; headers?: Record<string, string> }
+		| { ok: true; headers?: Record<string, string | null> }
 		| { ok: false; error: string }
 	>;
 };
@@ -208,13 +208,15 @@ export async function withResolvedModelHeaders(
 	const requestConfig = await modelRegistry?.getApiKeyAndHeaders?.(model);
 	if (!requestConfig?.ok || !requestConfig.headers) return model;
 
-	return {
-		...model,
-		headers: {
-			...model.headers,
-			...requestConfig.headers,
-		},
-	};
+	const headers = { ...model.headers };
+	for (const [name, value] of Object.entries(requestConfig.headers)) {
+		for (const existingName of Object.keys(headers)) {
+			if (existingName.toLowerCase() === name.toLowerCase()) delete headers[existingName];
+		}
+		if (value !== null) headers[name] = value;
+	}
+
+	return { ...model, headers };
 }
 
 async function resolveModel(

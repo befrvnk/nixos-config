@@ -176,7 +176,10 @@ test("withResolvedModelHeaders carries provider headers into the child model", a
 		const model = {
 			provider: "github-copilot",
 			id: "gpt-5.6-luna",
-			headers: { "Existing-Header": "preserved" },
+			headers: {
+				"Existing-Header": "preserved",
+				"Obsolete-Header": "removed",
+			},
 		} as any;
 		const childModel = await withResolvedModelHeaders(model, {
 			find: () => model,
@@ -185,6 +188,7 @@ test("withResolvedModelHeaders carries provider headers into the child model", a
 				headers: {
 					"Editor-Version": "vscode/1.107.0",
 					"Copilot-Integration-Id": "vscode-chat",
+					"obsolete-header": null,
 				},
 			}),
 		});
