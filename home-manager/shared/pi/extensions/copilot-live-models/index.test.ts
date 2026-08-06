@@ -32,7 +32,9 @@ const liveModel: CopilotLiveModel = {
   },
 };
 
-function createDeps(options: { getReserveTokens?: () => number } = {}): {
+function createDeps(
+  options: { getReserveTokens?: () => number; getModel?: () => CopilotLiveModel } = {},
+): {
   deps: CopilotLiveModelsProviderDeps;
   urls: string[];
   signals: (AbortSignal | null)[];
@@ -52,7 +54,7 @@ function createDeps(options: { getReserveTokens?: () => number } = {}): {
       fetchImpl: (async (url, init) => {
         urls.push(String(url));
         signals.push(init?.signal ?? null);
-        return new Response(JSON.stringify({ data: [liveModel] }), {
+        return new Response(JSON.stringify({ data: [options.getModel?.() ?? liveModel] }), {
           status: 200,
           headers: { "content-type": "application/json" },
         });
@@ -80,7 +82,7 @@ test("refreshCopilotLiveModels uses Pi's OAuth credential and live model endpoin
   assert.equal(signals[0], signal);
   assert.equal(models[0]?.id, "gpt-5.5");
   assert.equal(models[0]?.baseUrl, "https://api.enterprise.githubcopilot.com");
-  assert.equal(models[0]?.contextWindow, 400_000);
+  assert.equal(models[0]?.contextWindow, 1_050_000);
 });
 
 test("registerCopilotLiveModels registers a refresh callback without fetching during the factory", async () => {
@@ -128,9 +130,20 @@ test("dynamic refresh reloads the compaction reserve setting", async () => {
   const previousEnabled = process.env.PI_COPILOT_LIVE_MODELS;
   delete process.env.PI_COPILOT_LIVE_MODELS;
   let reserveTokens = 1_000;
+  const promptOnlyModel: CopilotLiveModel = {
+    ...liveModel,
+    billing: undefined,
+    capabilities: {
+      ...liveModel.capabilities,
+      limits: { max_prompt_tokens: 272_000 },
+    },
+  };
 
   try {
-    const { deps } = createDeps({ getReserveTokens: () => reserveTokens });
+    const { deps } = createDeps({
+      getReserveTokens: () => reserveTokens,
+      getModel: () => promptOnlyModel,
+    });
     let config: PiProviderConfig | undefined;
     await registerCopilotLiveModels(
       { registerProvider: (_provider: string, value: PiProviderConfig) => { config = value; } } as any,

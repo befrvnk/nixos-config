@@ -9,7 +9,7 @@ X-GitHub-Api-Version: 2026-06-01
 Copilot-Integration-Id: vscode-chat
 ```
 
-That API version is required for Copilot Enterprise to expose tiered context metadata, including the optional long-context limits (`922k` prompt tokens + `128k` output tokens).
+That API version is required for Copilot Enterprise to expose full context metadata, including the long-context limits (`922k` prompt tokens + `128k` output tokens).
 
 ## Runtime behavior
 
@@ -20,8 +20,8 @@ That API version is required for Copilot Enterprise to expose tiered context met
 - Fetches `${apiBaseUrl}/models` using credential endpoint metadata, the endpoint embedded in the Copilot token, or Pi-compatible Enterprise/individual fallbacks.
 - Assigns that account-specific API endpoint to every refreshed model so Enterprise inference requests do not fall back to Pi's Individual endpoint.
 - Maps live models into Pi provider model configs, including endpoint/API type, reasoning levels, vision support, token pricing, and context/output limits.
-- Uses Copilot's default pricing and context tier because Pi cannot yet explicitly select `long_context`; this prevents auto-compaction from waiting until a standalone summary request requires an unselected tier.
-- Reloads `compaction.reserveTokens` for every refresh, then sets Pi `contextWindow` from the default tier's prompt budget plus that reserve, capped by the catalog's advertised context maximum.
+- Uses Copilot's advertised full context window so Pi exposes long-context models at their actual capacity (for example, `1.05M` for GPT-5.5/5.6 models).
+- Sets Pi `contextWindow` directly from `max_context_window_tokens`. If that field is absent, it reconstructs the window from the largest prompt tier plus `max_output_tokens`, falling back to the current `compaction.reserveTokens` when no output limit is available.
 - Honors Pi's model-refresh cancellation signal and offline mode.
 - Fails open: a failed refresh leaves Pi's previous or built-in Copilot catalog in place.
 - Uses a 10-second fetch timeout by default (`PI_COPILOT_LIVE_MODELS_TIMEOUT_MS`).
@@ -68,7 +68,7 @@ PI_COPILOT_LIVE_MODELS_LIVE_TEST=1 \
   node --test home-manager/shared/pi/extensions/copilot-live-models/live-smoke.test.ts
 ```
 
-This does not print tokens. It asserts that the discovered `gpt-5.5` model is mapped as `openai-responses` with the safe default-tier context window.
+This does not print tokens. It asserts that the discovered `gpt-5.5` and `gpt-5.6-terra` models are mapped as `openai-responses` with their full `1.05M` context windows.
 
 ## Migration from the pre-0.80.9 wrapper
 

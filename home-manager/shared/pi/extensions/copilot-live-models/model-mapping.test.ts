@@ -41,9 +41,9 @@ test("priceToDollarsPerMillion converts Copilot cent-style prices to Pi dollar p
   assert.equal(priceToDollarsPerMillion(undefined), 0);
 });
 
-test("calculatePiContextWindow uses the default tier prompt budget plus configured response reserve", () => {
-  assert.equal(calculatePiContextWindow(gpt55, 128_000), 400_000);
-  assert.equal(calculatePiContextWindow(gpt55, 16_384), 288_384);
+test("calculatePiContextWindow uses the catalog's full advertised context window", () => {
+  assert.equal(calculatePiContextWindow(gpt55, 128_000), 1_050_000);
+  assert.equal(calculatePiContextWindow(gpt55, 16_384), 1_050_000);
   assert.equal(
     calculatePiContextWindow(
       {
@@ -75,6 +75,22 @@ test("calculatePiContextWindow validates metadata and reserve values", () => {
   );
   assert.equal(
     calculatePiContextWindow(
+      {
+        id: "billing-only",
+        billing: {
+          token_prices: {
+            default: { context_max: 272_000 },
+            long_context: { context_max: 922_000 },
+          },
+        },
+        capabilities: { limits: { max_output_tokens: 128_000 } },
+      },
+      16_000,
+    ),
+    1_050_000,
+  );
+  assert.equal(
+    calculatePiContextWindow(
       { id: "invalid", capabilities: { limits: { max_context_window_tokens: -1, max_prompt_tokens: 1.5 } } },
       0,
     ),
@@ -89,12 +105,12 @@ test("calculatePiContextWindow validates metadata and reserve values", () => {
   );
 });
 
-test("mapCopilotModelToPi maps GPT-5.5 default-tier Responses metadata", () => {
+test("mapCopilotModelToPi maps GPT-5.5 full-context Responses metadata", () => {
   const model = mapCopilotModelToPi(gpt55, 128_000);
 
   assert.equal(model?.id, "gpt-5.5");
   assert.equal(model?.api, "openai-responses");
-  assert.equal(model?.contextWindow, 400_000);
+  assert.equal(model?.contextWindow, 1_050_000);
   assert.equal(model?.maxTokens, 128_000);
   assert.deepEqual(model?.input, ["text", "image"]);
   assert.deepEqual(model?.cost, { input: 5, output: 30, cacheRead: 0.5, cacheWrite: 0 });

@@ -45,25 +45,27 @@ export function calculatePiContextWindow(model: CopilotLiveModel, reserveTokens:
   const maxContext = isPositiveSafeInteger(limits?.max_context_window_tokens)
     ? limits.max_context_window_tokens
     : undefined;
-  const defaultTierPrompt = model.billing?.token_prices?.default?.context_max;
-  const maxPrompt = isPositiveSafeInteger(defaultTierPrompt)
-    ? defaultTierPrompt
-    : isPositiveSafeInteger(limits?.max_prompt_tokens)
-      ? limits.max_prompt_tokens
-      : undefined;
-  const reserve = positiveSafeIntegerOr(reserveTokens, DEFAULT_CONTEXT_RESERVE_TOKENS);
+  if (maxContext !== undefined) return maxContext;
 
-  // Pi cannot select Copilot's long_context tier yet. Prefer the default tier's
-  // prompt boundary so auto-compaction runs before a standalone summary request
-  // is routed to a smaller context backend. Fall back to capability limits when
-  // the catalog does not expose tiered billing metadata.
-  if (maxPrompt !== undefined) {
-    const promptWithReserve = maxPrompt > Number.MAX_SAFE_INTEGER - reserve
-      ? Number.MAX_SAFE_INTEGER
-      : maxPrompt + reserve;
-    return maxContext === undefined ? promptWithReserve : Math.min(promptWithReserve, maxContext);
-  }
-  return maxContext ?? 128_000;
+  const prices = model.billing?.token_prices;
+  const promptLimits = [
+    limits?.max_prompt_tokens,
+    prices?.long_context?.context_max,
+    prices?.default?.context_max,
+  ].filter(isPositiveSafeInteger);
+  if (promptLimits.length === 0) return 128_000;
+  const promptLimit = Math.max(...promptLimits);
+
+  const responseAllowance = isPositiveSafeInteger(limits?.max_output_tokens)
+    ? limits.max_output_tokens
+    : positiveSafeIntegerOr(reserveTokens, DEFAULT_CONTEXT_RESERVE_TOKENS);
+
+  // Pi's contextWindow is the combined prompt and response capacity. Prefer the
+  // catalog's explicit combined limit above; otherwise reconstruct it from the
+  // largest advertised prompt tier and the model's output allowance.
+  return promptLimit > Number.MAX_SAFE_INTEGER - responseAllowance
+    ? Number.MAX_SAFE_INTEGER
+    : promptLimit + responseAllowance;
 }
 
 export function buildThinkingLevelMap(
