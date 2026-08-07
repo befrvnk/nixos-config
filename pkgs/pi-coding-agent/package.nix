@@ -1,8 +1,10 @@
 {
   lib,
+  stdenv,
   stdenvNoCC,
   fetchurl,
   makeBinaryWrapper,
+  autoPatchelfHook,
   ripgrep,
 }:
 
@@ -42,6 +44,13 @@ stdenvNoCC.mkDerivation {
 
   nativeBuildInputs = [
     makeBinaryWrapper
+  ]
+  ++ lib.optionals stdenvNoCC.hostPlatform.isLinux [
+    autoPatchelfHook
+  ];
+
+  buildInputs = lib.optionals stdenvNoCC.hostPlatform.isLinux [
+    stdenv.cc.cc.lib
   ];
 
   installPhase = ''
@@ -60,6 +69,7 @@ stdenvNoCC.mkDerivation {
   installCheckPhase = ''
     test -x "$out/bin/pi"
     test -x "$out/share/pi/pi"
+    mkdir -p "$TMPDIR/home"
     HOME="$TMPDIR/home" PI_OFFLINE=1 "$out/bin/pi" --version
   '';
 
