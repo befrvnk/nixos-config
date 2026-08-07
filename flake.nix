@@ -74,6 +74,9 @@
     };
   };
 
+  # NOTE: nixConfig values must be literal (Nix rejects thunks here), so these
+  # lists are kept in sync manually with the single source of truth in
+  # ./shared/caches.nix (used by modules/system/core.nix at runtime).
   nixConfig = {
     trusted-extra-substituters = [
       "https://claude-code.cachix.org"
