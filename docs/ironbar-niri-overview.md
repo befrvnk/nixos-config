@@ -241,6 +241,23 @@ Unlike waybar (which uses SIGUSR1/SIGUSR2), ironbar has native IPC commands for 
 - The new bar won't be hidden or controlled by the toggle script
 - **Solution:** Restart the systemd service, which restarts both the toggle script and ironbar
 
+#### Suspend/Resume Crashes (self-healing)
+
+Ironbar can crash on resume from suspend with a GTK assertion failure
+(`gdk_surface_get_display: 'GDK_IS_SURFACE (surface)' failed` inside
+`gtk_window_destroy`), because the Wayland surface it held becomes invalid while niri
+rebuilds outputs during suspend/resume.
+
+The crash usually self-heals now: the toggle script watches the ironbar child process
+and, if it dies, exits with a non-zero code so the unit's `Restart = "on-failure"`
+restarts the whole service. If the bar is ever missing after resume, check for an
+unexpected-death restart:
+
+```bash
+systemctl --user status ironbar
+journalctl --user -u ironbar -b | grep -i "exited with code"
+```
+
 ### Adding New Modules
 
 Edit `config.json` and add modules to `start`, `center`, or `end` arrays. See [Ironbar documentation](https://github.com/JakeStanger/ironbar/wiki) for available modules.

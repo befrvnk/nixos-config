@@ -6,6 +6,7 @@ Uses Ironbar IPC commands to control visibility.
 """
 
 from json import loads, dumps
+import os
 from os import environ
 from subprocess import Popen, PIPE, run
 from socket import AF_UNIX, socket as Socket, SHUT_WR
@@ -104,6 +105,29 @@ def main() -> None:
     # Start monitoring ironbar output for bar names
     # This also starts threads to forward stdout/stderr
     monitor_bar_names(ironbar_proc, bar_names, bar_names_lock)
+
+    def watch_ironbar_exit() -> None:
+        """Wait for ironbar to exit. If it dies on its own, terminate this
+        wrapper so systemd's Restart=on-failure restarts the whole unit.
+
+        Without this, a crashed ironbar leaves the wrapper (the service's
+        main process) alive forever, so systemd never restarts the bar and
+        it silently stays dead -- exactly what happened after suspend/resume.
+        """
+        returncode = ironbar_proc.wait()
+        print(
+            f"ERROR: Ironbar exited with code {returncode}; "
+            "exiting wrapper so systemd restarts the bar",
+            file=sys.stderr,
+            flush=True,
+        )
+        # os._exit (not sys.exit): sys.exit only raises in the current thread,
+        # but the main thread blocks on the niri socket and would never notice.
+        # Non-zero exit triggers Restart=on-failure in the systemd unit.
+        os._exit(1)
+
+    # Start watching ironbar for unexpected exit
+    threading.Thread(target=watch_ironbar_exit, daemon=True).start()
 
     # Give ironbar a moment to fully start and detect initial bar(s)
     time.sleep(0.5)
