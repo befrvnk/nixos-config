@@ -7,8 +7,16 @@ let
       "/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
     else
       "/run/current-system/sw/bin/op-ssh-sign";
+
+  # Principals that may sign with the SSH signing key. Git matches the
+  # committer identity against these when verifying ssh signatures.
+  allowedSigners = ''
+    hermann.frank@gmail.com,frank.hermann@egym.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ+3hhn8MHxIuaTPFR6z+OPSL9YX5sBN80bct7GVspuz
+  '';
 in
 {
+  home.file.".config/git/allowed_signers".text = allowedSigners;
+
   programs.git = {
     enable = true;
     includes =
@@ -36,8 +44,13 @@ in
         email = "hermann.frank@gmail.com";
         signingkey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ+3hhn8MHxIuaTPFR6z+OPSL9YX5sBN80bct7GVspuz";
       };
-      gpg.format = "ssh";
-      gpg.ssh.program = sshSignProgram;
+      gpg = {
+        format = "ssh";
+        ssh = {
+          program = sshSignProgram;
+          allowedSignersFile = "${config.home.homeDirectory}/.config/git/allowed_signers";
+        };
+      };
       commit.gpgsign = true;
       init.defaultBranch = "main";
       pull = {
