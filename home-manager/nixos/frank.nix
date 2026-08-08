@@ -24,6 +24,7 @@
     ./nushell.nix
     ./obsidian.nix
     ./packages.nix
+    ./pi.nix
     ./polkit-agent.nix
     ./profile-sync-daemon.nix
     ./signal.nix
