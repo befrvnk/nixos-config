@@ -28,10 +28,29 @@ let
       keepRecentTokens = 20000;
       reserveTokens = 128000;
     };
-    defaultModel = "gpt-5.6-terra";
-    defaultProvider = "github-copilot";
-    defaultThinkingLevel = "medium";
+    defaultModel = "deepseek/deepseek-v4-flash-0731";
+    defaultProvider = "openrouter";
+    defaultThinkingLevel = "high";
     hideThinkingBlock = true;
+  };
+
+  # Route the default model over OpenRouter: prefer the cheapest provider that
+  # still meets a p50 throughput of at least 50 tokens/s. `sort: price` disables
+  # load balancing and tries endpoints lowest-cost first, while
+  # `preferred_min_throughput` deprioritizes sub-50tps providers behind those
+  # meeting the floor.
+  piModels = {
+    providers.openrouter.modelOverrides = {
+      "deepseek/deepseek-v4-flash-0731".compat.openRouterRouting = {
+        sort = {
+          by = "price";
+          partition = "model";
+        };
+        preferred_min_throughput = {
+          p50 = 50;
+        };
+      };
+    };
   };
 
   piLspConfig = {
@@ -81,6 +100,7 @@ in
       ".pi/agent/extensions/search-tools".source = runtimeExtension ./extensions/search-tools;
       ".pi/agent/extensions/subagents".source = runtimeExtension ./extensions/subagents;
       ".pi/agent/extensions/system-theme-sync".source = runtimeExtension ./extensions/system-theme-sync;
+      ".pi/agent/models.json".text = builtins.toJSON piModels;
       ".pi/agent/pi-lsp.json".text = builtins.toJSON piLspConfig;
       ".pi/agent/settings.json".text = builtins.toJSON piSettings;
     };
