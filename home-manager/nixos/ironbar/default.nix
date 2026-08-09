@@ -64,6 +64,39 @@ let
     }"
     ${builtins.readFile ./modules/notifications/notification-count-watch.sh}
   '';
+
+  # OpenRouter usage scripts with injected dependencies
+  # Fetch account balance/usage over the network, parse pi sessions locally
+  openrouterAccount = pkgs.writeShellScript "openrouter-account" ''
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.curl
+        pkgs.jq
+        pkgs.coreutils
+      ]
+    }"
+    ${builtins.readFile ./modules/openrouter/account.sh}
+  '';
+  openrouterStatus = pkgs.writeShellScript "openrouter-status" ''
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.jq
+        pkgs.gawk
+        pkgs.coreutils
+      ]
+    }"
+    ${builtins.readFile ./modules/openrouter/openrouter-status.sh}
+  '';
+  openrouterDetails = pkgs.writeShellScript "openrouter-details" ''
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.jq
+        pkgs.gawk
+        pkgs.coreutils
+      ]
+    }"
+    ${builtins.readFile ./modules/openrouter/openrouter-details.sh}
+  '';
 in
 {
   # Install ironbar from nixpkgs (includes all features by default)
@@ -254,6 +287,21 @@ in
     };
     "ironbar/modules/firewall/firewall-details.sh" = {
       source = ./modules/firewall/firewall-details.sh;
+      executable = true;
+    };
+
+    # OpenRouter usage module
+    # Shows OpenRouter credit balance/month usage + pi session activity
+    "ironbar/modules/openrouter/account.sh" = {
+      source = openrouterAccount;
+      executable = true;
+    };
+    "ironbar/modules/openrouter/openrouter-status.sh" = {
+      source = openrouterStatus;
+      executable = true;
+    };
+    "ironbar/modules/openrouter/openrouter-details.sh" = {
+      source = openrouterDetails;
       executable = true;
     };
   };

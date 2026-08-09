@@ -8,7 +8,7 @@ This ironbar setup includes:
 - **Overview-only mode**: Bar only visible when Niri's overview (workspace expose) is active
 - **Custom volume module**: Workaround for PulseAudio crash bug in built-in volume module
 - **Stylix integration**: Automatic color theming from system theme
-- **Custom modules**: WiFi, battery, notifications, and volume status
+- **Custom modules**: WiFi, battery, notifications, volume, and OpenRouter usage status
 
 ## Files
 
@@ -68,6 +68,23 @@ All custom modules use shell scripts that output formatted text with Nerd Font i
 | Battery | `modules/battery/battery-status.sh` | 5s | Shows battery level and charging status |
 | Notifications | `modules/notifications/*.sh` | 2s | Shows unread count, history popup |
 | **Volume** | `modules/volume/volume-status.sh` | **1s (cache read)** | **Reads `~/.cache/volume-status` written by `volume-ctl`** |
+| OpenRouter | `modules/openrouter/*.sh` | 5 min | `start` slot · monthly + daily cost; popup with balance, today's & 7-day/per-model breakdown |
+
+## OpenRouter Usage Module
+
+Shows the **OpenRouter monthly cost** and **today's cost**, both taken **directly from OpenRouter's own API** (the same data as the activity page) — pi's session files are not used for cost accounting.
+
+- **Bar label** (polled every 5 min, far left / `start`): `󰮝  $4.77/m · $4.41/d`
+- **Popup**: balance, month usage, **today (live)**, recent completed days, per-model totals (30 days), and an **Open dashboard** button linking to `https://openrouter.ai/activity`.
+- **Today = live and authoritative**: `/credits` gives real-time month usage; `/api/v1/activity` sums only *completed* days (it excludes the in-progress day). `today = month_usage − completed-days-this-month`, which reproduces the browser's live value. **UTC** day boundary.
+- **Security**: no secret in the config. `modules/openrouter/account.sh` reads a **management key** at runtime from `~/.config/openrouter/management.key` (mode `0600`, outside the repo) and calls `GET /api/v1/activity` + `GET /api/v1/credits`, caching to `~/.cache/openrouter-account.json` (2 min TTL). Without a management key it degrades to balance/month only (via pi's own key) and shows no daily/history.
+
+### Creating the management key (one-time)
+
+1. Open https://openrouter.ai/settings/keys → create a **management key** (not a regular key).
+2. `mkdir -p ~/.config/openrouter && chmod 600 ~/.config/openrouter`
+3. `printf '%s' '<key>' > ~/.config/openrouter/management.key && chmod 600 ~/.config/openrouter/management.key`
+4. Reload the module (`systemctl --user restart ironbar` after rebuild).
 
 ## Building
 

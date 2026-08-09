@@ -507,3 +507,42 @@ button.flat:hover {
     white-space: pre-wrap;
     line-height: 1.4;
 }
+
+/* OpenRouter usage module styling */
+.openrouter,
+.openrouter button,
+.openrouter label {
+    font-weight: normal;
+}
+
+/* OpenRouter popup styling */
+.popup-openrouter {
+    background-color: @base00;
+    padding: 15px;
+    border-radius: 16px;
+    min-width: 260px;
+}
+
+.popup-openrouter label {
+    color: @base05;
+    padding: 5px 0;
+}
+
+.popup-openrouter .popup-title {
+    font-weight: bold;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+.popup-openrouter button {
+    background-color: @base02;
+    color: @base05;
+    padding: 8px 16px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+}
+
+.popup-openrouter button:hover {
+    background-color: @base03;
+}
