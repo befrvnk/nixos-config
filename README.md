@@ -218,6 +218,16 @@ nmcli connection up "connection-name"
 nmcli device disconnect wlan0
 ```
 
+If the internet is sometimes slow right after waking from suspend, the system
+captures radio state around each sleep cycle for diagnosis:
+
+```bash
+wifi-wakeup-log        # last captured suspend/resume snapshots
+# or: sudo journalctl -u wifi-wakeup-log
+```
+
+See [docs/wifi-wakeup-log.md](docs/wifi-wakeup-log.md).
+
 ### Bluetooth (bluetoothctl)
 
 ```bash

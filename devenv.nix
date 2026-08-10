@@ -431,6 +431,14 @@ in
       echo "💡 Share these files when reporting WiFi issues."
     '';
 
+    # Print the WiFi state snapshots captured around each suspend/resume cycle
+    # by the wifi-wakeup-log systemd unit. Use -f to follow live.
+    wifi-wakeup-log.exec = ''
+      echo "📊 WiFi wake-up logs (sudo journalctl -u wifi-wakeup-log)"
+      echo "  Add -f to follow live; this shows the last 200 lines."
+      sudo ${pkgs.systemd}/bin/journalctl -u wifi-wakeup-log -n 200 "$@"
+    '';
+
     # Re-enroll TPM key for LUKS auto-unlock after kernel/bootloader updates
     # Run this after rebuilding if boot asks for the encryption password
     tpm-rekey.exec = ''
