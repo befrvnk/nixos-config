@@ -190,6 +190,7 @@ in
     extensions = [
       pkgs.gh-dash
       pkgs.gh-enhance
+      pkgs.gh-stack
     ];
     settings = {
       git_protocol = "ssh";
