@@ -12,6 +12,7 @@
     helix
     htop
     imagemagick
+    kleinanzeigen-api
     lf
     nh
     nmap
