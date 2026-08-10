@@ -1,10 +1,63 @@
 # MediaTek MT7925 WiFi Boot Failure
 
+> **Also covers (same fix):** runtime dramatic-throughput throttling after
+> suspend/resume. See the dedicated section below.
+
 ## Summary
 
 The MediaTek MT7925 (WiFi 7) card on Framework Laptop 13 (AMD Ryzen AI 300 Series) intermittently fails to initialize during boot with "driver own failed" errors. This is caused by PCIe ASPM (Active State Power Management) putting the device in a low-power state before the driver can probe it.
 
 **Status:** Fixed with `pcie_aspm.policy=performance` kernel parameter.
+
+## Runtime Throughput Throttling (slow internet after resume)
+
+**Same underlying cause as the boot failure: aggressive `powersupersave` ASPM.**
+
+### Symptom
+
+- Internet is (intermittently) very slow after suspend/resume.
+- The radio looks completely healthy: `iw dev wlp192s0 link` shows a full
+  negotiated rate (e.g. `tx 780 Mbit/s VHT-MCS 9`), signal ~-49 dBm,
+  `power_save off`, `beacon loss: 0`.
+- But real throughput is terrible (~2.7 Mbit/s): `curl` a 10 MB file from
+  `speed.cloudflare.com` times out at 15 s pulling ~337 KB/s (0.3% of nominal).
+- Restarting NetworkManager / toggling the connection / restarting
+  systemd-resolved does **not** help.
+- `pcie_aspm.policy=powersupersave` is active on the kernel cmdline.
+
+### Why it happens
+
+`powersupersave` is the most aggressive ASPM policy. After recovery, the MT7925
+wakes and negotiates a normal MCS rate, but aggressive PCIe L1 power management
+leaves HW frame aggregation (A-MPDU/AMSDU) throttled — high negotiated speed,
+terrible delivered throughput. The Stub-resolver first query is also slow
+(~300 ms) reinforcing a feeling of sluggishness, but the dominant issue is the
+radio data path.
+
+### Fix
+
+Change the ASPM policy away from `powersupersave` in
+`modules/hardware/power-management.nix`:
+
+```nix
+"pcie_aspm.policy=performance"   # was powersupersave
+```
+
+`performance` keeps ASPM enabled (better battery than `pcie_aspm=off`) while
+avoiding the aggressive low-power state. Requires a reboot to take effect.
+
+### Immediate diagnostic (no reboot)
+
+To confirm a stuck card is the cause, reset the driver (drops WiFi briefly):
+
+```bash
+sudo modprobe -r mt7925e && sleep 2 && sudo modprobe mt7925e
+curl -o /dev/null -s -w '%{speed_download}\n' --max-time 15 \
+  'https://speed.cloudflare.com/__down?bytes=10000000'
+```
+
+If throughput jumps back to normal after the reload, the card was in a degraded
+driver/ASPM state — the `performance` policy prevents it from recurring.
 
 ## The Problem
 

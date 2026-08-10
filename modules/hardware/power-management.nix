@@ -221,11 +221,18 @@ in
       # Disable NMI watchdog (saves ~1W)
       # NMI watchdog is used for detecting hard lockups, but not needed for normal use
       "nmi_watchdog=0"
-      # PCIe ASPM: Use powersupersave for maximum power savings
-      # Previously caused MT7925 WiFi boot failures with TLP, but tuned doesn't have
-      # aggressive early udev rules. If WiFi fails, change to "performance".
-      # See: docs/mt7925-wifi-boot-failure.md
-      "pcie_aspm.policy=powersupersave"
+      # PCIe ASPM: Use "performance" instead of "powersupersave".
+      #
+      # powersupersave caused two MT7925 WiFi problems coordinated here:
+      #   1. Boot-time "driver own failed" (documented in mt7925-wifi-boot-failure.md)
+      #   2. Runtime throughput throttling after suspend/resume: the radio wakes,
+      #      negotiates a full MCS rate (~780 Mbit/s) but actual throughput drops to
+      #      ~2.7 Mbit/s because aggressive ASPM L1 leaves frame aggregation broken.
+      #
+      # "performance" keeps ASPM enabled (less power impact than pcie_aspm=off)
+      # but avoids the aggressive low-power state that throttles the card.
+      # See: docs/mt7925-wifi-boot-failure.md, docs/wifi-wakeup-log.md
+      "pcie_aspm.policy=performance"
       # RCU Lazy: batch RCU callbacks during idle for 5-10% power savings
       # Allows deeper CPU sleep states at idle; no performance downside
       "rcutree.enable_rcu_lazy=1"

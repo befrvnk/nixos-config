@@ -76,5 +76,6 @@ post-resume.log) for scripting/analysis.
   - Radio not re-probing → escalate the ASPM/`disable_aspm` approach used for
     the boot issue, applied at runtime.
   - Power-save stuck → force `iw … set power_save off` in the resume hook.
-  - PCIe link downgrade → change the tuned battery PCIe policy away from
-    `powersupersave`.
+  - **PCIe link downgrade / throughput throttling → resolved by relaxing ASPM**
+    away from `powersupersave` to `performance` in `power-management.nix`
+    (root cause found 2026-08-10: see mt7925-wifi-boot-failure.md).
