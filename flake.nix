@@ -163,6 +163,7 @@
 
           inherit (pkgs)
             google-antigravity
+            openchamber
             supacode
             ;
         }
