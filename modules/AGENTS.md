@@ -123,9 +123,10 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 ## System Optimizations
 
 ### SCX Scheduler (`modules/services/scx.nix`)
-- Uses `scx_lavd` BPF scheduler with `--autopower`
-- Requires `amd_pstate=active` kernel parameter
-- Core Compaction: active cores faster, idle cores sleep
+- Uses `scx_flash` BPF scheduler (EDF + dynamic latency weighting)
+- `--primary-domain auto` gates cores by platform power profile (battery → efficient/parks idle cores)
+- `--throttle-us 200` injects idle cycles for battery life
+- No `--cpufreq`: frequency is left to `amd_pstate=active` EPP (hardware autonomous)
 - **CachyOS kernel** provides best integration
 
 ### CachyOS-Style Sysctls (`modules/system/core.nix`)

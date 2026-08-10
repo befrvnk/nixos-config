@@ -1,18 +1,34 @@
 {
   # SCX sched_ext BPF scheduler
-  # Uses scx_lavd (Latency-criticality Aware Virtual Deadline) for interactive workloads
-  # See: https://github.com/sched-ext/scx/blob/main/scheds/rust/scx_lavd/README.md
+  # Uses scx_flash (EDF scheduler with dynamic latency weighting) for interactive workloads
+  # See: https://github.com/sched-ext/scx/blob/main/scheds/rust/scx_flash/README.md
   #
-  # --autopower: Automatically switches between power modes (powersave/balanced/performance)
-  # based on system's Energy Performance Preference (EPP) and CPU utilization.
-  # Requires amd_pstate=active kernel parameter to read EPP.
+  # flash assigns each task a latency weight that rises when it releases the CPU early,
+  # so latency-sensitive tasks (editor, terminal, audio) stay responsive even when all
+  # cores are saturated by CPU-bound workloads such as parallel builds.
   #
-  # Core Compaction: When CPU usage < 50%, active cores run at higher frequencies
-  # while idle cores stay in C-State sleep for better power efficiency.
+  # --primary-domain auto: Gate the initial dispatch domain based on the active platform
+  #   power profile (read via tuned-ppd). On battery this favors the efficient cores and
+  #   parks unused ones, giving the aggressive core-disabling we want for low idle power.
+  #
+  # --throttle-us: Periodically inject idle cycles to extend battery life on portable
+  #   devices and reduce heat/fan noise. 0 = disabled; tuned value here is conservative.
+  #
+  # NOTE: We deliberately do NOT pass --cpufreq. flash's built-in frequency control needs
+  # the schedutil governor, but this host uses amd_pstate=active where the CPU hardware
+  # handles frequency autonomously via EPP. Leaving frequency control to EPP is the
+  # better fit (also avoids needing a governor change).
   services.scx = {
     enable = true;
-    scheduler = "scx_lavd";
-    extraArgs = [ "--autopower" ];
+    scheduler = "scx_flash";
+    extraArgs = [
+      # `auto` is also flash's default, but being explicit documents the intent.
+      "--primary-domain"
+      "auto"
+      # Match the low-wattage-on-battery goal that scx_lavd --autopower provided.
+      "--throttle-us"
+      "200"
+    ];
   };
 
   # Reduce stop timeout to avoid long shutdown delays

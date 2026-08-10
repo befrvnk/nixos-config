@@ -239,7 +239,7 @@ in
     ]
     # AMD-specific: Use P-State active (EPP) mode for hardware-controlled frequency scaling
     # Active mode: hardware autonomously controls frequency based on Energy Performance Preference (EPP)
-    # Required for scx_lavd --autopower to read EPP and adjust scheduling behavior
+    # EPP handles frequency; scx_flash scheduler handles task placement/gating on top of it
     # Better idle efficiency and works well with sched_ext schedulers
     ++ lib.optionals isAmd [ "amd_pstate=active" ];
 

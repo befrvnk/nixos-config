@@ -542,7 +542,7 @@ This configuration separates concerns between system-level and user-level settin
 - **ABM (Adaptive Backlight Management)** on battery for display power savings (disabled on AC for accurate colors)
 - **Auto-brightness** via ambient light sensor with hysteresis (toggle with `Mod+Shift+B` for photo editing)
 - **Bluetooth power savings** - Off on boot (~0.5W savings), automatically turns on when AC is connected, manual control via blueman
-- **SCX scheduler (scx_lavd)** with `--autopower` reads EPP and adjusts scheduling automatically
+- **SCX scheduler (scx_flash)** keeps reactive work responsive under heavy builds and gates cores by power profile for battery life
 - **Battery popup** in Ironbar for manual profile switching
 - **wayland-pipewire-idle-inhibit** - Screen stays on during audio/video playback
 - Auto-suspend after 5 minutes idle (when no media playing)

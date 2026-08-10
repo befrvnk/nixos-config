@@ -15,7 +15,7 @@
     inputs.lanzaboote.nixosModules.lanzaboote
   ];
 
-  # Use CachyOS kernel for best sched_ext/scx_lavd integration
+  # Use CachyOS kernel for best sched_ext/scx_flash integration
   # 6.17 reached EOL; CachyOS provides optimizations for gaming and power efficiency
   # Available variants: linuxPackages-cachyos-latest, linuxPackages-cachyos-lts
   # Fallback: pkgs.linuxPackages_6_12 if issues arise
