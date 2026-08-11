@@ -1,10 +1,20 @@
-{ inputs, pkgs, ... }:
+{
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
     inputs.nixos-hardware.nixosModules.raspberry-pi-4
     "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
   ];
+
+  # The sd-image profile enables ZFS support via profiles/base.nix, but hermi is
+  # ext4-only. Disable it to silence the boot.zfs.forceImportRoot eval warning and
+  # avoid pulling the zfs kernel module, services, and package into the image.
+  boot.supportedFilesystems.zfs = lib.mkForce false;
 
   networking = {
     hostName = "hermi";
