@@ -1,14 +1,15 @@
 {
   inputs,
   lib,
+  nixos-raspberrypi,
   pkgs,
   ...
 }:
 
 {
   imports = [
-    inputs.nixos-hardware.nixosModules.raspberry-pi-4
-    "${inputs.nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+    nixos-raspberrypi.nixosModules.raspberry-pi-4.base
+    nixos-raspberrypi.nixosModules.sd-image
   ];
 
   # The sd-image profile enables ZFS support via profiles/base.nix, but hermi is

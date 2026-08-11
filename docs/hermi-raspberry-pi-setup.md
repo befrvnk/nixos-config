@@ -32,8 +32,9 @@ The relevant configuration is:
 - `flake.nix` — `nixosConfigurations.hermi` and the upstream Hermes flake input
 - `hosts/framework/default.nix` — enables AArch64 emulation needed to build the image
 
-The Pi configuration imports the NixOS hardware profile for the Raspberry Pi
-4 and the generic AArch64 SD-card image module.
+The Pi configuration uses `nixos-raspberrypi` for the Raspberry Pi 4 board
+profile, vendor kernel, firmware, bootloader, SD-card image module, and its
+Cachix binary cache. This avoids compiling the Pi vendor kernel through QEMU.
 
 ## Prerequisites
 
@@ -74,11 +75,17 @@ tools. It may request substantial downloads on the first run.
 
 ```bash
 nix build .#nixosConfigurations.hermi.config.system.build.sdImage \
-  --accept-flake-config
+  --accept-flake-config \
+  --option extra-substituters https://nixos-raspberrypi.cachix.org \
+  --option extra-trusted-public-keys \
+    nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
 ```
 
-The first build can be slow. Nix downloads available target packages from
-binary caches and uses emulation only where needed.
+The image downloads the prebuilt Pi vendor kernel and firmware from the
+`nixos-raspberrypi` Cachix cache. The explicit cache options make the command
+work even if the Framework has not yet applied the repository's updated Nix
+cache configuration. Nix may still assemble the custom image and fetch many
+source artifacts, but it must not compile `linux-rpi` locally.
 
 The result is available at:
 
