@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/images"
+	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/listing"
 )
 
 const version = "0.1.0"
@@ -31,6 +32,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return err
 	case "images":
 		return runImages(args[1:], stdout, stderr)
+	case "listing":
+		return runListing(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		printUsage(stdout)
 		return nil
@@ -38,6 +41,30 @@ func run(args []string, stdout, stderr io.Writer) error {
 		printUsage(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func runListing(args []string, stdout, stderr io.Writer) error {
+	flags := flag.NewFlagSet("kleinanzeigen listing", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	jsonOutput := flags.Bool("json", false, "print listing details as JSON")
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+	if flags.NArg() != 1 {
+		return errors.New("listing requires exactly one listing URL")
+	}
+	result, err := listing.Fetch(flags.Arg(0))
+	if err != nil {
+		return err
+	}
+	if *jsonOutput {
+		return json.NewEncoder(stdout).Encode(result)
+	}
+	_, err = fmt.Fprintf(stdout, "%s\n%s\n%s\n", result.Title, result.Price, result.URL)
+	return err
 }
 
 func runImages(args []string, stdout, stderr io.Writer) error {
@@ -71,5 +98,6 @@ func printUsage(writer io.Writer) {
 	fmt.Fprintln(writer, "Usage: kleinanzeigen <command> [options]")
 	fmt.Fprintln(writer, "\nCommands:")
 	fmt.Fprintln(writer, "  images <listing-url>  Download images from a listing gallery")
+	fmt.Fprintln(writer, "  listing <listing-url> Show public listing details")
 	fmt.Fprintln(writer, "  version               Print the CLI version")
 }
