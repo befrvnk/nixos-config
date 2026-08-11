@@ -1,7 +1,8 @@
 # MediaTek MT7925 WiFi Boot Failure
 
 > **Also covers (same fix):** runtime dramatic-throughput throttling after
-> suspend/resume. See the dedicated section below.
+> suspend/resume and the **7.1.x kernel mt76 regression** (see dedicated
+> sections below).
 
 ## Summary
 
@@ -58,6 +59,37 @@ curl -o /dev/null -s -w '%{speed_download}\n' --max-time 15 \
 
 If throughput jumps back to normal after the reload, the card was in a degraded
 driver/ASPM state — the `performance` policy prevents it from recurring.
+
+## 7.1.x Kernel mt76 Regression (WiFi dies while "connected")
+
+**Status:** Unfixed upstream in 7.1.x. Workaround: use the CachyOS LTS kernel.
+
+### Symptom
+
+- WiFi stays *visually connected* with healthy-looking link (good RSSI, rates)
+- But all traffic dies: no ARP/ICMP, gateway unreachable, throughput ~0
+- Pings degrade progressively (e.g. 9 ms → 300–1400 ms → 0 bytes)
+- **Reloading `mt7925e` restores connectivity** (until the next occurrence)
+- Affects kernel 7.1.x (confirmed on 7.1.1 through 7.1.6, incl. CachyOS)
+- **Not affected: LTS kernel 6.18.38+ works perfectly** (community-confirmed)
+
+### Sources
+
+- [CachyOS Forum: MT7925 WiFi 7 MLO breaks connectivity on 7.1.x](https://discuss.cachyos.org/t/mt7925-wifi-7-mlo-breaks-connectivity-on-7-1-x-mt76-regression/31972)
+- [Upstream fix for related TDLS collapse: commit 37d6538](https://github.com/torvalds/linux/commit/37d65384aa6f)
+  ("don't disable AP BSS when removing TDLS peer") — merged + Cc stable,
+  symptom: downlink collapses to 6–72 Mbit/s until a manual reconnect
+- [openwrt/mt76 #1108](https://github.com/openwrt/mt76/issues/1108): contention-
+  triggered latency collapse on 5 GHz (kernel 7.1.3, same firmware, NixOS)
+
+### Fix applied in this repo
+
+`hosts/framework/default.nix`: `boot.kernelPackages` switched from
+`linuxPackages-cachyos-latest` (7.1.x, affected) to
+`linuxPackages-cachyos-lts` (6.18.x, confirmed working).
+
+Revisit when the regression is fixed upstream (bugzilla report pending), then
+return to `linuxPackages-cachyos-latest`.
 
 ## The Problem
 

@@ -15,12 +15,14 @@
     inputs.lanzaboote.nixosModules.lanzaboote
   ];
 
-  # Use CachyOS kernel for best sched_ext/scx_flash integration
-  # 6.17 reached EOL; CachyOS provides optimizations for gaming and power efficiency
-  # Available variants: linuxPackages-cachyos-latest, linuxPackages-cachyos-lts
-  # Fallback: pkgs.linuxPackages_6_12 if issues arise
+  # Use CachyOS LTS kernel: the 7.1.x (cachyos-latest) series has an unfixed
+  # mt76/MT7925 regression where WiFi stays "connected" but traffic dies
+  # (no ARP/ICMP, throughput ~0), only recoverable by reloading mt7925e.
+  # Confirmed by CachyOS forum + upstream commit 37d6538; the 6.18.x LTS
+  # works perfectly. Revisit once the 7.1.x regression is fixed upstream.
+  # See: docs/mt7925-wifi-boot-failure.md
   boot = {
-    kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-latest;
+    kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
     loader.systemd-boot.enable = lib.mkForce false;
     lanzaboote = {
       enable = true;
