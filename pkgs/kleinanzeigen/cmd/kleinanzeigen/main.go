@@ -51,6 +51,7 @@ func runSearch(args []string, stdout, stderr io.Writer) error {
 	flags.SetOutput(stderr)
 	query := flags.String("query", "", "search query")
 	location := flags.String("location-id", "", "numeric location id")
+	postcode := flags.String("postcode", "", "postcode or place name")
 	radius := flags.Int("radius", 50, "radius in km")
 	category := flags.Int("category", 217, "category id")
 	maxPrice := flags.Int("max-price", 0, "maximum price")
@@ -59,10 +60,18 @@ func runSearch(args []string, stdout, stderr io.Writer) error {
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if *query == "" || *location == "" {
-		return errors.New("search requires --query and --location-id")
+	if *query == "" || (*location == "" && *postcode == "") {
+		return errors.New("search requires --query and --location-id or --postcode")
 	}
-	results, err := search.Fetch(*query, *location, *radius, *category, *maxPrice, *sort)
+	locationID := *location
+	if locationID == "" {
+		var err error
+		locationID, err = search.ResolveLocation(*postcode)
+		if err != nil {
+			return err
+		}
+	}
+	results, err := search.Fetch(*query, locationID, *radius, *category, *maxPrice, *sort)
 	if err != nil {
 		return err
 	}

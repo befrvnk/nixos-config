@@ -19,6 +19,38 @@ type Result struct {
 	City  string `json:"city"`
 }
 
+func ResolveLocation(query string) (string, error) {
+	request, err := http.NewRequest(http.MethodGet, "https://api.kleinanzeigen.de/api/locations.json?q="+url.QueryEscape(query), nil)
+	if err != nil {
+		return "", err
+	}
+	setHeaders(request)
+	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("location lookup returned %s", response.Status)
+	}
+	var root map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&root); err != nil {
+		return "", err
+	}
+	locations, _ := root["{http://www.ebayclassifiedsgroup.com/schema/location/v1}locations"].(map[string]any)
+	value, _ := locations["value"].(map[string]any)
+	raw, _ := value["location"].([]any)
+	if len(raw) == 0 {
+		return "", fmt.Errorf("no location found for %q", query)
+	}
+	location, _ := raw[0].(map[string]any)
+	id := val(location["id"])
+	if id == "" {
+		return "", fmt.Errorf("location lookup returned no id for %q", query)
+	}
+	return id, nil
+}
+
 func Fetch(query, locationID string, radius, category, maxPrice int, sort string) ([]Result, error) {
 	v := url.Values{"page": {"0"}, "size": {"25"}, "q": {query}, "locationId": {locationID}, "distance": {strconv.Itoa(radius)}, "categoryId": {strconv.Itoa(category)}, "adType": {"OFFERED"}, "sortType": {sort}}
 	if maxPrice > 0 {
@@ -28,11 +60,7 @@ func Fetch(query, locationID string, radius, category, maxPrice int, sort string
 	if err != nil {
 		return nil, err
 	}
-	r.SetBasicAuth("android", "TaR60pEttY")
-	r.Header.Set("X-EBAYK-APP", fmt.Sprintf("ka%d", time.Now().UnixMilli()))
-	r.Header.Set("X-ECG-USER-AGENT", "ebayk-android-app-2026.25.0")
-	r.Header.Set("X-ECG-USER-VERSION", "2026.25.0")
-	r.Header.Set("User-Agent", "Kleinanzeigen/2026.25.0 (Android 13; Pixel 7)")
+	setHeaders(r)
 	c := &http.Client{Timeout: 30 * time.Second}
 	resp, err := c.Do(r)
 	if err != nil {
@@ -57,6 +85,14 @@ func Fetch(query, locationID string, radius, category, maxPrice int, sort string
 	}
 	return out, nil
 }
+func setHeaders(request *http.Request) {
+	request.SetBasicAuth("android", "TaR60pEttY")
+	request.Header.Set("X-EBAYK-APP", fmt.Sprintf("ka%d", time.Now().UnixMilli()))
+	request.Header.Set("X-ECG-USER-AGENT", "ebayk-android-app-2026.25.0")
+	request.Header.Set("X-ECG-USER-VERSION", "2026.25.0")
+	request.Header.Set("User-Agent", "Kleinanzeigen/2026.25.0 (Android 13; Pixel 7)")
+}
+
 func val(v any) string {
 	if m, ok := v.(map[string]any); ok {
 		return val(m["value"])
