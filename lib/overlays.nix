@@ -5,6 +5,7 @@ let
     (import ../overlays/gh-enhance.nix)
     (import ../overlays/kleinanzeigen-api.nix)
     (import ../overlays/kleinanzeigen-images.nix)
+    (import ../overlays/kleinanzeigen.nix)
     (import ../overlays/kotlin-lsp.nix)
     (import ../overlays/pi-coding-agent.nix)
     (import ../overlays/user-scanner.nix)

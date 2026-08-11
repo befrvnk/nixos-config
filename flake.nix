@@ -160,6 +160,7 @@
 
           inherit (pkgs)
             gh-enhance
+            kleinanzeigen
             kleinanzeigen-images
             kotlin-lsp
             pi-coding-agent

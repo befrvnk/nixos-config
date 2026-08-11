@@ -12,6 +12,7 @@
     helix
     htop
     imagemagick
+    kleinanzeigen
     kleinanzeigen-api
     kleinanzeigen-images
     lf
