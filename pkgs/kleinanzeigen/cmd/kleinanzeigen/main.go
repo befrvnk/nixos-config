@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/auth"
 	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/images"
 	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/listing"
 	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/search"
@@ -31,6 +32,10 @@ func run(args []string, stdout, stderr io.Writer) error {
 	case "version":
 		_, err := fmt.Fprintln(stdout, version)
 		return err
+	case "auth":
+		return runAuth(args[1:], stdout, stderr)
+	case "login":
+		return auth.Login()
 	case "images":
 		return runImages(args[1:], stdout, stderr)
 	case "listing":
@@ -44,6 +49,25 @@ func run(args []string, stdout, stderr io.Writer) error {
 		printUsage(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func runAuth(args []string, stdout, stderr io.Writer) error {
+	if len(args) != 1 || (args[0] != "status" && args[0] != "logout") {
+		return errors.New("auth requires status or logout")
+	}
+	if args[0] == "logout" {
+		return auth.Logout()
+	}
+	token, err := auth.Load()
+	if err != nil {
+		return err
+	}
+	if !token.LoggedIn() {
+		_, err = fmt.Fprintln(stdout, "not logged in")
+		return err
+	}
+	_, err = fmt.Fprintf(stdout, "logged in%s\n", map[bool]string{true: " as " + token.Email, false: ""}[token.Email != ""])
+	return err
 }
 
 func runSearch(args []string, stdout, stderr io.Writer) error {
@@ -138,6 +162,8 @@ func runImages(args []string, stdout, stderr io.Writer) error {
 func printUsage(writer io.Writer) {
 	fmt.Fprintln(writer, "Usage: kleinanzeigen <command> [options]")
 	fmt.Fprintln(writer, "\nCommands:")
+	fmt.Fprintln(writer, "  auth status|logout    Show or clear local login state")
+	fmt.Fprintln(writer, "  login                 Sign in using OAuth PKCE")
 	fmt.Fprintln(writer, "  images <listing-url>  Download images from a listing gallery")
 	fmt.Fprintln(writer, "  listing <listing-url> Show public listing details")
 	fmt.Fprintln(writer, "  search               Search public listings")
