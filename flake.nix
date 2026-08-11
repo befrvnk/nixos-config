@@ -18,6 +18,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -115,7 +119,16 @@
       # System configurations generated from the host inventory.
       darwinConfigurations = inputs.nixpkgs.lib.mapAttrs (_: darwinLib.mkDarwinHost) hostInventory.darwin;
 
-      nixosConfigurations = inputs.nixpkgs.lib.mapAttrs (_: hostLib.mkHost) hostInventory.nixos;
+      nixosConfigurations = (inputs.nixpkgs.lib.mapAttrs (_: hostLib.mkHost) hostInventory.nixos) // {
+        hermi = inputs.nixpkgs.lib.nixosSystem {
+          system = "aarch64-linux";
+          specialArgs = { inherit inputs; };
+          modules = [
+            inputs.hermes-agent.nixosModules.default
+            ./hosts/hermi
+          ];
+        };
+      };
 
       checks = forAllSystems (
         system:

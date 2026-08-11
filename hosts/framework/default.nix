@@ -22,6 +22,7 @@
   # works perfectly. Revisit once the 7.1.x regression is fixed upstream.
   # See: docs/mt7925-wifi-boot-failure.md
   boot = {
+    binfmt.emulatedSystems = [ "aarch64-linux" ];
     kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
     loader.systemd-boot.enable = lib.mkForce false;
     lanzaboote = {
