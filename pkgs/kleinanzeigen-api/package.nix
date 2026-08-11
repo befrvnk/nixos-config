@@ -5,8 +5,12 @@
 }:
 python3Packages.buildPythonApplication rec {
   pname = "kleinanzeigen-api";
-  version = "0.4.0";
+  version = "0.4.0-send.1";
   pyproject = true;
+
+  postPatch = ''
+    ${python3Packages.python}/bin/python ${./add-send-command.py}
+  '';
 
   src = fetchFromGitHub {
     owner = "monkrel";
@@ -22,6 +26,7 @@ python3Packages.buildPythonApplication rec {
   doInstallCheck = true;
   installCheckPhase = ''
     $out/bin/kleinanzeigen-api --categories > /dev/null
+    $out/bin/kleinanzeigen-api send --help > /dev/null
   '';
 
   meta = {
