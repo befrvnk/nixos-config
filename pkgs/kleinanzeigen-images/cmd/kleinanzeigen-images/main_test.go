@@ -25,11 +25,20 @@ func TestParseListingURL(t *testing.T) {
 	}
 }
 
-func TestExtractImageURLsPreservesOrderAndDeduplicates(t *testing.T) {
+func TestExtractImageURLsUsesOnlyListingGallery(t *testing.T) {
 	html := []byte(`
-		https://img.kleinanzeigen.de/api/v1/prod-ads/images/aa/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?rule=$_2.AUTO
-		https://img.kleinanzeigen.de/api/v1/prod-ads/images/bb/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?rule=$_59.AUTO
-		https://img.kleinanzeigen.de/api/v1/prod-ads/images/aa/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?rule=$_59.AUTO
+		<div class="galleryimage-element current">
+		  <img data-imgsrc="https://img.kleinanzeigen.de/api/v1/prod-ads/images/aa/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?rule=$_59.AUTO">
+		</div>
+		<div class="galleryimage-element">
+		  <img data-imgsrc="https://img.kleinanzeigen.de/api/v1/prod-ads/images/bb/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?rule=$_59.AUTO">
+		</div>
+		<div class="recommendation">
+		  <img src="https://img.kleinanzeigen.de/api/v1/prod-ads/images/cc/cccccccc-cccc-cccc-cccc-cccccccccccc?rule=$_59.AUTO">
+		</div>
+		<div class="galleryimage-element">
+		  <img data-imgsrc="https://img.kleinanzeigen.de/api/v1/prod-ads/images/aa/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?rule=$_59.AUTO">
+		</div>
 	`)
 	got := extractImageURLs(html)
 	want := []string{

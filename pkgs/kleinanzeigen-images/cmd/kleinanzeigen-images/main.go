@@ -22,7 +22,8 @@ const (
 	maxBytesLimit   = 30 << 20
 )
 
-var imageURLPattern = regexp.MustCompile(`https://img\.kleinanzeigen\.de/api/v1/prod-ads/images/[0-9a-f]{2}/[0-9a-f-]{36}`)
+var galleryElementPattern = regexp.MustCompile(`(?i)<div[^>]*class="[^"]*\bgalleryimage-element\b[^"]*"[^>]*>`)
+var galleryImagePattern = regexp.MustCompile(`data-imgsrc="(https://img\.kleinanzeigen\.de/api/v1/prod-ads/images/[0-9a-f]{2}/[0-9a-f-]{36})`)
 var listingIDPattern = regexp.MustCompile(`/([0-9]+)-[0-9]+-[0-9]+/?$`)
 
 type imageEntry struct {
@@ -172,14 +173,24 @@ func fetchListing(client *http.Client, listingURL *url.URL) ([]byte, error) {
 }
 
 func extractImageURLs(html []byte) []string {
-	seen := make(map[string]struct{})
-	var imageURLs []string
-	for _, match := range imageURLPattern.FindAllString(string(html), -1) {
-		if _, exists := seen[match]; exists {
+	starts := galleryElementPattern.FindAllIndex(html, -1)
+	seen := make(map[string]struct{}, len(starts))
+	imageURLs := make([]string, 0, len(starts))
+	for index, start := range starts {
+		end := len(html)
+		if index+1 < len(starts) {
+			end = starts[index+1][0]
+		}
+		match := galleryImagePattern.FindSubmatch(html[start[0]:end])
+		if len(match) != 2 {
 			continue
 		}
-		seen[match] = struct{}{}
-		imageURLs = append(imageURLs, match+"?rule=$_59.JPG")
+		imageURL := string(match[1])
+		if _, exists := seen[imageURL]; exists {
+			continue
+		}
+		seen[imageURL] = struct{}{}
+		imageURLs = append(imageURLs, imageURL+"?rule=$_59.JPG")
 	}
 	return imageURLs
 }

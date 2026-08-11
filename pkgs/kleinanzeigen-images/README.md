@@ -1,6 +1,6 @@
 # kleinanzeigen-images
 
-Downloads the public images embedded in a Kleinanzeigen listing and writes a `manifest.json` containing the local image paths and source URLs.
+Downloads only the public images in a Kleinanzeigen listing's gallery and writes a `manifest.json` containing the local image paths and source URLs.
 
 ```sh
 kleinanzeigen-images \
