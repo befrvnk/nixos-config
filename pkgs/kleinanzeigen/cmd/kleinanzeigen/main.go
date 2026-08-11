@@ -10,6 +10,7 @@ import (
 
 	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/images"
 	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/listing"
+	"github.com/befrvnk/nixos-config/pkgs/kleinanzeigen/internal/search"
 )
 
 const version = "0.1.0"
@@ -34,6 +35,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return runImages(args[1:], stdout, stderr)
 	case "listing":
 		return runListing(args[1:], stdout, stderr)
+	case "search":
+		return runSearch(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
 		printUsage(stdout)
 		return nil
@@ -41,6 +44,35 @@ func run(args []string, stdout, stderr io.Writer) error {
 		printUsage(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func runSearch(args []string, stdout, stderr io.Writer) error {
+	flags := flag.NewFlagSet("kleinanzeigen search", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	query := flags.String("query", "", "search query")
+	location := flags.String("location-id", "", "numeric location id")
+	radius := flags.Int("radius", 50, "radius in km")
+	category := flags.Int("category", 217, "category id")
+	maxPrice := flags.Int("max-price", 0, "maximum price")
+	sort := flags.String("sort", "DATE_DESCENDING", "API sort type")
+	jsonOutput := flags.Bool("json", false, "print JSON")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if *query == "" || *location == "" {
+		return errors.New("search requires --query and --location-id")
+	}
+	results, err := search.Fetch(*query, *location, *radius, *category, *maxPrice, *sort)
+	if err != nil {
+		return err
+	}
+	if *jsonOutput {
+		return json.NewEncoder(stdout).Encode(results)
+	}
+	for _, r := range results {
+		fmt.Fprintf(stdout, "[%s] %s € | %s %s\n    %s\n    %s\n", r.ID, r.Price, r.ZIP, r.City, r.Title, r.URL)
+	}
+	return nil
 }
 
 func runListing(args []string, stdout, stderr io.Writer) error {
@@ -99,5 +131,6 @@ func printUsage(writer io.Writer) {
 	fmt.Fprintln(writer, "\nCommands:")
 	fmt.Fprintln(writer, "  images <listing-url>  Download images from a listing gallery")
 	fmt.Fprintln(writer, "  listing <listing-url> Show public listing details")
+	fmt.Fprintln(writer, "  search               Search public listings")
 	fmt.Fprintln(writer, "  version               Print the CLI version")
 }
