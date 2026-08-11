@@ -147,6 +147,7 @@
 
           inherit (pkgs)
             gh-enhance
+            kleinanzeigen-images
             kotlin-lsp
             pi-coding-agent
             user-scanner
