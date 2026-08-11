@@ -125,7 +125,12 @@ ssh frank@<pi-ip-address>
 ```
 
 The Pi accepts only public-key SSH authentication. Password authentication and
-root SSH login are disabled. If 1Password does not offer the expected key,
+root SSH login are disabled. The initial image has no password hash for
+`frank`, so `sudo` is intentionally passwordless and access to the SSH key is
+the administrative credential. If a local password is configured later, enable
+`security.sudo.wheelNeedsPassword` in `hosts/hermi/default.nix` and rebuild.
+
+If 1Password does not offer the expected key,
 check the SSH-agent configuration and repeat:
 
 ```bash
@@ -259,6 +264,44 @@ sudo nixos-rebuild switch --flake .#hermi --accept-flake-config
 
 The native Hermes NixOS module is declarative. Change its Nix settings and
 rebuild rather than using `hermes setup` or `hermes gateway install`.
+
+## Updating an Installed Pi
+
+The SD image is only for first installation. Do not reflash the card for normal
+configuration updates.
+
+The simplest update workflow is to copy or clone this repository onto the Pi,
+then rebuild natively:
+
+```bash
+cd ~/nixos-config
+git pull
+sudo nixos-rebuild switch --flake .#hermi --accept-flake-config
+```
+
+For a private repository, use a Git deploy key or copy the checkout from the
+Framework instead of placing a personal GitHub token on the Pi. For example,
+from the Framework:
+
+```bash
+rsync -a --delete --exclude .git /path/to/nixos-config/ frank@hermi:~/nixos-config/
+ssh frank@hermi 'cd ~/nixos-config && sudo nixos-rebuild switch --flake .#hermi --accept-flake-config'
+```
+
+The Framework can also build the AArch64 closure through binfmt/QEMU and deploy
+it to the Pi without keeping a checkout there:
+
+```bash
+nixos-rebuild switch --flake .#hermi \
+  --target-host frank@hermi \
+  --use-remote-sudo \
+  --accept-flake-config
+```
+
+This is different from a remote *builder*: the Framework performs the build,
+copies its result to the target Pi, then activates it remotely. It is the
+recommended remote deployment workflow until a separate native AArch64 builder
+is available.
 
 ## Future Improvements
 

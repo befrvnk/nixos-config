@@ -45,7 +45,10 @@
     ];
   };
 
-  security.sudo.wheelNeedsPassword = true;
+  # The image has no password hash for frank. SSH public-key authentication is
+  # therefore the initial administrative credential; require a password only
+  # after one has been configured on the Pi.
+  security.sudo.wheelNeedsPassword = false;
 
   services.hermes-agent = {
     enable = true;
