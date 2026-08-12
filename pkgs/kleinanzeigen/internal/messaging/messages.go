@@ -49,6 +49,8 @@ func Messages(conversationID string) ([]Message, error) {
 		Messages []struct {
 			ID        string `json:"id"`
 			Text      string `json:"text"`
+			TextShort string `json:"textShort"`
+			Title     string `json:"title"`
 			Message   string `json:"message"`
 			Boundness string `json:"boundness"`
 			Direction string `json:"direction"`
@@ -61,6 +63,12 @@ func Messages(conversationID string) ([]Message, error) {
 	out := make([]Message, 0, len(body.Messages))
 	for _, m := range body.Messages {
 		text := m.Text
+		if text == "" {
+			text = m.TextShort
+		}
+		if text == "" {
+			text = m.Title
+		}
 		if text == "" {
 			text = m.Message
 		}
