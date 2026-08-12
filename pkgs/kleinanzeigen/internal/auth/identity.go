@@ -17,7 +17,7 @@ func Credentials() (Token, error) {
 		return Token{}, fmt.Errorf("not logged in; run kleinanzeigen login")
 	}
 	if time.Now().After(token.ExpiresAt.Add(-time.Minute)) {
-		return Token{}, fmt.Errorf("access token expired; run kleinanzeigen login")
+		return Refresh(token)
 	}
 	return token, nil
 }

@@ -61,6 +61,38 @@ func Login() error {
 	}
 	return Save(Token{AccessToken: payload.AccessToken, RefreshToken: payload.RefreshToken, ExpiresAt: time.Now().Add(time.Duration(payload.ExpiresIn) * time.Second), Email: emailClaim(payload.IDToken)})
 }
+func Refresh(token Token) (Token, error) {
+	form := url.Values{"grant_type": {"refresh_token"}, "client_id": {clientID}, "refresh_token": {token.RefreshToken}}
+	response, err := http.PostForm("https://login.kleinanzeigen.de/oauth/token", form)
+	if err != nil {
+		return Token{}, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return Token{}, fmt.Errorf("token refresh returned %s", response.Status)
+	}
+	var payload struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int    `json:"expires_in"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		return Token{}, err
+	}
+	if payload.AccessToken == "" {
+		return Token{}, fmt.Errorf("token refresh returned no access token")
+	}
+	token.AccessToken = payload.AccessToken
+	if payload.RefreshToken != "" {
+		token.RefreshToken = payload.RefreshToken
+	}
+	token.ExpiresAt = time.Now().Add(time.Duration(payload.ExpiresIn) * time.Second)
+	if err := Save(token); err != nil {
+		return Token{}, err
+	}
+	return token, nil
+}
+
 func emailClaim(token string) string {
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
