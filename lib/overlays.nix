@@ -3,7 +3,6 @@ let
   sharedOverlays = [
     inputs.claude-code.overlays.default
     (import ../overlays/gh-enhance.nix)
-    (import ../overlays/kleinanzeigen-api.nix)
     (import ../overlays/kleinanzeigen.nix)
     (import ../overlays/kotlin-lsp.nix)
     (import ../overlays/pi-coding-agent.nix)

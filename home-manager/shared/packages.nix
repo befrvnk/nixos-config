@@ -13,7 +13,6 @@
     htop
     imagemagick
     kleinanzeigen
-    kleinanzeigen-api
     lf
     nh
     nmap
