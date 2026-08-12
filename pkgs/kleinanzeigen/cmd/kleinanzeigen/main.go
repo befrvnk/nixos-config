@@ -45,6 +45,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return runChats(args[1:], stdout, stderr)
 	case "messages":
 		return runMessages(args[1:], stdout, stderr)
+	case "reply":
+		return runReply(args[1:], stdout, stderr)
 	case "search":
 		return runSearch(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
@@ -54,6 +56,30 @@ func run(args []string, stdout, stderr io.Writer) error {
 		printUsage(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func runReply(args []string, stdout, stderr io.Writer) error {
+	flags := flag.NewFlagSet("kleinanzeigen reply", flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	message := flags.String("message", "", "message text")
+	confirm := flags.Bool("confirm", false, "confirm sending the message")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 1 {
+		return errors.New("reply requires a conversation id")
+	}
+	if *message == "" {
+		return errors.New("reply requires --message")
+	}
+	if !*confirm {
+		return errors.New("refusing to send without --confirm")
+	}
+	if err := messaging.Reply(flags.Arg(0), *message); err != nil {
+		return err
+	}
+	_, err := fmt.Fprintln(stdout, "reply sent and verified")
+	return err
 }
 
 func runMessages(args []string, stdout, stderr io.Writer) error {
@@ -199,6 +225,7 @@ func printUsage(writer io.Writer) {
 	fmt.Fprintln(writer, "  login                 Sign in using OAuth PKCE")
 	fmt.Fprintln(writer, "  chats                 List authenticated chat threads")
 	fmt.Fprintln(writer, "  messages <id>         Read an authenticated chat thread")
+	fmt.Fprintln(writer, "  reply <id>            Send a verified reply (requires --confirm)")
 	fmt.Fprintln(writer, "  images <listing-url>  Download images from a listing gallery")
 	fmt.Fprintln(writer, "  listing <listing-url> Show public listing details")
 	fmt.Fprintln(writer, "  search               Search public listings")
