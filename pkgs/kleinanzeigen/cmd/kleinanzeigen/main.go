@@ -43,6 +43,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 		return runListing(args[1:], stdout, stderr)
 	case "chats":
 		return runChats(args[1:], stdout, stderr)
+	case "messages":
+		return runMessages(args[1:], stdout, stderr)
 	case "search":
 		return runSearch(args[1:], stdout, stderr)
 	case "help", "--help", "-h":
@@ -52,6 +54,20 @@ func run(args []string, stdout, stderr io.Writer) error {
 		printUsage(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func runMessages(args []string, stdout, stderr io.Writer) error {
+	if len(args) != 1 {
+		return errors.New("messages requires a conversation id")
+	}
+	messages, err := messaging.Messages(args[0])
+	if err != nil {
+		return err
+	}
+	for _, message := range messages {
+		fmt.Fprintf(stdout, "%s %s: %s\n", message.CreatedAt, message.Direction, message.Text)
+	}
+	return nil
 }
 
 func runChats(args []string, stdout, stderr io.Writer) error {
@@ -182,6 +198,7 @@ func printUsage(writer io.Writer) {
 	fmt.Fprintln(writer, "  auth status|logout    Show or clear local login state")
 	fmt.Fprintln(writer, "  login                 Sign in using OAuth PKCE")
 	fmt.Fprintln(writer, "  chats                 List authenticated chat threads")
+	fmt.Fprintln(writer, "  messages <id>         Read an authenticated chat thread")
 	fmt.Fprintln(writer, "  images <listing-url>  Download images from a listing gallery")
 	fmt.Fprintln(writer, "  listing <listing-url> Show public listing details")
 	fmt.Fprintln(writer, "  search               Search public listings")
