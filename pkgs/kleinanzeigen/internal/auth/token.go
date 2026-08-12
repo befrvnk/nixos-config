@@ -13,6 +13,7 @@ type Token struct {
 	RefreshToken string    `json:"refreshToken"`
 	ExpiresAt    time.Time `json:"expiresAt"`
 	Email        string    `json:"email,omitempty"`
+	UserID       string    `json:"userId,omitempty"`
 }
 
 func Path() (string, error) {
