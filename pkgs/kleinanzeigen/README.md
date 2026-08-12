@@ -26,10 +26,11 @@ kleinanzeigen reply '<conversation-id>' --message 'Hello' --confirm
 kleinanzeigen auth logout
 ```
 
-`login` uses OAuth Authorization Code + PKCE. It prints an authentication URL and requires the complete resulting callback URL to be pasted into the terminal. Credentials are never supplied by Nix and are stored outside the Nix store at:
+`login` uses OAuth Authorization Code + PKCE. It prints an authentication URL and requires the complete resulting callback URL to be pasted into the terminal. Credentials are never supplied by Nix and are stored outside the Nix store. The default location follows the operating system's user-config directory:
 
 ```text
-~/.config/kleinanzeigen/token.json
+macOS: ~/Library/Application Support/kleinanzeigen/token.json
+Linux: ~/.config/kleinanzeigen/token.json
 ```
 
 The parent directory is created with mode `0700`; the token file is written with mode `0600`. Set `KLEINANZEIGEN_TOKEN_FILE` to use a different local path.
