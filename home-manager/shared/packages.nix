@@ -14,7 +14,6 @@
     imagemagick
     kleinanzeigen
     kleinanzeigen-api
-    kleinanzeigen-images
     lf
     nh
     nmap
