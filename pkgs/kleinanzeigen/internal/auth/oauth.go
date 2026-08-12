@@ -50,6 +50,7 @@ func Login() error {
 	var payload struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
+		IDToken      string `json:"id_token"`
 		ExpiresIn    int    `json:"expires_in"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
@@ -58,8 +59,26 @@ func Login() error {
 	if payload.RefreshToken == "" {
 		return fmt.Errorf("token response contains no refresh token")
 	}
-	return Save(Token{AccessToken: payload.AccessToken, RefreshToken: payload.RefreshToken, ExpiresAt: time.Now().Add(time.Duration(payload.ExpiresIn) * time.Second)})
+	return Save(Token{AccessToken: payload.AccessToken, RefreshToken: payload.RefreshToken, ExpiresAt: time.Now().Add(time.Duration(payload.ExpiresIn) * time.Second), Email: emailClaim(payload.IDToken)})
 }
+func emailClaim(token string) string {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return ""
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		Email string `json:"email"`
+	}
+	if json.Unmarshal(payload, &claims) != nil {
+		return ""
+	}
+	return claims.Email
+}
+
 func randomURL(n int) string {
 	b := make([]byte, n)
 	_, _ = rand.Read(b)
