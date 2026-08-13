@@ -84,7 +84,7 @@ in
     if [ ! -x /var/lib/nanobot/venv/bin/nanobot ]; then
       echo "Creating nanobot ${nanobotVersion} venv (first activation; downloads PyPI)..."
       ${pkgs.uv}/bin/uv venv --python "${pkgs.python3}" /var/lib/nanobot/venv
-      ${pkgs.uv}/bin/uv pip install --python /var/lib/nanobot/venv/bin/python "nanobot-ai==${nanobotVersion}"
+      ${pkgs.uv}/bin/uv pip install --python /var/lib/nanobot/venv/bin/python "nanobot-ai[api]==${nanobotVersion}"
     fi
 
     # Optional secrets from /var/lib/nanobot/env (nanobot user's own file).
@@ -92,30 +92,31 @@ in
     api_key="$(sed -n 's/^NANOBOT_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
     openrouter_key="$(sed -n 's/^OPENROUTER_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
 
-    # WebUI: LAN entry + browser password on :9119 when a token is set,
-    # otherwise localhost only.
-    if [ -n "$ws_token" ]; then
-      ${pkgs.jq}/bin/jq -n --arg t "$ws_token" \
-        '{channels:{websocket:{enabled:true,host:"0.0.0.0",port:9119,tokenIssueSecret:$t,websocketRequiresToken:true}}}' \
-        > /var/lib/nanobot/.nanobot/config.json
-    else
+    # Seed a minimal config on first run, then only upsert so the model and
+    # provider state nanobot itself wrote (onboarding/WebUI) survives.
+    if [ ! -f /var/lib/nanobot/.nanobot/config.json ]; then
       ${pkgs.jq}/bin/jq -n \
         '{channels:{websocket:{enabled:true,host:"127.0.0.1",port:9119}}}' \
         > /var/lib/nanobot/.nanobot/config.json
     fi
 
-    # OpenAI-compatible API on :8900 (Conduit/OpenAI SDK clients) when a key
-    # is available; otherwise the API stays unconfigured.
-    if [ -n "$api_key" ]; then
-      ${pkgs.jq}/bin/jq --arg k "$api_key" \
-        '.api = {host:"0.0.0.0",port:8900,apiKey:$k} | .plugins.api.enabled = true' \
+    # WebUI: LAN entry + browser password on :9119 when a token is set.
+    if [ -n "$ws_token" ]; then
+      ${pkgs.jq}/bin/jq --arg t "$ws_token" \
+        '.channels.websocket = ((.channels.websocket // {enabled:true}) | .host="0.0.0.0" | .port=9119 | .tokenIssueSecret=$t | .websocketRequiresToken=true)' \
         /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
       mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
     fi
 
-    # Provider entry so the WebUI preflight passes on a headless first start.
-    # The key is taken from OPENROUTER_API_KEY in /var/lib/nanobot/env and
-    # written into the 0600 config.json (readable by root, like the env file).
+    # OpenAI-compatible API on :8900 (Conduit/OpenAI SDK clients).
+    if [ -n "$api_key" ]; then
+      ${pkgs.jq}/bin/jq --arg k "$api_key" \
+        '.api = {host:"0.0.0.0",port:8900,apiKey:$k}' \
+        /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
+      mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
+    fi
+
+    # OpenRouter entry so a headless first start passes the provider preflight.
     if [ -n "$openrouter_key" ]; then
       ${pkgs.jq}/bin/jq --arg k "$openrouter_key" \
         '.providers.openrouter = {api_base:"https://openrouter.ai/api/v1",api_key:$k}' \
@@ -141,6 +142,25 @@ in
       WorkingDirectory = "/var/lib/nanobot";
       EnvironmentFile = "-/var/lib/nanobot/env";
       ExecStart = "/var/lib/nanobot/venv/bin/nanobot webui --yes --no-open";
+      Restart = "on-failure";
+      RestartSec = 5;
+      UMask = "0077";
+    };
+  };
+
+  systemd.services.nanobot-serve = {
+    description = "Nanobot OpenAI-compatible API server";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "nanobot.service" ];
+    environment = {
+      HOME = "/var/lib/nanobot";
+    };
+    serviceConfig = {
+      User = "nanobot";
+      Group = "nanobot";
+      WorkingDirectory = "/var/lib/nanobot";
+      EnvironmentFile = "-/var/lib/nanobot/env";
+      ExecStart = "/var/lib/nanobot/venv/bin/nanobot serve";
       Restart = "on-failure";
       RestartSec = 5;
       UMask = "0077";
