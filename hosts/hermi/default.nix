@@ -60,6 +60,7 @@
       jq
       ripgrep
     ];
+    settings.model = "deepseek/deepseek-v4-flash-0731";
   };
 
   systemd.services.hermes-agent.serviceConfig.EnvironmentFile = [
