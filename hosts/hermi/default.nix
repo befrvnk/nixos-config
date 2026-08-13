@@ -127,7 +127,7 @@ in
       Group = "nanobot";
       WorkingDirectory = "/var/lib/nanobot";
       EnvironmentFile = "-/var/lib/nanobot/env";
-      ExecStart = "/var/lib/nanobot/venv/bin/nanobot webui --no-open";
+      ExecStart = "/var/lib/nanobot/venv/bin/nanobot webui --no-open --yes";
       Restart = "on-failure";
       RestartSec = 5;
       UMask = "0077";
