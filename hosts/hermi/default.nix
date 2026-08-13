@@ -87,9 +87,13 @@ in
       ${pkgs.uv}/bin/uv pip install --python /var/lib/nanobot/venv/bin/python "nanobot-ai==${nanobotVersion}"
     fi
 
-    # WebUI config: LAN entry + browser password on :9119 (NANOBOT_WS_TOKEN
-    # from /var/lib/nanobot/env); otherwise localhost only.
+    # Optional secrets from /var/lib/nanobot/env (nanobot user's own file).
     ws_token="$(sed -n 's/^NANOBOT_WS_TOKEN=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
+    api_key="$(sed -n 's/^NANOBOT_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
+    openrouter_key="$(sed -n 's/^OPENROUTER_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
+
+    # WebUI: LAN entry + browser password on :9119 when a token is set,
+    # otherwise localhost only.
     if [ -n "$ws_token" ]; then
       ${pkgs.jq}/bin/jq -n --arg t "$ws_token" \
         '{channels:{websocket:{enabled:true,host:"0.0.0.0",port:9119,tokenIssueSecret:$t,websocketRequiresToken:true}}}' \
@@ -100,18 +104,27 @@ in
         > /var/lib/nanobot/.nanobot/config.json
     fi
 
-    # OpenAI-compatible API on :8900 (Conduit/OpenAI SDK clients). Public
-    # binding requires api.apiKey (Bearer token) -- configured from
-    # NANOBOT_API_KEY in /var/lib/nanobot/env; without it the API stays
-    # localhost-only.
-    api_key="$(sed -n 's/^NANOBOT_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
+    # OpenAI-compatible API on :8900 (Conduit/OpenAI SDK clients) when a key
+    # is available; otherwise the API stays unconfigured.
     if [ -n "$api_key" ]; then
       ${pkgs.jq}/bin/jq --arg k "$api_key" \
-        '. + {api:{host:"0.0.0.0",port:8900,apiKey:$k}, plugins:{api:{enabled:true}}}' \
+        '.api = {host:"0.0.0.0",port:8900,apiKey:$k} | .plugins.api.enabled = true' \
         /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
       mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
     fi
+
+    # Provider entry so the WebUI preflight passes on a headless first start.
+    # The key is taken from OPENROUTER_API_KEY in /var/lib/nanobot/env and
+    # written into the 0600 config.json (readable by root, like the env file).
+    if [ -n "$openrouter_key" ]; then
+      ${pkgs.jq}/bin/jq --arg k "$openrouter_key" \
+        '.providers.openrouter = {api_base:"https://openrouter.ai/api/v1",api_key:$k}' \
+        /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
+      mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
+    fi
+
     chown nanobot:nanobot /var/lib/nanobot/.nanobot/config.json
+    chmod 0600 /var/lib/nanobot/.nanobot/config.json
   '';
 
   systemd.services.nanobot = {
@@ -127,7 +140,7 @@ in
       Group = "nanobot";
       WorkingDirectory = "/var/lib/nanobot";
       EnvironmentFile = "-/var/lib/nanobot/env";
-      ExecStart = "/var/lib/nanobot/venv/bin/nanobot webui --no-open --yes";
+      ExecStart = "/var/lib/nanobot/venv/bin/nanobot webui --yes --no-open";
       Restart = "on-failure";
       RestartSec = 5;
       UMask = "0077";
