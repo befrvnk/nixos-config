@@ -235,6 +235,7 @@ in
       echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
       echo "  take-readme-screenshots   - Capture screenshots for README"
       echo "  hermi-update             - Deploy updated hermi (Raspberry Pi) config"
+      echo "  hermi-image              - Build hermi SD image"
     ''}
     echo "  clean [N]                 - Clean old generations (default: keep 5)"
     echo "  flake-update              - Update flake inputs and package metadata"
@@ -473,6 +474,20 @@ in
         --target-host "$target" \
         --use-remote-sudo \
         --accept-flake-config
+    '';
+
+    # Build the hermi Raspberry Pi SD image on this machine.
+    # Uses the nixos-raspberrypi Cachix cache for the vendor kernel/firmware
+    # so nothing is compiled through QEMU/binfmt emulation.
+    # Usage: hermi-image
+    hermi-image.exec = ''
+      flake="$HOME/nixos-config#nixosConfigurations.hermi.config.system.build.sdImage"
+      echo "+ nix build $flake (with nixos-raspberrypi cachix)"
+      ${pkgs.nix}/bin/nix build "$flake" \
+        --accept-flake-config \
+        --option extra-substituters https://nixos-raspberrypi.cachix.org \
+        --option extra-trusted-public-keys nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI=
+      ${pkgs.coreutils}/bin/ls -lh "$PWD/result/sd-image/"*.img.zst
     '';
   };
 
