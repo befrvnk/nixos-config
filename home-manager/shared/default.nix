@@ -6,6 +6,7 @@
   home.enableNixpkgsReleaseCheck = false;
 
   imports = [
+    ./1password-ssh-agent.nix
     ./atuin.nix
     ./btop.nix
     ./claude-code
