@@ -117,9 +117,11 @@ in
     fi
 
     # OpenRouter entry so a headless first start passes the provider preflight.
+    # extra_body routes every request to the highest-throughput provider
+    # (evidence/proof: https://openrouter.ai/docs/guides/routing/provider-selection)
     if [ -n "$openrouter_key" ]; then
       ${pkgs.jq}/bin/jq --arg k "$openrouter_key" \
-        '.providers.openrouter = {api_base:"https://openrouter.ai/api/v1",api_key:$k}' \
+        '.providers.openrouter = {api_base:"https://openrouter.ai/api/v1",api_key:$k,extra_body:{provider:{sort:"throughput",allow_fallbacks:true}}}' \
         /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
       mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
     fi
