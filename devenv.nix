@@ -234,6 +234,7 @@ in
       echo "  tpm-rekey                 - Re-enroll TPM key for LUKS auto-unlock"
       echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
       echo "  take-readme-screenshots   - Capture screenshots for README"
+      echo "  hermi-update             - Deploy updated hermi (Raspberry Pi) config"
     ''}
     echo "  clean [N]                 - Clean old generations (default: keep 5)"
     echo "  flake-update              - Update flake inputs and package metadata"
@@ -457,6 +458,21 @@ in
     # Opens Ghostty with fastfetch and captures all combinations
     take-readme-screenshots.exec = ''
       ${lib.getExe takeReadmeScreenshots}
+    '';
+
+    # Deploy the hermi Raspberry Pi configuration from this machine.
+    # The build runs locally (aarch64 via QEMU/binfmt emulation), the closure
+    # is copied to the Pi and activated there under its passwordless sudo.
+    # Usage: hermi-update [user@host]  (default target: frank@hermi)
+    hermi-update.exec = ''
+      target="''${1:-frank@hermi}"
+      flake="$HOME/nixos-config#hermi"
+      echo "+ nixos-rebuild switch --flake $flake --target-host $target --use-remote-sudo --accept-flake-config"
+      ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch \
+        --flake "$flake" \
+        --target-host "$target" \
+        --use-remote-sudo \
+        --accept-flake-config
     '';
   };
 
