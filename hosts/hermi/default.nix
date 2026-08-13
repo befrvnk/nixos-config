@@ -137,6 +137,8 @@ in
     wants = [ "network-online.target" ];
     environment = {
       HOME = "/var/lib/nanobot";
+      # NixOS has no /bin/bash; give the exec tool a real shell + tools.
+      PATH = "/run/current-system/sw/bin";
     };
     serviceConfig = {
       User = "nanobot";
@@ -156,6 +158,7 @@ in
     after = [ "nanobot.service" ];
     environment = {
       HOME = "/var/lib/nanobot";
+      PATH = "/run/system/current-system/sw/bin";
     };
     serviceConfig = {
       User = "nanobot";
@@ -170,6 +173,8 @@ in
   };
 
   environment.systemPackages = with pkgs; [
+    bash
+    curl
     git
     neovim
   ];
