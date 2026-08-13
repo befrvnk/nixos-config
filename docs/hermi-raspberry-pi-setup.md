@@ -321,7 +321,7 @@ it to the Pi without keeping a checkout there:
 ```bash
 nixos-rebuild switch --flake .#hermi \
   --target-host frank@hermi \
-  --use-remote-sudo \
+  --elevate=sudo \
   --accept-flake-config
 ```
 

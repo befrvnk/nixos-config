@@ -468,11 +468,11 @@ in
     hermi-update.exec = ''
       target="''${1:-frank@hermi}"
       flake="$HOME/nixos-config#hermi"
-      echo "+ nixos-rebuild switch --flake $flake --target-host $target --use-remote-sudo --accept-flake-config"
+      echo "+ nixos-rebuild switch --flake $flake --target-host $target --elevate=sudo --accept-flake-config"
       ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch \
         --flake "$flake" \
         --target-host "$target" \
-        --use-remote-sudo \
+        --elevate=sudo \
         --accept-flake-config
     '';
 
