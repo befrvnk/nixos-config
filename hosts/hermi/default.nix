@@ -27,6 +27,7 @@ in
       enable = true;
       allowedTCPPorts = [
         22
+        8900
         9119
       ];
     };
@@ -97,6 +98,18 @@ in
       ${pkgs.jq}/bin/jq -n \
         '{channels:{websocket:{enabled:true,host:"127.0.0.1",port:9119}}}' \
         > /var/lib/nanobot/.nanobot/config.json
+    fi
+
+    # OpenAI-compatible API on :8900 (Conduit/OpenAI SDK clients). Public
+    # binding requires api.apiKey (Bearer token) -- configured from
+    # NANOBOT_API_KEY in /var/lib/nanobot/env; without it the API stays
+    # localhost-only.
+    api_key="$(sed -n 's/^NANOBOT_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
+    if [ -n "$api_key" ]; then
+      ${pkgs.jq}/bin/jq --arg k "$api_key" \
+        '. + {api:{host:"0.0.0.0",port:8900,apiKey:$k}, plugins:{api:{enabled:true}}}' \
+        /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
+      mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
     fi
     chown nanobot:nanobot /var/lib/nanobot/.nanobot/config.json
   '';
