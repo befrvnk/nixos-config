@@ -35,6 +35,9 @@
       KbdInteractiveAuthentication = false;
       PasswordAuthentication = false;
       PermitRootLogin = "no";
+      # Accept TERM from the Framework (SetEnv in home-manager/shared/ssh.nix)
+      # so Ghostty's xterm-ghostty value never reaches the Pi's ncurses.
+      AcceptEnv = [ "TERM" ];
     };
   };
 

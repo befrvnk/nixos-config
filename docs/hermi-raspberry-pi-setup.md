@@ -49,11 +49,21 @@ Before building, have:
 Confirm that the 1Password SSH agent offers the `hermi` public key:
 
 ```bash
-ssh-add -L
+SSH_AUTH_SOCK="$HOME/.1password/agent.sock" ssh-add -L
 ```
 
 The output should contain the dedicated `ssh-ed25519` public key configured in
 `hosts/hermi/default.nix`.
+
+Plain `ssh-add -L` reads the default `SSH_AUTH_SOCK` (often GNOME Keyring on
+NixOS), which is not the agent SSH actually uses: `~/.ssh/config` sets
+`IdentityAgent` to the 1Password socket (`home-manager/shared/ssh.nix`).
+
+The `hermi` key lives in the custom `NixOS` vault. The 1Password SSH agent
+only exposes keys from the default `Personal`/`Private`/`Employee` vaults
+unless an agent config file (`~/.config/1Password/ssh/agent.toml`) lists more;
+that file is managed declaratively by
+`home-manager/shared/1password-ssh-agent.nix`.
 
 ## Build the SD Image on the Framework
 
@@ -141,7 +151,7 @@ If 1Password does not offer the expected key,
 check the SSH-agent configuration and repeat:
 
 ```bash
-ssh-add -L
+SSH_AUTH_SOCK="$HOME/.1password/agent.sock" ssh-add -L
 ```
 
 After local DNS is working, the host name may be usable directly:
@@ -179,10 +189,11 @@ The image intentionally starts without provider or dashboard credentials. Put
 them in `/var/lib/hermes/env`, which is loaded directly by both the Hermes
 gateway and dashboard services.
 
-Generate a dashboard session secret:
+Generate a dashboard session secret (the Pi image has no OpenSSL; the kernel
+CSPRNG through coreutils is equivalent):
 
 ```bash
-openssl rand -base64 32
+head -c 32 /dev/urandom | base64 -w0
 ```
 
 Create the environment file. Substitute actual values; keep the OpenRouter key
@@ -198,6 +209,10 @@ EOF
 sudo chown hermes:hermes /var/lib/hermes/env
 sudo chmod 0600 /var/lib/hermes/env
 ```
+
+The dashboard login validation is whitespace-sensitive: a dashboard password
+containing spaces is rejected even when entered exactly. Choose a password
+without spaces.
 
 Never put these values in `hosts/hermi/default.nix`, any other Nix expression,
 or a committed file. Nix expressions become readable through the Nix store.
@@ -239,9 +254,14 @@ port-forward is deliberately created; do not create one.
 
 ## Choose a Model
 
-The initial Nix configuration deliberately does not pin a model. After signing
-in to the dashboard, select a model available through OpenRouter. This avoids
-committing a provider-specific model choice and allows experimentation.
+The default model is pinned declaratively in `hosts/hermi/default.nix` via
+`services.hermes-agent.settings.model`. To change it, update that setting and
+rebuild. Interactive selection (`hermes model`) also works for *choosing*, but
+the NixOS-managed install (`HERMES_MANAGED=true`) refuses to persist CLI
+changes — it prints that exact error and points back to the Nix setting.
+
+After signing in to the dashboard, the pinned model is available through
+OpenRouter (the API key comes from `/var/lib/hermes/env`).
 
 ## Routine Operations
 

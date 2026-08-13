@@ -15,5 +15,15 @@ in
     settings."*" = {
       IdentityAgent = agentPath;
     };
+
+    # Ghostty sets TERM=xterm-ghostty, which the minimal hermi image does not
+    # have terminfo for (ncurses tools report "unknown terminal type"). Send a
+    # portable TERM instead; hermi's sshd accepts it via AcceptEnv.
+    matchBlocks.hermi = {
+      user = "frank";
+      setEnv = {
+        TERM = "xterm-256color";
+      };
+    };
   };
 }
