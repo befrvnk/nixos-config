@@ -6,6 +6,9 @@
   ...
 }:
 
+let
+  nanobotVersion = "0.3.0";
+in
 {
   imports = [
     nixos-raspberrypi.nixosModules.raspberry-pi-4.base
@@ -41,12 +44,29 @@
     };
   };
 
-  users.users.frank = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" ];
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINORbEqnNt1PuKmKZn0BW/lmbAvy8L6+q1V9PP9W4vQg"
-    ];
+  users = {
+    users = {
+      frank = {
+        isNormalUser = true;
+        extraGroups = [ "wheel" ];
+        openssh.authorizedKeys.keys = [
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINORbEqnNt1PuKmKZn0BW/lmbAvy8L6+q1V9PP9W4vQg"
+        ];
+      };
+
+      # Nanobot personal AI agent (WebUI on :9119)
+      # Replaces the former hermes-agent gateway. The runtime is a pinned PyPI
+      # venv (nanobot-ai is not packaged in nixpkgs); the venv is created at
+      # first activation and reused afterwards. Provider secrets come from
+      # /var/lib/nanobot/env (see docs/hermi-raspberry-pi-setup.md).
+      nanobot = {
+        isSystemUser = true;
+        group = "nanobot";
+        home = "/var/lib/nanobot";
+        createHome = true;
+      };
+    };
+    groups.nanobot = { };
   };
 
   # The image has no password hash for frank. SSH public-key authentication is
@@ -54,45 +74,47 @@
   # after one has been configured on the Pi.
   security.sudo.wheelNeedsPassword = false;
 
-  services.hermes-agent = {
-    enable = true;
-    package = inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default;
-    addToSystemPackages = true;
-    extraPackages = with pkgs; [
-      git
-      jq
-      ripgrep
-    ];
-    settings.model = "deepseek/deepseek-v4-flash-0731";
-  };
+  system.activationScripts."nanobot-setup" = lib.stringAfter [ "users" "groups" ] ''
+    mkdir -p /var/lib/nanobot /var/lib/nanobot/.nanobot
+    chown nanobot:nanobot /var/lib/nanobot /var/lib/nanobot/.nanobot
+    chmod 0750 /var/lib/nanobot
 
-  systemd.services.hermes-agent.serviceConfig.EnvironmentFile = [
-    "-/var/lib/hermes/env"
-  ];
+    # One-time venv bootstrap (downloads from PyPI on first activation).
+    if [ ! -x /var/lib/nanobot/venv/bin/nanobot ]; then
+      echo "Creating nanobot ${nanobotVersion} venv (first activation; downloads PyPI)..."
+      ${pkgs.uv}/bin/uv venv --python "${pkgs.python3}" /var/lib/nanobot/venv
+      ${pkgs.uv}/bin/uv pip install --python /var/lib/nanobot/venv/bin/python "nanobot-ai==${nanobotVersion}"
+    fi
 
-  systemd.services.hermes-dashboard = {
-    description = "Hermes Agent Dashboard";
+    # WebUI config: LAN entry + browser password on :9119 (NANOBOT_WS_TOKEN
+    # from /var/lib/nanobot/env); otherwise localhost only.
+    ws_token="$(sed -n 's/^NANOBOT_WS_TOKEN=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
+    if [ -n "$ws_token" ]; then
+      ${pkgs.jq}/bin/jq -n --arg t "$ws_token" \
+        '{channels:{websocket:{enabled:true,host:"0.0.0.0",port:9119,tokenIssueSecret:$t,websocketRequiresToken:true}}}' \
+        > /var/lib/nanobot/.nanobot/config.json
+    else
+      ${pkgs.jq}/bin/jq -n \
+        '{channels:{websocket:{enabled:true,host:"127.0.0.1",port:9119}}}' \
+        > /var/lib/nanobot/.nanobot/config.json
+    fi
+    chown nanobot:nanobot /var/lib/nanobot/.nanobot/config.json
+  '';
+
+  systemd.services.nanobot = {
+    description = "Nanobot personal AI agent";
     wantedBy = [ "multi-user.target" ];
-    after = [
-      "network-online.target"
-      "hermes-agent.service"
-    ];
+    after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
-    unitConfig.ConditionPathExists = "/var/lib/hermes/env";
-
     environment = {
-      HERMES_HOME = "/var/lib/hermes/.hermes";
-      HOME = "/var/lib/hermes";
+      HOME = "/var/lib/nanobot";
     };
-
     serviceConfig = {
-      User = "hermes";
-      Group = "hermes";
-      WorkingDirectory = "/var/lib/hermes/workspace";
-      EnvironmentFile = "-/var/lib/hermes/env";
-      ExecStart = "${
-        inputs.hermes-agent.packages.${pkgs.stdenv.hostPlatform.system}.default
-      }/bin/hermes dashboard --host 0.0.0.0 --port 9119 --no-open";
+      User = "nanobot";
+      Group = "nanobot";
+      WorkingDirectory = "/var/lib/nanobot";
+      EnvironmentFile = "-/var/lib/nanobot/env";
+      ExecStart = "/var/lib/nanobot/venv/bin/nanobot webui --no-open";
       Restart = "on-failure";
       RestartSec = 5;
       UMask = "0077";

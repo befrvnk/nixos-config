@@ -1,7 +1,8 @@
-# Hermi Raspberry Pi Hermes Setup
+# Hermi Raspberry Pi Nanobot Setup
 
 This document describes building, provisioning, and operating `hermi`: a
-headless Raspberry Pi 4 (8 GB) running Hermes Agent with OpenRouter.
+headless Raspberry Pi 4 (8 GB) running Nanobot — a lightweight self-hosted AI
+agent with a browser WebUI — with OpenRouter as the model provider.
 
 The configuration is declared in this repository and is built on the
 Framework laptop (`x86_64-linux`). The target is `aarch64-linux`.
@@ -15,9 +16,9 @@ Framework laptop (`x86_64-linux`). The target is `aarch64-linux`.
 - **First boot networking:** Ethernet through the FRITZ!Box
 - **Normal networking:** Wi-Fi, configured after first boot
 - **Remote administration:** SSH with the dedicated 1Password-managed Ed25519 key
-- **Agent:** native Hermes NixOS service
-- **State directory:** `/var/lib/hermes`
-- **Dashboard:** `http://hermi:9119` on the home LAN, protected with basic authentication
+- **Agent:** Nanobot (WebUI + gateway), replaces the former hermes-agent
+- **State directory:** `/var/lib/nanobot`
+- **WebUI:** `http://hermi:9119` on the home LAN, protected by a browser token
 - **Model provider:** OpenRouter
 
 Do not configure a FRITZ!Box port-forward for SSH or the dashboard. The
@@ -28,8 +29,8 @@ home, add Tailscale or use the FRITZ!Box WireGuard VPN later.
 
 The relevant configuration is:
 
-- `hosts/hermi/default.nix` — Pi hardware, SSH, networking, Hermes, and dashboard
-- `flake.nix` — `nixosConfigurations.hermi` and the upstream Hermes flake input
+- `hosts/hermi/default.nix` — Pi hardware, SSH, networking, and Nanobot
+- `flake.nix` — `nixosConfigurations.hermi`
 - `hosts/framework/default.nix` — enables AArch64 emulation needed to build the image
 
 The Pi configuration uses `nixos-raspberrypi` for the Raspberry Pi 4 board
@@ -183,55 +184,52 @@ ip address
 NetworkManager persists the connection profile locally and reconnects after
 future boots.
 
-## Configure Hermes Secrets and Dashboard Authentication
+## Configure Nanobot Secrets
 
-The image intentionally starts without provider or dashboard credentials. Put
-them in `/var/lib/hermes/env`, which is loaded directly by both the Hermes
-gateway and dashboard services.
+The image intentionally starts with the WebUI bound to localhost and no model
+configured. One secret drives the WebUI's LAN mode, stored in
+`/var/lib/nanobot/env` and loaded by the `nanobot` systemd service:
 
-Generate a dashboard session secret (the Pi image has no OpenSSL; the kernel
-CSPRNG through coreutils is equivalent):
+- `NANOBOT_WS_TOKEN` — enables LAN entry to the WebUI (a browser token is
+  required). Without it the WebUI stays on `127.0.0.1` only.
+
+Generate a token (the Pi image has no OpenSSL; the kernel CSPRNG through
+coreutils is equivalent):
 
 ```bash
 head -c 32 /dev/urandom | base64 -w0
 ```
 
-Create the environment file. Substitute actual values; keep the OpenRouter key
-and password private:
+Create the environment file:
 
 ```bash
-sudo tee /var/lib/hermes/env >/dev/null <<'EOF'
-OPENROUTER_API_KEY=replace-with-openrouter-key
-HERMES_DASHBOARD_BASIC_AUTH_USERNAME=frank
-HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=replace-with-a-long-unique-password
-HERMES_DASHBOARD_BASIC_AUTH_SECRET=replace-with-the-generated-secret
+sudo tee /var/lib/nanobot/env >/dev/null <<'EOF'
+NANOBOT_WS_TOKEN=replace-with-the-generated-secret
 EOF
-sudo chown hermes:hermes /var/lib/hermes/env
-sudo chmod 0600 /var/lib/hermes/env
+sudo chown nanobot:nanobot /var/lib/nanobot/env
+sudo chmod 0600 /var/lib/nanobot/env
 ```
 
-The dashboard login validation is whitespace-sensitive: a dashboard password
-containing spaces is rejected even when entered exactly. Choose a password
-without spaces.
+Then apply it: rerun activation or reboot, so the WebUI config is regenerated
+in LAN mode (`host` 0.0.0.0, port 9119, token required). The running config
+lives in `/var/lib/nanobot/.nanobot/config.json`; remove the env var and
+restart to go localhost-only again.
 
-Never put these values in `hosts/hermi/default.nix`, any other Nix expression,
-or a committed file. Nix expressions become readable through the Nix store.
+Never put these values in `hosts/hermi/default.nix` or a committed file: Nix
+expressions become readable through the Nix store.
 
-Restart the gateway and start the dashboard:
-
-```bash
-sudo systemctl restart hermes-agent
-sudo systemctl start hermes-dashboard
-```
+The `nanobot` runtime is a pinned PyPI venv (`nanobot-ai==0.3.0`) created by
+the first activation and reused afterwards; the service runs as the `nanobot`
+user.
 
 Check status and logs if needed:
 
 ```bash
-systemctl status hermes-agent hermes-dashboard
-journalctl -u hermes-agent -u hermes-dashboard -f
+systemctl status nanobot
+journalctl -u nanobot -f
 ```
 
-## Use the Dashboard from Android
+## Use the WebUI from Android
 
 Connect the Android device to the same home Wi-Fi, then browse to:
 
@@ -245,38 +243,40 @@ If the name does not resolve, use the Pi's current LAN address instead:
 http://<pi-ip-address>:9119
 ```
 
-Sign in using the dashboard credentials from `/var/lib/hermes/env`. Add the
-page to the browser's home screen for an app-like launcher.
+Enter the browser token (`NANOBOT_WS_TOKEN`) when prompted. Add the page to
+the browser's home screen for an app-like launcher.
 
-The dashboard is configured to listen on port `9119`, which is open in the Pi
-firewall. It remains inaccessible from the public Internet unless a router
-port-forward is deliberately created; do not create one.
+The WebUI listens on port `9119`, which is open in the Pi firewall. It remains
+inaccessible from the public Internet unless a router port-forward is
+deliberately created; do not create one.
 
-## Choose a Model
+## Configure the Model in the WebUI
 
-The default model is pinned declaratively in `hosts/hermi/default.nix` via
-`services.hermes-agent.settings.model`. To change it, update that setting and
-rebuild. Interactive selection (`hermes model`) also works for *choosing*, but
-the NixOS-managed install (`HERMES_MANAGED=true`) refuses to persist CLI
-changes — it prints that exact error and points back to the Nix setting.
+On first launch, use **Settings → Models** in the WebUI:
 
-After signing in to the dashboard, the pinned model is available through
-OpenRouter (the API key comes from `/var/lib/hermes/env`).
+- Add an OpenAI-compatible provider:
+  - Base URL: `https://openrouter.ai/api/v1`
+  - API key: your OpenRouter key (also settable via `OPENAI_API_KEY` and
+    `OPENAI_BASE_URL` in `/var/lib/nanobot/env`)
+- Pick a model preset, for example a `deepseek/*` model available via
+  OpenRouter.
+
+Send a test message in a new topic. See Routine Operations below for the usual
+commands.
 
 ## Routine Operations
 
 ### Service status and logs
 
 ```bash
-systemctl status hermes-agent hermes-dashboard
-journalctl -u hermes-agent -f
-journalctl -u hermes-dashboard -f
+systemctl status nanobot
+journalctl -u nanobot -f
 ```
 
-### Restart services after changing `/var/lib/hermes/env`
+### Restart the service after changing `/var/lib/nanobot/env`
 
 ```bash
-sudo systemctl restart hermes-agent hermes-dashboard
+sudo systemctl restart nanobot
 ```
 
 ### Update the Pi configuration
@@ -289,8 +289,9 @@ repository checkout on the Pi and run:
 sudo nixos-rebuild switch --flake .#hermi --accept-flake-config
 ```
 
-The native Hermes NixOS module is declarative. Change its Nix settings and
-rebuild rather than using `hermes setup` or `hermes gateway install`.
+The nanobot service is declarative in `hosts/hermi/default.nix` (user, venv
+bootstrap, systemd unit). Change it there and rebuild rather than running
+`nanobot` CLI setup commands with stateful side effects on the Pi.
 
 ## Updating an Installed Pi
 
@@ -330,9 +331,17 @@ copies its result to the target Pi, then activates it remotely. It is the
 recommended remote deployment workflow until a separate native AArch64 builder
 is available.
 
+> First remote deploy gotcha: the target store rejects locally-built unsigned
+> paths (e.g. generated config files) during the closure copy. Bootstrap once
+> by rebuilding natively on the Pi (rsync the checkout, then
+> `sudo nixos-rebuild switch --flake .#hermi --accept-flake-config`).
+> Afterwards, set up a signing key pair (Framework
+> `nix.settings.secretKeyFiles` + hermi `nix.settings.trustedPublicKeys`) to
+> make plain remote deploys work.
+
 ## Future Improvements
 
-- Encrypt `/var/lib/hermes/env` with `sops-nix` or `agenix`.
+- Encrypt `/var/lib/nanobot/env` with `sops-nix` or `agenix`.
 - Add Tailscale, or configure FRITZ!Box WireGuard, for secure remote Android
   access without public port forwarding.
 - Add Signal through `signal-cli` after the dashboard workflow is stable.
