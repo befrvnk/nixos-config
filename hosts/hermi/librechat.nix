@@ -75,6 +75,17 @@ in
           fi
           chmod 0600 /var/lib/librechat/.env
         fi
+
+        # Self-heal: pick up an OpenRouter key set after first activation
+        # (keys live in /var/lib/nanobot/env, never in the Nix store).
+        if ! grep -q '^OPENROUTER_API_KEY=' /var/lib/librechat/.env; then
+          openrouter_key="$(sed -n 's/^OPENROUTER_API_KEY=//p' /var/lib/nanobot/env \
+            2>/dev/null | head -n1)"
+          if [ -n "$openrouter_key" ]; then
+            echo "OPENROUTER_API_KEY=$openrouter_key" >> /var/lib/librechat/.env
+            chmod 0600 /var/lib/librechat/.env
+          fi
+        fi
   '';
 
   systemd.services.librechat = {
