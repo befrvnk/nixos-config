@@ -21,7 +21,9 @@ in
     # portable TERM instead; hermi's sshd accepts it via AcceptEnv.
     settings.hermi = {
       User = "frank";
-      SetEnv = "TERM=xterm-256color";
+      SetEnv = {
+        TERM = "xterm-256color";
+      };
     };
   };
 }
