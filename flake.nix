@@ -80,6 +80,7 @@
   # ./shared/caches.nix (used by modules/system/core.nix at runtime).
   nixConfig = {
     trusted-extra-substituters = [
+      "https://nixos.snix.store"
       "https://claude-code.cachix.org"
       "https://devenv.cachix.org"
       "https://niri.cachix.org"

@@ -5,7 +5,13 @@
 # is what actually applies at runtime on NixOS). Keep these lists updated here
 # only, so the two don't drift.
 {
+  # EU mirror/proxy of cache.nixos.org (Hetzner, Germany). It serves narinfos
+  # signed by cache.nixos.org's own key, so no extra public key is required.
+  # Its nix-cache-info Priority (39) is lower than the official cache (40), so
+  # nix prefers this mirror automatically and falls back to cache.nixos.org
+  # for any paths the mirror is missing.
   substituters = [
+    "https://nixos.snix.store"
     "https://claude-code.cachix.org"
     "https://devenv.cachix.org"
     "https://niri.cachix.org"
