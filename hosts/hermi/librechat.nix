@@ -15,6 +15,7 @@ let
         container_name: librechat
         image: ghcr.io/danny-avila/librechat:latest
         restart: always
+        user: "1000:1000"
         ports:
           - "3080:3080"
         environment:
@@ -33,6 +34,7 @@ let
         container_name: librechat-mongodb
         image: mongo:4.4.18
         restart: always
+        user: "1000:1000"
         command: [ "mongod", "--noauth" ]
         volumes:
           - /var/lib/librechat/data/mongodb:/data/db
@@ -50,6 +52,9 @@ in
         mkdir -p /var/lib/librechat/data/mongodb /var/lib/librechat/uploads \
           /var/lib/librechat/logs
         chmod 0750 /var/lib/librechat
+        # LibreChat's image runs as uid/gid 1000 (node) and needs to write
+        # logs and uploads; mongo 4.4.18 also needs /data/db writable.
+        chown -R 1000:1000 /var/lib/librechat
 
         # Runtime secrets live in /var/lib/librechat/.env (never in the Nix store).
         # Created once; later rebuilds leave it untouched so credentials survive.
