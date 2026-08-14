@@ -19,7 +19,9 @@ Framework laptop (`x86_64-linux`). The target is `aarch64-linux`.
 - **Agent:** Nanobot (WebUI + gateway), replaces the former hermes-agent
 - **State directory:** `/var/lib/nanobot`
 - **WebUI:** `http://hermi:9119` on the home LAN, protected by a browser token
+- **OpenAI-compatible API:** `http://hermi:8900` (Conduit and OpenAI SDK clients)
 - **Model provider:** OpenRouter
+- **LAN identity:** fixed lease `192.168.178.71`, hostname `hermi` (Wi-Fi MAC `dc:a6:32:cf:0e:46`) — pin both in the FRITZ!Box so the address never drifts
 
 Do not configure a FRITZ!Box port-forward for SSH or the dashboard. The
 initial setup is intended for the trusted home LAN only. For access away from
@@ -187,8 +189,9 @@ future boots.
 ## Configure Nanobot Secrets
 
 The image intentionally starts with the WebUI bound to localhost and no model
-configured. One secret drives the WebUI's LAN mode, stored in
-`/var/lib/nanobot/env` and loaded by the `nanobot` systemd service:
+configured. Secrets drive the WebUI's LAN mode and the API, stored in
+`/var/lib/nanobot/env` and loaded by the `nanobot`/`nanobot-serve` systemd
+services:
 
 - `NANOBOT_WS_TOKEN` — enables LAN entry to the WebUI (a browser token is
   required). Without it the WebUI stays on `127.0.0.1` only.
@@ -217,6 +220,16 @@ restart to go localhost-only again.
 
 Never put these values in `hosts/hermi/default.nix` or a committed file: Nix
 expressions become readable through the Nix store.
+
+Two more secrets share the same file and follow the same rules:
+
+- `NANOBOT_API_KEY` — bearer token for the OpenAI-compatible API on port
+  `8900`. Without it the API is not enabled.
+- `OPENROUTER_API_KEY` — provider key. The activation script writes the
+  OpenRouter provider (`api_base` `https://openrouter.ai/api/v1`, throughput-
+  sorted provider routing) into the config when present. Use a *chat*
+  API key (`sk-or-v1-...`), not the OpenRouter *management* key — the
+  management key answers with `User not found.` on chat requests.
 
 The `nanobot` runtime is a pinned PyPI venv (`nanobot-ai==0.3.0`) created by
 the first activation and reused afterwards; the service runs as the `nanobot`
@@ -250,6 +263,49 @@ The WebUI listens on port `9119`, which is open in the Pi firewall. It remains
 inaccessible from the public Internet unless a router port-forward is
 deliberately created; do not create one.
 
+## Use the OpenAI-Compatible API (Conduit)
+
+The `nanobot-serve` service exposes the OpenAI-compatible API on port `8900`:
+
+```bash
+curl -s http://hermi:8900/v1/models -H "Authorization: Bearer $NANOBOT_API_KEY"
+curl -s http://hermi:8900/v1/chat/completions \
+  -H "Authorization: Bearer $NANOBOT_API_KEY" -H "Content-Type: application/json" \
+  -d '{"model": "deepseek/deepseek-v4-flash-0731",
+       "messages": [{"role": "user", "content": "hi"}]}'
+```
+
+Point Conduit (or any OpenAI-compatible chat app) at
+`http://hermi:8900/v1` with the API key.
+
+**Single-message limit.** The `/v1` API is designed for one-shot integration
+calls: nanobot keeps continuity server-side per `session_id` + memory and
+rejects request bodies that resend a whole conversation thread with HTTP 400
+(`Only a single message is supported`). Conduit and other chat apps resend the
+history by design, so multi-turn chat against `:8900` needs one of:
+
+- use the WebUI (`:9119`) for conversations and Conduit for quick prompts;
+- run a small history-stripping proxy in front of `:8900` that keeps only the
+  latest user message (declarative, ~20 lines; not yet implemented);
+- add a Telegram channel later for a second chat surface.
+
+## Configure the Model in the WebUI
+
+The activation script seeds an OpenRouter provider and the default model
+(`deepseek/deepseek-v4-flash-0731`) into the running config from
+`/var/lib/nanobot/env`; it only upserts, so changes made in the WebUI survive
+rebuilds.
+
+Use **Settings → Models** in the WebUI to switch the model per chat.
+
+**Vision.** `deepseek-v4-flash` is text-only: OpenRouter returns
+`404 No endpoints found that support image input` for image content, and
+nanobot then automatically retries *without* the images (look for
+`Non-transient LLM error with image content, retrying without images` in
+`journalctl -u nanobot`). To let the agent actually see attached images,
+switch the chat model to a vision-capable one such as
+`google/gemini-2.5-flash` (same OpenRouter key).
+
 ## Configure the Model in the WebUI
 
 On first launch, use **Settings → Models** in the WebUI:
@@ -268,15 +324,23 @@ commands.
 
 ### Service status and logs
 
+The Nanobot stack is two units: `nanobot` (WebUI + agent on `:9119`) and
+`nanobot-serve` (OpenAI-compatible API on `:8900`).
+
 ```bash
-systemctl status nanobot
+systemctl status nanobot nanobot-serve
 journalctl -u nanobot -f
+journalctl -u nanobot-serve -f
 ```
+
+The units run with `PATH=/run/current-system/sw/bin` (NixOS has no `/bin/bash`),
+so the agent's `exec` tool can resolve `bash`, `curl`, and friends; `bash` and
+`curl` are part of the hermi `systemPackages`.
 
 ### Restart the service after changing `/var/lib/nanobot/env`
 
 ```bash
-sudo systemctl restart nanobot
+sudo systemctl restart nanobot nanobot-serve
 ```
 
 ### Update the Pi configuration
@@ -327,17 +391,48 @@ nixos-rebuild switch --flake .#hermi \
 ```
 
 This is different from a remote *builder*: the Framework performs the build,
-copies its result to the target Pi, then activates it remotely. It is the
-recommended remote deployment workflow until a separate native AArch64 builder
-is available.
+copies its result to the target Pi, then activates it remotely. Use
+`hermi-update` in `devenv.nix` (default target `frank@hermi`) for this flow.
 
-> First remote deploy gotcha: the target store rejects locally-built unsigned
-> paths (e.g. generated config files) during the closure copy. Bootstrap once
-> by rebuilding natively on the Pi (rsync the checkout, then
-> `sudo nixos-rebuild switch --flake .#hermi --accept-flake-config`).
-> Afterwards, set up a signing key pair (Framework
-> `nix.settings.secretKeyFiles` + hermi `nix.settings.trustedPublicKeys`) to
-> make plain remote deploys work.
+### Remote deploy signing
+
+The target store rejects locally-built unsigned paths (e.g. generated config
+files) during the closure copy. Fix it once with a signing key pair:
+
+1. On the Framework, generate a key pair (root; the private key stays out of
+   Git — the store is world-readable):
+
+   ```bash
+   sudo mkdir -p /etc/nix/keys
+   sudo nix-store --generate-binary-cache-key hermi-signing \
+     /etc/nix/keys/hermi-signing.key /etc/nix/keys/hermi-signing.pub
+   sudo chmod 600 /etc/nix/keys/hermi-signing.key
+   ```
+
+2. Declare the private key on the Framework and restart the daemon:
+
+   ```nix
+   # modules/system/core.nix (Framework only)
+   nix.settings.secretKeyFiles.hermi-signing = "/etc/nix/keys/hermi-signing.key";
+   ```
+
+   ```bash
+   rebuild switch && sudo systemctl restart nix-daemon
+   ```
+
+3. Trust the matching public key on hermi:
+
+   ```nix
+   # hosts/hermi/default.nix
+   nix.settings.trustedPublicKeys = [
+     "hermi-signing:<paste public key from hermi-signing.pub>"
+     "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+     "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
+   ];
+   ```
+
+4. Rebuild hermi natively once (the trust is only consulted at copy time), then
+   plain remote deploys work and the native bootstrap is no longer needed.
 
 ## Future Improvements
 
