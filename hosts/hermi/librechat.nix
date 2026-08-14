@@ -52,7 +52,7 @@ let
           - /var/lib/librechat/.env
         environment:
           - API_SERVER_URL=http://api:3080
-          - VITE_API_BASE_URL=${DOMAIN_CLIENT: -"http://localhost:3080"}
+          - VITE_API_BASE_URL=''${DOMAIN_CLIENT:-http://localhost:3080}
           - SESSION_COOKIE_SECURE=false
     volumes:
       librechat-data:
