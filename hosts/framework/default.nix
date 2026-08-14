@@ -54,6 +54,14 @@
 
   networking.hostName = "framework";
 
+  # hermi (Raspberry Pi, Nanobot) is pinned to 192.168.178.71 via FRITZ!Box
+  # fixed lease. DNS (hermi.fritz.box) is NOT used from this machine because
+  # the resolver is pinned to NextDNS, so resolve it via /etc/hosts.
+  networking.hosts."192.168.178.71" = [
+    "hermi"
+    "hermi.fritz.box"
+  ];
+
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
