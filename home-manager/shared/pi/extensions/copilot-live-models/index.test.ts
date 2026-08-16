@@ -80,6 +80,7 @@ test("refreshCopilotLiveModels uses Pi's OAuth credential and live model endpoin
 
   assert.deepEqual(urls, ["https://api.enterprise.githubcopilot.com/models"]);
   assert.equal(signals[0], signal);
+  assert.ok(models);
   assert.equal(models[0]?.id, "gpt-5.5");
   assert.equal(models[0]?.baseUrl, "https://api.enterprise.githubcopilot.com");
   assert.equal(models[0]?.contextWindow, 1_050_000);
@@ -115,6 +116,7 @@ test("registerCopilotLiveModels registers a refresh callback without fetching du
       credential: { type: "oauth", access: ACCESS_TOKEN },
       allowNetwork: true,
     });
+    assert.ok(models);
     assert.equal(models[0]?.id, "gpt-5.5");
     assert.equal(models[0]?.baseUrl, "https://api.enterprise.githubcopilot.com");
   } finally {
@@ -152,10 +154,14 @@ test("dynamic refresh reloads the compaction reserve setting", async () => {
     );
 
     const context = { credential: { type: "oauth", access: ACCESS_TOKEN }, allowNetwork: true };
-    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 273_000);
+    const initialModels = await config!.refreshModels!(context);
+    assert.ok(initialModels);
+    assert.equal(initialModels[0]?.contextWindow, 273_000);
 
     reserveTokens = 2_000;
-    assert.equal((await config!.refreshModels!(context))[0]?.contextWindow, 274_000);
+    const refreshedModels = await config!.refreshModels!(context);
+    assert.ok(refreshedModels);
+    assert.equal(refreshedModels[0]?.contextWindow, 274_000);
   } finally {
     if (previousEnabled === undefined) {
       delete process.env.PI_COPILOT_LIVE_MODELS;
@@ -165,17 +171,18 @@ test("dynamic refresh reloads the compaction reserve setting", async () => {
   }
 });
 
-test("refreshCopilotLiveModels rejects offline and unauthenticated refreshes", async () => {
-  const { deps } = createDeps();
+test("refreshCopilotLiveModels preserves Pi's cache-only catalog and rejects unauthenticated refreshes", async () => {
+  const { deps, urls } = createDeps();
 
-  await assert.rejects(
-    refreshCopilotLiveModels(
+  assert.equal(
+    await refreshCopilotLiveModels(
       { credential: { type: "oauth", access: ACCESS_TOKEN }, allowNetwork: false },
       deps,
       128_000,
     ),
-    /requires network access/,
+    undefined,
   );
+  assert.deepEqual(urls, []);
   await assert.rejects(
     refreshCopilotLiveModels({ allowNetwork: true }, deps, 128_000),
     /OAuth credentials are unavailable/,

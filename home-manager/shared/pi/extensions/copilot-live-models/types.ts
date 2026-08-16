@@ -38,7 +38,7 @@ export interface CopilotRefreshModelsContext {
 
 export interface PiProviderConfig {
   headers?: Record<string, string>;
-  refreshModels?(context: CopilotRefreshModelsContext): Promise<PiProviderModelConfig[]>;
+  refreshModels?(context: CopilotRefreshModelsContext): Promise<PiProviderModelConfig[] | undefined>;
 }
 
 export interface CopilotTokenInfo {

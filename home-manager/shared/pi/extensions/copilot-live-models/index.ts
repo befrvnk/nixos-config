@@ -49,10 +49,12 @@ export async function refreshCopilotLiveModels(
   context: CopilotRefreshModelsContext,
   deps: CopilotLiveModelsProviderDeps,
   contextReserveTokens: number,
-): Promise<PiProviderModelConfig[]> {
-  if (!context.allowNetwork) {
-    throw new Error("GitHub Copilot live model refresh requires network access.");
-  }
+): Promise<PiProviderModelConfig[] | undefined> {
+  // Pi first invokes config-form refresh callbacks with network access disabled
+  // to restore cached models. This extension uses Pi's shared Copilot cache, so
+  // returning no value preserves that catalog. Returning [] would publish an
+  // empty catalog and leave any already-rendered selection unauthenticated.
+  if (!context.allowNetwork) return;
   if (context.credential?.type !== "oauth" || !context.credential.access) {
     throw new Error("GitHub Copilot OAuth credentials are unavailable.");
   }

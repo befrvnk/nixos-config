@@ -18,6 +18,7 @@ test("live Copilot catalog maps GPT long-context models to their full advertised
     128_000,
   );
 
+  assert.ok(models, "expected a live Copilot catalog");
   const gpt55 = models.find((model) => model.id === "gpt-5.5");
   assert.ok(gpt55, "expected gpt-5.5 in the live Copilot catalog");
   assert.equal(gpt55.api, "openai-responses");
