@@ -15,6 +15,7 @@
       domain-check
 
       mission-center
+      openchamber
       nautilus
       gnome-disk-utility
       powertop

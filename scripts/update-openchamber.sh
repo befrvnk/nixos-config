@@ -29,19 +29,24 @@ if [[ "$version" == "$current" ]]; then
   exit 0
 fi
 
-asset_name="OpenChamber-${version}-mac-arm64.zip"
-url=$(jq -r --arg name "$asset_name" '.assets[] | select(.name == $name) | .browser_download_url // empty' <<< "$release_json")
+darwin_asset="OpenChamber-${version}-mac-arm64.zip"
+linux_asset="OpenChamber-${version}-linux-x86_64.AppImage"
+darwin_url=$(jq -r --arg name "$darwin_asset" '.assets[] | select(.name == $name) | .browser_download_url // empty' <<< "$release_json")
+linux_url=$(jq -r --arg name "$linux_asset" '.assets[] | select(.name == $name) | .browser_download_url // empty' <<< "$release_json")
 
-if [[ -z "$url" ]]; then
-  echo "Error: Could not find asset $asset_name"
+if [[ -z "$darwin_url" || -z "$linux_url" ]]; then
+  echo "Error: Could not find release assets for macOS and x86_64 Linux"
   exit 1
 fi
 
-src_sri=$(prefetch_archive_sri_hash_keep_root "$url")
+darwin_hash=$(prefetch_archive_sri_hash_keep_root "$darwin_url")
+linux_hash=$(prefetch_sri_hash "$linux_url")
 
-echo "New hash: $src_sri"
+echo "New Darwin hash: $darwin_hash"
+echo "New Linux hash: $linux_hash"
 
 sed_in_place "s|version = \".*\"|version = \"$version\"|" "$package_file"
-sed_in_place "s|hash = \"sha256-.*\"|hash = \"$src_sri\"|" "$package_file"
+sed_in_place "s|darwinHash = \"sha256-.*\"|darwinHash = \"$darwin_hash\"|" "$package_file"
+sed_in_place "s|linuxHash = \"sha256-.*\"|linuxHash = \"$linux_hash\"|" "$package_file"
 
 echo "Updated $package_file to $version"

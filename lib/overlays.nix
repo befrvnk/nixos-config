@@ -20,6 +20,7 @@ let
     (import ../overlays/claude-code.nix)
     (import ../overlays/domain-check.nix)
     (import ../overlays/idea-community.nix)
+    (import ../overlays/openchamber.nix)
     inputs.niri.overlays.niri
     (import ../overlays/niri.nix)
     inputs.nix-cachyos-kernel.overlays.pinned
