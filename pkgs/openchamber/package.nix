@@ -27,9 +27,13 @@ stdenvNoCC.mkDerivation rec {
 
     mkdir -p "$out/Applications" "$out/bin"
     cp -r "$src/${appName}" "$out/Applications/"
-    makeBinaryWrapper \
-      "$out/Applications/${appName}/Contents/MacOS/${executable}" \
-      "$out/bin/openchamber"
+    chmod -R u+w "$out/Applications/${appName}"
+
+    appExecutable="$out/Applications/${appName}/Contents/MacOS/${executable}"
+    mv "$appExecutable" "$appExecutable-unwrapped"
+    makeBinaryWrapper "$appExecutable-unwrapped" "$appExecutable" \
+      --set OPENCODE_DISABLE_CLAUDE_CODE true
+    ln -s "$appExecutable" "$out/bin/openchamber"
 
     runHook postInstall
   '';
