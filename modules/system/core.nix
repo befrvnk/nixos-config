@@ -100,8 +100,10 @@ in
 
     # Sign store paths for remote hermi deploys (see
     # docs/hermi-raspberry-pi-setup.md, "Remote deploy signing"). The private
-    # key lives on this machine only, never in Git/public.
-    "secret-key-files" = "hermi-signing=/etc/nix/keys/hermi-signing.key";
+    # key lives on this machine only, never in Git/public. Nix >= 2.18 expects
+    # plain whitespace-separated paths here (the key name is embedded in the
+    # key file itself, so no `name=path` prefix).
+    "secret-key-files" = "/etc/nix/keys/hermi-signing.key";
 
     # Allow the user to configure binary caches (needed for devenv)
     trusted-users = [
