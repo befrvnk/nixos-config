@@ -19,10 +19,6 @@
     };
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
     nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";
-    hermes-agent = {
-      url = "github:NousResearch/hermes-agent";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -130,7 +126,6 @@
             inherit (inputs) nixos-raspberrypi;
           };
           modules = [
-            inputs.hermes-agent.nixosModules.default
             ./hosts/hermi
           ];
         };

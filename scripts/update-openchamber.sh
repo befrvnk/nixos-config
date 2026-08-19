@@ -6,6 +6,7 @@ set -euo pipefail
 source "$(dirname "$0")/update-common.sh"
 
 package_file="pkgs/openchamber/package.nix"
+hermi_file="hosts/hermi/default.nix"
 owner="openchamber"
 repo="openchamber"
 
@@ -48,5 +49,6 @@ echo "New Linux hash: $linux_hash"
 sed_in_place "s|version = \".*\"|version = \"$version\"|" "$package_file"
 sed_in_place "s|darwinHash = \"sha256-.*\"|darwinHash = \"$darwin_hash\"|" "$package_file"
 sed_in_place "s|linuxHash = \"sha256-.*\"|linuxHash = \"$linux_hash\"|" "$package_file"
+sed_in_place "s|openchamberVersion = \".*\"|openchamberVersion = \"$version\"|" "$hermi_file"
 
-echo "Updated $package_file to $version"
+echo "Updated $package_file and $hermi_file to $version"

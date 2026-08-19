@@ -1,5 +1,4 @@
 {
-  inputs,
   lib,
   nixos-raspberrypi,
   pkgs,
@@ -7,7 +6,7 @@
 }:
 
 let
-  nanobotVersion = "0.3.0";
+  openchamberVersion = "1.18.4";
 in
 {
   imports = [
@@ -27,8 +26,7 @@ in
       enable = true;
       allowedTCPPorts = [
         22
-        8900
-        9119
+        3000
       ];
     };
   };
@@ -63,19 +61,15 @@ in
         ];
       };
 
-      # Nanobot personal AI agent (WebUI on :9119)
-      # Replaces the former hermes-agent gateway. The runtime is a pinned PyPI
-      # venv (nanobot-ai is not packaged in nixpkgs); the venv is created at
-      # first activation and reused afterwards. Provider secrets come from
-      # /var/lib/nanobot/env (see docs/hermi-raspberry-pi-setup.md).
-      nanobot = {
+      # Headless OpenChamber server for mobile and remote agent work.
+      openchamber = {
         isSystemUser = true;
-        group = "nanobot";
-        home = "/var/lib/nanobot";
+        group = "openchamber";
+        home = "/var/lib/openchamber";
         createHome = true;
       };
     };
-    groups.nanobot = { };
+    groups.openchamber = { };
   };
 
   # The image has no password hash for frank. SSH public-key authentication is
@@ -83,97 +77,45 @@ in
   # after one has been configured on the Pi.
   security.sudo.wheelNeedsPassword = false;
 
-  system.activationScripts."nanobot-setup" = lib.stringAfter [ "users" "groups" ] ''
-    mkdir -p /var/lib/nanobot /var/lib/nanobot/.nanobot
-    chown nanobot:nanobot /var/lib/nanobot /var/lib/nanobot/.nanobot
-    chmod 0750 /var/lib/nanobot
+  system.activationScripts."openchamber-setup" = lib.stringAfter [ "users" "groups" ] ''
+    mkdir -p /var/lib/openchamber/app
+    chown openchamber:openchamber /var/lib/openchamber /var/lib/openchamber/app
+    chmod 0750 /var/lib/openchamber
 
-    # One-time venv bootstrap (downloads from PyPI on first activation).
-    if [ ! -x /var/lib/nanobot/venv/bin/nanobot ]; then
-      echo "Creating nanobot ${nanobotVersion} venv (first activation; downloads PyPI)..."
-      ${pkgs.uv}/bin/uv venv --python "${pkgs.python3}" /var/lib/nanobot/venv
-      ${pkgs.uv}/bin/uv pip install --python /var/lib/nanobot/venv/bin/python "nanobot-ai[api]==${nanobotVersion}"
+    installed_version="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' /var/lib/openchamber/app/node_modules/@openchamber/web/package.json 2>/dev/null | head -n1)"
+    if [ "$installed_version" != "${openchamberVersion}" ]; then
+      echo "Installing OpenChamber ${openchamberVersion} (downloads from npm)..."
+      rm -rf /var/lib/openchamber/app/node_modules
+      ${pkgs.nodejs_22}/bin/npm install --omit=dev --no-audit --no-fund \
+        --prefix /var/lib/openchamber/app "@openchamber/web@${openchamberVersion}"
+      chown -R openchamber:openchamber /var/lib/openchamber/app
     fi
-
-    # Optional secrets from /var/lib/nanobot/env (nanobot user's own file).
-    ws_token="$(sed -n 's/^NANOBOT_WS_TOKEN=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
-    api_key="$(sed -n 's/^NANOBOT_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
-    openrouter_key="$(sed -n 's/^OPENROUTER_API_KEY=//p' /var/lib/nanobot/env 2>/dev/null | head -n1)"
-
-    # Seed a minimal config on first run, then only upsert so the model and
-    # provider state nanobot itself wrote (onboarding/WebUI) survives.
-    if [ ! -f /var/lib/nanobot/.nanobot/config.json ]; then
-      ${pkgs.jq}/bin/jq -n \
-        '{channels:{websocket:{enabled:true,host:"127.0.0.1",port:9119}}}' \
-        > /var/lib/nanobot/.nanobot/config.json
-    fi
-
-    # WebUI: LAN entry + browser password on :9119 when a token is set.
-    if [ -n "$ws_token" ]; then
-      ${pkgs.jq}/bin/jq --arg t "$ws_token" \
-        '.channels.websocket = ((.channels.websocket // {enabled:true}) | .host="0.0.0.0" | .port=9119 | .tokenIssueSecret=$t | .websocketRequiresToken=true)' \
-        /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
-      mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
-    fi
-
-    # OpenAI-compatible API on :8900 (Conduit/OpenAI SDK clients).
-    if [ -n "$api_key" ]; then
-      ${pkgs.jq}/bin/jq --arg k "$api_key" \
-        '.api = {host:"0.0.0.0",port:8900,apiKey:$k}' \
-        /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
-      mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
-    fi
-
-    # OpenRouter entry so a headless first start passes the provider preflight.
-    # extra_body routes every request to the highest-throughput provider
-    # (evidence/proof: https://openrouter.ai/docs/guides/routing/provider-selection)
-    if [ -n "$openrouter_key" ]; then
-      ${pkgs.jq}/bin/jq --arg k "$openrouter_key" \
-        '.providers.openrouter = {api_base:"https://openrouter.ai/api/v1",api_key:$k,extra_body:{provider:{sort:"throughput",allow_fallbacks:true}}}' \
-        /var/lib/nanobot/.nanobot/config.json > /var/lib/nanobot/.nanobot/config.json.tmp
-      mv /var/lib/nanobot/.nanobot/config.json.tmp /var/lib/nanobot/.nanobot/config.json
-    fi
-
-    chown nanobot:nanobot /var/lib/nanobot/.nanobot/config.json
-    chmod 0600 /var/lib/nanobot/.nanobot/config.json
   '';
 
-  systemd.services.nanobot = {
-    description = "Nanobot personal AI agent";
+  systemd.services.openchamber = {
+    description = "OpenChamber headless server";
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     environment = {
-      HOME = "/var/lib/nanobot";
-      # NixOS has no /bin/bash; give the exec tool a real shell + tools.
-      PATH = lib.mkForce "/run/current-system/sw/bin";
+      HOME = "/var/lib/openchamber";
+      PATH = lib.mkForce (
+        lib.makeBinPath [
+          pkgs.bash
+          pkgs.curl
+          pkgs.git
+          pkgs.neovim
+          pkgs.opencode
+        ]
+      );
     };
     serviceConfig = {
-      User = "nanobot";
-      Group = "nanobot";
-      WorkingDirectory = "/var/lib/nanobot";
-      EnvironmentFile = "-/var/lib/nanobot/env";
-      ExecStart = "/var/lib/nanobot/venv/bin/nanobot webui --yes --no-open";
-      Restart = "on-failure";
-      RestartSec = 5;
-      UMask = "0077";
-    };
-  };
-
-  systemd.services.nanobot-serve = {
-    description = "Nanobot OpenAI-compatible API server";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "nanobot.service" ];
-    environment = {
-      HOME = "/var/lib/nanobot";
-      PATH = lib.mkForce "/run/current-system/sw/bin";
-    };
-    serviceConfig = {
-      User = "nanobot";
-      Group = "nanobot";
-      WorkingDirectory = "/var/lib/nanobot";
-      EnvironmentFile = "-/var/lib/nanobot/env";
-      ExecStart = "/var/lib/nanobot/venv/bin/nanobot serve";
+      User = "openchamber";
+      Group = "openchamber";
+      WorkingDirectory = "/var/lib/openchamber";
+      EnvironmentFile = "-/var/lib/openchamber/env";
+      ExecStartPre = "${pkgs.gnugrep}/bin/grep -q '^OPENCHAMBER_UI_PASSWORD=.' /var/lib/openchamber/env";
+      ExecStart = "${pkgs.nodejs_22}/bin/node /var/lib/openchamber/app/node_modules/@openchamber/web/bin/cli.js --lan --port 3000";
       Restart = "on-failure";
       RestartSec = 5;
       UMask = "0077";
@@ -185,6 +127,8 @@ in
     curl
     git
     neovim
+    nodejs_22
+    opencode
   ];
 
   system.stateVersion = "25.05";
