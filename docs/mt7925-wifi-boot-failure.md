@@ -62,7 +62,9 @@ driver/ASPM state — the `performance` policy prevents it from recurring.
 
 ## 7.1.x Kernel mt76 Regression (WiFi dies while "connected")
 
-**Status:** Unfixed upstream in 7.1.x. Workaround: use the CachyOS LTS kernel.
+**Status:** Unfixed upstream as of 7.2-rc7, tracked in
+[Bugzilla 221884](https://bugzilla.kernel.org/show_bug.cgi?id=221884).
+Workaround: use the CachyOS LTS kernel.
 
 ### Symptom
 
@@ -70,12 +72,44 @@ driver/ASPM state — the `performance` policy prevents it from recurring.
 - But all traffic dies: no ARP/ICMP, gateway unreachable, throughput ~0
 - Pings degrade progressively (e.g. 9 ms → 300–1400 ms → 0 bytes)
 - **Reloading `mt7925e` restores connectivity** (until the next occurrence)
-- Affects kernel 7.1.x (confirmed on 7.1.1 through 7.1.6, incl. CachyOS)
-- **Not affected: LTS kernel 6.18.38+ works perfectly** (community-confirmed)
+- Affects kernel 7.1.x (confirmed on 7.1.1 through 7.1.8, incl. CachyOS)
+- **Also reproduced on 7.2.0-rc7** (twice, same signature — not fixed in 7.2 rc7)
+- **Not affected: LTS kernel 6.18.38+ works perfectly** (community-confirmed;
+  6.18.42 confirmed clean 3+ h with MLO active)
+
+### Root cause (from Bugzilla 221884)
+
+- Silent **WFDMA0 TX hardware queue stall**: `xmit-queues` debugfs shows the
+  `tail` pointer frozen while `head` keeps advancing — packets enqueue but the
+  firmware stops draining. RX counters freeze at the same instant.
+- Correlates with an active **6 GHz MLO link** (5 GHz + 6 GHz); fully disabling
+  the 6 GHz radio on the AP eliminates the freeze.
+- The driver keeps reporting a healthy link (0 tx retries, 0 tx failed, good
+  RSSI), so nothing is logged to dmesg at the time of the stall.
+
+### Tracking
+
+- **Bugzilla 221884** — "[REGRESSION] mt7925: MLO connectivity silently stalls
+  (TX queue never drains) when 6GHz link is active". Filed 2026-08-14 by johow;
+  status NEW as of 2026-08-18. Reproduced twice on 7.1.8-1 and twice on
+  7.2.0-rc7-1; 6.18.42-1-cachyos-lts confirmed clean 3+ h with MLO active.
+- **Re-test trigger:** a fix merged in 7.2-rc8/stable (or 6.18.y) that
+  references this bug. Do NOT switch back to `linuxPackages-cachyos-latest`
+  based on the AP-switch fix below.
+
+### Not the same bug: AP-switch download collapse (FIXED in 7.2-rc1)
+
+A separate mt76 regression — download drops to 2–5 Mbit/s after switching
+between a wifi 6 and a wifi 5 AP (no MLO involved) — was **fixed upstream by
+[commit b2f5def2f133](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b2f5def2f133fca12897b0fc707a8d3df1c3cb05),
+first shipped in 7.2-rc1**. If you read that "7.2 fixes MT7925", it refers to
+this one — it is NOT the freeze tracked in this repo.
 
 ### Sources
 
 - [CachyOS Forum: MT7925 WiFi 7 MLO breaks connectivity on 7.1.x](https://discuss.cachyos.org/t/mt7925-wifi-7-mlo-breaks-connectivity-on-7-1-x-mt76-regression/31972)
+- [Kernel Bugzilla 221884](https://bugzilla.kernel.org/show_bug.cgi?id=221884)
+- [CachyOS Forum: AP-switch download collapse (fixed upstream, not in 7.1)](https://discuss.cachyos.org/t/mt7925-wifi-drops-to-a-few-mbit-s-after-switching-aps-on-7-1-x-fixed-upstream-not-in-7-1/34131)
 - [Upstream fix for related TDLS collapse: commit 37d6538](https://github.com/torvalds/linux/commit/37d65384aa6f)
   ("don't disable AP BSS when removing TDLS peer") — merged + Cc stable,
   symptom: downlink collapses to 6–72 Mbit/s until a manual reconnect
@@ -88,8 +122,10 @@ driver/ASPM state — the `performance` policy prevents it from recurring.
 `linuxPackages-cachyos-latest` (7.1.x, affected) to
 `linuxPackages-cachyos-lts` (6.18.x, confirmed working).
 
-Revisit when the regression is fixed upstream (bugzilla report pending), then
-return to `linuxPackages-cachyos-latest`.
+Revisit only once a 7.2 release (rc8+ or stable) ships an mt7925/mt76 fix
+referencing Bugzilla 221884, then return to `linuxPackages-cachyos-latest`.
+The `linuxPackages-cachyos-rc` package (7.2-rc7, still broken) is available in
+the flake input for reversible testing when a candidate fix lands.
 
 ## The Problem
 

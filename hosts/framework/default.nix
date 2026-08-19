@@ -18,8 +18,9 @@
   # Use CachyOS LTS kernel: the 7.1.x (cachyos-latest) series has an unfixed
   # mt76/MT7925 regression where WiFi stays "connected" but traffic dies
   # (no ARP/ICMP, throughput ~0), only recoverable by reloading mt7925e.
-  # Confirmed by CachyOS forum + upstream commit 37d6538; the 6.18.x LTS
-  # works perfectly. Revisit once the 7.1.x regression is fixed upstream.
+  # Confirmed by CachyOS forum + Bugzilla 221884; also reproduced on 7.2-rc7,
+  # so 7.2 does NOT fix it yet. The 6.18.x LTS works perfectly.
+  # Revisit only once a 7.2 release (rc8+/stable) fixes Bugzilla 221884.
   # See: docs/mt7925-wifi-boot-failure.md
   boot = {
     binfmt.emulatedSystems = [ "aarch64-linux" ];
