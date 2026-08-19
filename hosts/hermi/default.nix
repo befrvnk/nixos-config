@@ -86,6 +86,9 @@ in
     if [ "$installed_version" != "${openchamberVersion}" ]; then
       echo "Installing OpenChamber ${openchamberVersion} (downloads from npm)..."
       rm -rf /var/lib/openchamber/app/node_modules
+      # npm lifecycle scripts (node-pty etc.) need 'sh' and common utils, which
+      # are absent from the activation environment's minimal PATH.
+      export PATH="${pkgs.bash}/bin:${pkgs.coreutils}/bin:${pkgs.gnused}/bin:${pkgs.gnugrep}/bin:${pkgs.findutils}/bin":$PATH
       ${pkgs.nodejs_22}/bin/npm install --omit=dev --no-audit --no-fund \
         --prefix /var/lib/openchamber/app "@openchamber/web@${openchamberVersion}"
       chown -R openchamber:openchamber /var/lib/openchamber/app
