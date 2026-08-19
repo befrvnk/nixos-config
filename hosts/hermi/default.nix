@@ -118,7 +118,7 @@ in
       WorkingDirectory = "/var/lib/openchamber";
       EnvironmentFile = "-/var/lib/openchamber/env";
       ExecStartPre = "${pkgs.gnugrep}/bin/grep -q '^OPENCHAMBER_UI_PASSWORD=.' /var/lib/openchamber/env";
-      ExecStart = "${pkgs.nodejs_22}/bin/node /var/lib/openchamber/app/node_modules/@openchamber/web/bin/cli.js --lan --port 3000";
+      ExecStart = "${pkgs.nodejs_22}/bin/node /var/lib/openchamber/app/node_modules/@openchamber/web/bin/cli.js serve --lan --port 3000 --foreground";
       Restart = "on-failure";
       RestartSec = 5;
       UMask = "0077";
