@@ -49,13 +49,13 @@ if stdenv.hostPlatform.isDarwin then
 
       mkdir -p "$out/Applications" "$out/bin"
       cp -r "$src/${appName}" "$out/Applications/"
-      chmod -R u+w "$out/Applications/${appName}"
 
-      appExecutable="$out/Applications/${appName}/Contents/MacOS/${executable}"
-      mv "$appExecutable" "$appExecutable-unwrapped"
-      makeBinaryWrapper "$appExecutable-unwrapped" "$appExecutable" \
+      # The bundle's executable is covered by the upstream macOS code signature.
+      # Wrapping it in place invalidates that signature and prevents LaunchServices
+      # from starting the application. Keep the bundle unchanged; only wrap the
+      # command-line entry point outside it.
+      makeBinaryWrapper "$out/Applications/${appName}/Contents/MacOS/${executable}" "$out/bin/${pname}" \
         --set OPENCODE_DISABLE_CLAUDE_CODE true
-      ln -s "$appExecutable" "$out/bin/${pname}"
 
       runHook postInstall
     '';

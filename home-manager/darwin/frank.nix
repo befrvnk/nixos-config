@@ -35,6 +35,13 @@
     stateVersion = "25.05";
   };
 
+  # Copy application bundles instead of linking to the Nix store so macOS
+  # indexes them for Spotlight and Raycast.
+  targets.darwin = {
+    linkApps.enable = false;
+    copyApps.enable = true;
+  };
+
   # Keep a minimal Home Manager zsh config so shared shell integrations that
   # target .zshrc (for example nix-index command-not-found) work on Darwin.
   programs.zsh.enable = true;
