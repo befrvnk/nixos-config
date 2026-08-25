@@ -50,6 +50,10 @@
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    cliamp = {
+      url = "github:bjarneo/cliamp/main";
+      flake = false;
+    };
     # Don't use inputs.nixpkgs.follows here - the pinned overlay requires
     # the flake's own nixpkgs version to get binary cache hits
     nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";

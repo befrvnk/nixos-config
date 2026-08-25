@@ -179,6 +179,23 @@
         "type": "github"
       }
     },
+    "cliamp": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1787599227,
+        "narHash": "sha256-lwS9uYpwrqabm/eXlKRljyrLZxNnzIsU2KkOXpkexps=",
+        "owner": "bjarneo",
+        "repo": "cliamp",
+        "rev": "c44ac4cb85a72b5cd85fe38abc855a1d9b4cd6d7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bjarneo",
+        "ref": "main",
+        "repo": "cliamp",
+        "type": "github"
+      }
+    },
     "crane": {
       "locked": {
         "lastModified": 1785782307,
@@ -924,6 +941,7 @@
         "android-nixpkgs": "android-nixpkgs",
         "awww": "awww",
         "claude-code": "claude-code",
+        "cliamp": "cliamp",
         "home-manager": "home-manager",
         "hunk": "hunk",
         "lanzaboote": "lanzaboote",

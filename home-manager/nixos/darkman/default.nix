@@ -25,6 +25,7 @@ in
       ".local/share/darkman-switch-mode.sh" = {
         source = pkgs.replaceVars ./darkman-switch-mode.sh {
           dconf = "${pkgs.dconf}";
+          cliamp = "${pkgs.cliamp}";
           systemd = "${pkgs.systemd}";
           niri = "${pkgs.niri}";
           coreutils = "${pkgs.coreutils}";

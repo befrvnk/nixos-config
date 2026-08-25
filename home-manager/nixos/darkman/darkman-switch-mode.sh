@@ -118,3 +118,9 @@ fi
 NUSHELL_STATE_DIR="$HOME/.local/state/nushell"
 @coreutils@/bin/mkdir -p "$NUSHELL_STATE_DIR"
 @coreutils@/bin/cp "$HOME/.config/nushell/theme-$MODE.nuon" "$NUSHELL_STATE_DIR/theme.nuon"
+
+# Keep cliamp readable and make future launches use the current appearance.
+CLIAMP_STATE_DIR="$HOME/.local/state/cliamp"
+@coreutils@/bin/mkdir -p "$CLIAMP_STATE_DIR"
+@coreutils@/bin/printf '%s\n' "$MODE" >"$CLIAMP_STATE_DIR/theme"
+@cliamp@/bin/cliamp theme "cliamp-$MODE" >/dev/null 2>&1 || true

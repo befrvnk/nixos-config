@@ -19,6 +19,7 @@
     # Darwin-specific modules
     inputs.zen-browser.homeModules.beta
     ./calibre.nix
+    ./cliamp.nix
     ./ghostty.nix
     ./home-cleanup.nix
     ./zed.nix

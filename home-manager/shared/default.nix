@@ -10,6 +10,7 @@
     ./atuin.nix
     ./btop.nix
     ./claude-code
+    ./cliamp.nix
     ./direnv.nix
     ./gh.nix
     ./git.nix
