@@ -4,6 +4,7 @@
   home.packages = with pkgs; [
     acli
     bat
+    cliamp
     cloudflared
     devenv
     eza
