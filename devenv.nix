@@ -2,7 +2,7 @@
 let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
   takeReadmeScreenshots = import ./scripts/take-readme-screenshots.nix { inherit pkgs; };
-  inherit (pkgs.stdenv) isLinux isDarwin;
+  inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
 in
 {
   # Enable Claude Code integration

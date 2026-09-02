@@ -10,8 +10,10 @@ let
     (import ../overlays/user-scanner.nix)
 
     # Extra packages from flakes
-    (_final: prev: {
-      worktrunk = inputs.worktrunk.packages.${prev.stdenv.hostPlatform.system}.default;
+    (final: _prev: {
+      worktrunk = final.callPackage ../pkgs/worktrunk/package.nix {
+        worktrunkSrc = inputs.worktrunk;
+      };
     })
   ];
 
