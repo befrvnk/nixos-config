@@ -25,7 +25,12 @@ github_latest_release_json() {
   local owner="$1"
   local repo="$2"
 
-  curl -fsSL "https://api.github.com/repos/$owner/$repo/releases/latest"
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" \
+      "https://api.github.com/repos/$owner/$repo/releases/latest"
+  else
+    curl -fsSL "https://api.github.com/repos/$owner/$repo/releases/latest"
+  fi
 }
 
 github_tag_archive_sri_hash() {

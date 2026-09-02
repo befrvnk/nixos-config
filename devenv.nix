@@ -319,7 +319,20 @@ in
 
     flake-update.exec = ''
       echo "Updating flake inputs..."
-      nix flake update --accept-flake-config
+      github_token="''${GITHUB_TOKEN:-}"
+      if [ -z "$github_token" ]; then
+        github_token="$(${pkgs.gh}/bin/gh auth token 2>/dev/null || true)"
+      fi
+
+      if [ -n "$github_token" ]; then
+        export GITHUB_TOKEN="$github_token"
+        export NIX_CONFIG="$(printf '%s\naccess-tokens = github.com=%s\n' "''${NIX_CONFIG:-}" "$github_token")"
+        nix flake update --accept-flake-config
+      else
+        echo "GitHub CLI is not authenticated; GitHub API rate limits may apply."
+        echo "Run 'gh auth login' to enable authenticated updates."
+        nix flake update --accept-flake-config
+      fi
 
       echo ""
       echo "Updating IntelliJ IDEA Community package..."

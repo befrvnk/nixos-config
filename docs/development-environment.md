@@ -52,6 +52,9 @@ statix check .            # Lint Nix files
 shellcheck scripts/*.sh   # Lint top-level helper scripts
 ```
 
+`flake-update` uses the token from `GITHUB_TOKEN`, or the token stored by
+`gh auth login`, to avoid GitHub's low unauthenticated API rate limit.
+
 ### NixOS-only helpers
 ```bash
 rebuild                   # Build for next boot
