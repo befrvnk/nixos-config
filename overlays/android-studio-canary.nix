@@ -8,24 +8,25 @@ final: prev:
 let
   versionInfo = import ../pkgs/android-studio-canary/version.nix;
 
-  # Replicate nixpkgs mkStudio pattern
-  # common.nix is a function that takes opts and returns another function for callPackage
   mkStudio =
     opts:
-    final.callPackage (import "${nixpkgsSrc}/pkgs/applications/editors/android-studio/common.nix" opts)
-      {
-        fontsConf = final.makeFontsConf { fontDirectories = [ ]; };
-        inherit (final) buildFHSEnv;
-        tiling_wm = true; # Enable for niri compatibility
-      };
+    final.callPackage (import "${nixpkgsSrc}/pkgs/applications/editors/android-studio/linux.nix" opts) {
+      fontsConf = final.makeFontsConf { fontDirectories = [ ]; };
+      inherit (final) buildFHSEnv;
+      tiling_wm = true; # Enable for niri compatibility
+    };
 in
 {
   androidStudioPackages = prev.androidStudioPackages // {
     canary = mkStudio {
       channel = "canary";
       pname = "android-studio-canary";
-      inherit (versionInfo) version url;
-      sha256Hash = versionInfo.hash;
+      inherit (versionInfo) version;
+      meta = prev.androidStudioPackages.canary.meta;
+      sources.x86_64-linux = {
+        inherit (versionInfo) url;
+        sha256Hash = versionInfo.hash;
+      };
     };
   };
 }
