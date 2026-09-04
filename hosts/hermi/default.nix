@@ -6,7 +6,7 @@
 }:
 
 let
-  openchamberVersion = "1.20.0";
+  openchamberVersion = "1.22.0";
 in
 {
   imports = [
