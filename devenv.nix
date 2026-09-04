@@ -335,6 +335,10 @@ in
       fi
 
       echo ""
+      echo "Updating cliamp package..."
+      ./scripts/update-cliamp.sh || echo "⚠️  cliamp update failed (may already be up to date)"
+
+      echo ""
       echo "Updating IntelliJ IDEA Community package..."
       ./scripts/update-idea-community.sh || echo "⚠️  IntelliJ update failed (may already be up to date)"
 

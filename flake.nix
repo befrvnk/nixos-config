@@ -165,6 +165,7 @@
           '';
 
           inherit (pkgs)
+            cliamp
             gh-enhance
             kleinanzeigen
             kotlin-lsp
