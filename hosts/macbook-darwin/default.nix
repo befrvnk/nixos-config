@@ -190,8 +190,8 @@ in
         selfUpdatingCasks = [
           # These apps self-update; forcing a Homebrew greedy upgrade can fail
           # activation when the app is running or has already partially updated.
+          "betterdisplay"
           "claude"
-          "lunar"
           "slack"
           "visual-studio-code"
         ];
