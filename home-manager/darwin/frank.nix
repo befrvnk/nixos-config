@@ -37,7 +37,7 @@
   };
 
   # Copy application bundles instead of linking to the Nix store so macOS
-  # indexes them for Spotlight and Raycast.
+  # indexes them for Spotlight and other application launchers.
   targets.darwin = {
     linkApps.enable = false;
     copyApps.enable = true;

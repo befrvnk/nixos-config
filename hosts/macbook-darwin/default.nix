@@ -134,7 +134,7 @@ in
   ];
 
   # Homebrew for GUI apps that either are missing from nixpkgs on darwin
-  # or need native macOS install/update behavior (for example Raycast).
+  # or need native macOS install/update behavior.
   homebrew = {
     enable = true;
     onActivation = {
@@ -179,7 +179,6 @@ in
               "miro"
               "muxy"
               "notion"
-              "raycast"
               "rectangle"
               "signal"
               "spotify"

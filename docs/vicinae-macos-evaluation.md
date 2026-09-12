@@ -13,7 +13,7 @@ Evaluate whether Vicinae can replace Raycast for the current macOS workflow:
 
 ## Current decision
 
-Evaluate **Vicinae v0.28.1** as the primary macOS launcher/window manager while retaining Raycast as an installed fallback.
+Use **Vicinae v0.28.1** as the primary macOS launcher/window manager without retaining Raycast as an installed fallback.
 
 The retry uses the official signed Homebrew cask instead of the Nix-built app. This gives macOS a stable app identity for Accessibility permission, which is required for window management, selected-text access, and pasting rewritten text.
 
@@ -136,7 +136,7 @@ The Nix-built Vicinae remained installed on Darwin for manual testing, but the f
 - `skhd` `Cmd+Space` binding
 - temporary Vicinae window-management debug hotkeys
 
-Raycast remains installed via Homebrew cask in `hosts/macbook-darwin/default.nix`.
+Raycast was installed via Homebrew cask in `hosts/macbook-darwin/default.nix` during this evaluation.
 
 Manual testing commands:
 

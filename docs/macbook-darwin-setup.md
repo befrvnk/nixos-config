@@ -7,7 +7,7 @@ This guide covers setting up nix-darwin with home-manager on a MacBook Pro (M4 P
 The darwin configuration provides:
 - **nix-darwin** for macOS system configuration
 - **home-manager** for user-level configuration (shell, tools, apps)
-- **Homebrew** for GUI apps not available in nixpkgs or that need native macOS update behavior (for example, Raycast)
+- **Homebrew** for GUI apps not available in nixpkgs or that need native macOS update behavior
 - Shared dotfiles and tooling with the Framework laptop (NixOS)
 
 ## Prerequisites
@@ -206,12 +206,12 @@ GUI apps that stay in nixpkgs are the exceptions, used only when there isn't a s
 ### From Homebrew
 
 Selected GUI apps configured via nix-darwin:
-- Raycast, Notion, Slack, and Spotify (Homebrew casks so native app behavior keeps working)
+- Notion, Slack, and Spotify (Homebrew casks so native app behavior keeps working)
 - Ghostty, JetBrains Toolbox, 1Password app, Signal, WhatsApp, Zed, Zen, and others
 
 ### Vicinae evaluation
 
-Vicinae v0.28.1 is installed from its official Homebrew cask for a second evaluation. The signed app should retain the Accessibility permission needed for window management and text replacement. Agenda, Gemini Text Tools, and custom window layouts are installed declaratively; calendar URLs and the Gemini API key are entered in Vicinae so secrets do not enter the Nix store. Raycast remains installed as a fallback. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for setup and test steps.
+Vicinae v0.28.1 is installed from its official Homebrew cask as the primary launcher and window manager. The signed app should retain the Accessibility permission needed for window management and text replacement. Agenda, Gemini Text Tools, and custom window layouts are installed declaratively; calendar URLs and the Gemini API key are entered in Vicinae so secrets do not enter the Nix store. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for setup and test steps.
 
 ### 1Password CLI app integration
 

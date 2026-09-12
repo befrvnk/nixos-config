@@ -99,7 +99,7 @@ imports = [
 ### Package Source Priority
 1. **Prefer nixpkgs** for version pinning and reproducibility
 2. **Use Homebrew** when a package is unavailable in nixpkgs for aarch64-darwin
-3. **Also use Homebrew** for macOS apps that need native self-update behavior (for example, Raycast)
+3. **Also use Homebrew** for macOS apps that need native self-update behavior
 
 ### Before Adding a Package
 Always verify the package supports aarch64-darwin:
@@ -132,7 +132,6 @@ Current Homebrew-managed packages/exceptions:
 - `ghostty` - Linux only in nixpkgs
 - `miro` - Not in nixpkgs
 - `notion` - Needs native macOS self-update support
-- `raycast` - Needs native macOS self-update support
 - `slack` - Needs native macOS self-update support
 - `spotify` - Needs native macOS self-update support
 
