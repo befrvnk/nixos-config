@@ -211,7 +211,7 @@ Selected GUI apps configured via nix-darwin:
 
 ### Vicinae evaluation
 
-Vicinae remains installed for manual testing, but Raycast stays the primary macOS launcher/window manager for now. The July 2026 evaluation found that Vicinae v0.23.0 could run on macOS, but its window-management backend returned an empty window list on this machine even after Accessibility permission was granted. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for details and retest steps.
+Vicinae v0.28.1 is installed from its official Homebrew cask for a second evaluation. The signed app should retain the Accessibility permission needed for window management and text replacement. Agenda, Gemini Text Tools, and custom window layouts are installed declaratively; calendar URLs and the Gemini API key are entered in Vicinae so secrets do not enter the Nix store. Raycast remains installed as a fallback. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for setup and test steps.
 
 ### 1Password CLI app integration
 

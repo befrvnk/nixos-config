@@ -1,6 +1,6 @@
 # Vicinae macOS Evaluation
 
-This note records the July 2026 attempt to replace Raycast with Vicinae on macOS and the current decision to keep Raycast until Vicinae's macOS window-management backend works reliably in this setup.
+This note records the July 2026 attempt to replace Raycast with Vicinae on macOS and the September 2026 retry with the official macOS release.
 
 ## Goal
 
@@ -13,11 +13,17 @@ Evaluate whether Vicinae can replace Raycast for the current macOS workflow:
 
 ## Current decision
 
-Keep **Raycast** as the primary macOS launcher/window manager for now.
+Evaluate **Vicinae v0.28.1** as the primary macOS launcher/window manager while retaining Raycast as an installed fallback.
 
-Vicinae is promising and works for some launcher features, but the macOS window-management backend currently returns no windows on this machine, even after granting Accessibility permission. Because window placement/sizing is a required Raycast feature, Vicinae is not ready to replace Raycast here yet.
+The retry uses the official signed Homebrew cask instead of the Nix-built app. This gives macOS a stable app identity for Accessibility permission, which is required for window management, selected-text access, and pasting rewritten text.
 
-## What worked
+The configured essentials are:
+
+- Agenda for iCal schedules and Google Meet links
+- the local Gemini Text Tools extension for Improve Text
+- the local window layout extension, alongside Vicinae's built-in window switcher
+
+## July 2026 results
 
 - Vicinae v0.23.0 builds through the upstream flake on Darwin.
 - `vicinae server` plus `vicinae toggle` opens the launcher.
@@ -122,9 +128,9 @@ The incorrect form fails with:
 window-management:debug-active-window does not refer to a valid entrypoint
 ```
 
-## Configuration state
+## Previous configuration state
 
-Vicinae remains installed on Darwin for manual testing, but the following were disabled so Raycast can remain primary:
+The Nix-built Vicinae remained installed on Darwin for manual testing, but the following were disabled so Raycast could remain primary:
 
 - Vicinae launchd autostart
 - `skhd` `Cmd+Space` binding
@@ -149,14 +155,14 @@ pkill -f 'Vicinae'
 pkill -f 'vicinae-ext-runtime'
 ```
 
-## Future follow-up
+## September 2026 retry
 
-Revisit when Vicinae has a newer stable macOS release. Suggested checklist:
+Vicinae v0.28.1 is installed from the official Homebrew cask. On first launch:
 
-1. Update the Vicinae flake input to the new stable release.
-2. Test the built-in **Switch Windows** command first.
-3. Run the custom debug command and confirm `windows` is non-empty.
-4. Only then re-enable launcher/window-manager hotkeys.
-5. Replace the internal `globalThis.vicinae.client.WindowManagement.setWindowBounds` shim once Vicinae exposes a public TypeScript API for setting window bounds.
+1. Complete onboarding and grant Accessibility permission.
+2. Keep the default `Option+Space` launcher shortcut, or change it to `Cmd+Space` in General Settings.
+3. Open **Manage Calendars**, add each private Google Calendar iCal URL, then use **Upcoming Events**. Google Meet links appear as an **Open Google Meet** action.
+4. Open the Gemini Text Tools preferences and add the Google AI Studio API key. To use **Improve Text**, select text, copy it with `Cmd+C`, then run the command. Review the highlighted changes and choose **Paste Result** or **Copy Result**.
+5. Test the built-in **Switch Windows** command, then the custom window layout commands.
 
-If using the official DMG as a control, test whether it can enumerate windows with the same Accessibility permission. That result determines whether to report a Nix packaging/TCC issue or a general Vicinae macOS backend issue upstream.
+The custom layout extension invokes Rectangle's documented URL actions for the final resize. Vicinae v0.28.1 returns the focused window correctly, but its internal bounds RPC rejects that window when it is absent from a separate server-side cache. Grant Accessibility permission to Rectangle when prompted; `osascript` does not need assistive access. If Vicinae window enumeration fails entirely, run **Debug Active Window** and report the result upstream.

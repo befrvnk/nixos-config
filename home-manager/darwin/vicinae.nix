@@ -6,6 +6,14 @@
 let
   system = pkgs.stdenv.hostPlatform.system;
 
+  agenda = inputs.vicinae-extensions.packages.${system}.agenda;
+
+  geminiTextTools = inputs.vicinae.lib.${system}.mkVicinaeExtension {
+    pname = "vicinae-extension-gemini-text-tools";
+    version = "0";
+    src = ../nixos/vicinae/extensions/gemini-text-tools;
+  };
+
   windowManagement = inputs.vicinae.lib.${system}.mkVicinaeExtension {
     pname = "vicinae-extension-window-management";
     version = "0";
@@ -13,11 +21,11 @@ let
   };
 in
 {
-  # Install the Darwin-capable Vicinae package from the upstream flake.
-  home.packages = [ inputs.vicinae.packages.${system}.default ];
-
-  # Vicinae uses standard Unix data directories on macOS, so Home Manager's
-  # xdg.dataFile maps to ~/.local/share/vicinae/extensions/...
-  # Use the manifest/provider id as the directory name so deeplinks stay stable.
-  xdg.dataFile."vicinae/extensions/window-management".source = windowManagement;
+  # The official app is installed with Homebrew so its stable signature and
+  # bundle path retain macOS Accessibility permissions across upgrades.
+  xdg.dataFile = {
+    "vicinae/extensions/agenda".source = agenda;
+    "vicinae/extensions/gemini-text-tools".source = geminiTextTools;
+    "vicinae/extensions/window-management".source = windowManagement;
+  };
 }

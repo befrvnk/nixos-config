@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
   "name": "window-management",
   "title": "Window Management",
-  "description": "Raycast-style window layout commands for Vicinae on macOS using Vicinae's internal window bounds RPC.",
+  "description": "Raycast-style window layout commands for Vicinae on macOS using Rectangle.",
   "categories": [
     "Productivity"
   ],

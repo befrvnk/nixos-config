@@ -53,7 +53,7 @@ in
         };
         "com.apple.symbolichotkeys" = {
           AppleSymbolicHotKeys = {
-            # Disable Spotlight's Cmd+Space bindings so skhd can use it for Vicinae.
+            # Keep Cmd+Space available if Vicinae is configured to use it.
             "64".enabled = false; # Show Spotlight search
             "65".enabled = false; # Show Finder search window
           };
@@ -180,8 +180,10 @@ in
               "muxy"
               "notion"
               "raycast"
+              "rectangle"
               "signal"
               "spotify"
+              "vicinae"
               "whatsapp"
               "whatcable"
               "zed"

@@ -1,5 +1,5 @@
 import { PresetRewriteCommand } from "./components/PresetRewriteCommand.js";
 
 export default function Command() {
-  return <PresetRewriteCommand presetId="improve-writing" />;
+  return <PresetRewriteCommand presetId="improve-writing" source="clipboard" />;
 }

@@ -8,7 +8,7 @@ import {
   sendDesktopNotification,
   showToast,
 } from "@vicinae/api";
-import { hasInternalSetWindowBounds, setWindowBounds, type Bounds } from "./internal-window-management";
+import { executeRectangleAction, hasInternalSetWindowBounds, type Bounds } from "./internal-window-management";
 import { getWindowPreferences } from "./preferences";
 
 export type Rect = {
@@ -45,6 +45,25 @@ export type LayoutKind =
   | "last-third"
   | "two-thirds-left"
   | "two-thirds-right";
+
+const rectangleActions: Record<LayoutKind, string> = {
+  "left-half": "left-half",
+  "right-half": "right-half",
+  "top-half": "top-half",
+  "bottom-half": "bottom-half",
+  maximize: "maximize",
+  "almost-maximize": "almost-maximize",
+  center: "center",
+  "top-left": "top-left",
+  "top-right": "top-right",
+  "bottom-left": "bottom-left",
+  "bottom-right": "bottom-right",
+  "first-third": "first-third",
+  "center-third": "center-third",
+  "last-third": "last-third",
+  "two-thirds-left": "first-two-thirds",
+  "two-thirds-right": "last-two-thirds",
+};
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -271,9 +290,9 @@ export async function copyActiveWindowDebugInfo(): Promise<void> {
 
 export async function applyLayout(kind: LayoutKind): Promise<void> {
   try {
-    const ctx = await getActiveWindowContext();
-    await savePreviousBounds(ctx.window);
-    await setWindowBounds(ctx.window, rectToBounds(computeLayout(kind, ctx)));
+    await closeMainWindow({ clearRootSearch: true });
+    await sleep(getWindowPreferences().activationDelayMs);
+    await executeRectangleAction(rectangleActions[kind]);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Vicinae window layout failed (${kind})`, error);
@@ -288,14 +307,9 @@ export async function applyLayout(kind: LayoutKind): Promise<void> {
 
 export async function restorePreviousBounds(): Promise<void> {
   try {
-    const ctx = await getActiveWindowContext();
-    const stored = await LocalStorage.getItem<string>(storageKey(ctx.window));
-    if (!stored) {
-      throw new Error("No previous bounds saved for this window");
-    }
-
-    const previous = JSON.parse(stored) as Rect;
-    await setWindowBounds(ctx.window, rectToBounds(previous));
+    await closeMainWindow({ clearRootSearch: true });
+    await sleep(getWindowPreferences().activationDelayMs);
+    await executeRectangleAction("restore");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Vicinae restore previous bounds failed", error);
@@ -310,37 +324,9 @@ export async function restorePreviousBounds(): Promise<void> {
 
 export async function moveToNextDisplay(): Promise<void> {
   try {
-    const ctx = await getActiveWindowContext();
-    if (ctx.screens.length < 2) {
-      throw new Error("Only one display is connected");
-    }
-
-    const preferences = getWindowPreferences();
-    const currentScreenIndex = ctx.screens.indexOf(ctx.screen);
-    const nextScreen = ctx.screens[(currentScreenIndex + 1) % ctx.screens.length];
-    const currentArea = ctx.workArea;
-    const nextArea = insetRect(screenToRect(nextScreen), {
-      top: preferences.paddingTop,
-      bottom: preferences.paddingBottom,
-      left: preferences.paddingLeft,
-      right: preferences.paddingRight,
-    });
-
-    const current = boundsToRect(ctx.window.bounds);
-    const relativeX = currentArea.width === 0 ? 0 : (current.x - currentArea.x) / currentArea.width;
-    const relativeY = currentArea.height === 0 ? 0 : (current.y - currentArea.y) / currentArea.height;
-    const target = clampRectToArea(
-      {
-        x: nextArea.x + relativeX * nextArea.width,
-        y: nextArea.y + relativeY * nextArea.height,
-        width: Math.min(current.width, nextArea.width),
-        height: Math.min(current.height, nextArea.height),
-      },
-      nextArea,
-    );
-
-    await savePreviousBounds(ctx.window);
-    await setWindowBounds(ctx.window, rectToBounds(target));
+    await closeMainWindow({ clearRootSearch: true });
+    await sleep(getWindowPreferences().activationDelayMs);
+    await executeRectangleAction("next-display");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Vicinae move to next display failed", error);

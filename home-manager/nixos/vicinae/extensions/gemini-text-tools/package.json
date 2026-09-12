@@ -29,10 +29,10 @@
     },
     {
       "name": "improve-writing",
-      "title": "Improve Writing",
-      "description": "Preview an improved rewrite with highlighted additions and deletions",
+      "title": "Improve Text",
+      "description": "Preview improvements to copied text and choose whether to paste them",
       "mode": "view",
-      "keywords": ["improve", "writing", "grammar", "rewrite"]
+      "keywords": ["improve", "writing", "grammar", "rewrite", "clipboard"]
     },
     {
       "name": "fix-spelling-and-grammar",
@@ -85,26 +85,34 @@
       "description": "Gemini model to use for rewrite requests.",
       "data": [
         {
-          "title": "Gemini 2.5 Flash",
-          "value": "gemini-2.5-flash"
+          "title": "Gemini 3.8 Flash",
+          "value": "gemini-3.8-flash"
         },
         {
-          "title": "Gemini 2.5 Flash Lite",
-          "value": "gemini-2.5-flash-lite"
+          "title": "Gemini 3.7 Flash",
+          "value": "gemini-3.7-flash"
         },
         {
-          "title": "Gemini 2.5 Pro",
-          "value": "gemini-2.5-pro"
+          "title": "Gemini 3.6 Flash",
+          "value": "gemini-3.6-flash"
+        },
+        {
+          "title": "Gemini 3.5 Flash Lite",
+          "value": "gemini-3.5-flash-lite"
+        },
+        {
+          "title": "Gemini 3.1 Pro Preview",
+          "value": "gemini-3.1-pro-preview"
         }
       ],
-      "default": "gemini-2.5-flash",
+      "default": "gemini-3.8-flash",
       "required": false
     },
     {
       "name": "source",
       "type": "dropdown",
       "title": "Preferred Source",
-      "description": "Prefer selected text or clipboard when reading input. The other source is used as a fallback.",
+      "description": "Choose the exact source to use. Clipboard contents are never used as a fallback.",
       "data": [
         {
           "title": "Selected Text",

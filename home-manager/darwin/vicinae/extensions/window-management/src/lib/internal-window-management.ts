@@ -1,4 +1,5 @@
 import type { WindowManagement } from "@vicinae/api";
+import { execFile } from "node:child_process";
 
 export type Bounds = WindowManagement.Window["bounds"];
 
@@ -41,21 +42,19 @@ export function toRect(bounds: Bounds): Rect {
   };
 }
 
-/**
- * Temporary compatibility shim.
- *
- * Vicinae v0.23.0 exposes WindowManagement.setWindowBounds on the runtime
- * client, but not yet in the public WindowManagement wrapper. Avoid deep
- * imports because Vicinae's extension manager only shims the top-level
- * @vicinae/api module at runtime.
- */
-export async function setWindowBounds(window: WindowManagement.Window, bounds: Bounds): Promise<void> {
-  const windowManagement = getInternalWindowManagementClient();
-  const setBounds = windowManagement?.setWindowBounds;
+export async function executeRectangleAction(action: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    execFile(
+      "/usr/bin/open",
+      ["-g", `rectangle://execute-action?name=${action}`],
+      (error, _stdout, stderr) => {
+        if (!error) {
+          resolve();
+          return;
+        }
 
-  if (!setBounds) {
-    throw new Error("Vicinae runtime does not expose WindowManagement.setWindowBounds");
-  }
-
-  await setBounds.call(windowManagement, window.id, toRect(bounds));
+        reject(new Error(stderr.trim() || error.message));
+      },
+    );
+  });
 }

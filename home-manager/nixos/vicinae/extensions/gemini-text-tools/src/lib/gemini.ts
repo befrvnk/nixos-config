@@ -54,32 +54,41 @@ export async function rewriteWithGemini(options: {
     throw new Error("Gemini API key is not configured. Open Vicinae preferences for Gemini Text Tools and add your API key.");
   }
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: buildPrompt(instruction, sourceText, customInstructions),
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          responseMimeType: "text/plain",
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": apiKey,
         },
-      }),
-    },
-  );
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: buildPrompt(instruction, sourceText, customInstructions),
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.4,
+            responseMimeType: "text/plain",
+          },
+        }),
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      throw new Error("Gemini did not respond within 30 seconds.");
+    }
+    throw error;
+  }
 
   const data = (await response.json()) as GeminiResponse;
 

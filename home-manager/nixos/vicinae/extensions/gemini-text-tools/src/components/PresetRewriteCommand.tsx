@@ -13,10 +13,18 @@ import { RewriteResultView } from "./RewriteResultView.js";
 import { presetById } from "../lib/presets.js";
 import { getPreferences } from "../lib/preferences.js";
 import { readSourceText } from "../lib/text.js";
+import type { SourcePreference } from "../lib/types.js";
 
-export function PresetRewriteCommand({ presetId }: { presetId: string }) {
+export function PresetRewriteCommand({
+  presetId,
+  source,
+}: {
+  presetId: string;
+  source?: SourcePreference;
+}) {
   const preset = presetById[presetId];
   const preferences = getPreferences();
+  const inputSource = source ?? preferences.source;
   const { push } = useNavigation();
   const [sourceText, setSourceText] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +39,7 @@ export function PresetRewriteCommand({ presetId }: { presetId: string }) {
       setError(null);
 
       try {
-        const text = await readSourceText(preferences.source);
+        const text = await readSourceText(inputSource);
         if (!cancelled) {
           setSourceText(text);
         }
@@ -52,7 +60,7 @@ export function PresetRewriteCommand({ presetId }: { presetId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [preferences.source, refreshToken]);
+  }, [inputSource, refreshToken]);
 
   if (isLoading) {
     return <Detail navigationTitle="" markdown="Loading text…" />;
@@ -65,7 +73,7 @@ export function PresetRewriteCommand({ presetId }: { presetId: string }) {
         markdown={[
           "Unable to load text to rewrite.",
           "",
-          error ?? "No selected text or clipboard text was available.",
+          error ?? "No text was available from the configured source.",
         ].join("\n")}
         actions={
           <ActionPanel>
