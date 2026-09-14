@@ -179,6 +179,7 @@ in
               "miro"
               "muxy"
               "notion"
+              "opencode-desktop"
               "rectangle"
               "signal"
               "spotify"
