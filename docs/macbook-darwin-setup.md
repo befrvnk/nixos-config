@@ -211,7 +211,9 @@ Selected GUI apps configured via nix-darwin:
 
 ### Vicinae evaluation
 
-Vicinae v0.28.1 is installed from its official Homebrew cask as the primary launcher and window manager. The signed app should retain the Accessibility permission needed for window management and text replacement. Agenda, Gemini Text Tools, and custom window layouts are installed declaratively; calendar URLs and the Gemini API key are entered in Vicinae so secrets do not enter the Nix store. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for setup and test steps.
+Vicinae v0.28.1 is installed from its official Homebrew cask as the primary launcher and window manager. The signed app should retain the Accessibility permission needed for window management and text replacement. Agenda, Gemini Text Tools, display brightness, and custom window layouts are installed declaratively; calendar URLs and the Gemini API key are entered in Vicinae so secrets do not enter the Nix store. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for setup and test steps.
+
+Display brightness is handled by [BetterDisplay](https://github.com/waydabber/BetterDisplay) rather than Lunar. The `brightness` Vicinae extension drives the `betterdisplaycli` shipped by the Homebrew cask, so no separate display utility or CLI install is required.
 
 ### 1Password CLI app integration
 

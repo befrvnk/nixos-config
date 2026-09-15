@@ -1,0 +1,107 @@
+{
+  "$schema": "https://raw.githubusercontent.com/vicinaehq/vicinae/refs/heads/main/extra/schemas/extension.json",
+  "name": "brightness",
+  "title": "Brightness",
+  "description": "Adjust display brightness on macOS by driving the BetterDisplay CLI instead of Lunar.",
+  "categories": [
+    "System"
+  ],
+  "platforms": [
+    "macOS"
+  ],
+  "license": "MIT",
+  "author": "frank",
+  "icon": "extension_icon.svg",
+  "commands": [
+    {
+      "name": "increase-brightness",
+      "title": "Increase Brightness",
+      "description": "Raise the brightness of the target display by the configured step",
+      "mode": "no-view",
+      "keywords": ["brightness", "increase", "raise", "brighter", "display"]
+    },
+    {
+      "name": "decrease-brightness",
+      "title": "Decrease Brightness",
+      "description": "Lower the brightness of the target display by the configured step",
+      "mode": "no-view",
+      "keywords": ["brightness", "decrease", "lower", "dimmer", "display"]
+    },
+    {
+      "name": "set-brightness",
+      "title": "Set Brightness",
+      "description": "Set the target display brightness to an exact percentage",
+      "mode": "view",
+      "keywords": ["brightness", "set", "level", "percent", "display"]
+    },
+    {
+      "name": "maximize-brightness",
+      "title": "Maximize Brightness",
+      "description": "Set the target display brightness to 100 percent",
+      "mode": "no-view",
+      "keywords": ["brightness", "maximum", "full", "display"]
+    },
+    {
+      "name": "show-brightness",
+      "title": "Show Brightness",
+      "description": "Report the current brightness of the target display",
+      "mode": "no-view",
+      "keywords": ["brightness", "show", "current", "display"]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "step",
+      "type": "textfield",
+      "title": "Step",
+      "description": "Percentage points added or removed by the increase and decrease commands.",
+      "default": "10",
+      "placeholder": "10",
+      "required": false
+    },
+    {
+      "name": "display",
+      "type": "dropdown",
+      "title": "Target Display",
+      "description": "Which display BetterDisplay should adjust.",
+      "data": [
+        {
+          "title": "Display Under Mouse Cursor",
+          "value": "displayWithMouse"
+        },
+        {
+          "title": "Main Display",
+          "value": "displayWithMainStatus"
+        },
+        {
+          "title": "Display With Focused Window",
+          "value": "displayWithFocus"
+        }
+      ],
+      "default": "displayWithMouse",
+      "required": false
+    },
+    {
+      "name": "cliPath",
+      "type": "textfield",
+      "title": "BetterDisplay CLI Path",
+      "description": "Path to the betterdisplaycli executable provided by the BetterDisplay app.",
+      "default": "/opt/homebrew/bin/betterdisplaycli",
+      "placeholder": "/opt/homebrew/bin/betterdisplaycli",
+      "required": false
+    }
+  ],
+  "scripts": {
+    "build": "vici build",
+    "dev": "vici develop"
+  },
+  "dependencies": {
+    "@vicinae/api": "0.23.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.0",
+    "typescript": "^5.9.2"
+  }
+}

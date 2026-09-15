@@ -21,6 +21,7 @@ The configured essentials are:
 
 - Agenda for iCal schedules and Google Meet links
 - the local Gemini Text Tools extension for Improve Text
+- the local Brightness extension for BetterDisplay-backed display brightness
 - the local window layout extension, alongside Vicinae's built-in window switcher
 
 ## July 2026 results
@@ -164,5 +165,10 @@ Vicinae v0.28.1 is installed from the official Homebrew cask. On first launch:
 3. Open **Manage Calendars**, add each private Google Calendar iCal URL, then use **Upcoming Events**. Google Meet links appear as an **Open Google Meet** action.
 4. Open the Gemini Text Tools preferences and add the Google AI Studio API key. To use **Improve Text**, select text, copy it with `Cmd+C`, then run the command. Review the highlighted changes and choose **Paste Result** or **Copy Result**.
 5. Test the built-in **Switch Windows** command, then the custom window layout commands.
+6. Test the Brightness commands (Increase, Decrease, Set, Maximize, Show). They require BetterDisplay to be installed and running, and call `betterdisplaycli` from the Homebrew cask. The target display and step size are configured in the extension preferences.
 
 The custom layout extension invokes Rectangle's documented URL actions for the final resize. Vicinae v0.28.1 returns the focused window correctly, but its internal bounds RPC rejects that window when it is absent from a separate server-side cache. Grant Accessibility permission to Rectangle when prompted; `osascript` does not need assistive access. If Vicinae window enumeration fails entirely, run **Debug Active Window** and report the result upstream.
+
+## BetterDisplay brightness
+
+The Brightness extension (`home-manager/darwin/vicinae/extensions/brightness/`) replaces the Lunar-based Raycast Brightness Control workflow. It shells out to `betterdisplaycli` (default `/opt/homebrew/bin/betterdisplaycli`) using the `get`/`set -brightness` operations for the selected display target (`displayWithMouse`, `displayWithMainStatus`, or `displayWithFocus`). Lunar is no longer installed.
