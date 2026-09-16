@@ -139,13 +139,12 @@ Ironbar battery popup uses `tuned-adm` for switching.
 - **Close browser before first activation**
 - Check: `systemctl --user status psd`, `psd preview`
 
-### Vicinae Configuration (v0.17+)
-- Config uses `theme.light` and `theme.dark` objects, NOT `theme.name`
-- Use `launcher_window` for window settings, NOT `window`
-- Stylix generates `~/.local/share/vicinae/themes/stylix.toml`
-- Both modes use "stylix" theme; colors from regenerated file
-- Darkman just restarts vicinae service
-- Configuration in `vicinae.nix`
+### Asyar Configuration
+- Packaged via AppImage (`pkgs/asyar`) with `asyar-summon` helper
+- Runs as a user systemd service (`systemd.user.services.asyar`)
+- Bound to `Mod+Space` in `niri/binds.nix` (`asyar-summon`)
+- Darkman try-restarts `asyar.service` on theme switch
+- Configuration in `asyar.nix`
 
 ## Module Locations
 
@@ -159,5 +158,5 @@ Ironbar battery popup uses `tuned-adm` for switching.
 | `audio-keep-alive/` | Amplifier pop prevention |
 | `battery-notifications/` | Low battery alerts |
 | `profile-sync-daemon.nix` | Browser profile sync |
-| `vicinae.nix` | Application launcher |
+| `asyar.nix` | Application launcher |
 | `packages.nix` | User packages (GUI apps, dev tools) |

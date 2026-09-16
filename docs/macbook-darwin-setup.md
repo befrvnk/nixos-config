@@ -209,11 +209,11 @@ Selected GUI apps configured via nix-darwin:
 - Notion, Slack, and Spotify (Homebrew casks so native app behavior keeps working)
 - Ghostty, JetBrains Toolbox, 1Password app, Signal, WhatsApp, Zed, Zen, and others
 
-### Vicinae evaluation
+### Application Launcher (Asyar)
 
-Vicinae v0.28.1 is installed from its official Homebrew cask as the primary launcher and window manager. The signed app should retain the Accessibility permission needed for window management and text replacement. Agenda, Gemini Text Tools, display brightness, and custom window layouts are installed declaratively; calendar URLs and the Gemini API key are entered in Vicinae so secrets do not enter the Nix store. See [Vicinae macOS Evaluation](./vicinae-macos-evaluation.md) for setup and test steps.
+Asyar is installed from its official Homebrew cask (`asyar`) as the primary cross-platform launcher. It provides keyboard-driven app launching, calculator, file search, built-in AI agents with silent in-place text rewriting, window management, and extensible plugins.
 
-Display brightness is handled by [BetterDisplay](https://github.com/waydabber/BetterDisplay) rather than Lunar. The `brightness` Vicinae extension drives the `betterdisplaycli` shipped by the Homebrew cask, so no separate display utility or CLI install is required.
+Display brightness is handled by [BetterDisplay](https://github.com/waydabber/BetterDisplay). The Homebrew cask ships `betterdisplaycli`, allowing CLI control of external monitor brightness.
 
 ### 1Password CLI app integration
 

@@ -48,10 +48,38 @@ in
     # autoEnable handles most apps; explicitly disable only what's needed
     targets = {
       anki.enable = false;
+      qt.enable = pkgs.lib.mkForce false;
       # Disable Stylix auto-generation for Zen Browser - we manage manually with media queries
       zen-browser.enable = false;
     };
   };
+
+  # GTK icon theme
+  gtk = {
+    # Keep GTK4 on libadwaita; override Stylix's generated GTK4 theme.
+    gtk4.theme = pkgs.lib.mkForce null;
+    iconTheme = {
+      package = pkgs.papirus-icon-theme;
+      name = "Papirus";
+    };
+  };
+
+  home.file.".config/qt5ct/qt5ct.conf".text = ''
+    [Appearance]
+    icon_theme=Papirus
+    style=kvantum
+    [Fonts]
+    fixed="JetBrainsMono Nerd Font,11"
+    general="Noto Sans,11"
+  '';
+  home.file.".config/qt6ct/qt6ct.conf".text = ''
+    [Appearance]
+    icon_theme=Papirus
+    style=kvantum
+    [Fonts]
+    fixed="JetBrainsMono Nerd Font,11"
+    general="Noto Sans,11"
+  '';
 
   specialisation = {
     dark.configuration = {

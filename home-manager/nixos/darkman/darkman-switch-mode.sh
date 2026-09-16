@@ -93,9 +93,8 @@ fi
 # Restart SwayOSD to pick up new GTK theme colors
 @systemd@/bin/systemctl --user restart swayosd.service || true
 
-# Restart vicinae to pick up the regenerated stylix.toml theme
-# The settings.json already points to "stylix" for both modes - colors come from stylix.toml
-@systemd@/bin/systemctl --user restart vicinae.service || true
+# Restart Asyar if running
+@systemd@/bin/systemctl --user try-restart asyar.service || true
 
 
 # Trigger Niri screen transition effect

@@ -1,0 +1,57 @@
+{
+  "id": "org.asyar.agenda",
+  "name": "Agenda",
+  "version": "1.0.0",
+  "type": "extension",
+  "description": "View upcoming events and meetings from iCal feeds",
+  "author": "Frank",
+  "icon": "📅",
+  "searchable": true,
+  "asyarSdk": "^4.3.0",
+  "permissions": [
+    "network",
+    "storage:read",
+    "storage:write",
+    "clipboard:read",
+    "clipboard:write",
+    "shell:spawn",
+    "shell:open-url",
+    "notifications:send"
+  ],
+  "permissionArgs": {
+    "shell:spawn": [
+      "osascript"
+    ]
+  },
+  "preferences": [
+    {
+      "name": "calendarUrls",
+      "type": "textfield",
+      "title": "iCal / ICS Calendar URL(s)",
+      "description": "One or more webcal:// or https:// calendar URLs (Google Calendar, Apple iCloud, Outlook, Fastmail), separated by commas or newlines.",
+      "placeholder": "https://calendar.google.com/calendar/ical/.../basic.ics"
+    }
+  ],
+  "commands": [
+    {
+      "id": "agenda",
+      "name": "Agenda",
+      "trigger": "agenda",
+      "description": "Display upcoming calendar events and meetings",
+      "icon": "📅",
+      "mode": "view",
+      "component": "AgendaView",
+      "searchable": true
+    },
+    {
+      "id": "upcoming",
+      "name": "Upcoming Events",
+      "trigger": "calendar",
+      "description": "View upcoming events and join video calls",
+      "icon": "📅",
+      "mode": "view",
+      "component": "AgendaView",
+      "searchable": true
+    }
+  ]
+}

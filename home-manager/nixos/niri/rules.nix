@@ -23,6 +23,7 @@ _: {
       matches = [
         { app-id = "1password"; }
         { app-id = "com.ezratweaver.AdwBluetooth"; }
+        { app-id = "(?i)asyar"; }
       ];
       open-floating = true;
     }

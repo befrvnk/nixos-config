@@ -11,10 +11,7 @@ _: {
     "Mod+Shift+Ctrl+Q".action.quit = {
       skip-confirmation = true;
     };
-    "Mod+Space".action.spawn = [
-      "vicinae"
-      "toggle"
-    ];
+    "Mod+Space".action.spawn = [ "asyar-summon" ];
 
     "Mod+A".action.spawn = [ "pavucontrol" ];
 

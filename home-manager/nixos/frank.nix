@@ -32,7 +32,7 @@
     ./stylix.nix
     ./swaylock.nix
     ./udiskie.nix
-    ./vicinae.nix
+    ./asyar.nix
     ./zen-browser
   ];
 

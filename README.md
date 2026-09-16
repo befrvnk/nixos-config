@@ -100,9 +100,9 @@ Key features in this setup:
 - Variable refresh rate on external monitors
 - Overview mode (`Mod+O`) shows all windows
 
-### Vicinae (Application Launcher)
+### Asyar (Application Launcher)
 
-[Vicinae](https://github.com/coco/vicinae) is the application launcher. Press `Mod+Space` to open it and start typing to search for applications.
+[Asyar](https://github.com/Xoshbin/asyar) is the application launcher. Press `Mod+Space` to open it and start typing to search for applications.
 
 ### Ironbar (Status Bar)
 
@@ -126,7 +126,7 @@ Key features in this setup:
 
 | Shortcut | Action |
 |----------|--------|
-| `Mod+Space` | Open application launcher (Vicinae) |
+| `Mod+Space` | Open application launcher (Asyar) |
 | `Mod+G` | Open terminal (Ghostty) |
 | `Mod+Q` | Close focused window |
 | `Mod+O` | Toggle overview mode |
@@ -424,7 +424,7 @@ Installed via Home Manager in the platform-specific package sets:
 #### Desktop Environment
 - **niri** - Scrollable-tiling Wayland compositor
 - **ironbar** - Customizable status bar
-- **vicinae** - Application launcher
+- **asyar** - Application launcher
 - **dunst** - Notification daemon
 - **swayosd** - On-screen display for volume/brightness
 - **swaylock** - Screen locker
@@ -488,7 +488,7 @@ This configuration separates concerns between system-level and user-level settin
 - Shell configuration (nushell, starship, atuin, carapace)
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
-- Desktop environment (ironbar, vicinae, dunst)
+- Desktop environment (ironbar, asyar, dunst)
 - User services (swayidle, battery notifications, profile-sync-daemon)
 - Theming specializations (dark/light modes)
 

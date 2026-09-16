@@ -7,6 +7,7 @@
 
   imports = [
     ./1password-ssh-agent.nix
+    ./asyar
     ./atuin.nix
     ./btop.nix
     ./claude-code

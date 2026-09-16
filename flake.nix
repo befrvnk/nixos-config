@@ -32,13 +32,6 @@
       url = "github:nix-community/stylix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # Don't use inputs.nixpkgs.follows here - vicinae cachix has builds
-    # for the flake's own nixpkgs version, using follows causes cache misses
-    vicinae.url = "github:vicinaehq/vicinae/v0.28.1";
-    vicinae-extensions = {
-      url = "github:vicinaehq/extensions";
-      inputs.vicinae.follows = "vicinae";
-    };
     # Don't use inputs.nixpkgs.follows here - niri cachix has builds
     # for the flake's own nixpkgs version, using follows causes cache misses
     niri.url = "github:sodiboo/niri-flake";
@@ -90,7 +83,6 @@
       "https://niri.cachix.org"
       "https://nix-community.cachix.org"
       "https://nixos-raspberrypi.cachix.org"
-      "https://vicinae.cachix.org"
       "https://attic.xuyh0120.win/lantian"
     ];
     trusted-extra-public-keys = [
@@ -99,7 +91,6 @@
       "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
-      "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
       "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
     ];
   };

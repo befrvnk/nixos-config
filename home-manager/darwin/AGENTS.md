@@ -128,7 +128,7 @@ homebrew.casks = [ "jetbrains-toolbox" "ghostty" ];
 ```
 Current Homebrew-managed packages/exceptions:
 - `1password` - Requires /Applications for security features
-- `betterdisplay` - Self-updating display manager; provides the `betterdisplaycli` used by the Vicinae brightness extension
+- `betterdisplay` - Self-updating display manager; provides the `betterdisplaycli` used for brightness control
 - `jetbrains-toolbox` - Not in nixpkgs for Darwin
 - `ghostty` - Linux only in nixpkgs
 - `miro` - Not in nixpkgs

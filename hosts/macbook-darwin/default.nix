@@ -53,7 +53,7 @@ in
         };
         "com.apple.symbolichotkeys" = {
           AppleSymbolicHotKeys = {
-            # Keep Cmd+Space available if Vicinae is configured to use it.
+            # Keep Cmd+Space available if Asyar is configured to use it.
             "64".enabled = false; # Show Spotlight search
             "65".enabled = false; # Show Finder search window
           };
@@ -160,6 +160,10 @@ in
         name = "muxy-app/tap";
         trusted = true;
       }
+      {
+        name = "xoshbin/asyar";
+        trusted = true;
+      }
     ];
     casks =
       let
@@ -171,6 +175,7 @@ in
             })
             [
               "1password"
+              "asyar"
               "caffeine"
               "calibre"
               "ghostty"
@@ -183,7 +188,6 @@ in
               "rectangle"
               "signal"
               "spotify"
-              "vicinae"
               "whatsapp"
               "whatcable"
               "zed"
