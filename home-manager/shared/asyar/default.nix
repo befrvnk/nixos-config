@@ -2,29 +2,25 @@
 let
   agendaExtension = ./extensions/agenda;
   agendaDir = "org.asyar.app/extensions/org.asyar.agenda";
+
+  themeExtension = ./extensions/theme-toggle;
+  themeDir = "org.asyar.app/extensions/org.asyar.theme-toggle";
+
+  devExtensions = builtins.toJSON {
+    "org.asyar.agenda" = "${agendaExtension}";
+    "org.asyar.theme-toggle" = "${themeExtension}";
+  };
 in
 {
-  # Linux: ~/.local/share/org.asyar.app/
-  xdg.dataFile.${agendaDir} = pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
-    source = agendaExtension;
-  };
-  xdg.dataFile."org.asyar.app/dev_extensions.json" = pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
-    text = builtins.toJSON {
-      "org.asyar.agenda" = "${agendaExtension}";
-    };
+  xdg.dataFile = pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+    ${agendaDir}.source = agendaExtension;
+    ${themeDir}.source = themeExtension;
+    "org.asyar.app/dev_extensions.json".text = devExtensions;
   };
 
-  # macOS: ~/Library/Application Support/org.asyar.app/
-  home.file."Library/Application Support/${agendaDir}" =
-    pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isDarwin
-      {
-        source = agendaExtension;
-      };
-  home.file."Library/Application Support/org.asyar.app/dev_extensions.json" =
-    pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isDarwin
-      {
-        text = builtins.toJSON {
-          "org.asyar.agenda" = "${agendaExtension}";
-        };
-      };
+  home.file = pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    "Library/Application Support/${agendaDir}".source = agendaExtension;
+    "Library/Application Support/${themeDir}".source = themeExtension;
+    "Library/Application Support/org.asyar.app/dev_extensions.json".text = devExtensions;
+  };
 }

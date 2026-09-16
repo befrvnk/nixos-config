@@ -1,0 +1,53 @@
+{
+  "id": "org.asyar.theme-toggle",
+  "name": "System Theme",
+  "version": "1.0.0",
+  "type": "extension",
+  "description": "Toggle between dark and light system themes",
+  "author": "Frank",
+  "icon": "🌓",
+  "searchable": true,
+  "asyarSdk": "^4.3.0",
+  "permissions": [
+    "shell:spawn",
+    "notifications:send"
+  ],
+  "permissionArgs": {
+    "shell:spawn": [
+      "osascript",
+      "darkman"
+    ]
+  },
+  "commands": [
+    {
+      "id": "toggle",
+      "name": "Toggle System Theme",
+      "trigger": "theme",
+      "description": "Switch between dark and light mode",
+      "icon": "🌓",
+      "mode": "view",
+      "component": "ThemeToggleView",
+      "searchable": true
+    },
+    {
+      "id": "dark",
+      "name": "Set Dark Mode",
+      "trigger": "dark",
+      "description": "Switch system appearance to dark mode",
+      "icon": "🌙",
+      "mode": "view",
+      "component": "ThemeToggleView",
+      "searchable": true
+    },
+    {
+      "id": "light",
+      "name": "Set Light Mode",
+      "trigger": "light",
+      "description": "Switch system appearance to light mode",
+      "icon": "☀️",
+      "mode": "view",
+      "component": "ThemeToggleView",
+      "searchable": true
+    }
+  ]
+}
