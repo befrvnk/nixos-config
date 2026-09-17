@@ -9,15 +9,29 @@
     console.error('Failed to notify host:', e);
   }
 
-  // Forward Cmd/Ctrl+K and Escape to host
-  window.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+  // Open external URL via Asyar's Opener service
+  function openExternalUrl(url) {
+    if (!url) return;
+    try {
       window.parent.postMessage({
-        type: 'asyar:extension:keydown',
-        payload: { key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey }
+        type: 'asyar:api:opener:open',
+        payload: { url },
+        messageId: crypto.randomUUID()
       }, '*');
+    } catch (e) {
+      console.error('Failed to post opener:open:', e);
     }
-  });
+
+    // Fallback attempt
+    try {
+      window.open(url, '_blank');
+    } catch (e) {}
+
+    // Dismiss launcher after opening link
+    setTimeout(() => {
+      window.parent.postMessage({ type: 'asyar:window:hide' }, '*');
+    }, 150);
+  }
 
   // Adopt host theme variables
   window.addEventListener('message', (event) => {
@@ -32,6 +46,7 @@
   // State
   let allEvents = [];
   let filterText = '';
+  let selectedIndex = 0;
 
   const dateHeading = document.getElementById('date-heading');
   const syncStatus = document.getElementById('sync-status');
@@ -85,7 +100,68 @@
 
   searchInput.addEventListener('input', (e) => {
     filterText = e.target.value.toLowerCase().trim();
+    selectedIndex = 0;
     render();
+  });
+
+  function updateSelection() {
+    const cards = eventsContainer.querySelectorAll('.event-card');
+    cards.forEach((c, idx) => {
+      if (idx === selectedIndex) {
+        c.classList.add('selected');
+        c.scrollIntoView({ block: 'nearest' });
+      } else {
+        c.classList.remove('selected');
+      }
+    });
+  }
+
+  // Keyboard navigation
+  window.addEventListener('keydown', (e) => {
+    const cards = eventsContainer.querySelectorAll('.event-card');
+
+    if (e.key === 'ArrowDown') {
+      if (cards.length > 0) {
+        selectedIndex = (selectedIndex + 1) % cards.length;
+        updateSelection();
+        e.preventDefault();
+      }
+    } else if (e.key === 'ArrowUp') {
+      if (cards.length > 0) {
+        selectedIndex = (selectedIndex - 1 + cards.length) % cards.length;
+        updateSelection();
+        e.preventDefault();
+      }
+    } else if (e.key === 'Enter') {
+      if (cards.length > 0 && cards[selectedIndex]) {
+        const targetUrl = cards[selectedIndex].getAttribute('data-target');
+        if (targetUrl) {
+          openExternalUrl(targetUrl);
+          e.preventDefault();
+        }
+      }
+    } else if (e.key === 'Escape') {
+      if (configPanel.classList.contains('open')) {
+        configPanel.classList.remove('open');
+        e.preventDefault();
+      } else if (searchInput.value) {
+        searchInput.value = '';
+        filterText = '';
+        selectedIndex = 0;
+        render();
+        e.preventDefault();
+      } else {
+        window.parent.postMessage({ type: 'asyar:window:hide' }, '*');
+      }
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
+      refreshCalendars();
+      e.preventDefault();
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      window.parent.postMessage({
+        type: 'asyar:extension:keydown',
+        payload: { key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey }
+      }, '*');
+    }
   });
 
   // IPC-based fetch using Rust reqwest backend (bypasses CORS and CSP)
@@ -131,7 +207,6 @@
       // Fallback timeout after 16s
       setTimeout(() => {
         window.removeEventListener('message', onMessage);
-        // If IPC timed out, try standard browser fetch as a fallback
         fetch(fetchUrl, { cache: 'no-store' })
           .then(res => res.text())
           .then(resolve)
@@ -320,7 +395,7 @@
     }
 
     // YYYYMMDDTHHMMSS or YYYYMMDDTHHMMSSZ
-    const match = str.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?/);
+    const match = str.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/);
     if (match) {
       const [, y, mo, d, h, mi, s, isUtc] = match;
       if (isUtc) {
@@ -497,7 +572,7 @@
 
         let joinButton = '';
         if (meetingUrl && !isPast) {
-          joinButton = `<button class="join-btn" data-url="${escapeHtml(meetingUrl)}" onclick="event.stopPropagation(); window.open('${escapeHtml(meetingUrl)}', '_blank');">Join ${meetingName}</button>`;
+          joinButton = `<button class="join-btn" data-url="${escapeHtml(meetingUrl)}">Join ${meetingName}</button>`;
         }
 
         out += `
@@ -525,14 +600,29 @@
     eventsContainer.innerHTML = html;
 
     // Attach card click handlers
-    eventsContainer.querySelectorAll('.event-card').forEach(card => {
+    eventsContainer.querySelectorAll('.event-card').forEach((card, idx) => {
       card.addEventListener('click', () => {
+        selectedIndex = idx;
+        updateSelection();
         const target = card.getAttribute('data-target');
         if (target) {
-          window.open(target, '_blank');
+          openExternalUrl(target);
         }
       });
     });
+
+    // Attach Join button click handlers
+    eventsContainer.querySelectorAll('.join-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const url = btn.getAttribute('data-url');
+        if (url) {
+          openExternalUrl(url);
+        }
+      });
+    });
+
+    updateSelection();
   }
 
   function escapeHtml(str) {
