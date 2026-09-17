@@ -207,7 +207,7 @@ GUI apps that stay in nixpkgs are the exceptions, used only when there isn't a s
 
 Selected GUI apps configured via nix-darwin:
 - Notion, Slack, and Spotify (Homebrew casks so native app behavior keeps working)
-- Ghostty, JetBrains Toolbox, 1Password app, Signal, WhatsApp, Zed, Zen, and others
+- Ghostty, JetBrains Toolbox, 1Password app, Orca, Signal, WhatsApp, Zed, Zen, and others
 
 ### Application Launcher (Asyar)
 

@@ -161,6 +161,10 @@ in
         trusted = true;
       }
       {
+        name = "stablyai/orca";
+        trusted = true;
+      }
+      {
         name = "xoshbin/asyar";
         trusted = true;
       }
@@ -199,6 +203,7 @@ in
           "betterdisplay"
           "claude"
           "slack"
+          "stablyai/orca/orca"
           "visual-studio-code"
         ];
       in

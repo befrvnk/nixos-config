@@ -133,6 +133,7 @@ Current Homebrew-managed packages/exceptions:
 - `ghostty` - Linux only in nixpkgs
 - `miro` - Not in nixpkgs
 - `notion` - Needs native macOS self-update support
+- `orca` - ADE for parallel agents; installed from `stablyai/orca` tap as `stablyai/orca/orca` with self-updating behavior
 - `slack` - Needs native macOS self-update support
 - `spotify` - Needs native macOS self-update support
 
