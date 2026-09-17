@@ -138,14 +138,14 @@ in
   homebrew = {
     enable = true;
     onActivation = {
-      # Keep rebuilds idempotent: install missing Brewfile entries, but don't
-      # auto-update/upgrade/zap every cask during nix-darwin activation.
+      # Install missing Brewfile entries and remove unlisted ones, but don't
+      # auto-update/upgrade every cask during nix-darwin activation.
       # Homebrew cask upgrades can invoke repeated sudo prompts or hang when
       # apps are running. Zen Browser is updated by a user launchd agent below
       # because it does not expose an in-app updater.
       autoUpdate = false;
       upgrade = false;
-      cleanup = "none";
+      cleanup = "zap";
     };
     taps = [
       {
