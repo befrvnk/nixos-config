@@ -9,7 +9,7 @@
     console.error('Failed to notify host:', e);
   }
 
-  // Open external URL via Asyar's Opener service
+  // Open external URL via Asyar Opener service
   function openExternalUrl(url) {
     if (!url) return;
     try {
@@ -22,26 +22,16 @@
       console.error('Failed to post opener:open:', e);
     }
 
-    // Fallback attempt
+    // Direct browser attempt as fallback
     try {
       window.open(url, '_blank');
     } catch (e) {}
 
-    // Dismiss launcher after opening link
+    // Dismiss launcher so user focuses their browser
     setTimeout(() => {
       window.parent.postMessage({ type: 'asyar:window:hide' }, '*');
     }, 150);
   }
-
-  // Adopt host theme variables
-  window.addEventListener('message', (event) => {
-    if (event.data?.type === 'asyar:theme:variables' && event.data?.payload) {
-      const vars = event.data.payload;
-      for (const [k, v] of Object.entries(vars)) {
-        document.documentElement.style.setProperty(k, v);
-      }
-    }
-  });
 
   // State
   let allEvents = [];
@@ -51,7 +41,6 @@
   const dateHeading = document.getElementById('date-heading');
   const syncStatus = document.getElementById('sync-status');
   const eventsContainer = document.getElementById('events-container');
-  const searchInput = document.getElementById('search-input');
   const configPanel = document.getElementById('config-panel');
   const inputUrls = document.getElementById('input-urls');
   const btnConfig = document.getElementById('btn-config');
@@ -98,12 +87,6 @@
     refreshCalendars();
   });
 
-  searchInput.addEventListener('input', (e) => {
-    filterText = e.target.value.toLowerCase().trim();
-    selectedIndex = 0;
-    render();
-  });
-
   function updateSelection() {
     const cards = eventsContainer.querySelectorAll('.event-card');
     cards.forEach((c, idx) => {
@@ -116,52 +99,80 @@
     });
   }
 
-  // Keyboard navigation
-  window.addEventListener('keydown', (e) => {
+  function handleKeyAction(key, metaKey, ctrlKey) {
     const cards = eventsContainer.querySelectorAll('.event-card');
 
-    if (e.key === 'ArrowDown') {
+    if (key === 'ArrowDown') {
       if (cards.length > 0) {
         selectedIndex = (selectedIndex + 1) % cards.length;
         updateSelection();
-        e.preventDefault();
       }
-    } else if (e.key === 'ArrowUp') {
+    } else if (key === 'ArrowUp') {
       if (cards.length > 0) {
         selectedIndex = (selectedIndex - 1 + cards.length) % cards.length;
         updateSelection();
-        e.preventDefault();
       }
-    } else if (e.key === 'Enter') {
+    } else if (key === 'Enter') {
       if (cards.length > 0 && cards[selectedIndex]) {
         const targetUrl = cards[selectedIndex].getAttribute('data-target');
         if (targetUrl) {
           openExternalUrl(targetUrl);
-          e.preventDefault();
         }
       }
-    } else if (e.key === 'Escape') {
+    } else if (key === 'Escape') {
       if (configPanel.classList.contains('open')) {
         configPanel.classList.remove('open');
-        e.preventDefault();
-      } else if (searchInput.value) {
-        searchInput.value = '';
-        filterText = '';
-        selectedIndex = 0;
-        render();
-        e.preventDefault();
       } else {
         window.parent.postMessage({ type: 'asyar:window:hide' }, '*');
       }
-    } else if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
+    } else if ((metaKey || ctrlKey) && key.toLowerCase() === 'r') {
       refreshCalendars();
-      e.preventDefault();
-    } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      window.parent.postMessage({
-        type: 'asyar:extension:keydown',
-        payload: { key: e.key, metaKey: e.metaKey, ctrlKey: e.ctrlKey }
-      }, '*');
     }
+  }
+
+  // Handle messages forwarded by Asyar host
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data) return;
+
+    // Host forwarded keydown (when main launcher search input has focus)
+    if (data.type === 'asyar:view:keydown' && data.payload) {
+      const { key, metaKey, ctrlKey } = data.payload;
+      handleKeyAction(key, metaKey, ctrlKey);
+    }
+
+    // Host forwarded live search query (as user types in Asyar top search bar)
+    if (data.type === 'asyar:view:search' && data.payload) {
+      filterText = (data.payload.query || '').toLowerCase().trim();
+      selectedIndex = 0;
+      render();
+    }
+
+    // Host forwarded Enter submit
+    if (data.type === 'asyar:view:submit') {
+      const cards = eventsContainer.querySelectorAll('.event-card');
+      if (cards.length > 0 && cards[selectedIndex]) {
+        const targetUrl = cards[selectedIndex].getAttribute('data-target');
+        if (targetUrl) {
+          openExternalUrl(targetUrl);
+        }
+      }
+    }
+
+    // Adopt host theme CSS variables
+    if (data.type === 'asyar:theme:variables' && data.payload) {
+      for (const [k, v] of Object.entries(data.payload)) {
+        document.documentElement.style.setProperty(k, v);
+      }
+    }
+  });
+
+  // Also handle direct keydown if iframe has focus
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+      e.preventDefault();
+    }
+    handleKeyAction(e.key, e.metaKey, e.ctrlKey);
   });
 
   // IPC-based fetch using Rust reqwest backend (bypasses CORS and CSP)
@@ -192,7 +203,6 @@
 
       window.addEventListener('message', onMessage);
 
-      // Post IPC invoke to parent host
       try {
         window.parent.postMessage({
           type: 'asyar:api:network:fetch',
@@ -386,7 +396,6 @@
     if (!str) return null;
     str = str.trim();
 
-    // Date-only: YYYYMMDD
     if (str.length === 8 && /^\d{8}$/.test(str)) {
       const y = parseInt(str.substring(0, 4), 10);
       const m = parseInt(str.substring(4, 6), 10) - 1;
@@ -394,7 +403,6 @@
       return new Date(y, m, d, 0, 0, 0);
     }
 
-    // YYYYMMDDTHHMMSS or YYYYMMDDTHHMMSSZ
     const match = str.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z)?$/);
     if (match) {
       const [, y, mo, d, h, mi, s, isUtc] = match;
