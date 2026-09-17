@@ -319,6 +319,11 @@
     const byDay = ruleParts['BYDAY'] ? ruleParts['BYDAY'].split(',') : null;
     const until = ruleParts['UNTIL'] ? parseIcsDate(ruleParts['UNTIL']) : null;
     const count = ruleParts['COUNT'] ? parseInt(ruleParts['COUNT'], 10) : null;
+    const interval = parseInt(ruleParts['INTERVAL'] || '1', 10);
+
+    const baseMonday = new Date(baseStart.getFullYear(), baseStart.getMonth(), baseStart.getDate());
+    const baseDay = (baseMonday.getDay() + 6) % 7; // Monday = 0
+    baseMonday.setDate(baseMonday.getDate() - baseDay);
 
     let cur = new Date(startPeriod.getFullYear(), startPeriod.getMonth(), startPeriod.getDate());
     const endDate = new Date(endPeriod.getFullYear(), endPeriod.getMonth(), endPeriod.getDate());
@@ -331,19 +336,28 @@
       }
       if (until && cur > until) break;
 
-      const dayOfWeek = cur.getDay();
-      let matches = false;
+      const curMonday = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate());
+      const curDay = (curMonday.getDay() + 6) % 7; // Monday = 0
+      curMonday.setDate(curMonday.getDate() - curDay);
 
+      const weeksDiff = Math.round((curMonday.getTime() - baseMonday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const dayOfWeek = cur.getDay();
+
+      let matches = false;
       if (freq === 'DAILY') {
-        matches = true;
+        const daysDiff = Math.round((cur.getTime() - baseStart.getTime()) / (24 * 60 * 60 * 1000));
+        matches = (daysDiff % interval === 0);
       } else if (freq === 'WEEKLY') {
-        if (byDay) {
-          matches = byDay.some(code => DAY_MAP[code] === dayOfWeek);
-        } else {
-          matches = (dayOfWeek === baseStart.getDay());
+        if (weeksDiff % interval === 0) {
+          if (byDay) {
+            matches = byDay.some(code => DAY_MAP[code] === dayOfWeek);
+          } else {
+            matches = (dayOfWeek === baseStart.getDay());
+          }
         }
       } else if (freq === 'MONTHLY') {
-        matches = (cur.getDate() === baseStart.getDate());
+        const monthsDiff = (cur.getFullYear() - baseStart.getFullYear()) * 12 + (cur.getMonth() - baseStart.getMonth());
+        matches = (monthsDiff % interval === 0 && cur.getDate() === baseStart.getDate());
       }
 
       if (matches) {
@@ -528,26 +542,24 @@
       return;
     }
 
-    // Buckets
+    // Group events by day
+    const byDay = new Map();
     const happeningNow = [];
-    const today = [];
-    const tomorrow = [];
-    const later = [];
 
-    const startOfTomorrow = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
-    const startOfDayAfter = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000);
+    const todayKey = new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate()).getTime();
+    const tomorrowKey = todayKey + 24 * 60 * 60 * 1000;
 
     for (const evt of filtered) {
       const isNow = evt.start <= currentTime && evt.end && evt.end > currentTime;
       if (isNow) {
         happeningNow.push(evt);
-      } else if (evt.start >= startOfToday && evt.start < startOfTomorrow) {
-        today.push(evt);
-      } else if (evt.start >= startOfTomorrow && evt.start < startOfDayAfter) {
-        tomorrow.push(evt);
-      } else {
-        later.push(evt);
       }
+
+      const dayKey = new Date(evt.start.getFullYear(), evt.start.getMonth(), evt.start.getDate()).getTime();
+      if (!byDay.has(dayKey)) {
+        byDay.set(dayKey, []);
+      }
+      byDay.get(dayKey).push(evt);
     }
 
     let html = '';
@@ -600,10 +612,25 @@
       return out;
     }
 
-    html += renderGroup('⚡ Happening Now', happeningNow, true);
-    html += renderGroup('Today', today);
-    html += renderGroup('Tomorrow', tomorrow);
-    html += renderGroup('This Week', later);
+    if (happeningNow.length > 0) {
+      html += renderGroup('⚡ Happening Now', happeningNow, true);
+    }
+
+    const sortedDayKeys = Array.from(byDay.keys()).sort((a, b) => a - b);
+    for (const dayKey of sortedDayKeys) {
+      const evts = byDay.get(dayKey);
+      const d = new Date(dayKey);
+      let dayTitle = '';
+      if (dayKey === todayKey) {
+        dayTitle = `Today — ${d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}`;
+      } else if (dayKey === tomorrowKey) {
+        dayTitle = `Tomorrow — ${d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}`;
+      } else {
+        dayTitle = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+      }
+
+      html += renderGroup(dayTitle, evts);
+    }
 
     eventsContainer.innerHTML = html;
 
