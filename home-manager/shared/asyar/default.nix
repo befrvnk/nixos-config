@@ -6,6 +6,7 @@ let
         nativeBuildInputs = [
           pkgs.esbuild
           pkgs.typescript
+          pkgs.tsx
         ];
       }
       ''
@@ -14,6 +15,7 @@ let
         chmod -R u+w $out
         cd $out
         tsc --noEmit --project tsconfig.json
+        tsx src/agenda.test.ts
         esbuild src/index.ts --bundle --target=es2022 --format=esm --minify --outfile=$out/view.js
         rm -rf src tsconfig.json
       '';
