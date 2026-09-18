@@ -1,6 +1,22 @@
 { pkgs, ... }:
 let
-  agendaExtension = ./extensions/agenda;
+  agendaExtension =
+    pkgs.runCommand "asyar-agenda-extension"
+      {
+        nativeBuildInputs = [
+          pkgs.esbuild
+          pkgs.typescript
+        ];
+      }
+      ''
+        mkdir -p $out
+        cp -r ${./extensions/agenda}/* $out/
+        chmod -R u+w $out
+        cd $out
+        tsc --noEmit --project tsconfig.json
+        esbuild src/index.ts --bundle --target=es2022 --format=esm --minify --outfile=$out/view.js
+        rm -rf src tsconfig.json
+      '';
   agendaDir = "org.asyar.app/extensions/org.asyar.agenda";
 
   themeExtension = ./extensions/theme-toggle;
