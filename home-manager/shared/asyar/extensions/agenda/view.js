@@ -228,7 +228,17 @@
   // Parse iCalendar VEVENT blocks with RRULE recurrence expansion
   const DAY_MAP = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
 
-  function parseIcs(icsText) {
+  function parseIcs(icsText, feedUrl) {
+    let feedUser = '';
+    if (feedUrl) {
+      const match = feedUrl.match(/\/ical\/([^/]+)\//);
+      if (match) {
+        try {
+          feedUser = decodeURIComponent(match[1]).toLowerCase();
+        } catch (e) {}
+      }
+    }
+
     const rawEvents = [];
     const unfolded = icsText.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
     const lines = unfolded.split(/\r?\n/);
@@ -242,13 +252,15 @@
 
       if (line === 'BEGIN:VEVENT') {
         inEvent = true;
-        current = {};
+        current = { isDeclined: false, isCancelled: false };
         continue;
       }
 
       if (line === 'END:VEVENT') {
         if (inEvent && current.summary && current.start) {
-          rawEvents.push(current);
+          if (!current.isDeclined && !current.isCancelled) {
+            rawEvents.push(current);
+          }
         }
         inEvent = false;
         continue;
@@ -272,6 +284,20 @@
         current.end = parseIcsDate(val);
       } else if (propName === 'RRULE') {
         current.rrule = val;
+      } else if (propName === 'STATUS') {
+        if (val.trim().toUpperCase() === 'CANCELLED') {
+          current.isCancelled = true;
+        }
+      } else if (propName === 'ATTENDEE') {
+        const upperProp = propPart.toUpperCase();
+        if (upperProp.includes('PARTSTAT=DECLINED')) {
+          const lowerLine = line.toLowerCase();
+          if (feedUser && lowerLine.includes(feedUser)) {
+            current.isDeclined = true;
+          } else if (!feedUser) {
+            current.isDeclined = true;
+          }
+        }
       } else if (propName === 'LOCATION') {
         current.location = unescapeIcs(val);
       } else if (propName === 'DESCRIPTION') {
@@ -471,7 +497,7 @@
 
     syncStatus.textContent = 'Syncing...';
     try {
-      const results = await Promise.allSettled(urls.map(url => asyarFetch(url).then(parseIcs)));
+      const results = await Promise.allSettled(urls.map(url => asyarFetch(url).then(text => parseIcs(text, url))));
       const events = [];
       let successCount = 0;
       for (const r of results) {
