@@ -13,17 +13,16 @@
       chromium
       ddcutil
       domain-check
-
-      mission-center
-      openchamber
-      nautilus
+      github-copilot-app
       gnome-disk-utility
+      mission-center
+      nautilus
+      openchamber
+      # Icon theme for ironbar
+      papirus-icon-theme
       powertop
       sushi # nautilus preview
       vscode
-      # Icon theme for ironbar
-      papirus-icon-theme
-
     ])
     # x86_64-only packages (no ARM64 builds available)
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [
