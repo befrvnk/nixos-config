@@ -126,6 +126,17 @@ export function parseIcs(icsText: string, feedUrl?: string): CalendarEvent[] {
     }
   }
 
+  // Group modified recurrence instances (entries with RECURRENCE-ID) by parent UID
+  const overridesByUid = new Map<string, RawCalendarEvent[]>();
+  for (const evt of rawEvents) {
+    if (evt.uid && evt.recurrenceId) {
+      if (!overridesByUid.has(evt.uid)) {
+        overridesByUid.set(evt.uid, []);
+      }
+      overridesByUid.get(evt.uid)!.push(evt);
+    }
+  }
+
   // Expand recurrence rules over target time window (today to +14 days)
   const now = new Date();
   const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -133,6 +144,16 @@ export function parseIcs(icsText: string, feedUrl?: string): CalendarEvent[] {
 
   const expandedEvents: CalendarEvent[] = [];
   for (const evt of rawEvents) {
+    if (evt.rrule && evt.uid && overridesByUid.has(evt.uid)) {
+      // Add RECURRENCE-ID dates to this event's exdates so the original recurrence slot is suppressed
+      const overrides = overridesByUid.get(evt.uid)!;
+      evt.exdates = evt.exdates || [];
+      for (const ov of overrides) {
+        if (ov.recurrenceId) {
+          evt.exdates.push(ov.recurrenceId);
+        }
+      }
+    }
     const instances = expandEventInstances(evt, windowStart, windowEnd);
     expandedEvents.push(...instances);
   }

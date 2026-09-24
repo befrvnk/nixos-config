@@ -123,6 +123,39 @@ END:VCALENDAR`;
   assert.equal(sep24, undefined, 'Instance on Sep 24 should be excluded by EXDATE');
 }
 
+function testRecurrenceIdOverride() {
+  const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+SUMMARY:Series Meeting
+UID:series-1@google.com
+DTSTART:20260929T170000Z
+DTEND:20260929T180000Z
+RRULE:FREQ=WEEKLY;INTERVAL=4;BYDAY=TU
+STATUS:CONFIRMED
+ATTENDEE;PARTSTAT=ACCEPTED;CN=frank.hermann@egym.com:mailto:frank.hermann@egym.com
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:Series Meeting (Moved)
+UID:series-1@google.com
+RECURRENCE-ID:20260929T170000Z
+DTSTART:20261006T170000Z
+DTEND:20261006T180000Z
+STATUS:CONFIRMED
+ATTENDEE;PARTSTAT=ACCEPTED;CN=frank.hermann@egym.com:mailto:frank.hermann@egym.com
+END:VEVENT
+END:VCALENDAR`;
+
+  const feedUrl = 'https://calendar.google.com/calendar/ical/frank.hermann%40egym.com/basic.ics';
+  const events = parseIcs(ics, feedUrl);
+
+  const sep29 = events.find(e => e.start.getUTCDate() === 29 && e.start.getUTCMonth() === 8);
+  const oct06 = events.find(e => e.start.getUTCDate() === 6 && e.start.getUTCMonth() === 9);
+
+  assert.equal(sep29, undefined, 'Sep 29 should be replaced by the moved instance');
+  assert.ok(oct06, 'Oct 6 instance should exist');
+}
+
 function testMeetingLinks() {
   const meetEvt = {
     summary: 'Team Standup',
@@ -157,6 +190,8 @@ function runAll() {
   console.log('✔ Declined & cancelled filter tests passed');
   testExdateSupport();
   console.log('✔ EXDATE exception dates tests passed');
+  testRecurrenceIdOverride();
+  console.log('✔ RECURRENCE-ID rescheduled instance tests passed');
   testMeetingLinks();
   console.log('✔ Meeting link detection tests passed');
   console.log('All tests passed successfully! 🎉');
