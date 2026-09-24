@@ -59,7 +59,7 @@ export function parseIcs(icsText: string, feedUrl?: string): CalendarEvent[] {
 
     if (line === 'BEGIN:VEVENT') {
       inEvent = true;
-      current = { isDeclined: false, isCancelled: false };
+      current = { isDeclined: false, isCancelled: false, exdates: [] };
       continue;
     }
 
@@ -84,6 +84,18 @@ export function parseIcs(icsText: string, feedUrl?: string): CalendarEvent[] {
 
     if (propName === 'SUMMARY') {
       current.summary = unescapeIcs(val);
+    } else if (propName === 'UID') {
+      current.uid = val.trim();
+    } else if (propName === 'RECURRENCE-ID') {
+      current.recurrenceId = parseIcsDate(val) ?? undefined;
+    } else if (propName === 'EXDATE') {
+      for (const dStr of val.split(',')) {
+        const d = parseIcsDate(dStr.trim());
+        if (d) {
+          current.exdates = current.exdates || [];
+          current.exdates.push(d);
+        }
+      }
     } else if (propName === 'DTSTART') {
       current.start = parseIcsDate(val) ?? undefined;
       current.isAllDay = val.length === 8;

@@ -114,15 +114,25 @@ export function expandEventInstances(
       );
       const instEnd = new Date(instStart.getTime() + duration);
 
-      instances.push({
-        summary: evt.summary,
-        start: instStart,
-        end: instEnd,
-        isAllDay: !!evt.isAllDay,
-        location: evt.location,
-        description: evt.description,
-        url: evt.url,
+      // Check if instance is excluded via EXDATE
+      const isExcluded = evt.exdates?.some(ex => {
+        return Math.abs(ex.getTime() - instStart.getTime()) < 60 * 1000 ||
+          (ex.getFullYear() === instStart.getFullYear() &&
+           ex.getMonth() === instStart.getMonth() &&
+           ex.getDate() === instStart.getDate());
       });
+
+      if (!isExcluded) {
+        instances.push({
+          summary: evt.summary,
+          start: instStart,
+          end: instEnd,
+          isAllDay: !!evt.isAllDay,
+          location: evt.location,
+          description: evt.description,
+          url: evt.url,
+        });
+      }
     }
 
     cur.setDate(cur.getDate() + 1);

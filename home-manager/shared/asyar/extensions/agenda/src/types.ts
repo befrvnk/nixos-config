@@ -19,6 +19,9 @@ export interface RawCalendarEvent {
   description?: string;
   url?: string;
   rrule?: string;
+  exdates?: Date[];
+  recurrenceId?: Date;
+  uid?: string;
 }
 
 export interface ParsedRRule {

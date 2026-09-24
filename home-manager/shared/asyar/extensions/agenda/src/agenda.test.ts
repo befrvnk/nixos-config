@@ -63,29 +63,31 @@ function testRecurrence() {
 }
 
 function testCancelledAndDeclinedEvents() {
+  const now = new Date();
+  const dStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
   const ics = `BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
 SUMMARY:Active Meeting
 UID:active-1@google.com
-DTSTART:20260918T090000Z
-DTEND:20260918T100000Z
+DTSTART:${dStr}T090000Z
+DTEND:${dStr}T100000Z
 STATUS:CONFIRMED
 ATTENDEE;PARTSTAT=ACCEPTED;CN=frank.hermann@egym.com:mailto:frank.hermann@egym.com
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:Cancelled Meeting
 UID:cancelled-1@google.com
-DTSTART:20260918T110000Z
-DTEND:20260918T120000Z
+DTSTART:${dStr}T110000Z
+DTEND:${dStr}T120000Z
 STATUS:CANCELLED
 ATTENDEE;PARTSTAT=ACCEPTED;CN=frank.hermann@egym.com:mailto:frank.hermann@egym.com
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:Declined Meeting
 UID:declined-1@google.com
-DTSTART:20260918T130000Z
-DTEND:20260918T140000Z
+DTSTART:${dStr}T130000Z
+DTEND:${dStr}T140000Z
 STATUS:CONFIRMED
 ATTENDEE;PARTSTAT=DECLINED;CN=frank.hermann@egym.com:mailto:frank.hermann@egym.com
 END:VEVENT
@@ -96,6 +98,29 @@ END:VCALENDAR`;
 
   assert.equal(events.length, 1, 'Only active meeting should be returned');
   assert.equal(events[0].summary, 'Active Meeting');
+}
+
+function testExdateSupport() {
+  const ics = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+SUMMARY:Repeating Team Sync
+UID:repeat-sync@google.com
+DTSTART:20260903T090000Z
+DTEND:20260903T100000Z
+RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=TH
+EXDATE:20260910T090000Z,20260924T090000Z
+STATUS:CONFIRMED
+ATTENDEE;PARTSTAT=ACCEPTED;CN=frank.hermann@egym.com:mailto:frank.hermann@egym.com
+END:VEVENT
+END:VCALENDAR`;
+
+  const feedUrl = 'https://calendar.google.com/calendar/ical/frank.hermann%40egym.com/basic.ics';
+  const events = parseIcs(ics, feedUrl);
+
+  // Over a 14-day window from Sep 24, Sep 24 should be excluded by EXDATE!
+  const sep24 = events.find(e => e.start.getUTCDate() === 24 && e.start.getUTCMonth() === 8);
+  assert.equal(sep24, undefined, 'Instance on Sep 24 should be excluded by EXDATE');
 }
 
 function testMeetingLinks() {
@@ -130,6 +155,8 @@ function runAll() {
   console.log('✔ Recurrence tests passed');
   testCancelledAndDeclinedEvents();
   console.log('✔ Declined & cancelled filter tests passed');
+  testExdateSupport();
+  console.log('✔ EXDATE exception dates tests passed');
   testMeetingLinks();
   console.log('✔ Meeting link detection tests passed');
   console.log('All tests passed successfully! 🎉');
