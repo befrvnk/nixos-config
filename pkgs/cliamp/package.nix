@@ -19,7 +19,7 @@ buildGoModule {
   pname = "cliamp";
   inherit src version;
 
-  vendorHash = "sha256-d/ENFm9b1DkIir1lz50VVX1pvuQpwPUVlA5XOC7Jj5o=";
+  vendorHash = "sha256-cythuV9J/Iu+ibRVza8dQ6RHjYKa0hVllc2t6dh3hhs=";
 
   nativeBuildInputs = [
     makeWrapper
