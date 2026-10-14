@@ -1,5 +1,7 @@
 { pkgs, ... }:
 let
+  calendarPackage = pkgs.callPackage ../../../pkgs/ical-guy { };
+  calendarProgram = "${calendarPackage}/bin/ical-guy";
   agendaExtension =
     pkgs.runCommand "asyar-agenda-extension"
       {
@@ -14,6 +16,12 @@ let
         cp -r ${./extensions/agenda}/* $out/
         chmod -R u+w $out
         cd $out
+        ${pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+          substituteInPlace src/eventkit.ts --replace-fail '@calendarProgram@' '${calendarProgram}'
+          ${pkgs.jq}/bin/jq --arg program '${calendarProgram}' \
+            '.permissionArgs["shell:spawn"] = [$program]' manifest.json > manifest.tmp
+          mv manifest.tmp manifest.json
+        ''}
         tsc --noEmit --project tsconfig.json
         tsx src/agenda.test.ts
         esbuild src/index.ts --bundle --target=es2022 --format=esm --minify --outfile=$out/view.js
@@ -30,6 +38,7 @@ let
   };
 in
 {
+  home.packages = pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [ calendarPackage ];
   xdg.dataFile = pkgs.lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
     ${agendaDir}.source = agendaExtension;
     ${themeDir}.source = themeExtension;

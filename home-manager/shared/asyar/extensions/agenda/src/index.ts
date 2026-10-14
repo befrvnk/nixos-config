@@ -2,6 +2,9 @@ import { CalendarEvent } from './types';
 import { parseIcs } from './parser';
 import { deduplicateEvents } from './recurrence';
 import { renderEvents, updateCardSelection, escapeHtml } from './ui';
+import { fetchEventKitEvents } from './eventkit';
+
+const useEventKit = navigator.userAgent.includes('Mac');
 
 const DEFAULT_CALENDAR_URL =
   'https://calendar.google.com/calendar/ical/frank.hermann%40egym.com/private-b5a1340ce7544d21c0039018bb4012d9/basic.ics';
@@ -402,6 +405,18 @@ async function refreshCalendars(force = false): Promise<void> {
   refreshInProgress = true;
 
   try {
+    if (useEventKit) {
+      if (syncStatus) syncStatus.textContent = 'Reading macOS calendars...';
+      try {
+        allEvents = deduplicateEvents(await fetchEventKitEvents());
+        if (syncStatus) syncStatus.textContent = `macOS Calendar (${allEvents.length} events)`;
+        render();
+      } catch (error) {
+        if (syncStatus) syncStatus.textContent = 'Calendar access error';
+        if (eventsContainer) eventsContainer.innerHTML = `<div class="empty-state"><p>${escapeHtml(error instanceof Error ? error.message : String(error))}</p></div>`;
+      }
+      return;
+    }
     const urls = getUrls();
     const requestConfigVersion = feedConfigVersion;
     if (urls.length === 0) {
@@ -561,13 +576,14 @@ async function refreshCalendars(force = false): Promise<void> {
 }
 
 // Restore per-feed cache first, then fall back to the previous aggregate cache format.
-const configuredUrls = getUrls();
+if (useEventKit && btnConfig) btnConfig.hidden = true;
+const configuredUrls = useEventKit ? [] : getUrls();
 const hasFeedCache = configuredUrls.some((url) => feedCache[url]);
 if (hasFeedCache) {
   allEvents = deduplicateEvents(currentFeedEvents(configuredUrls));
   localStorage.removeItem('agenda_cached_events');
   render();
-} else {
+} else if (!useEventKit) {
   try {
     allEvents = deserializeCachedEvents(JSON.parse(localStorage.getItem('agenda_cached_events') || '[]'));
   } catch {
@@ -577,10 +593,13 @@ if (hasFeedCache) {
 }
 
 // Refresh only when cached data is stale; skip background polling while hidden.
+window.parent.postMessage({
+  type: 'asyar:extension:loaded', extensionId: 'org.asyar.agenda', role: 'view',
+}, '*');
 void refreshCalendars();
 setInterval(() => {
   if (document.visibilityState === 'visible') void refreshCalendars();
-}, FEED_CACHE_TTL_MS);
+}, useEventKit ? 60 * 1000 : FEED_CACHE_TTL_MS);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') void refreshCalendars();
 });

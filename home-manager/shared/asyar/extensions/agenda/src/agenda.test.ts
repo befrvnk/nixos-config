@@ -18,6 +18,33 @@ assert.ok = (a: unknown, msg?: string) => {
 import { parseIcs, parseIcsDate, unescapeIcs } from './parser';
 import { parseRRule, expandEventInstances, deduplicateEvents } from './recurrence';
 import { findMeetingLink, getMeetingPlatform, formatTime } from './ui';
+import { decodeCalendarEvents } from './eventkit';
+
+function testEventKit() {
+  const events = decodeCalendarEvents(JSON.stringify([{
+    title: 'Private meeting', startDate: '2026-10-05T09:00:00Z',
+    endDate: '2026-10-05T10:00:00Z', isAllDay: false,
+    notes: 'https://meet.google.com/abc-defg-hij',
+  }]));
+  assert.equal(events[0].start.toISOString(), '2026-10-05T09:00:00.000Z');
+  assert.equal(findMeetingLink(events[0]), 'https://meet.google.com/abc-defg-hij');
+  assert.equal(decodeCalendarEvents('[]').length, 0);
+  const base = { title: 'Test', startDate: '2026-10-06T09:00:00Z', endDate: '2026-10-06T10:00:00Z', isAllDay: false };
+  const filtered = decodeCalendarEvents(JSON.stringify([
+    { ...base, status: 'canceled' },
+    { ...base, attendees: [{ isCurrentUser: true, status: 'declined' }] },
+    { ...base, attendees: [{ isCurrentUser: false, status: 'declined' }], meetingUrl: 'https://meet.google.com/abc-defg-hij' },
+    { ...base, title: 'All day', isAllDay: true, startDate: '2026-10-06T00:00:00Z', endDate: '2026-10-07T00:00:00Z' },
+  ]));
+  assert.equal(filtered.length, 2);
+  assert.equal(filtered[0].url, 'https://meet.google.com/abc-defg-hij');
+  assert.equal(filtered[1].isAllDay, true);
+  for (const invalid of ['{"error":"Calendar access required"}', '{}', '[{"summary":"bad","start":"invalid","end":"invalid"}]']) {
+    let threw = false;
+    try { decodeCalendarEvents(invalid); } catch { threw = true; }
+    assert.ok(threw, 'Invalid responses must not silently erase calendar events');
+  }
+}
 
 function testParser() {
   // Test unescape
@@ -182,6 +209,8 @@ function testMeetingLinks() {
 
 function runAll() {
   console.log('Running Agenda TypeScript test suite...');
+  testEventKit();
+  console.log('✔ EventKit response tests passed');
   testParser();
   console.log('✔ Parser tests passed');
   testRecurrence();

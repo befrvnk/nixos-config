@@ -211,6 +211,39 @@ Selected GUI apps configured via nix-darwin:
 
 ### Application Launcher (Asyar)
 
+#### Private calendar agenda
+
+Agenda reads upcoming events from macOS Calendar using the packaged
+[`ical-guy`](https://github.com/itspriddle/ical-guy) CLI and EventKit.
+The upstream universal binary is pinned and hash-verified; no custom native helper
+is built in this project.
+No public calendar or secret iCal URL is needed on macOS. All calendars synced to
+macOS are included; declined and cancelled meetings are excluded.
+
+1. In **System Settings → Internet Accounts**, add your Google/Exchange/iCloud
+   account and enable **Calendars**. Verify events appear in Apple Calendar.
+2. Rebuild, restart Asyar, and open **Agenda**. Approve calendar access if prompted.
+   EventKit requires full access to read events, but Agenda only runs an event query.
+3. Events refresh every minute while visible, on reopening,
+   and when clicking Refresh.
+
+If access is denied, check **System Settings → Privacy & Security → Calendars**
+for `ical-guy` or the app responsible for launching it (Asyar, or your terminal
+when testing manually). Permission granted through a terminal does not prove
+Asyar has access; verify the query inside Agenda too. To test manually:
+
+```sh
+ical-guy events --from today --to today+14 --group-by none --format json
+```
+
+This prints private event details; do not paste the output into public reports.
+The upstream binary is ad-hoc signed, so updates may require granting permission
+again. Company account policies can still
+restrict syncing through macOS Calendar.
+
+On NixOS, Agenda continues to use iCal feeds. The macOS source does not load or
+persist the previous iCal event cache.
+
 Asyar is installed from its official Homebrew cask (`asyar`) as the primary cross-platform launcher. It provides keyboard-driven app launching, calculator, file search, built-in AI agents with silent in-place text rewriting, window management, and extensible plugins.
 
 Display brightness is handled by [BetterDisplay](https://github.com/waydabber/BetterDisplay). The Homebrew cask ships `betterdisplaycli`, allowing CLI control of external monitor brightness.

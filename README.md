@@ -102,6 +102,11 @@ Key features in this setup:
 
 ### Asyar (Application Launcher)
 
+On macOS, the Agenda extension reads private calendars synced to Apple Calendar
+through the packaged `ical-guy` CLI and EventKit. Grant local calendar access
+when prompted; no public calendar feed is required. See
+[private calendar setup](docs/macbook-darwin-setup.md#private-calendar-agenda).
+
 [Asyar](https://github.com/Xoshbin/asyar) is the application launcher. Press `Mod+Space` to open it and start typing to search for applications.
 
 ### Ironbar (Status Bar)
