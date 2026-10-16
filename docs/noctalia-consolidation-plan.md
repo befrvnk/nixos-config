@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A and B accepted; Phase C1 (native Caffeine) next.**
+Status: **Phases A, B and C1 accepted; Phase C2 (Lid Guard and suspend-helper audit) next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -273,6 +273,19 @@ Rollback: disable plugin/remove widget; keep udiskie enabled. Do not change logi
 or theme ownership in this phase.
 
 ### Phase C — Native Caffeine, then Lid Guard (separate substeps)
+
+C1 accepted:
+- Added the built-in `caffeine` bar widget between brightness and battery. It uses
+  Noctalia's existing native inhibitor; there is no new plugin or helper process.
+- Caffeine is not enabled automatically. Existing swayidle/swaylock, audio inhibition,
+  global lid policy and `safe-suspend` remain unchanged.
+- User confirmed the Noctalia `idle`/`block` inhibitor appeared after enabling Caffeine
+  and subsequently confirmed the laptop-idle test works. The native Caffeine trial
+  is accepted. Release/off behavior remains a regression check; lid-close protection
+  and manual suspend are separate capabilities, not proven by this test.
+- Generated Noctalia config validation, overview tests, targeted statix and the full
+  Framework build passed. The agent did not activate the config or toggle Caffeine.
+- Lid Guard is not enabled in C1. Do not combine that change with the native trial.
 
 C1: test existing native Caffeine first. Optionally add the native `caffeine` pill.
 Inspect actual inhibitors and logs, then verify lock/monitor/suspend timers with

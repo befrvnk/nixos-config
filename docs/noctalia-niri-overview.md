@@ -14,7 +14,7 @@ The layout uses built-in widgets plus one reviewed storage plugin, not a new hom
 - Start: CPU usage, RAM percentage, CPU temperature.
 - Center: weather, date/time (the alignment anchor).
 - End: app tray, storage (when a device is present), notifications, network next to
-  Bluetooth, volume, brightness, battery and control center.
+  Bluetooth, volume, brightness, Caffeine, battery and control center.
 - Transparent bar with individual bordered capsules, neutral foregrounds,
   JetBrainsMono Nerd Font and Catppuccin Mocha/Latte from `shared/themes.nix`.
 
@@ -112,13 +112,31 @@ or QML-plugin compatibility is assumed. Noctalia's battery widget supports expli
 UPower selectors for peripherals, configurable in Settings. Native headphone battery
 reporting has been confirmed by the user; no additional battery plugin is needed.
 
+### Native Caffeine
+
+The built-in `caffeine` pill beside brightness/battery toggles Noctalia's idle
+inhibitor. It is not automatically enabled. The existing swayidle/swaylock and
+`audio-idle-inhibit` services remain active; no lid policy has changed.
+
+After rebuilding, pause audio and check that no other stay-awake inhibitor masks
+this test. Enable Caffeine and inspect `systemd-inhibit --list --no-pager`.
+On the normal logind backend, expect a Noctalia `idle` block inhibitor. Close
+overview and confirm the usual 300/305/310-second lock/monitor-off/suspend chain
+stays inactive. Save work first in case the test exposes an integration gap.
+Disable Caffeine and verify the ordinary idle behavior returns.
+
+The user confirmed the inhibitor appears and the laptop stays awake during the idle
+trial. Caffeine does not request a lid-close blocker; that is a separate feature.
+Off/release and suspend/resume behavior remain useful regression checks.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
 peripheral batteries, storage, separate Caffeine/lid controls, native battery alerts,
 and moving runtime theme control from Darkman to Noctalia. OpenRouter and firewall
 summary widgets are no longer required. Headphone battery visibility has been accepted;
-the storage trial has passed its basic live test. Stay-on, notification and theme changes remain planned.
+the storage trial has passed its basic live test. Native Caffeine passed its inhibitor
+and idle tests; Lid Guard, notification and theme changes are next.
 
 ## Build and validate
 

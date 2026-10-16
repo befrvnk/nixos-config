@@ -103,6 +103,7 @@ in
           "bluetooth"
           "volume"
           "brightness"
+          "caffeine"
           "battery"
           "control-center"
         ];
