@@ -10,7 +10,6 @@
     ./android
     ./audio-idle-inhibit
     ./audio-keep-alive
-    ./battery-notifications
     ./darkman
     ./emacs.nix
     ./gammastep.nix

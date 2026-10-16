@@ -132,7 +132,9 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - `programs.noctalia.checkConfig` validates TOML during builds.
 - `noctalia-overview.service` bridges Niri overview events to `bar-show`/`bar-hide`.
 - The Noctalia `started` hook starts that watcher only after IPC is ready.
-- Noctalia owns notifications; dunst is not imported. Other desktop managers remain.
+- Noctalia owns notifications and system-battery warnings (20%, native 5%/2% escalation).
+  Dunst and `battery-notifications` are not imported; keep those inactive while native
+  warnings are enabled. The old full-charge toast is not retained. Other managers remain.
 - GUI overrides in `~/.local/state/noctalia/settings.toml` take precedence over Nix config.
 - V5 plugins use Luau; review compatibility before enabling community plugins.
 - `noctalia/plugins.nix` exports only pinned Udiskie Manager and Lid Guard plugins.
@@ -176,7 +178,7 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 | `stylix.nix` | Theming with specializations |
 | `android/` | Emulator environment variables |
 | `audio-keep-alive/` | Amplifier pop prevention |
-| `battery-notifications/` | Low battery alerts |
+| `battery-notifications/` | Legacy warning monitor (inactive; Noctalia owns alerts) |
 | `profile-sync-daemon.nix` | Browser profile sync |
 | `vicinae.nix` | Application launcher |
 | `packages.nix` | User packages (GUI apps, dev tools) |

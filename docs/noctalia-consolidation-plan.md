@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–C accepted in basic live trials; Phase D (native battery warnings) next.**
+Status: **Phases A–D accepted; Phase E begins with the Noctalia palette warning.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -336,6 +336,22 @@ Rollback: turn Caffeine off, disable plugin and explicitly run
 Keep the existing audio service unless a separate automatic replacement passes tests.
 
 ### Phase D — Replace the custom battery-warning producer
+
+Implementation accepted:
+- Set Noctalia's native system-battery warning threshold to 20; its built-in critical
+  5% and persistent 2% warning escalation remains unchanged.
+- Removed the `./battery-notifications` Home Manager import in the same change. The
+  legacy files stay for rollback, but the service is absent from the evaluated config.
+- Noctalia remains the only notification daemon; no full-charge hook or replacement
+  polling script was added. The old full-charge toast is not retained by default.
+- Read-only inspection found no GUI battery/notification-daemon override masking this.
+- Config evaluation confirmed threshold=20, native daemon=true, custom monitor=false.
+  Native config validation, overview/safe-suspend tests and full Framework build passed.
+- User activated the configuration. Read-only systemctl checks confirmed Noctalia
+  active/running, the legacy monitor not-found/inactive, and the installed threshold 20.
+- User accepted committing this implementation and will report any warning issues
+  during normal use. Actual low-charge escalation is not claimed as tested.
+- Agent did not manipulate battery data or force a discharge; do not drain to 2% to test this.
 
 Changes:
 - Enable Noctalia's native battery warning threshold at 20.

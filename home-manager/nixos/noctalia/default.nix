@@ -151,7 +151,8 @@ in
         enable_daemon = true;
         position = "top_center";
       };
-      battery.warning_threshold = 0; # Existing battery-notifications owns alerts.
+      # Noctalia owns battery warnings: low at 20%, native critical at 5%/2%.
+      battery.warning_threshold = 20;
       # Keep the existing managers; do not start competing surfaces/services.
       wallpaper.enabled = false;
       backdrop.enabled = false;

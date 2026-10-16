@@ -28,12 +28,31 @@ Existing managers remain responsible for:
 - awww wallpaper and Darkman scheduling/GTK themes.
 - SwayOSD and the existing audio/brightness keys, including Framework sink init.
 - swaylock, idle/audio-inhibit services and the existing polkit agent.
-- Gammastep, tuned Framework profiles and battery alerts.
+- Gammastep and tuned Framework profiles.
 - udiskie removable-drive mounting.
 
 Noctalia's competing wallpaper, dock, clipboard history, screen lock, idle actions,
-nightlight, polkit agent, volume/brightness OSD and low-battery alerts are disabled.
+nightlight, polkit agent and volume/brightness OSD are disabled.
 Do not enable competing owners in Settings without disabling their existing service.
+
+## Native battery warnings
+
+Noctalia owns system-battery warnings with a 20% low threshold and native critical
+escalation at 5% and 2%. Deployment has been verified and accepted; actual low-charge
+alerts remain for observation during normal use. `./battery-notifications` is
+no longer imported, so the custom persistent monitor is no longer installed or running. Its source
+remains for rollback; do not enable both producers at once.
+
+The old full-charge toast is not retained by default. No replacement polling code
+or hook is introduced. The bar's neutral low-charge color setting is unchanged.
+
+After rebuilding, confirm `battery-notifications.service` is inactive/not found and
+`noctalia.service` is active. If already below the threshold, native warnings may
+appear on startup; otherwise observe them during normal battery use. Check history
+and duplicate behavior, but do not deliberately discharge to 2% for this test.
+
+Rollback requires both restoring the old import and disabling native warnings
+(`battery.warning_threshold = 0`).
 
 ## Overview-only behavior
 
@@ -175,8 +194,8 @@ peripheral batteries, storage, separate Caffeine/lid controls, native battery al
 and moving runtime theme control from Darkman to Noctalia. OpenRouter and firewall
 summary widgets are no longer required. Headphone battery visibility has been accepted;
 the storage trial has passed its basic live test. Native Caffeine passed its inhibitor
-and idle tests, and the Lid Guard trial is accepted. Native battery warnings and
-theme ownership are the next planned changes.
+and idle tests, and the Lid Guard trial is accepted. Native battery warnings are
+accepted after deployment checks. Theme ownership is the next larger phase.
 
 ## Build and validate
 
