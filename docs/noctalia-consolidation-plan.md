@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 per-app theme-template migration next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty template accepted, GTK templates next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -448,6 +448,34 @@ Do this after the small widget/plugin trials, not in the same rebuild.
   specialisations so applying one does not restart the shell and recursively emit hooks.
 
 **E3: migrate writable app-theme outputs one target per commit.**
+
+Ghostty implementation accepted:
+- Main Ghostty config declaratively selects `theme = noctalia`; Shift+Enter binding
+  is unchanged. Removed our custom color generator and static Stylix light/dark files.
+- `noctalia/ghostty.nix` enables only the built-in `ghostty` template. The shipped
+  apply hook recognizes that fixed reference, skips editing the managed config,
+  and uses the shipped reload implementation. No community/custom template is used.
+- A small activation-only preparer handles legacy read-only output: back up once to
+  the Noctalia state directory, replace only the user-facing theme file with a private
+  writable copy, never chmod/truncate a symlink/hardlink target. New installs get a
+  comment-only placeholder until the native template renders. No persistent process.
+- The preparer runs after writeBoundary/before linkGeneration. Existing writable
+  generated colors are left untouched during later compatibility activations.
+- Native service PATH explicitly includes the built-in apply/reload hook's CLI tools.
+- 10 tests cover output preparation, backup/idempotence, protected link targets,
+  rendering the pinned stock template in both modes, and the pinned apply hook preserving
+  a read-only main-config symlink. The reload script is mocked, so tests never signal
+  a real Ghostty process. The common Noctalia check now runs 28 tests total.
+- Flake invariants enforce the fixed theme selection, enabled built-in template,
+  and absence of managed runtime/static Ghostty theme outputs across all variants.
+- Config validation and full Framework build pass. User rebuilt and confirmed that
+  changing Noctalia's palette now changes Ghostty too. Dark/light mode switching
+  already worked before; the newly accepted behavior is arbitrary palette propagation.
+- Read-only deployment checks confirmed the main config remains a Nix-managed symlink,
+  the runtime theme is a private writable regular file (0644, one link), the original
+  backup is private (0600), and both old static Stylix theme links are gone.
+- No recent Ghostty/template permission errors were found. Individual keybindings
+  were preserved in code but not separately claimed as live-tested.
 
 | Target | Proposed integration / caution |
 |---|---|

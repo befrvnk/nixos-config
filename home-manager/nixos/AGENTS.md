@@ -66,7 +66,14 @@ Theme switching without full rebuilds:
 - Noctalia config and shell/bridge units must be identical across dark/light generations
   (`checks.x86_64-linux.noctalia-theme-invariants` enforces this).
 - Neither system nor HM Darkman module is imported. Old files remain rollback-only.
-- App palettes still use Catppuccin until individual runtime templates replace Stylix outputs.
+- Ghostty is configured for Noctalia's built-in template; other app palettes still use
+  the compatibility generations until individually migrated.
+- Keep Ghostty's main config declarative with literal `theme = noctalia`, so the shipped
+  apply hook skips rewriting its read-only symlink. Never manage `themes/noctalia` as
+  `home.file`; it is a separate writable runtime output.
+- `noctalia/ghostty.nix` prepares legacy read-only theme output before linkGeneration,
+  backing up once without modifying symlink/hardlink targets. The pinned apply hook and
+  template rendering are tested with a fake reload script, never real terminal signals.
 
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)

@@ -13,6 +13,7 @@ in
 {
   imports = [
     inputs.noctalia.homeModules.default
+    ./ghostty.nix
     ./plugins.nix
     ./storage.nix
     ./theme.nix

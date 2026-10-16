@@ -507,6 +507,8 @@ This configuration separates concerns between system-level and user-level settin
 - **Catppuccin** color scheme (Mocha dark, Latte light)
 - A temporary one-way adapter applies prebuilt **Stylix** app-theme specializations
 - Mode switches require no rebuild and must not restart Noctalia; Darkman is disabled
+- **Ghostty** uses Noctalia's shipped template for a writable runtime theme, with its
+  main configuration and keybindings still managed by Nix
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

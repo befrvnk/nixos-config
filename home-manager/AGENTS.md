@@ -167,7 +167,8 @@ Single source of truth for both platforms:
 }
 ```
 
-**Imported by (NixOS):** stylix.nix, ghostty.nix, nushell.nix, zen-browser/
+**Imported by (NixOS):** stylix.nix, nushell.nix, zen-browser/.
+Ghostty's runtime palette comes from Noctalia's built-in template instead.
 
 ### Wallpapers (`nixos/wallpapers/default.nix`)
 ```nix

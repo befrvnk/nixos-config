@@ -192,11 +192,24 @@
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          noctalia-overview = pkgs.runCommand "noctalia-overview-tests" { } ''
-            ${pkgs.python3}/bin/python3 -B -m unittest discover \
-              -s ${./home-manager/nixos/noctalia} -p 'test_*.py'
-            touch $out
-          '';
+          noctalia-overview =
+            pkgs.runCommand "noctalia-overview-tests"
+              {
+                NOCTALIA_BIN = "${inputs.noctalia.packages.${system}.default}/bin/noctalia";
+                NOCTALIA_SOURCE = inputs.noctalia.outPath;
+                nativeBuildInputs = [
+                  pkgs.bash
+                  pkgs.coreutils
+                  pkgs.diffutils
+                  pkgs.gnugrep
+                  pkgs.gnused
+                ];
+              }
+              ''
+                ${pkgs.python3}/bin/python3 -B -m unittest discover \
+                  -s ${./home-manager/nixos/noctalia} -p 'test_*.py'
+                touch $out
+              '';
           noctalia-theme-invariants =
             let
               cfg = inputs.self.nixosConfigurations.framework.config;
@@ -207,6 +220,13 @@
                 home.specialisation.light.configuration
               ];
               same = values: builtins.length (pkgs.lib.unique values) == 1;
+              managedGhosttyTheme =
+                h: name:
+                builtins.any (
+                  file:
+                  file.target == ".config/ghostty/themes/${name}"
+                  || file.target == "${h.xdg.configHome}/ghostty/themes/${name}"
+                ) (builtins.attrValues h.home.file);
             in
             assert pkgs.lib.assertMsg (same (
               map (h: toString h.xdg.configFile."noctalia/config.toml".source) variants
@@ -223,6 +243,14 @@
             assert pkgs.lib.assertMsg (builtins.all (
               h: !(h.dconf.settings."org/gnome/desktop/interface" ? color-scheme)
             ) variants) "Home Manager must not overwrite Noctalia's runtime color-scheme preference";
+            assert pkgs.lib.assertMsg (builtins.all (
+              h:
+              pkgs.lib.toList h.programs.ghostty.settings.theme == [ "noctalia" ]
+              && pkgs.lib.elem "ghostty" h.programs.noctalia.settings.theme.templates.builtin_ids
+              && !(managedGhosttyTheme h "noctalia")
+              && !(managedGhosttyTheme h "stylix-dark")
+              && !(managedGhosttyTheme h "stylix-light")
+            ) variants) "Ghostty must select the native template and leave its output runtime-writable";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

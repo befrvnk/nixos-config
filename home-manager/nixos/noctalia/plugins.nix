@@ -49,8 +49,8 @@ in
     };
   };
 
-  # Noctalia's subprocesses must find their tools without relying on an
-  # interactive shell's PATH. Keep the user profile/system paths for xdg-open.
+  # Native services, plugins and built-in template hooks need explicit tools,
+  # not an interactive shell's PATH. Keep profile/system paths for xdg-open.
   systemd.user.services.noctalia.Service.Environment = [
     "PATH=${
       lib.makeBinPath [
@@ -58,7 +58,11 @@ in
         pkgs.bash
         pkgs.coreutils
         pkgs.dconf
+        pkgs.diffutils
         pkgs.glib
+        pkgs.gnugrep
+        pkgs.gnused
+        pkgs.procps
         pkgs.systemd
         pkgs.udiskie
         pkgs.udisks
