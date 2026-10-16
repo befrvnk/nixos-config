@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0 accepted; E1/E2 runtime theme-controller handover next.**
+Status: **Phases A–D and E0–E2 accepted; E3 per-app theme-template migration next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -22,9 +22,9 @@ Public documentation can change; validate against the pinned binary/source when 
 - Preserve Niri, overview-only bar visibility, the current pill layout, launcher keybinds,
   working audio, tuned profiles, authentication and screen-lock safety.
 
-## 1. Current state, verified without changing it
+## 1. Baseline snapshot before consolidation
 
-Read-only service checks found:
+Read-only service checks at research time found (later phase progress supersedes this snapshot):
 
 | Component | Current owner/state |
 |---|---|
@@ -382,6 +382,46 @@ Do this after the small widget/plugin trials, not in the same rebuild.
   Noctalia config validation, overview/safe-suspend checks, targeted statix and the full
   Framework build pass. User rebuilt; current-process logs contained no palette/theme
   warning, the old managed JSON was absent, and the user confirmed the appearance is right.
+
+**E1/E2 implementation accepted (activated/tested by the user).**
+- Backed up Noctalia GUI settings to `~/.local/state/noctalia/settings.pre-theme-controller.toml`;
+  read-only inspection found no existing theme/hook overrides to reconcile.
+- Set Noctalia `theme.mode = auto`, `shell_mode = follow`, `sync_color_scheme = true`,
+  independent of `config.stylix.polarity`. Built-in Catppuccin remains the palette.
+- Removed both the system-profile Darkman import and HM Darkman import. Old scripts
+  remain inactive for rollback. Normal HM activation stops a still-running legacy daemon.
+- Added a temporary one-way adapter in `noctalia/theme.nix` + `theme_bridge.py`.
+  Hooks/startup/rebuild/hotplug requests are atomic files; a systemd PathExists/oneshot
+  pair drains/coalesces them, with no persistent polling daemon or Nix rebuild.
+- The worker queries Noctalia's resolved mode, applies the unique prebuilt HM
+  specialisation from `/run/current-system`, refreshes SwayOSD/Vicinae, selects the
+  existing Nushell NUON, and refreshes awww. It never writes a mode back to Noctalia,
+  writes the portal preference directly, or restarts Noctalia. It can request native
+  `templates-apply` so Noctalia reasserts its own preference after activation cleanup.
+- A shared lock serializes ordinary HM linking and compatibility activations. The
+  worker waits for normal system HM activation before locking; its own child skips
+  request/lock hooks to avoid recursive activation and deadlocks. New events survive
+  processing; failed work leaves a pending request for retry.
+- Wallpaper hotplug now requests a refresh using Noctalia's mode, not `darkman get`.
+- Tests cover 14 bridge cases with all commands mocked (plus 4 overview and 11 safe-suspend
+  tests). A flake invariant check enforces identical Noctalia config/service and bridge
+  service across base/dark/light generations, absence of the legacy controller and
+  absence of any HM-managed GNOME color-scheme key.
+- Compatibility limitation: this syncs existing Catppuccin dark/light app themes, not
+  arbitrary Noctalia palettes in every app. Per-app templates in E3 remove that limit.
+- User's first rebuild passed startup checks: native mode light, app bridge completed,
+  path unit waiting, worker successful/idle, no pending request, Darkman not-found/inactive,
+  Nushell matched light. Startup/rebuild requests were drained without an ongoing loop.
+- That check exposed one ownership conflict: Stylix's GNOME target reapplied `default`
+  for light mode after Noctalia's preference write. The follow-up disables only that
+  target, explicitly preserves its app fonts and requests Noctalia's native preference
+  resync after compatibility activation. After the follow-up rebuild, the resolved light
+  mode matched `prefer-light` and the bridge completed successfully without pending work.
+- User confirmed dark/light switching works. The Noctalia PID remained 243684 before
+  and after that trial; worker result was success and the final app/system mode matched light.
+- Native config validation, bridge/overview/suspend checks, theme invariants, shellcheck,
+  targeted statix and full Framework build pass. Basic runtime handover is accepted;
+  automatic schedule boundaries, hotplug and suspend/resume remain regression checks.
 
 **E1: inventory and prepare ownership.**
 - Inventory actual Stylix and manual color outputs, reload paths and store symlinks.

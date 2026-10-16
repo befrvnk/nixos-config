@@ -1,5 +1,4 @@
 {
-  config,
   inputs,
   lib,
   pkgs,
@@ -16,6 +15,7 @@ in
     inputs.noctalia.homeModules.default
     ./plugins.nix
     ./storage.nix
+    ./theme.nix
   ];
 
   # Noctalia owns its palette/font; avoid competing automatic Stylix settings.
@@ -39,8 +39,6 @@ in
         };
       };
       theme = {
-        # Keep the current mode controller until the separate Darkman handover.
-        mode = config.stylix.polarity;
         source = "builtin";
         builtin = "Catppuccin";
       };
@@ -148,7 +146,9 @@ in
         lock_keys = false;
       };
       # The hook runs after IPC becomes ready, including on shell restart.
-      hooks.started = "${pkgs.systemd}/bin/systemctl --user --no-block restart noctalia-overview.service";
+      hooks.started = [
+        "${pkgs.systemd}/bin/systemctl --user --no-block restart noctalia-overview.service"
+      ];
     };
   };
 

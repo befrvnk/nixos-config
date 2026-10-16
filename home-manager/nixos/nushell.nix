@@ -5,7 +5,7 @@
 #
 # Theme switching:
 # - Light and dark theme files are generated at build time using Stylix colors (NUON format)
-# - Darkman copies the active theme to ~/.local/state/nushell/theme.nuon
+# - Noctalia's compatibility adapter selects ~/.local/state/nushell/theme.nuon
 # - A pre_prompt hook loads the theme file for automatic color updates
 
 { pkgs, lib, ... }:
@@ -88,7 +88,7 @@ in
       }
 
       # Pre-prompt hook to reload theme when it changes
-      # This enables automatic theme switching when darkman updates the theme file
+      # Reload when Noctalia's compatibility adapter updates the theme file
       $env.config.hooks.pre_prompt = ($env.config.hooks.pre_prompt | default [] | append {||
         let theme_file = ($env.HOME | path join ".local/state/nushell/theme.nuon")
         if ($theme_file | path exists) {
@@ -126,7 +126,7 @@ in
   };
 
   # Generate theme files for both light and dark modes in NUON format
-  # These are copied to ~/.local/state/nushell/theme.nuon by darkman
+  # Noctalia's compatibility adapter selects ~/.local/state/nushell/theme.nuon
   xdg.configFile."nushell/theme-dark.nuon".text = mkNushellTheme darkColors;
   xdg.configFile."nushell/theme-light.nuon".text = mkNushellTheme lightColors;
 

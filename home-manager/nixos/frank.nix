@@ -10,7 +10,6 @@
     ./android
     ./audio-idle-inhibit
     ./audio-keep-alive
-    ./darkman
     ./emacs.nix
     ./gammastep.nix
     ./antigravity-cli.nix

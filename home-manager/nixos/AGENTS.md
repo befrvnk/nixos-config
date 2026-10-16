@@ -6,17 +6,18 @@ NixOS-specific user configuration including Wayland, systemd services, and Styli
 
 - Window manager config (niri/)
 - Desktop shell (noctalia/, native C++ V5; quickshell/ retained for rollback)
-- Theme switching (darkman/, stylix.nix)
+- Noctalia runtime theme control (noctalia/theme.nix) + temporary Stylix app specialisations
 - User systemd services
 - Wayland-specific apps
 - Anything using `config.lib.stylix.colors`
 
 ## Theming System
 
-### Stylix + Darkman Architecture
-1. **System Stylix** (`modules/theming/stylix.nix`): Minimal base config
-2. **Home-Manager Stylix** (`stylix.nix`): Full theming with specializations
-3. **Darkman**: Time-based light/dark switching
+### Noctalia + temporary Stylix Architecture
+1. **Noctalia** (`noctalia/theme.nix`): Runtime manual/automatic mode and portal preference owner.
+2. **Home-Manager Stylix** (`stylix.nix`): Prebuilt app-theme specialisations during migration.
+3. **Compatibility adapter** (`noctalia/theme_bridge.py`): One-way, serialized application of those generations.
+4. **System Stylix** (`modules/theming/stylix.nix`): Static system defaults; not the runtime controller.
 
 ### Stylix Color Injection
 ```nix
@@ -30,8 +31,8 @@ in {
   '';
 }
 ```
-Used in: `niri/layout.nix`. Noctalia uses its built-in Catppuccin palette; its mode
-still follows the HM specialisation until the planned runtime-controller handover.
+Used in: `niri/layout.nix`. Noctalia uses its built-in Catppuccin palette and chooses
+its own mode. The compatibility adapter selects the matching prebuilt app generation.
 
 ### Specialization Pattern
 Theme switching without full rebuilds:
@@ -52,18 +53,24 @@ Theme switching without full rebuilds:
 }
 ```
 
-### Theme Switching (Darkman)
-`darkman-switch-mode.sh` handles:
-- Systemd environment variables
-- Niri socket commands for appearance
-- awww wallpaper changes
-- dconf settings for GTK apps
-
-**Important:** Check `DARKMAN_RUNNING` env var to prevent infinite loops.
+### Theme Switching (Noctalia)
+- `theme_mode_changed` and startup hooks submit atomic requests; `noctalia-theme.path`
+  drives a oneshot worker. Do not change these to restart a worker mid-activation.
+- Worker reads `theme-mode-get`; it never writes a mode or portal preference back.
+  It requests native `templates-apply` after HM activation so Noctalia owns preference sync.
+- Stylix's GNOME target is disabled: it writes `default` for light mode and would fight
+  Noctalia. Static app fonts are preserved explicitly; do not reintroduce an HM-managed
+  `org/gnome/desktop/interface.color-scheme` key.
+- Normal HM activation and the worker share `$XDG_RUNTIME_DIR/noctalia-theme/activation.lock`.
+- `NOCTALIA_THEME_BRIDGE_ACTIVE` suppresses recursive hooks/locking in the worker's child activation.
+- Noctalia config and shell/bridge units must be identical across dark/light generations
+  (`checks.x86_64-linux.noctalia-theme-invariants` enforces this).
+- Neither system nor HM Darkman module is imported. Old files remain rollback-only.
+- App palettes still use Catppuccin until individual runtime templates replace Stylix outputs.
 
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
-- Darkman sends `awww img` on theme change
+- Noctalia's theme adapter sends `awww img` on mode change/hotplug
 - 1-second fade transitions
 - Backdrop layer (visible in Niri overview)
 
@@ -177,7 +184,8 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 | `niri/` | Window manager (binds, layout, rules, startup, lid-switch) |
 | `noctalia/` | Native V5 shell, palettes and overview IPC bridge |
 | `quickshell/` | Previous custom shell, retained but not imported |
-| `darkman/` | Theme switching, monitor hotplug |
+| `noctalia/theme.nix` | Runtime mode hooks, app-theme adapter and wallpaper hotplug |
+| `darkman/` | Legacy controller (not imported) |
 | `stylix.nix` | Theming with specializations |
 | `android/` | Emulator environment variables |
 | `audio-keep-alive/` | Amplifier pop prevention |

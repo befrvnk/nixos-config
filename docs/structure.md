@@ -88,7 +88,7 @@ home-manager/
 │   ├── niri/          # Window manager (Wayland)
 │   ├── noctalia/      # Native Noctalia V5 shell + overview IPC bridge
 │   ├── quickshell/    # Previous shell (not imported; rollback only)
-│   ├── darkman/       # Theme switching scripts
+│   ├── darkman/       # Legacy theme controller (not imported)
 │   ├── stylix.nix     # Theming with specializations
 │   ├── nushell.nix    # Shell (Stylix theme integration)
 │   └── */             # Other NixOS-specific configs

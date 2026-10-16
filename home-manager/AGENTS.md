@@ -10,7 +10,7 @@ home-manager/
 │   ├── frank.nix      # Main config (imports all NixOS modules)
 │   ├── niri/          # Window manager (Wayland)
 │   ├── noctalia/      # Native Noctalia V5 shell (overview-only)
-│   ├── darkman/       # Theme switching
+│   ├── darkman/       # Legacy theme controller (not imported)
 │   ├── stylix.nix     # Theming with specializations
 │   └── */             # Other NixOS-specific configs
 ├── darwin/            # Darwin-specific modules
@@ -143,7 +143,7 @@ let
   '';
 in { /* service definition */ }
 ```
-Used in: `nixos/darkman/` (monitor-hotplug)
+Used in: `nixos/noctalia/` (monitor-hotplug)
 
 ## Adding Packages
 
@@ -173,4 +173,4 @@ Single source of truth for both platforms:
 ```nix
 { light = ./mountain.jpg; dark = ./mountain_dark.jpg; }
 ```
-**Imported by:** `nixos/stylix.nix`, `nixos/darkman/`
+**Imported by:** `nixos/stylix.nix`, `nixos/noctalia/theme.nix`

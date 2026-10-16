@@ -484,7 +484,7 @@ This configuration separates concerns between system-level and user-level settin
 **System Level** (`modules/`):
 - Boot configuration and kernel parameters
 - Hardware drivers and firmware
-- System services (greetd, darkman, pipewire, bluetooth, systemd-oomd)
+- System services (greetd, pipewire, bluetooth, systemd-oomd)
 - Network management
 - Power management (tuned with PPD compatibility, ZRAM)
 - Security (PAM, polkit, TPM)
@@ -496,17 +496,19 @@ This configuration separates concerns between system-level and user-level settin
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (Noctalia V5, Vicinae)
-- User services (swayidle, battery notifications, profile-sync-daemon)
+- User services (Noctalia, swayidle, profile-sync-daemon)
 - Theming specializations (dark/light modes)
 
 ## Features
 
 ### Theming
 
-- **Stylix** automatically themes all applications
+- **Noctalia V5** selects runtime light/dark mode manually or by sunrise/sunset
 - **Catppuccin** color scheme (Mocha dark, Latte light)
-- **Darkman** switches themes based on time of day
-- Light/dark mode without rebuild using specializations
+- A temporary one-way adapter applies prebuilt **Stylix** app-theme specializations
+- Mode switches require no rebuild and must not restart Noctalia; Darkman is disabled
+- Application theme templates will be migrated individually; arbitrary shell palettes
+  do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif
 
 ### Wallpaper Management
@@ -519,14 +521,14 @@ This configuration separates concerns between system-level and user-level settin
 
 **How it works:**
 1. `awww-daemon` starts with Niri and stays running
-2. Darkman detects time-based mode (light/dark) based on sunrise/sunset
-3. When mode changes, darkman sends `awww img` command with new wallpaper
+2. Noctalia chooses light/dark mode manually or from its sunrise/sunset schedule
+3. Its compatibility bridge sends `awww img` with the selected wallpaper
 4. awww fades smoothly to the new wallpaper without daemon restart
 
 **Key configuration:**
 - Daemon started in `home-manager/nixos/niri/startup.nix`
 - Layer rule in `home-manager/nixos/niri/rules.nix` places awww on backdrop
-- Theme switching script in `home-manager/nixos/darkman/darkman-switch-mode.sh`
+- Mode/refresh adapter in `home-manager/nixos/noctalia/theme.nix` and `theme_bridge.py`
 - Wallpaper paths defined in `home-manager/nixos/wallpapers/default.nix`
 
 ### Security
@@ -600,7 +602,7 @@ Detailed guides for specific topics:
 - [Fingerprint Setup](./docs/fingerprint-setup.md) - Fingerprint authentication
 
 ### Theming & Desktop
-- [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Theme switching with light/dark modes
+- [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Historical pre-Noctalia theme architecture
 - [Noctalia V5 with Niri](./docs/noctalia-niri-overview.md) - Shell setup, plugins, overview-only behavior and rollback
 - [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior with wayland-pipewire-idle-inhibit
 - [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control

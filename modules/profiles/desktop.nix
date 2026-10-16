@@ -3,7 +3,6 @@
     ../desktop/greetd.nix
     ../desktop/niri.nix
     ../services/bluetooth.nix
-    ../services/darkman.nix
     ../services/keyd.nix
     ../services/nextdns.nix
     ../services/oomd.nix

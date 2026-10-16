@@ -10,7 +10,7 @@ modules/
 ├── users.nix          # User account definitions
 ├── desktop/           # Display manager (greetd), compositor
 ├── hardware/          # fprintd, power management, keyboard
-├── services/          # System services (darkman, pipewire, bluetooth, scx, oomd)
+├── services/          # System services (pipewire, bluetooth, scx, oomd)
 ├── system/            # Core settings (boot, networking, packages, security)
 └── theming/           # System-level stylix config
 ```
@@ -20,7 +20,7 @@ modules/
 **System Level (here):** Root-level, affects all users
 - Boot configuration (LUKS, TPM2, secure boot via Lanzaboote)
 - Hardware drivers and firmware
-- System services (greetd, darkman daemon, pipewire)
+- System services (greetd, pipewire); runtime theme control is in Home Manager Noctalia
 - Network management, power management
 - Security (PAM, polkit, TPM, firewall)
 - System users and groups

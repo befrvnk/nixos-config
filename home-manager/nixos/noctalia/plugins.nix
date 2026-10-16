@@ -57,6 +57,8 @@ in
         noctalia
         pkgs.bash
         pkgs.coreutils
+        pkgs.dconf
+        pkgs.glib
         pkgs.systemd
         pkgs.udiskie
         pkgs.udisks

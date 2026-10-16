@@ -197,6 +197,36 @@
               -s ${./home-manager/nixos/noctalia} -p 'test_*.py'
             touch $out
           '';
+          noctalia-theme-invariants =
+            let
+              cfg = inputs.self.nixosConfigurations.framework.config;
+              home = cfg.home-manager.users.frank;
+              variants = [
+                home
+                home.specialisation.dark.configuration
+                home.specialisation.light.configuration
+              ];
+              same = values: builtins.length (pkgs.lib.unique values) == 1;
+            in
+            assert pkgs.lib.assertMsg (same (
+              map (h: toString h.xdg.configFile."noctalia/config.toml".source) variants
+            )) "Noctalia config must not change across app-theme specialisations";
+            assert pkgs.lib.assertMsg (same (
+              map (h: builtins.toJSON h.systemd.user.services.noctalia) variants
+            )) "App-theme switches must not restart Noctalia";
+            assert pkgs.lib.assertMsg (same (
+              map (h: builtins.toJSON h.systemd.user.services.noctalia-theme) variants
+            )) "The theme bridge must not restart itself during app-theme activation";
+            assert pkgs.lib.assertMsg (
+              !(cfg.systemd.user.services ? darkman) && !(home.home.activation ? restartDarkman)
+            ) "The legacy Darkman controller must be disabled";
+            assert pkgs.lib.assertMsg (builtins.all (
+              h: !(h.dconf.settings."org/gnome/desktop/interface" ? color-scheme)
+            ) variants) "Home Manager must not overwrite Noctalia's runtime color-scheme preference";
+            pkgs.runCommand "noctalia-theme-invariants" { } ''
+              touch $out
+            '';
+
           safe-suspend =
             pkgs.runCommand "safe-suspend-tests"
               {

@@ -25,7 +25,7 @@ standard freedesktop interface continue to work.
 Existing managers remain responsible for:
 
 - Vicinae launcher and its keybinding.
-- awww wallpaper and Darkman scheduling/GTK themes.
+- awww wallpaper surfaces, with mode/refresh requests now driven by Noctalia.
 - SwayOSD and the existing audio/brightness keys, including Framework sink init.
 - swaylock, idle/audio-inhibit services and the existing polkit agent.
 - Gammastep and tuned Framework profiles.
@@ -68,10 +68,9 @@ Duplicate events are ignored; stream/IPC failure exits so systemd reconnects.
 The bar reserves no space. There may be a brief startup reveal before the hook
 hides it. Reopening shell Settings outside overview is still possible via IPC.
 
-Darkman still restarts Noctalia after activating its light/dark Home Manager
-specialisation, so the mode and overview watcher are resynchronised. The shell
-palette now comes from Noctalia's built-in `Catppuccin`, not a generated Stylix JSON.
-This palette-only checkpoint does not yet transfer runtime mode ownership.
+Noctalia chooses runtime mode and uses its built-in `Catppuccin` palette. Mode
+changes must not restart the shell or overview watcher. The temporary app-theme
+adapter described below preserves existing application configurations.
 
 ## Settings and plugins
 
@@ -198,13 +197,83 @@ so it rejected the existing JSON and fell back to its default palette. Passing
 
 The accepted fix selects `theme.source = "builtin"`, `theme.builtin = "Catppuccin"`
 and removes the incomplete custom palette generator. The pinned binary ships valid
-Mocha/Latte variants, including terminal colors. Mode still follows the current HM
-specialisation until the separate Darkman handover; no app-theme or wallpaper
-ownership changes are part of this fix.
+Mocha/Latte variants, including terminal colors. That palette-only fix was accepted
+before preparing the runtime-controller handover below.
 
 After the user's rebuild, current-process logs had no palette/theme warning, the
 old JSON was no longer installed, and the user confirmed the Catppuccin appearance.
 Historical palette warnings may still appear when querying older journal entries.
+
+## Runtime theme-controller handover
+
+`theme.nix` makes Noctalia the controller: `theme.mode = "auto"` uses the configured
+location's sunrise/sunset; the shell follows that mode and Noctalia synchronizes the
+system light/dark preference. Manual choices in Settings/Control Center or IPC take
+precedence as GUI overrides and persist. Noctalia must not be restarted to switch modes.
+
+```sh
+noctalia msg theme-mode-set dark
+noctalia msg theme-mode-set light
+noctalia msg theme-mode-set auto
+```
+
+For this compatibility phase, the chosen mode still selects the **prebuilt** Stylix
+Home Manager light/dark application theme. Noctalia owns the choice; Stylix is only
+the temporary config generator. Arbitrary shell palettes do not yet recolor every app.
+Per-app templates will replace that dependency one application at a time.
+
+Noctalia's mode hook submits an atomic request. `noctalia-theme.path` starts a
+serialized oneshot `noctalia-theme.service` to apply it. The worker queries the
+resolved mode, waits for ordinary HM activation, uses a shared linking lock and
+suppresses its own activation hooks. It then refreshes SwayOSD/Vicinae, the existing
+Nushell theme state and awww. Duplicate events skip activation; newer events and
+failed work remain pending. It never runs a Nix build, changes Noctalia's mode,
+writes a reverse portal preference, or restarts Noctalia. After app activation it
+asks Noctalia to run `templates-apply`, letting the native pipeline reassert the
+owned preference (also needed after removing the old HM-managed dconf key).
+
+Stylix's GNOME target is disabled because it otherwise overwrites the preference
+with `default` in light generations. Its Noto/monospace app-font defaults are
+preserved explicitly; GTK app themes and other Stylix targets remain in place.
+The theme invariant check rejects any managed color-scheme key in either variant.
+
+Ordinary rebuilds request reapplication after linking. The awww monitor-hotplug
+watcher submits refresh-only requests; it no longer queries Darkman. Darkman is
+not imported at either system or HM level; its old files are rollback material.
+The normal HM activation hook also stops a remaining legacy Darkman user daemon.
+
+After rebuilding, test dark then light **one at a time**, allowing the compatibility
+job to finish between changes. Verify GTK apps, Niri colors, Vicinae, SwayOSD,
+Nushell, Ghostty's system appearance and wallpaper. The Noctalia PID should stay
+unchanged during these toggles. Return to auto mode if scheduled switching is wanted.
+
+```sh
+systemctl --user status noctalia-theme.path
+journalctl --user -u noctalia-theme.service -n 80 --no-pager
+systemctl --user status darkman.service
+```
+
+The path unit should be waiting; its worker is normally **inactive after success**,
+not continuously running. Darkman should be inactive/not found. On failure, the
+request remains under `$XDG_RUNTIME_DIR/noctalia-theme/` and the service retries.
+Applied compatibility state is under `~/.local/state/noctalia/theme-bridge.json`.
+The shared activation lock and recursion flag are deliberate; do not bypass them.
+
+A pre-handover GUI-settings backup is at
+`~/.local/state/noctalia/settings.pre-theme-controller.toml`. No GUI keys were deleted
+for this change. Do not restore the whole file blindly or lose newer plugin/UI choices.
+Before this handover, checkpoint `3f51f68` retained the old Darkman controller;
+rolling back also requires reconciling any subsequently saved `theme.mode` override.
+
+Build validation includes 14 mocked bridge tests, 4 overview tests, 11 safe-suspend
+tests and `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
+shell/bridge service definitions across theme generations to prevent restart loops.
+The deployed handover is accepted: Darkman is inactive/not found, the preference
+matches Noctalia's resolved mode, and the user confirmed dark/light switching works.
+Noctalia kept PID 243684 across the manual toggle trial; the worker completed
+successfully with no pending request. Automatic schedule boundaries, hotplug and
+suspend/resume remain regression checks. The agent did not activate generations
+or switch the user's current mode.
 
 ## Consolidation plan
 
@@ -214,8 +283,8 @@ and moving runtime theme control from Darkman to Noctalia. OpenRouter and firewa
 summary widgets are no longer required. Headphone battery visibility has been accepted;
 the storage trial has passed its basic live test. Native Caffeine passed its inhibitor
 and idle tests, and the Lid Guard trial is accepted. Native battery warnings are
-accepted after deployment checks. The palette-warning fix is prepared; runtime theme
-ownership is the subsequent phase.
+accepted after deployment checks. The palette-warning fix is accepted; the runtime
+controller handover has passed its basic live tests. Per-app template migration is next.
 
 ## Build and validate
 
@@ -253,10 +322,15 @@ history, tray actions, WiFi/Bluetooth, audio and theme transitions. Do not run
 
 ## Rollback
 
-The previous custom shell and its flake inputs are retained for rollback but not
-imported. To restore it, replace `./noctalia` with `./quickshell` and restore
-`./dunst.nix` in `home-manager/nixos/frank.nix`, then restore Darkman's shell restart
-target and rebuild. Never run both shells/notification daemons together.
+Checkpoint `3f51f68` is the accepted Noctalia palette configuration before the
+runtime-controller handover. To roll back that handover, restore the controller's
+system/HM imports, remove its path/worker/hooks, and reconcile only relevant saved
+`theme.mode` overrides. Keep newer plugin/UI choices rather than overwriting all state.
+
+The older custom shell and flake inputs are also retained but not imported. Restoring
+that shell requires replacing `./noctalia` with `./quickshell`, restoring `./dunst.nix`
+and deliberately choosing/restoring its theme controller (including both Darkman
+imports if using the old setup). Never run both shells/notification daemons together.
 
 ## References
 
