@@ -281,7 +281,7 @@ nixos-config/
     ├── nixos/                         # NixOS-specific configs
     │   ├── frank.nix                  # Entry point (imports shared + nixos)
     │   ├── niri/                      # Wayland compositor
-    │   ├── ironbar/                   # Status bar
+    │   ├── noctalia/                  # Native V5 shell (NixOS only)
     │   └── ...                        # Linux-only modules
     └── shared/                        # Cross-platform modules
         ├── git.nix

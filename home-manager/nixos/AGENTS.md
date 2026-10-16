@@ -5,7 +5,7 @@ NixOS-specific user configuration including Wayland, systemd services, and Styli
 ## What Goes Here
 
 - Window manager config (niri/)
-- Status bar (ironbar/)
+- Desktop shell (noctalia/, native C++ V5; quickshell/ retained for rollback)
 - Theme switching (darkman/, stylix.nix)
 - User systemd services
 - Wayland-specific apps
@@ -30,7 +30,7 @@ in {
   '';
 }
 ```
-Used in: `ironbar/default.nix`, `niri/layout.nix`
+Used in: `niri/layout.nix`; Noctalia palettes use `shared/themes.nix`.
 
 ### Specialization Pattern
 Theme switching without full rebuilds:
@@ -68,10 +68,10 @@ Theme switching without full rebuilds:
 
 ## Audio Gotchas
 
-### Ironbar Volume Module
-- **Do NOT** use the built-in volume module (crashes with PulseAudio)
-- Ironbar only reads `ironbar/modules/volume/volume-status.sh`
-- Volume changes are handled by `niri/volume-ctl.sh`, which updates `~/.cache/volume-status`
+### Shell Volume Module
+- Noctalia V5 uses its native audio service for the widget/control center.
+- Keyboard controls still use `niri/volume-ctl.sh` and SwayOSD; keep Framework sink init.
+- The old volume cache is not read by Noctalia. Noctalia volume/brightness OSD is disabled.
 
 ### Framework pw-loopback
 - **Must start at session startup** for volume controls to work
@@ -117,20 +117,25 @@ Configuration in `android/`
 cat /sys/firmware/acpi/platform_profile  # low-power, balanced, performance
 tuned-adm active  # Check active profile
 ```
-Ironbar battery popup uses `tuned-adm` for switching.
+Existing tuned Framework profiles are retained; do not enable power-profiles-daemon alongside tuned.
 
 ### ABM Toggle
 - `Mod+Shift+B` runs `toggle-abm`
 - Level 0: Accurate colors (photo editing)
 - Level 3: Power savings (battery)
-- Ironbar display popup has ABM and Stay On buttons
+- Custom ABM/Stay On popup controls are not ported to Noctalia; the keybind/service remains.
 
 ## Desktop Gotchas
 
-### Ironbar Reloads
-- Do **not** use `ironbar reload` when the bar is managed by `toggle-ironbar.py`
-- Rebuild, then restart `systemctl --user restart ironbar`
-- This keeps the overview toggle script and bar instance in sync
+### Noctalia V5
+- Pinned native C++ 5.3.0 via `inputs.noctalia`; do not use V4 QML settings/plugins.
+- `programs.noctalia.checkConfig` validates TOML during builds.
+- `noctalia-overview.service` bridges Niri overview events to `bar-show`/`bar-hide`.
+- The Noctalia `started` hook starts that watcher only after IPC is ready.
+- Noctalia owns notifications; dunst is not imported. Other desktop managers remain.
+- GUI overrides in `~/.local/state/noctalia/settings.toml` take precedence over Nix config.
+- V5 plugins use Luau; review compatibility before enabling community plugins.
+- See `docs/noctalia-niri-overview.md` for troubleshooting and rollback.
 
 ### Profile-sync-daemon (`profile-sync-daemon.nix`)
 - Syncs browser profiles to tmpfs (faster I/O, less SSD writes)
@@ -155,7 +160,8 @@ Ironbar battery popup uses `tuned-adm` for switching.
 | Module | Purpose |
 |--------|---------|
 | `niri/` | Window manager (binds, layout, rules, startup, lid-switch) |
-| `ironbar/` | Status bar with modular scripts |
+| `noctalia/` | Native V5 shell, palettes and overview IPC bridge |
+| `quickshell/` | Previous custom shell, retained but not imported |
 | `darkman/` | Theme switching, monitor hotplug |
 | `stylix.nix` | Theming with specializations |
 | `android/` | Emulator environment variables |

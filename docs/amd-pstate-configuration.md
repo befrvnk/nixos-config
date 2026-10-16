@@ -287,8 +287,8 @@ To use **Performance** mode (for compilation, heavy work), manually switch via t
 
 **Files:**
 - `modules/hardware/power-management.nix` - tuned configuration with custom profiles
-- `home-manager/ironbar/modules/battery/set-profile.sh` - Profile switcher (uses `tuned-adm`)
-- `home-manager/ironbar/modules/battery/get-profile.sh` - Current profile reader (reads sysfs)
+- `home-manager/nixos/noctalia/default.nix` - Current shell integration
+- `home-manager/nixos/ironbar/modules/battery/` - Legacy profile helpers (not active)
 
 **Power settings managed:**
 | Setting | Battery | AC | Method |
@@ -406,16 +406,18 @@ tuned manages power settings via custom profiles:
 
 tuned-ppd provides PPD API compatibility so `powerprofilesctl` commands work.
 
-### Ironbar Integration
+### Noctalia V5 Integration
 
-The battery popup in Ironbar includes power profile switching:
-- Click the battery icon in the status bar
-- Select desired profile in the popup
-- Profile changes immediately via `tuned-adm` (applies all settings: EPP, boost, WiFi, ABM)
+Noctalia's built-in power controls use the power-profiles API exposed by tuned-ppd.
+The profile mappings and automatic AC/battery behavior remain configured in
+`modules/hardware/power-management.nix`; do not enable a competing power daemon.
 
 **Implementation files:**
-- `home-manager/ironbar/modules/battery/get-profile.sh` - Reads current profile from sysfs
-- `home-manager/ironbar/modules/battery/set-profile.sh` - Sets profile via `tuned-adm`
+- `home-manager/nixos/noctalia/default.nix` - Shell configuration
+- `modules/hardware/power-management.nix` - tuned profiles and PPD mappings
+
+The older Ironbar/Quickshell profile helpers remain in the repository for rollback
+but are not used by the active Noctalia configuration.
 
 ### Manual Switching
 
@@ -458,7 +460,7 @@ tuned coordinates these settings via custom profiles, with tuned-ppd providing t
   - Kernel parameters (nmi_watchdog, ASPM, amd_pstate)
   - udev rules (USB autosuspend, I/O scheduler)
 - `modules/services/scx.nix` - SCX sched_ext scheduler configuration
-- `home-manager/ironbar/modules/battery/` - Power profile switching in status bar
+- `home-manager/nixos/noctalia/` - Active desktop shell integration
 
 ---
 

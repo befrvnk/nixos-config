@@ -86,7 +86,8 @@ home-manager/
 ├── nixos/             # NixOS-specific modules
 │   ├── frank.nix      # Main config (imports shared + NixOS modules)
 │   ├── niri/          # Window manager (Wayland)
-│   ├── ironbar/       # Status bar
+│   ├── noctalia/      # Native Noctalia V5 shell + overview IPC bridge
+│   ├── quickshell/    # Previous shell (not imported; rollback only)
 │   ├── darkman/       # Theme switching scripts
 │   ├── stylix.nix     # Theming with specializations
 │   ├── nushell.nix    # Shell (Stylix theme integration)

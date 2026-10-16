@@ -12,15 +12,14 @@
     ./audio-keep-alive
     ./battery-notifications
     ./darkman
-    ./dunst.nix
     ./emacs.nix
     ./gammastep.nix
     ./antigravity-cli.nix
     ./ghostty.nix
 
     ./intellij
-    ./ironbar
     ./niri
+    ./noctalia
     ./nushell.nix
     ./obsidian.nix
     ./packages.nix

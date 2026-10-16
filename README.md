@@ -111,21 +111,21 @@ brightness commands, and Rectangle-backed window layouts. Local Apple Calendar
 access and the former Asyar theme-toggle extension are not included. See the
 [migration checklist](docs/vicinae-migration.md) before rebuilding from Asyar.
 
-### Ironbar (Status Bar)
+### Noctalia V5 (Desktop Shell)
 
-[Ironbar](https://github.com/JakeStanger/ironbar) displays system information at the top of the screen:
+[Noctalia 5.3.0](https://github.com/noctalia-dev/noctalia/tree/v5.3.0) is the native
+C++ shell, not the older Quickshell-based release. Its bar appears only during Niri
+overview, with transparent background, neutral text and individual Catppuccin pills.
 
-- **Workspaces** - Click to switch workspaces
-- **Weather** - Current temperature with popup forecast (auto-hides when offline)
-- **Clock** - Current time
-- **Notifications** - Unread count with popup history
-- **System stats** - CPU %, Memory %, Temperature
-- **WiFi status** - Connection indicator
-- **Bluetooth** - Connection status
-- **Volume** - Current level (click to adjust)
-- **Display** - Brightness level with idle status; popup shows ABM toggle and stay-on control
-- **Storage** - Mounted removable devices (USB/SD cards)
-- **Battery** - Percentage, charging state, and power profile switching
+- **Built-in widgets** — CPU/RAM/temperature, weather, centered date/time, app tray,
+  notifications, WiFi next to Bluetooth, volume, brightness and battery.
+- **Control center** — interactive network, Bluetooth, audio and display controls.
+- **Plugins** — V5-compatible Luau plugins available through Settings; none enabled automatically.
+- **Existing tools preserved** — Vicinae, awww, SwayOSD, swaylock, Gammastep and tuned.
+
+Noctalia replaces dunst for notifications. The previous custom shell is retained
+for rollback; domain-specific widgets (OpenRouter, aurora, firewall and storage)
+are not ported automatically. See [setup and migration notes](./docs/noctalia-niri-overview.md).
 
 ## Keyboard Shortcuts
 
@@ -430,9 +430,9 @@ Installed via Home Manager in the platform-specific package sets:
 
 #### Desktop Environment
 - **niri** - Scrollable-tiling Wayland compositor
-- **ironbar** - Customizable status bar
+- **Noctalia V5** - Native overview-only shell and control center
 - **vicinae** - Application launcher
-- **dunst** - Notification daemon
+- **Noctalia notifications** - Notification toasts and history
 - **swayosd** - On-screen display for volume/brightness
 - **swaylock** - Screen locker
 - **awww** - Wallpaper daemon with fade transitions
@@ -495,7 +495,7 @@ This configuration separates concerns between system-level and user-level settin
 - Shell configuration (nushell, starship, atuin, carapace)
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
-- Desktop environment (ironbar, vicinae, dunst)
+- Desktop environment (Noctalia V5, Vicinae)
 - User services (swayidle, battery notifications, profile-sync-daemon)
 - Theming specializations (dark/light modes)
 
@@ -563,7 +563,7 @@ This configuration separates concerns between system-level and user-level settin
 
 ### Notifications
 
-- **Dunst** for desktop notifications
+- **Noctalia V5** for desktop notifications
 - Battery warnings at 5%, 20%, and 100%
 - Notification history accessible from status bar
 
@@ -601,7 +601,7 @@ Detailed guides for specific topics:
 
 ### Theming & Desktop
 - [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Theme switching with light/dark modes
-- [Ironbar with Niri Overview](./docs/ironbar-niri-overview.md) - Status bar overview-mode integration
+- [Noctalia V5 with Niri](./docs/noctalia-niri-overview.md) - Shell setup, plugins, overview-only behavior and rollback
 - [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior with wayland-pipewire-idle-inhibit
 - [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control
 

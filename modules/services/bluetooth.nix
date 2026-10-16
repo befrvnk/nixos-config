@@ -21,11 +21,11 @@ in
     powerOnBoot = false; # Don't enable on boot - saves ~0.5W
   };
 
-  # Enable bluez service for D-Bus access (needed for ironbar)
+  # Enable bluez service for D-Bus access (needed for the bar)
   services = {
     blueman.enable = true;
 
-    # Enable UPower for battery information (needed for ironbar)
+    # Enable UPower for battery information (needed for the bar)
     upower.enable = true;
   };
 

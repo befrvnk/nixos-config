@@ -65,7 +65,9 @@ A firewall module in the status bar shows refused connections at a glance:
 
 This filters out harmless local traffic (like Philips Hue SSDP responses) so you can spot actual threats when on untrusted networks.
 
-Configuration: `home-manager/ironbar/modules/firewall/`
+Legacy implementation: `home-manager/nixos/ironbar/modules/firewall/`.
+This widget is not enabled in the current Noctalia V5 layout; the firewall itself
+remains active independently of the shell. See `docs/noctalia-niri-overview.md`.
 
 ### Currently Open Ports
 

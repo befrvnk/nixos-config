@@ -87,8 +87,9 @@ fi
 # This ensures Stylix doesn't override it
 @dconf@/bin/dconf write /org/gnome/desktop/interface/color-scheme "'prefer-$MODE'"
 
-# Restart Ironbar to pick up new theme CSS
-@systemd@/bin/systemctl --user restart ironbar.service || true
+# Restart Noctalia after the Stylix specialisation updates its palette/mode.
+# Its startup hook re-synchronises overview-only visibility.
+@systemd@/bin/systemctl --user try-restart noctalia.service || true
 
 # Restart SwayOSD to pick up new GTK theme colors
 @systemd@/bin/systemctl --user restart swayosd.service || true

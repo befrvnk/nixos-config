@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Prevent idle/suspend while audio is actually playing
-# Uses the same detection logic as ironbar: count [active] streams > 2
+# Uses the same detection logic as the bar: count [active] streams > 2
 # (baseline of 2 accounts for the Framework speaker filter-chain)
 
 inhibitor_pid=""

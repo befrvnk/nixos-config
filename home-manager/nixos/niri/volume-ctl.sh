@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Event-driven volume control (calls swayosd + updates cache for ironbar)
+# Event-driven volume control (calls swayosd + updates cache for the bar)
 # This eliminates dbus polling overhead - wpctl only runs when volume changes
 # PATH is set by the wrapper in default.nix
 

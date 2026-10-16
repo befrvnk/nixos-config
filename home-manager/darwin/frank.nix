@@ -6,7 +6,7 @@
 # Key differences from NixOS:
 # - No Stylix theming (macOS uses system appearance)
 # - No Wayland/niri compositor
-# - No Linux-specific services (ironbar, darkman, battery-notifications, etc.)
+# - No Linux-specific services (Noctalia, darkman, battery-notifications, etc.)
 # - No systemd user services
 
 { inputs, hostConfig, ... }:

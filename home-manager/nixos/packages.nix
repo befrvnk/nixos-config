@@ -18,7 +18,7 @@
       mission-center
       nautilus
       openchamber
-      # Icon theme for ironbar
+      # Icon theme for the bar
       papirus-icon-theme
       powertop
       sushi # nautilus preview

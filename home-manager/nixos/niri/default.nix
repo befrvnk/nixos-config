@@ -41,7 +41,7 @@
       ${builtins.readFile ./toggle-abm.sh}
     '')
 
-    # Event-driven volume control (calls swayosd + updates cache for ironbar)
+    # Event-driven volume control (calls swayosd + updates cache for the bar)
     # This eliminates dbus polling overhead - wpctl only runs when volume changes
     (pkgs.writeShellScriptBin "volume-ctl" ''
       export PATH="${pkgs.swayosd}/bin:${pkgs.wireplumber}/bin:${pkgs.gawk}/bin:${pkgs.gnugrep}/bin:$PATH"

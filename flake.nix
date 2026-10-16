@@ -41,9 +41,22 @@
     # Don't use inputs.nixpkgs.follows here - niri cachix has builds
     # for the flake's own nixpkgs version, using follows causes cache misses
     niri.url = "github:sodiboo/niri-flake";
+    # Native C++ Noctalia V5; keep its nixpkgs pin for upstream cache hits.
+    noctalia.url = "github:noctalia-dev/noctalia/v5.3.0";
     awww = {
       url = "git+https://codeberg.org/LGFae/awww?ref=refs/tags/v0.12.0";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # Quickshell flakes are not on GitHub; follows nixpkgs to stay on one channel
+    quickshell = {
+      url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    # QML plugin wiring niri IPC into Quickshell; provides a quickshell-with-plugin build
+    qml-niri = {
+      url = "github:imiric/qml-niri/main";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.quickshell.follows = "quickshell";
     };
     claude-code = {
       url = "github:sadjow/claude-code-nix";
@@ -88,6 +101,7 @@
       "https://devenv.cachix.org"
       "https://niri.cachix.org"
       "https://nix-community.cachix.org"
+      "https://noctalia.cachix.org"
       "https://nixos-raspberrypi.cachix.org"
       "https://vicinae.cachix.org"
       "https://attic.xuyh0120.win/lantian"
@@ -98,6 +112,7 @@
       "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
+      "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
       "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
       "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
     ];
@@ -173,6 +188,12 @@
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          noctalia-overview = pkgs.runCommand "noctalia-overview-tests" { } ''
+            ${pkgs.python3}/bin/python3 -B -m unittest discover \
+              -s ${./home-manager/nixos/noctalia} -p 'test_*.py'
+            touch $out
+          '';
+
           inherit (pkgs)
             domain-check
             idea-community

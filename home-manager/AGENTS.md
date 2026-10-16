@@ -9,7 +9,7 @@ home-manager/
 ├── nixos/             # NixOS-specific modules
 │   ├── frank.nix      # Main config (imports all NixOS modules)
 │   ├── niri/          # Window manager (Wayland)
-│   ├── ironbar/       # Status bar
+│   ├── noctalia/      # Native Noctalia V5 shell (overview-only)
 │   ├── darkman/       # Theme switching
 │   ├── stylix.nix     # Theming with specializations
 │   └── */             # Other NixOS-specific configs
@@ -77,7 +77,7 @@ For complex configs, split by concern:
   programs.app.settings = lib.mkMerge [ /* merged from imports */ ];
 }
 ```
-Examples: `nixos/niri/`, `nixos/ironbar/`
+Examples: `nixos/niri/`, `nixos/noctalia/`
 
 ## Configuration Patterns
 

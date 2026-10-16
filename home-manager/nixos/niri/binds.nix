@@ -172,8 +172,8 @@ _: {
     # Toggle ABM (for photo editing with accurate colors)
     "Mod+Shift+B".action.spawn = [ "toggle-abm" ];
 
-    # Function keys (volume uses volume-ctl for event-driven updates to ironbar)
-    # volume-ctl calls swayosd-client AND updates the cache file for ironbar
+    # Function keys (volume uses volume-ctl for event-driven updates to the bar)
+    # volume-ctl calls swayosd-client AND updates the cache file for the bar
     "XF86AudioLowerVolume".action.spawn = [
       "volume-ctl"
       "lower"

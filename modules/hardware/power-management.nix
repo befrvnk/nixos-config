@@ -164,7 +164,7 @@ in
     # Reduce tuned stop timeout to avoid long shutdown delays
     tuned.serviceConfig.TimeoutStopSec = 10;
 
-    # Make ABM sysfs writable by users (for toggle-abm and ironbar brightness popup)
+    # Make ABM sysfs writable by users (for toggle-abm and the bar brightness popup)
     abm-permissions = lib.mkIf (abmPath != null) {
       description = "Set ABM sysfs permissions for user control";
       wantedBy = [ "multi-user.target" ];
@@ -176,8 +176,8 @@ in
       };
     };
 
-    # Make platform_profile writable by users (for ironbar power profile switching)
-    # Allows manual override via ironbar without going through tuned
+    # Make platform_profile writable by users (for bar power profile switching)
+    # Allows manual override via the bar without going through tuned
     platform-profile-permissions = lib.mkIf (platformProfilePath != null) {
       description = "Set platform_profile sysfs permissions for user control";
       wantedBy = [ "multi-user.target" ];
