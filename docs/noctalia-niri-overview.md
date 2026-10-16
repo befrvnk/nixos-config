@@ -16,7 +16,7 @@ The layout uses built-in widgets plus one reviewed storage plugin, not a new hom
 - End: app tray, storage (when a device is present), notifications, network next to
   Bluetooth, volume, brightness, Caffeine, Lid Guard, battery and control center.
 - Transparent bar with individual bordered capsules, neutral foregrounds,
-  JetBrainsMono Nerd Font and Catppuccin Mocha/Latte from `shared/themes.nix`.
+  JetBrainsMono Nerd Font and Noctalia's built-in Catppuccin Mocha/Latte palette.
 
 Noctalia owns notifications; the dunst module is no longer imported. Historical
 dunst history is not imported into Noctalia. Notifications sent through the
@@ -68,8 +68,10 @@ Duplicate events are ignored; stream/IPC failure exits so systemd reconnects.
 The bar reserves no space. There may be a brief startup reveal before the hook
 hides it. Reopening shell Settings outside overview is still possible via IPC.
 
-Darkman restarts Noctalia after activating its light/dark Home Manager
-specialisation, so the palette/mode and overview watcher are resynchronised.
+Darkman still restarts Noctalia after activating its light/dark Home Manager
+specialisation, so the mode and overview watcher are resynchronised. The shell
+palette now comes from Noctalia's built-in `Catppuccin`, not a generated Stylix JSON.
+This palette-only checkpoint does not yet transfer runtime mode ownership.
 
 ## Settings and plugins
 
@@ -187,6 +189,23 @@ The user confirmed the inhibitor appears and the laptop stays awake during the i
 trial. Caffeine does not request a lid-close blocker; that is a separate feature.
 Off/release and suspend/resume behavior remain useful regression checks.
 
+## Palette warning checkpoint
+
+The old generated `Stylix.json` supplied UI colors but omitted terminal colors.
+Noctalia 5.3.0's runtime palette loader requires the `terminal` object in each mode,
+so it rejected the existing JSON and fell back to its default palette. Passing
+`config validate` did not prove that this separate runtime palette file was valid.
+
+The accepted fix selects `theme.source = "builtin"`, `theme.builtin = "Catppuccin"`
+and removes the incomplete custom palette generator. The pinned binary ships valid
+Mocha/Latte variants, including terminal colors. Mode still follows the current HM
+specialisation until the separate Darkman handover; no app-theme or wallpaper
+ownership changes are part of this fix.
+
+After the user's rebuild, current-process logs had no palette/theme warning, the
+old JSON was no longer installed, and the user confirmed the Catppuccin appearance.
+Historical palette warnings may still appear when querying older journal entries.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -195,7 +214,8 @@ and moving runtime theme control from Darkman to Noctalia. OpenRouter and firewa
 summary widgets are no longer required. Headphone battery visibility has been accepted;
 the storage trial has passed its basic live test. Native Caffeine passed its inhibitor
 and idle tests, and the Lid Guard trial is accepted. Native battery warnings are
-accepted after deployment checks. Theme ownership is the next larger phase.
+accepted after deployment checks. The palette-warning fix is prepared; runtime theme
+ownership is the subsequent phase.
 
 ## Build and validate
 

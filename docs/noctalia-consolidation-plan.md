@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D accepted; Phase E begins with the Noctalia palette warning.**
+Status: **Phases A–D and E0 accepted; E1/E2 runtime theme-controller handover next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -368,6 +368,20 @@ Rollback restores the old service and sets Noctalia warnings back to zero.
 ### Phase E — Noctalia becomes the runtime theme controller
 
 Do this after the small widget/plugin trials, not in the same rebuild.
+
+**E0: palette warning checkpoint (accepted).**
+- Runtime logs exposed that the generated custom `Stylix` palette was invalid despite
+  the JSON file existing. The pinned runtime loader requires a `terminal` object in
+  each mode; our custom mapping only supplied UI roles. Basic config validation did
+  not catch that runtime-palette requirement.
+- Switched Noctalia to its shipped `Catppuccin` palette (Mocha/Latte), removed the
+  custom mapping and managed `Stylix.json`. No GUI theme overrides masked this change.
+- Kept `theme.mode = config.stylix.polarity` for this isolated fix; Darkman scheduling,
+  HM specialisations, wallpaper handling and all app theme files remain unchanged.
+- Evaluation confirms source=builtin, builtin=Catppuccin, no managed custom palette.
+  Noctalia config validation, overview/safe-suspend checks, targeted statix and the full
+  Framework build pass. User rebuilt; current-process logs contained no palette/theme
+  warning, the old managed JSON was absent, and the user confirmed the appearance is right.
 
 **E1: inventory and prepare ownership.**
 - Inventory actual Stylix and manual color outputs, reload paths and store symlinks.

@@ -30,7 +30,8 @@ in {
   '';
 }
 ```
-Used in: `niri/layout.nix`; Noctalia palettes use `shared/themes.nix`.
+Used in: `niri/layout.nix`. Noctalia uses its built-in Catppuccin palette; its mode
+still follows the HM specialisation until the planned runtime-controller handover.
 
 ### Specialization Pattern
 Theme switching without full rebuilds:
@@ -129,7 +130,9 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 
 ### Noctalia V5
 - Pinned native C++ 5.3.0 via `inputs.noctalia`; do not use V4 QML settings/plugins.
-- `programs.noctalia.checkConfig` validates TOML during builds.
+- `programs.noctalia.checkConfig` validates TOML during builds. That does not guarantee
+  custom palette JSON is runtime-valid: V5.3.0 also requires terminal color data.
+  Prefer the shipped Catppuccin palette instead of an incomplete UI-only mapping.
 - `noctalia-overview.service` bridges Niri overview events to `bar-show`/`bar-hide`.
 - The Noctalia `started` hook starts that watcher only after IPC is ready.
 - Noctalia owns notifications and system-battery warnings (20%, native 5%/2% escalation).

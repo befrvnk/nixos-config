@@ -6,25 +6,6 @@
   ...
 }:
 let
-  themes = import ../../../shared/themes.nix { };
-  palette = colors: {
-    mPrimary = colors.base0D;
-    mOnPrimary = colors.base00;
-    mSecondary = colors.base0C;
-    mOnSecondary = colors.base00;
-    mTertiary = colors.base0E;
-    mOnTertiary = colors.base00;
-    mError = colors.base08;
-    mOnError = colors.base00;
-    mSurface = colors.base00;
-    mOnSurface = colors.base05;
-    mSurfaceVariant = colors.base01;
-    mOnSurfaceVariant = colors.base04;
-    mOutline = colors.base03;
-    mShadow = colors.base00;
-    mHover = colors.base02;
-    mOnHover = colors.base05;
-  };
   noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
   overviewWatcher = pkgs.writeShellScript "noctalia-overview" ''
     exec ${pkgs.python3}/bin/python3 ${./overview.py} ${lib.getExe noctalia}
@@ -37,7 +18,7 @@ in
     ./storage.nix
   ];
 
-  # Palettes/font are supplied below; avoid competing automatic Stylix settings.
+  # Noctalia owns its palette/font; avoid competing automatic Stylix settings.
   stylix.targets.noctalia.enable = false;
 
   programs.noctalia = {
@@ -45,10 +26,6 @@ in
     package = noctalia;
     systemd.enable = true;
     checkConfig = true;
-    customPalettes.Stylix = {
-      dark = palette themes.dark.palette;
-      light = palette themes.light.palette;
-    };
     settings = {
       shell = {
         font_family = "JetBrainsMono Nerd Font";
@@ -62,9 +39,10 @@ in
         };
       };
       theme = {
+        # Keep the current mode controller until the separate Darkman handover.
         mode = config.stylix.polarity;
-        source = "custom";
-        custom_palette = "Stylix";
+        source = "builtin";
+        builtin = "Catppuccin";
       };
       bar.main = {
         position = "top";
