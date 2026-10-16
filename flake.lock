@@ -939,6 +939,23 @@
         "type": "github"
       }
     },
+    "noctalia-community-plugins": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792070368,
+        "narHash": "sha256-y4ZtmBDLhaov+CryexTMFF1YpyR3m/uXLYedtuTphiE=",
+        "owner": "noctalia-dev",
+        "repo": "community-plugins",
+        "rev": "bd834815ee5da2ed744a9cbf1425342a4eecba6f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "noctalia-dev",
+        "repo": "community-plugins",
+        "rev": "bd834815ee5da2ed744a9cbf1425342a4eecba6f",
+        "type": "github"
+      }
+    },
     "noctalia-rebase-flake-parts_3": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib_3"
@@ -1118,6 +1135,7 @@
         "nixos-raspberrypi": "nixos-raspberrypi",
         "nixpkgs": "nixpkgs_5",
         "noctalia": "noctalia",
+        "noctalia-community-plugins": "noctalia-community-plugins",
         "qml-niri": "qml-niri",
         "quickshell": "quickshell",
         "shellpin": "shellpin",

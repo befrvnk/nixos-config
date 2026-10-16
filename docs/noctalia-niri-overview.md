@@ -9,12 +9,12 @@ The Framework uses the native C++ **Noctalia 5.3.0** release, pinned by tag and
 It installs `noctalia.service`, generates `~/.config/noctalia/config.toml`, and
 validates the TOML with the packaged `noctalia config validate` during builds.
 
-The initial layout uses built-in widgets, not a new home-grown shell:
+The layout uses built-in widgets plus one reviewed storage plugin, not a new home-grown shell:
 
 - Start: CPU usage, RAM percentage, CPU temperature.
 - Center: weather, date/time (the alignment anchor).
-- End: app tray, notifications, network next to Bluetooth, volume, brightness,
-  battery and control center.
+- End: app tray, storage (when a device is present), notifications, network next to
+  Bluetooth, volume, brightness, battery and control center.
 - Transparent bar with individual bordered capsules, neutral foregrounds,
   JetBrainsMono Nerd Font and Catppuccin Mocha/Latte from `shared/themes.nix`.
 
@@ -61,9 +61,11 @@ noctalia msg settings-toggle
 noctalia msg plugins list
 ```
 
-Upstream's official and community plugin sources are available. No third-party
-plugin is automatically trusted/enabled in this config. Plugin auto-update is
-set to `none`; update selected sources deliberately in Settings.
+The only enabled third-party plugin is the pinned **Udiskie Manager** storage trial
+(`aristides/udiskie`). Its source is the `nix-reviewed` path source; only the reviewed
+plugin directory is exported from `inputs.noctalia-community-plugins`. The mutable
+upstream community source is disabled to avoid duplicate copies of the same plugin;
+the official source remains available. Plugin auto-update stays set to `none`.
 
 **V5 plugins are Luau (`plugin.toml` + `.luau`), not V4 QML plugins.** Some community
 plugins still target V4. Check compatibility and review a plugin before enabling
@@ -73,22 +75,50 @@ GUI settings are stored in `~/.local/state/noctalia/settings.toml` and override 
 Nix-generated config. If a rebuild appears not to affect a setting, inspect that
 file. Do not delete it blindly: it also contains intentional GUI choices.
 
+### Removable storage
+
+Configured in `home-manager/nixos/noctalia/storage.nix`; user tested the live integration
+and confirmed it works:
+
+- Udiskie Manager `0.1.0`, API 9, pinned source `bd834815ee5da2ed744a9cbf1425342a4eecba6f`.
+- Native plugin lint and upstream translation tests run while building the curated source.
+- `storage` bar widget uses `aristides/udiskie:status`, with device count and hide-when-empty.
+- Plugin notifications and automatic file-manager opening are off. The existing udiskie
+  daemon still handles automount and notifications; it has not been replaced.
+- Noctalia's service PATH explicitly includes its own CLI, udiskie, UDisks tools,
+  xdg-open, bash and coreutils, plus existing user/system paths.
+
+After rebuilding, insert a disposable USB/SD device and check automount, opening,
+unmount/eject, reinsertion, and absence of duplicate notifications. Never test bulk
+unmount/eject on real work volumes. The widget is intentionally hidden with no devices.
+You can open the panel directly with:
+
+```sh
+noctalia msg panel-toggle aristides/udiskie:manager
+```
+
+To roll back the trial at runtime, disable the plugin in Settings (or
+`noctalia msg plugins disable aristides/udiskie`). This creates a GUI override;
+re-enabling declaratively later requires reconciling that specific override.
+The udiskie automounter continues to work independently.
+
 ### Not yet ported
 
-OpenRouter, aurora, firewall summary, removable-storage buttons, automatic
-peripheral-battery enumeration, and the custom AMD ABM/stay-on controls are not
-in this initial built-in layout. Their old source/config remains intact in
+OpenRouter, aurora, firewall summary and custom AMD ABM/stay-on controls are not
+in the active layout. OpenRouter/firewall summary are no longer requirements. Their old source/config remains intact in
 `home-manager/nixos/quickshell/` and `ironbar/`; it does not run or consume memory.
 Prefer compatible V5 plugins for these before writing replacements. No Go rewrite
 or QML-plugin compatibility is assumed. Noctalia's battery widget supports explicit
-UPower selectors for peripherals, configurable in Settings.
+UPower selectors for peripherals, configurable in Settings. Native headphone battery
+reporting has been confirmed by the user; no additional battery plugin is needed.
 
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
 peripheral batteries, storage, separate Caffeine/lid controls, native battery alerts,
 and moving runtime theme control from Darkman to Noctalia. OpenRouter and firewall
-summary widgets are no longer required. This is a plan, not an applied configuration change.
+summary widgets are no longer required. Headphone battery visibility has been accepted;
+the storage trial has passed its basic live test. Stay-on, notification and theme changes remain planned.
 
 ## Build and validate
 

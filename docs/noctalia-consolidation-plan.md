@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phase A accepted for native headphone batteries; Phase B storage trial next.**
+Status: **Phases A and B accepted; Phase C1 (native Caffeine) next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -236,6 +236,22 @@ vanish; reconnect and suspend/resume refresh; no peripheral is mistaken for BAT0
 If already adequate in the native panels, this phase is verification-only.
 
 ### Phase B — Storage plugin trial (one plugin only)
+
+Implementation accepted:
+- Added `noctalia/storage.nix` and a pinned, non-flake community source at
+  `bd834815ee5da2ed744a9cbf1425342a4eecba6f`; only the udiskie plugin is exported.
+- Configured `aristides/udiskie`, a storage pill after the app tray, hide-when-empty,
+  device count, no duplicate event notifications and no automatic file-manager opening.
+- Existing udiskie automount/notifications remain enabled. The service gets an explicit
+  tool PATH. Mutable community source is disabled to prevent duplicate plugin IDs;
+  official source stays available and auto-updates remain off.
+- Noctalia config validation, plugin lint (0 errors/warnings), upstream translation tests,
+  overview tests, targeted statix and the full Framework build passed.
+- Read-only device enumeration succeeded with the plugin's requested udiskie fields.
+- User activated the configuration, tested the storage integration and reported it works.
+  Treat the basic live trial as accepted; encrypted-media, busy-device and multi-partition
+  edge cases are not individually confirmed. No storage operations were performed by the agent.
+- No Caffeine/Lid Guard, notification or theme ownership changes were made in this phase.
 
 Changes:
 - Review/pin the exact `aristides/udiskie` version/source and compatible API; expose

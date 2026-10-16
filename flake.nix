@@ -43,6 +43,10 @@
     niri.url = "github:sodiboo/niri-flake";
     # Native C++ Noctalia V5; keep its nixpkgs pin for upstream cache hits.
     noctalia.url = "github:noctalia-dev/noctalia/v5.3.0";
+    noctalia-community-plugins = {
+      url = "github:noctalia-dev/community-plugins/bd834815ee5da2ed744a9cbf1425342a4eecba6f";
+      flake = false;
+    };
     awww = {
       url = "git+https://codeberg.org/LGFae/awww?ref=refs/tags/v0.12.0";
       inputs.nixpkgs.follows = "nixpkgs";

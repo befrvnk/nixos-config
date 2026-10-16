@@ -135,6 +135,9 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - Noctalia owns notifications; dunst is not imported. Other desktop managers remain.
 - GUI overrides in `~/.local/state/noctalia/settings.toml` take precedence over Nix config.
 - V5 plugins use Luau; review compatibility before enabling community plugins.
+- `noctalia/storage.nix` exports only a pinned Udiskie Manager plugin. Keep the udiskie
+  automounter; plugin notifications are disabled to avoid duplicates. Mutable community
+  source is disabled while the curated `nix-reviewed` path source owns this plugin.
 - See `docs/noctalia-niri-overview.md` for troubleshooting and rollback.
 
 ### Profile-sync-daemon (`profile-sync-daemon.nix`)

@@ -120,11 +120,11 @@ overview, with transparent background, neutral text and individual Catppuccin pi
 - **Built-in widgets** — CPU/RAM/temperature, weather, centered date/time, app tray,
   notifications, WiFi next to Bluetooth, volume, brightness and battery.
 - **Control center** — interactive network, Bluetooth, audio and display controls.
-- **Plugins** — V5-compatible Luau plugins available through Settings; none enabled automatically.
+- **Plugins** — V5-compatible Luau plugins; a pinned Udiskie Manager trial adds removable-storage controls while the existing automounter remains active.
 - **Existing tools preserved** — Vicinae, awww, SwayOSD, swaylock, Gammastep and tuned.
 
 Noctalia replaces dunst for notifications. The previous custom shell is retained
-for rollback; domain-specific widgets (OpenRouter, aurora, firewall and storage)
+for rollback; domain-specific widgets (OpenRouter, aurora and firewall)
 are not ported automatically. See [setup and migration notes](./docs/noctalia-niri-overview.md).
 
 ## Keyboard Shortcuts

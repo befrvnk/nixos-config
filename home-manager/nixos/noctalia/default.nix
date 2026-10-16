@@ -31,7 +31,10 @@ let
   '';
 in
 {
-  imports = [ inputs.noctalia.homeModules.default ];
+  imports = [
+    inputs.noctalia.homeModules.default
+    ./storage.nix
+  ];
 
   # Palettes/font are supplied below; avoid competing automatic Stylix settings.
   stylix.targets.noctalia.enable = false;
@@ -94,6 +97,7 @@ in
         ];
         end = [
           "tray"
+          "storage"
           "notifications"
           "network"
           "bluetooth"
@@ -159,7 +163,6 @@ in
         brightness = false;
         lock_keys = false;
       };
-      plugins.auto_update = "none";
       # The hook runs after IPC becomes ready, including on shell restart.
       hooks.started = "${pkgs.systemd}/bin/systemctl --user --no-block restart noctalia-overview.service";
     };
