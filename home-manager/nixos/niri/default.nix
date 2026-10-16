@@ -23,15 +23,16 @@
       fi
     '')
 
-    # Suspend with inhibitor check - notifies if a service is blocking sleep
+    # Query structured logind data; idle/lid-only locks do not veto manual sleep.
     (pkgs.writeShellScriptBin "safe-suspend" ''
-      export PATH="${pkgs.systemd}/bin:${pkgs.libnotify}/bin:${pkgs.gawk}/bin:$PATH"
-      blockers=$(systemd-inhibit --list | awk '$NF == "block" && $6 ~ /sleep|handle-lid-switch/ {print $1}')
-      if [[ -n "$blockers" ]]; then
-        notify-send -t 5000 -i dialog-warning "Suspend Blocked" "$blockers is preventing sleep."
-      else
-        systemctl suspend
-      fi
+      export PATH="${
+        lib.makeBinPath [
+          pkgs.systemd
+          pkgs.libnotify
+          pkgs.jq
+        ]
+      }"
+      ${builtins.readFile ./safe-suspend.sh}
     '')
 
     # Toggle ABM (Adaptive Backlight Management) for photo editing mode

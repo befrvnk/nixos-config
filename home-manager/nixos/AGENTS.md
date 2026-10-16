@@ -135,9 +135,16 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - Noctalia owns notifications; dunst is not imported. Other desktop managers remain.
 - GUI overrides in `~/.local/state/noctalia/settings.toml` take precedence over Nix config.
 - V5 plugins use Luau; review compatibility before enabling community plugins.
-- `noctalia/storage.nix` exports only a pinned Udiskie Manager plugin. Keep the udiskie
-  automounter; plugin notifications are disabled to avoid duplicates. Mutable community
-  source is disabled while the curated `nix-reviewed` path source owns this plugin.
+- `noctalia/plugins.nix` exports only pinned Udiskie Manager and Lid Guard plugins.
+  Storage settings remain in `storage.nix`; keep the udiskie automounter and disable
+  plugin notifications to avoid duplicates. Mutable community source is disabled
+  while the curated `nix-reviewed` path source owns these plugins.
+- Caffeine blocks idle; Lid Guard blocks only lid events and must be toggled on manually.
+  Its transient `noctalia-lid-guard.service` can survive a shell/plugin restart; stop it
+  explicitly to restore normal lid handling. Never assume Caffeine alone covers lids.
+- `niri/safe-suspend.sh` queries structured logind inhibitors, blocks on high-level
+  sleep/block locks, and fails closed on query/parse errors. It never uses a bypass flag.
+  `checks.x86_64-linux.safe-suspend` tests this with fake commands, not real suspend.
 - See `docs/noctalia-niri-overview.md` for troubleshooting and rollback.
 
 ### Profile-sync-daemon (`profile-sync-daemon.nix`)

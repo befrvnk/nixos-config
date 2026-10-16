@@ -14,7 +14,7 @@ The layout uses built-in widgets plus one reviewed storage plugin, not a new hom
 - Start: CPU usage, RAM percentage, CPU temperature.
 - Center: weather, date/time (the alignment anchor).
 - End: app tray, storage (when a device is present), notifications, network next to
-  Bluetooth, volume, brightness, Caffeine, battery and control center.
+  Bluetooth, volume, brightness, Caffeine, Lid Guard, battery and control center.
 - Transparent bar with individual bordered capsules, neutral foregrounds,
   JetBrainsMono Nerd Font and Catppuccin Mocha/Latte from `shared/themes.nix`.
 
@@ -61,10 +61,10 @@ noctalia msg settings-toggle
 noctalia msg plugins list
 ```
 
-The only enabled third-party plugin is the pinned **Udiskie Manager** storage trial
-(`aristides/udiskie`). Its source is the `nix-reviewed` path source; only the reviewed
-plugin directory is exported from `inputs.noctalia-community-plugins`. The mutable
-upstream community source is disabled to avoid duplicate copies of the same plugin;
+The enabled third-party plugins are pinned **Udiskie Manager** (`aristides/udiskie`)
+and the **Lid Guard** trial (`8bury/lid-guard`). `plugins.nix` exports only those two
+reviewed directories from `inputs.noctalia-community-plugins` as the `nix-reviewed`
+path source. The mutable upstream community source is disabled to avoid duplicates;
 the official source remains available. Plugin auto-update stays set to `none`.
 
 **V5 plugins are Luau (`plugin.toml` + `.luau`), not V4 QML plugins.** Some community
@@ -81,7 +81,7 @@ Configured in `home-manager/nixos/noctalia/storage.nix`; user tested the live in
 and confirmed it works:
 
 - Udiskie Manager `0.1.0`, API 9, pinned source `bd834815ee5da2ed744a9cbf1425342a4eecba6f`.
-- Native plugin lint and upstream translation tests run while building the curated source.
+- Native plugin lint and upstream translation tests run in `plugins.nix` while building the curated source.
 - `storage` bar widget uses `aristides/udiskie:status`, with device count and hide-when-empty.
 - Plugin notifications and automatic file-manager opening are off. The existing udiskie
   daemon still handles automount and notifications; it has not been replaced.
@@ -101,6 +101,45 @@ To roll back the trial at runtime, disable the plugin in Settings (or
 `noctalia msg plugins disable aristides/udiskie`). This creates a GUI override;
 re-enabling declaratively later requires reconciling that specific override.
 The udiskie automounter continues to work independently.
+
+### Lid Guard
+
+The shield pill beside Caffeine runs the pinned `8bury/lid-guard` plugin (API 3).
+It starts **off** unless its transient unit was already running. Loading the plugin
+alone does not block lid handling. Toggle the shield to start
+`noctalia-lid-guard.service`, which holds a `handle-lid-switch` block inhibitor.
+
+This inhibits **lid events only**. Caffeine inhibits idle; enable both for the
+proposed manual keep-working-with-the-lid-closed mode. No global logind setting,
+swayidle/swaylock, or audio-inhibit service was removed or changed for this trial.
+
+After rebuilding, save work, pause audio and test while undocked:
+
+1. Toggle the shield on; inspect `systemd-inhibit --list --no-pager` for a
+   `Noctalia Lid Guard` / `handle-lid-switch` / `block` entry.
+2. Briefly close/open the lid to isolate lid behavior (idle timers remain active
+   if Caffeine is off). Keep the laptop ventilated; never test in a bag.
+3. Enable Caffeine too, close overview and check that the combined mode prevents
+   both inactivity actions and lid-close suspend. Repeat on AC/battery as needed.
+4. Turn the shield off and confirm its inhibitor disappears and ordinary undocked
+   lid handling returns. Test intentional suspend separately when safe.
+
+The audited `safe-suspend` helper now reads logind's structured inhibitor data.
+Real `sleep` blocks still prevent it; idle/lid-only locks do not. It fails closed
+if the query cannot be read/parsed, and it never bypasses logind's own policy or
+screen-lock delay. Its 11 tests use fake commands and never suspend the host.
+
+The transient Lid Guard unit can survive a shell restart or plugin disable.
+Emergency/off cleanup (no sudo):
+
+```sh
+systemctl --user stop noctalia-lid-guard.service
+```
+
+The user tested the live Lid Guard integration and confirmed it works. The full
+AC/battery, docked/undocked and manual-suspend matrix remains a regression checklist;
+it is not individually claimed as tested. Neither lid toggles nor suspend were
+triggered by the agent.
 
 ### Not yet ported
 
@@ -136,7 +175,8 @@ peripheral batteries, storage, separate Caffeine/lid controls, native battery al
 and moving runtime theme control from Darkman to Noctalia. OpenRouter and firewall
 summary widgets are no longer required. Headphone battery visibility has been accepted;
 the storage trial has passed its basic live test. Native Caffeine passed its inhibitor
-and idle tests; Lid Guard, notification and theme changes are next.
+and idle tests, and the Lid Guard trial is accepted. Native battery warnings and
+theme ownership are the next planned changes.
 
 ## Build and validate
 

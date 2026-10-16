@@ -120,7 +120,7 @@ overview, with transparent background, neutral text and individual Catppuccin pi
 - **Built-in widgets** — CPU/RAM/temperature, weather, centered date/time, app tray,
   notifications, WiFi next to Bluetooth, volume, brightness and battery.
 - **Control center** — interactive network, Bluetooth, audio and display controls.
-- **Plugins** — V5-compatible Luau plugins; a pinned Udiskie Manager trial adds removable-storage controls while the existing automounter remains active.
+- **Plugins** — Pinned Udiskie Manager adds storage controls; the Lid Guard trial provides a separate manual lid-close inhibitor. Native Caffeine handles idle inhibition. Existing automount and lock services remain active.
 - **Existing tools preserved** — Vicinae, awww, SwayOSD, swaylock, Gammastep and tuned.
 
 Noctalia replaces dunst for notifications. The previous custom shell is retained

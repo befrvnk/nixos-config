@@ -33,6 +33,7 @@ in
 {
   imports = [
     inputs.noctalia.homeModules.default
+    ./plugins.nix
     ./storage.nix
   ];
 
@@ -104,6 +105,7 @@ in
           "volume"
           "brightness"
           "caffeine"
+          "lid-guard"
           "battery"
           "control-center"
         ];
@@ -131,6 +133,8 @@ in
           format = "{:%a %d %b  %H:%M}";
           anchor = true;
         };
+        # Lid Guard is manual-only; loading the plugin does not acquire a lock.
+        lid-guard.type = "8bury/lid-guard:lid-guard";
         network.show_label = true;
         bluetooth = {
           show_label = true;

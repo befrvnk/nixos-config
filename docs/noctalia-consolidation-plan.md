@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A, B and C1 accepted; Phase C2 (Lid Guard and suspend-helper audit) next.**
+Status: **Phases A–C accepted in basic live trials; Phase D (native battery warnings) next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -90,7 +90,7 @@ notifications and set the plugin's `enable_notifications = false` for the first 
 | Current automatic audio service | `--what=idle:sleep --mode=block` while its audio heuristic says playing |
 | Native Noctalia Caffeine | In pinned V5.3.0, prefers a logind **idle** block; falls back to Wayland idle inhibition |
 | Lid Guard plugin | Low-level logind `handle-lid-switch` block only |
-| `safe-suspend` helper | Checks inhibitor text and declines suspend when it believes sleep/lid blocks exist |
+| Original `safe-suspend` helper | Parsed inhibitor text and could reject explicit suspend for lid-only locks; structured replacement prepared in C2 |
 
 The public Caffeine page describes Wayland idle inhibition; the **pinned source**
 adds logind idle inhibition and prefers that when available. It never requests a
@@ -135,12 +135,14 @@ Do not claim this combination has been tested yet. Keep the automatic audio serv
 until native/plugin automation actually covers its behavior; a manual toggle is
 not an automatic audio detector. Preserve an intentional way to suspend manually.
 
-`safe-suspend` needs an audit before adopting Lid Guard: it parses human-formatted
+The original `safe-suspend` needed an audit: it parsed human-formatted
 `systemd-inhibit --list` columns using awk (names/reasons may contain spaces), and
-also treats lid inhibition as a reason to reject explicit suspend. A lid-only lock
-should not automatically become a global sleep veto. Prefer structured inhibitor
-data, or rely on logind's high-level sleep inhibition after reviewing the desired
-manual-suspend policy. Do not silently remove the existing safeguard.
+also treated lid inhibition as a reason to reject explicit suspend. A lid-only lock
+should not automatically become a global sleep veto. Phase C2 prepares a structured
+logind `ListInhibitors` query: only high-level `sleep`/`block` entries veto the helper,
+invalid/query-failure responses fail closed, and normal `systemctl suspend` leaves
+logind authorization, delay/weak locks and race handling intact. No inhibitor-bypass
+flag is used. Eleven mock-command tests cover the helper without suspending the host.
 
 ### 2.4 Notifications: the daemon is already consolidated
 
@@ -292,6 +294,23 @@ Inspect actual inhibitors and logs, then verify lock/monitor/suspend timers with
 Caffeine on/off **outside overview** as well as while the bar is visible. Check
 whether logind-only Caffeine inhibits our swayidle path; do not infer that from a
 coffee icon. Keep existing swayidle/swaylock and audio inhibition throughout.
+
+C2 implementation accepted:
+- Curated plugin source/CLI dependencies now live in `noctalia/plugins.nix`; storage
+  behavior remains in `storage.nix`. Added reviewed `8bury/lid-guard` from the same
+  pinned community revision as storage, not a new unpinned source.
+- Added a `lid-guard` shield pill beside Caffeine. It does not acquire an inhibitor
+  on plugin load; the user must toggle it on. Global logind policy is unchanged.
+- Replaced the inline awk helper with `niri/safe-suspend.sh`: structured busctl JSON,
+  exact sleep-token matching, preserved sleep blocks and normal logind delay behavior,
+  fail-closed query/parse failures. Idle/lid-only locks do not veto manual suspend.
+- Added `checks.x86_64-linux.safe-suspend`, with 11 tests using fake service commands.
+- Both native plugin lints, translation tests, Noctalia config validation, overview
+  tests, shellcheck, targeted statix and full Framework build passed.
+- User tested the Lid Guard trial and reported it works. Basic live acceptance is
+  recorded; each AC/battery, docked/undocked, manual-suspend and off/release edge case
+  is not individually confirmed. Keep these in the regression checklist.
+- The agent did not activate the config, toggle Lid Guard or request any suspend.
 
 C2: audit `safe-suspend` and document which actions should remain possible while
 lid-only inhibition is active. Review/pin **only** `8bury/lid-guard`, provide its
