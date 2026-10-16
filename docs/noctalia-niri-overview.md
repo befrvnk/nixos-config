@@ -83,6 +83,13 @@ Prefer compatible V5 plugins for these before writing replacements. No Go rewrit
 or QML-plugin compatibility is assumed. Noctalia's battery widget supports explicit
 UPower selectors for peripherals, configurable in Settings.
 
+## Consolidation plan
+
+The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
+peripheral batteries, storage, separate Caffeine/lid controls, native battery alerts,
+and moving runtime theme control from Darkman to Noctalia. OpenRouter and firewall
+summary widgets are no longer required. This is a plan, not an applied configuration change.
+
 ## Build and validate
 
 ```sh
