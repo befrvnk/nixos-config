@@ -1,0 +1,35 @@
+{
+  separator: "{{colors.outline.default.hex}}"
+  leading_trailing_space_bg: "{{colors.surface_container_high.default.hex}}"
+  header: "{{colors.terminal_normal_green.default.hex}}"
+  date: "{{colors.terminal_normal_magenta.default.hex}}"
+  filesize: "{{colors.terminal_normal_blue.default.hex}}"
+  row_index: "{{colors.terminal_normal_cyan.default.hex}}"
+  bool: "{{colors.terminal_normal_red.default.hex}}"
+  int: "{{colors.terminal_normal_green.default.hex}}"
+  duration: "{{colors.terminal_normal_red.default.hex}}"
+  range: "{{colors.terminal_normal_red.default.hex}}"
+  float: "{{colors.terminal_normal_red.default.hex}}"
+  string: "{{colors.terminal_foreground.default.hex}}"
+  nothing: "{{colors.terminal_normal_red.default.hex}}"
+  binary: "{{colors.terminal_normal_red.default.hex}}"
+  cellpath: "{{colors.terminal_normal_red.default.hex}}"
+  hints: "{{colors.on_surface_variant.default.hex}}"
+  shape_garbage: {fg: "{{colors.terminal_bright_white.default.hex}}", bg: "{{colors.terminal_normal_red.default.hex}}"}
+  shape_bool: "{{colors.terminal_normal_blue.default.hex}}"
+  shape_int: {fg: "{{colors.terminal_normal_magenta.default.hex}}", attr: b}
+  shape_float: {fg: "{{colors.terminal_normal_magenta.default.hex}}", attr: b}
+  shape_range: {fg: "{{colors.terminal_normal_yellow.default.hex}}", attr: b}
+  shape_internalcall: {fg: "{{colors.terminal_normal_cyan.default.hex}}", attr: b}
+  shape_external: "{{colors.terminal_normal_cyan.default.hex}}"
+  shape_externalarg: {fg: "{{colors.terminal_normal_green.default.hex}}", attr: b}
+  shape_literal: "{{colors.terminal_normal_blue.default.hex}}"
+  shape_operator: "{{colors.terminal_normal_yellow.default.hex}}"
+  shape_signature: {fg: "{{colors.terminal_normal_green.default.hex}}", attr: b}
+  shape_string: "{{colors.terminal_normal_green.default.hex}}"
+  shape_filepath: "{{colors.terminal_normal_blue.default.hex}}"
+  shape_globpattern: {fg: "{{colors.terminal_normal_blue.default.hex}}", attr: b}
+  shape_variable: "{{colors.terminal_normal_magenta.default.hex}}"
+  shape_flag: {fg: "{{colors.terminal_normal_blue.default.hex}}", attr: b}
+  shape_custom: {attr: b}
+}

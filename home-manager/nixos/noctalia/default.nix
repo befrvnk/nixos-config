@@ -18,6 +18,7 @@ in
     ./gtk.nix
     ./lazygit.nix
     ./niri.nix
+    ./nushell.nix
     ./plugins.nix
     ./qt.nix
     ./storage.nix

@@ -286,6 +286,8 @@
                   }
                 }/bin/fzf";
                 NUSHELL_CLI = "${pkgs.nushell}/bin/nu";
+                NUSHELL_THEME_TEMPLATE = ./home-manager/nixos/noctalia/nushell.nuon;
+                NUSHELL_THEME_READER = ./home-manager/nixos/noctalia/nushell-theme.nu;
                 FZF_REGISTRATION = pkgs.writeText "fzf-test-template.json" (
                   builtins.toJSON home.programs.noctalia.settings.theme.templates.user.fzf
                 );
@@ -572,6 +574,20 @@
                 && !(managedConfig h "niri/noctalia.kdl")
               ) variants
             ) "Niri must keep its layout/overview unchanged while only native colors vary at runtime";
+            assert pkgs.lib.assertMsg
+              (
+                same (map (h: h.programs.nushell.extraConfig) variants)
+                && builtins.all (
+                  h:
+                  !h.stylix.targets.nushell.enable
+                  && h.programs.noctalia.settings.theme.templates.user ? nushell
+                  && !(h.programs.noctalia.settings.theme.templates.user.nushell ? post_hook)
+                  && !(managedConfig h "nushell/theme-dark.nuon")
+                  && !(managedConfig h "nushell/theme-light.nuon")
+                  && pkgs.lib.hasInfix "refresh-nushell-theme" h.programs.nushell.extraConfig
+                ) variants
+              )
+              "Nushell must read Noctalia's runtime data without prebuilt color files or prompt integration changes";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

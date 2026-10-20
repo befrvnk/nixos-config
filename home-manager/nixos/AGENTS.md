@@ -148,6 +148,14 @@ Theme switching without full rebuilds:
 - Native include watching reloads colors. Never restart Niri or change focus-ring,
   border width, gaps, transparency or overview behavior as a theming side effect.
 
+- Nushell has no entry in the pinned catalogs: `noctalia/nushell.nuon` is a small
+  data-only input to Noctalia's native renderer, not a custom generator/service.
+  It alone owns runtime nushell/theme.nuon; never restore bridge file copying.
+- `noctalia/nushell-theme.nu` retains the mtime/pre-prompt reader, honors XDG state,
+  preserves colors through partial/missing reads and advances cache only on success.
+  Keep unrelated hooks/keybindings/shared/Darwin config unchanged; no source/eval of
+  generated data. Old static light/dark NUON and env-stage copying are removed.
+
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
 - Noctalia's theme adapter sends `awww img` on mode change/hotplug

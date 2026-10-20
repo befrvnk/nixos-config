@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri built-in template accepted; Nushell next, with remaining E3/deferred GTK/bridge work pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; remaining-consumer audit, deferred GTK checks and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -779,6 +779,33 @@ Niri built-in template implementation accepted:
   writable generated include and active shell/overview services; the real Niri validator
   accepted the complete live config. GUI behavior is user-confirmed, not independently
   instrumented by the structural tests.
+
+Nushell runtime producer implementation accepted:
+- Neither pinned built-in nor community catalog has a Nushell entry. Use a small
+  local NUON **data template**, rendered by Noctalia's existing engine; no alternative
+  generator, service, shell eval or controller. Map the previous fields/bold attributes
+  to native terminal/semantic color roles, not another fixed Base16 palette.
+- Register a hook-free user template writing `$XDG_STATE_HOME/nushell/theme.nuon`.
+  The shared output preparer handles protected output and seeds an empty record until
+  first render. Remove both generated light/dark config files and startup copies.
+- Retain the prompt-time reader, now externalized in `nushell-theme.nu`, with XDG
+  state support and safe missing/empty/non-record/partial-data handling. Successful
+  reads alone update the mtime cache; failures keep existing colors and retry on the
+  next prompt. Other prompt hooks, keybindings, completions, aliases and shared/Darwin
+  modules are unchanged. Noctalia writes inert NUON, never executable shell config.
+- Remove the compatibility bridge's Nushell copy path and its unused home argument.
+  A regression test proves native output remains untouched across mode requests;
+  the bridge still handles remaining consumers (SwayOSD/wallpaper) for now.
+- Six real-Nu tests cover two palettes/modes, startup config validation, same-session
+  pre-prompt updates, retained hooks/keybindings/completions, unchanged-file skipping,
+  missing/empty/nonrecord/partial data, recovery after failed reads, and protected
+  output. Total Noctalia tests: 90 (16 bridge), plus 11 safe-suspend tests.
+- Native config/cache checks, invariants, lint and full Framework build pass. User
+  rebuilt and accepted the result. Live inspection verified the writable NUON output,
+  removed old static files, installed reader, successful native data parsing and active
+  shell/overview services. Detailed integration behavior was not independently instrumented.
+  Existing shells at the default state path can read the new record format; open a
+  fresh Nu session once to install the improved reader itself.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

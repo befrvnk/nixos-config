@@ -23,10 +23,9 @@ class ThemeBridgeTests(unittest.TestCase):
         self.activation_callback = None
         self.fail_activation = False
         self.fail_refresh = False
-        for mode in ("dark", "light"):
-            source = self.home / ".config/nushell" / f"theme-{mode}.nuon"
-            source.parent.mkdir(parents=True, exist_ok=True)
-            source.write_text(mode)
+        self.nu_theme = self.home / ".local/state/nushell/theme.nuon"
+        self.nu_theme.parent.mkdir(parents=True)
+        self.nu_theme.write_text("native-palette")
         self.runner = patch("theme_bridge.run", side_effect=self.fake_run)
         self.runner.start()
         self.addCleanup(self.runner.stop)
@@ -59,7 +58,7 @@ class ThemeBridgeTests(unittest.TestCase):
         return subprocess.CompletedProcess(command, 0, stdout=stdout)
 
     def process(self):
-        bridge.process_requests(self.runtime, self.state, self.home, "noctalia", "awww",
+        bridge.process_requests(self.runtime, self.state, "noctalia", "awww",
                                 {"dark": Path("dark.jpg"), "light": Path("light.jpg")},
                                 "home-manager-test.service")
 
@@ -87,7 +86,7 @@ class ThemeBridgeTests(unittest.TestCase):
         self.assertEqual(actions[0][0], [str(self.base / "specialisation/light/activate")])
         self.assertEqual(actions[0][1]["env"]["NOCTALIA_THEME_BRIDGE_ACTIVE"], "1")
         self.assertFalse((self.runtime / "request.json").exists())
-        self.assertEqual((self.home / ".local/state/nushell/theme.nuon").read_text(), "light")
+        self.assertEqual(self.nu_theme.read_text(), "native-palette")
         self.assertFalse(any("theme-mode-set" in args or "noctalia.service" in args
                              for args, _ in self.calls))
 
@@ -107,6 +106,17 @@ class ThemeBridgeTests(unittest.TestCase):
         self.assertFalse(any("vicinae.service" in args for args, _ in self.calls))
         self.assertTrue(any(args == ["systemctl", "--user", "try-restart", "swayosd.service"]
                             for args, _ in self.calls))
+
+    def test_native_nushell_output_is_not_written_or_required_from_config(self):
+        before = self.nu_theme.stat().st_mtime_ns
+        self.assertFalse((self.home / ".config/nushell").exists())
+        bridge.request(self.runtime)
+        self.process()
+        self.mode = "dark"
+        bridge.request(self.runtime)
+        self.process()
+        self.assertEqual(self.nu_theme.read_text(), "native-palette")
+        self.assertEqual(self.nu_theme.stat().st_mtime_ns, before)
 
     def test_duplicate_mode_does_not_reactivate(self):
         bridge.request(self.runtime)
@@ -140,7 +150,7 @@ class ThemeBridgeTests(unittest.TestCase):
         self.process()
         self.assertEqual(len(self.activations()), 2)
         self.assertEqual(bridge.read_json(self.state)["mode"], "dark")
-        self.assertEqual((self.home / ".local/state/nushell/theme.nuon").read_text(), "dark")
+        self.assertEqual(self.nu_theme.read_text(), "native-palette")
         self.assertFalse((self.runtime / "request.json").exists())
 
     def test_hotplug_refresh_does_not_reactivate_or_restart_clients(self):

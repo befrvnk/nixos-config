@@ -239,8 +239,8 @@ Per-app templates will replace that dependency one application at a time.
 Noctalia's mode hook submits an atomic request. `noctalia-theme.path` starts a
 serialized oneshot `noctalia-theme.service` to apply it. The worker queries the
 resolved mode, waits for ordinary HM activation, uses a shared linking lock and
-suppresses its own activation hooks. It then refreshes SwayOSD, the existing
-Nushell theme state and awww. Duplicate events skip activation; newer events and
+suppresses its own activation hooks. It then refreshes SwayOSD and awww.
+Nushell's runtime data is now written only by Noctalia's native template renderer. Duplicate events skip activation; newer events and
 failed work remain pending. It never runs a Nix build, changes Noctalia's mode,
 writes a reverse portal preference, or restarts Noctalia. After app activation it
 asks Noctalia to run `templates-apply`, letting the native pipeline reassert the
@@ -279,13 +279,14 @@ for this change. Do not restore the whole file blindly or lose newer plugin/UI c
 Before this handover, checkpoint `3f51f68` retained the old Darkman controller;
 rolling back also requires reconciling any subsequently saved `theme.mode` override.
 
-Build validation includes 15 mocked bridge tests, 4 overview tests, 10 Ghostty
+Build validation includes 16 mocked bridge tests, 4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
 6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
 6 VS Code tests (including isolated CLI extension discovery), 6 lazygit tests
 (including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
-6 Niri template tests (full KDL validation with runtime colors), 11 safe-suspend tests and
+6 Niri template tests (full KDL validation with runtime colors), 6 Nushell tests
+(real Nu rendering/reader/hook checks), 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -685,6 +686,42 @@ focus-ring state, bindings/window behavior and overview-only bar are unchanged. 
 should pick up the file change without a compositor restart. See
 [Niri include merging](https://niri-wm.github.io/niri/Configuration%3A-Include.html).
 
+## Nushell native-rendered NUON (accepted)
+
+Neither pinned template catalog contains a Nushell entry. `noctalia/nushell.nix`
+registers the small local `nushell.nuon` data template with Noctalia's existing native
+renderer. It maps the old color-config fields and bold attributes to terminal and
+semantic tokens, rather than generating fixed Base16 variants. Output remains the
+writable `$XDG_STATE_HOME/nushell/theme.nuon`. No shell code is generated/evaluated,
+no post-hook or extra controller/service is introduced.
+
+The NixOS Nushell module retains the pre-prompt reader, externalized in
+`noctalia/nushell-theme.nu`. It reads on startup or changed mtime and honors XDG
+state paths. Missing, empty, nonrecord or partial input preserves the last colors;
+failed reads do not advance the cache, allowing the next prompt to retry. Other
+prompt hooks, keybindings, completions, NixOS aliases and shared/Darwin configuration
+are unchanged. The two static config theme files and env-stage dark-theme copy are
+removed. The output preparer supplies `{}` until first render without clearing defaults.
+
+The compatibility bridge no longer copies Nushell state and works without the old
+files. Its current remaining explicit refreshes are SwayOSD and wallpaper; do not
+remove it before reviewing every remaining specialisation consumer.
+
+Six real-Nu tests render two palettes/modes, assign actual color_config, exercise
+startup and same-session prompt updates, retained hooks/settings, cache/partial-read
+recovery and protected output. A bridge regression proves it never rewrites native
+NUON across mode changes. Native config/cache/invariants/lint/full build pass.
+The user rebuilt and accepted the result. Live inspection verified writable data,
+removed static variants, the installed reader, native NUON parsing and active shell/
+overview services. Detailed integration behavior was not independently instrumented.
+Tests never alter an active user shell.
+
+After rebuilding, open one fresh Nu session to install the improved reader. Change
+the Noctalia palette, return to the same shell and reach a new prompt; inspect syntax
+and table colors. Test light/dark separately and confirm Atuin, completion, navigation
+bindings and other prompt integrations still work. Existing old readers at the default
+state path can consume the new data, but lack the new partial-read protection.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -699,7 +736,7 @@ tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the
 isolated migration with runtime palette propagation verified; Vicinae is now
 accepted by the user, as are Zed, Zen Browser, VS Code, lazygit and fzf's reviewed
 Nushell-compatible wrapper. Cache trust revocation is verified and Niri is accepted.
-Nushell is next; other remaining E3 targets, deferred GTK checks, bridge
+Nushell is accepted; the remaining-consumer audit, deferred GTK checks, bridge
 cleanup and artifact-integrity review remain separate.
 
 ## Build and validate

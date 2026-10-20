@@ -167,9 +167,10 @@ Single source of truth for both platforms:
 }
 ```
 
-**Imported by (NixOS):** stylix.nix, nushell.nix.
-Ghostty/GTK/Qt use Noctalia's built-in templates; Vicinae/Zed/Zen consume pinned
-community styles rather than importing fixed Base16 colors.
+**Imported by (NixOS):** stylix.nix for remaining prebuilt consumers.
+Ghostty/GTK/Qt/Niri use built-in templates; Vicinae/Zed/Zen/VS Code/lazygit/fzf use
+pinned community inputs. Nushell uses a data-only NUON template in Noctalia's native
+renderer, since neither pinned catalog supplies one.
 
 ### Wallpapers (`nixos/wallpapers/default.nix`)
 ```nix

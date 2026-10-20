@@ -527,6 +527,8 @@ This configuration separates concerns between system-level and user-level settin
   compatible with Nushell without altering keybindings or accumulating shell options
 - **Niri** imports Noctalia's built-in runtime colors while keeping layout, bindings
   and overview behavior declarative; native file watching reloads the color fragment
+- **Nushell (NixOS)** reads native Noctalia-rendered NUON at prompt time, preserving
+  shell integrations and retaining previous colors if a theme write is incomplete
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

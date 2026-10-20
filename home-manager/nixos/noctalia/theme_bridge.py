@@ -85,23 +85,13 @@ def generation_for(mode):
     return candidates[0]
 
 
-def refresh_clients(mode, home, awww, wallpapers):
-    # All output paths are user-writable. App configuration itself stays managed
-    # by the selected prebuilt HM specialisation during this compatibility phase.
-    source = home / ".config" / "nushell" / f"theme-{mode}.nuon"
-    destination = home / ".local" / "state" / "nushell" / "theme.nuon"
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=destination.parent, delete=False) as output:
-        output.write(source.read_bytes())
-        temporary = Path(output.name)
-    os.replace(temporary, destination)
-
+def refresh_clients(mode, awww, wallpapers):
     run([awww, "query"], capture_output=True, timeout=10)
     run([awww, "img", str(wallpapers[mode]), "--transition-type", "simple",
          "--transition-duration", "1"], timeout=30)
 
 
-def process_requests(runtime, state_path, home, noctalia, awww, wallpapers, hm_unit):
+def process_requests(runtime, state_path, noctalia, awww, wallpapers, hm_unit):
     while read_json(runtime / "request.json"):
         wait_for_activation(hm_unit)
         # The same lock is held by ordinary HM activation hooks, so even a
@@ -134,7 +124,7 @@ def process_requests(runtime, state_path, home, noctalia, awww, wallpapers, hm_u
                 run([noctalia, "msg", "templates-apply"], timeout=10)
                 run(["systemctl", "--user", "try-restart", "swayosd.service"], timeout=60)
             if changed or forced or retry_refresh or pending.get("refresh", False):
-                refresh_clients(mode, home, awww, wallpapers)
+                refresh_clients(mode, awww, wallpapers)
                 atomic_json(state_path, {**applied, "refresh_pending": False})
                 print(f"Refreshed {mode} wallpaper and app-theme clients", flush=True)
 
@@ -160,7 +150,7 @@ def main():
     home = Path.home()
     state_root = Path(os.environ.get("XDG_STATE_HOME", home / ".local" / "state"))
     process_requests(
-        runtime, state_root / "noctalia" / "theme-bridge.json", home,
+        runtime, state_root / "noctalia" / "theme-bridge.json",
         os.environ["NOCTALIA_COMMAND"], os.environ["NOCTALIA_AWWW"],
         {"light": Path(os.environ["NOCTALIA_WALLPAPER_LIGHT"]),
          "dark": Path(os.environ["NOCTALIA_WALLPAPER_DARK"])},
