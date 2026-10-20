@@ -193,10 +193,34 @@
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
           noctalia-overview =
+            let
+              home = inputs.self.nixosConfigurations.framework.config.home-manager.users.frank;
+              qt5 = pkgs.qt5.qtbase;
+              qt6 = pkgs.qt6.qtbase;
+              probe =
+                major: qtbase:
+                pkgs.runCommandCC "noctalia-qt${major}-probe"
+                  {
+                    nativeBuildInputs = [ pkgs.pkg-config ];
+                    buildInputs = [ qtbase ];
+                  }
+                  ''
+                    mkdir -p $out/bin
+                    $CXX -std=c++17 -fPIC ${./home-manager/nixos/noctalia/test_qt_palette.cpp} \
+                      $(pkg-config --cflags --libs Qt${major}Widgets) -o $out/bin/probe
+                  '';
+            in
             pkgs.runCommand "noctalia-overview-tests"
               {
                 NOCTALIA_BIN = "${inputs.noctalia.packages.${system}.default}/bin/noctalia";
                 NOCTALIA_SOURCE = inputs.noctalia.outPath;
+                QT5_PROBE = "${probe "5" qt5}/bin/probe";
+                QT6_PROBE = "${probe "6" qt6}/bin/probe";
+                QT5_PLUGIN_PATH = "${pkgs.libsForQt5.qt5ct}/${qt5.qtPluginPrefix}:${qt5}/${qt5.qtPluginPrefix}";
+                QT6_PLUGIN_PATH = "${pkgs.qt6Packages.qt6ct}/${qt6.qtPluginPrefix}:${qt6}/${qt6.qtPluginPrefix}";
+                QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
+                QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
+                QT_CONFIG_HOME = home.xdg.configHome;
                 nativeBuildInputs = [
                   pkgs.bash
                   pkgs.coreutils
@@ -285,6 +309,32 @@
                 "gtk4"
               ]
             ) variants) "GTK must preserve assets, use native writable colors and avoid preference conflicts";
+            assert pkgs.lib.assertMsg (
+              cfg.qt.enable
+              && cfg.qt.platformTheme == "qt5ct"
+              && builtins.all (
+                h:
+                !h.stylix.targets.qt.enable
+                && pkgs.lib.elem "qt" h.programs.noctalia.settings.theme.templates.builtin_ids
+                &&
+                  builtins.all
+                    (
+                      version:
+                      let
+                        path = "qt${version}ct";
+                        text = h.xdg.configFile."${path}/${path}.conf".text;
+                      in
+                      pkgs.lib.hasInfix "custom_palette=true" text
+                      && pkgs.lib.hasInfix "color_scheme_path=${h.xdg.configHome}/${path}/colors/noctalia.conf" text
+                      && pkgs.lib.hasInfix "style=Fusion" text
+                      && !(managedConfig h "${path}/colors/noctalia.conf")
+                    )
+                    [
+                      "5"
+                      "6"
+                    ]
+              ) variants
+            ) "Qt must select the native writable palettes without changing platform integration";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

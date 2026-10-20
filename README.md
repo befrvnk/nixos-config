@@ -511,6 +511,8 @@ This configuration separates concerns between system-level and user-level settin
   main configuration and keybindings still managed by Nix
 - **Native GTK3/GTK4** use shipped Noctalia color templates via declarative CSS imports;
   fonts, Papirus icons and cursors remain Nix-managed (Flatpak theming is separate)
+- **Qt5/Qt6** select Noctalia's stock runtime palette through declarative qtct configs
+  and Fusion; app-specific themes such as Vicinae remain separate
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint approved with Files/GTK3 follow-up deferred; Qt next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -521,6 +521,45 @@ GTK3/GTK4 checkpoint approved for commit (partial visual acceptance):
   lifecycle fix is included; its rebuild recovery still needs observation.
 - Keep template enablement declarative. Upstream undo hooks try to edit gtk.css and are
   not the rollback path for Nix-managed imports; revert the Nix change/rebuild instead.
+
+Qt implementation deployed, runtime consumption verified:
+- `noctalia/qt.nix` enables the pinned built-in `qt` template, which writes the two
+  `qt5ct/colors/noctalia.conf` and `qt6ct/colors/noctalia.conf` palettes. There is no
+  custom color generator, main-config apply hook or new background service.
+- Moved the Qt main configs out of `vicinae.nix` into that module. Both remain
+  declarative, select custom_palette and the corresponding runtime color path, and
+  retain Papirus, Noto Sans 11 and JetBrainsMono Nerd Font 11.
+- Changed style from Kvantum to Fusion so the generated QPalette is honored.
+  System Qt still owns plugin installation/environment. Qt6ct's plugin advertises
+  both qt6ct and qt5ct; real offscreen tests confirm the existing qt5ct setting works
+  for both Qt versions. No environment change/session restart is required.
+- The existing output preparer backs up and detaches old protected palette files
+  before linkGeneration, never modifies link targets, and preserves writable output
+  on later app-theme activations. New installs get a valid INI header until rendering.
+- Four Qt tests cover actual stock palette role counts, bootstrap, protected legacy
+  files, and real Qt5/Qt6 application consumption for two distinct palettes in both
+  modes. Offscreen C++ probes verify colors, Fusion, font families, Papirus, the
+  platform alias and preserved read-only main-config symlinks. No user GUI is launched
+  or live preference changed. The common Noctalia check now runs 38 tests.
+- Native config validation, formatting/statix, invariants and full Framework build
+  pass. User activation and offscreen runtime consumption are verified below;
+  app-specific visual tests remain pending. Do not assume
+  live reload: the stock Qt template has no reload hook; some apps may need restart
+  or ignore system palettes entirely.
+- User rebuilt with substitutions disabled. Deployment inspection confirmed both
+  managed main-config symlinks, writable runtime palettes and private legacy backups.
+  Real offscreen Qt 5.15.19 and Qt 6.11.1 probes against the live files match the
+  generated window/foreground/highlight roles and confirm Fusion, both expected font
+  families and Papirus. Main configs remained unchanged. Overview watcher is active
+  after the rebuild; the compatibility worker completed successfully.
+- User selected Kanagawa while staying in light mode. Both live Qt5/Qt6 probes
+  picked up the new palette: window #eff1f5 -> #f2ecbc, foreground #4c4f69 -> #545464,
+  highlight #d5c0f2 -> #c7d6b3. Fonts, Papirus, Fusion and managed main config symlinks
+  remained intact; Noctalia and the overview watcher stayed active. Runtime palette
+  propagation is verified independently of a dark/light change. Already-running
+  GUI app reload and app-specific visual behavior remain unverified.
+- Vicinae is deliberately unchanged: it has its own generated Stylix theme and needs
+  a separately reviewed integration after Qt is accepted.
 
 | Target | Proposed integration / caution |
 |---|---|

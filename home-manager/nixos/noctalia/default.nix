@@ -16,6 +16,7 @@ in
     ./ghostty.nix
     ./gtk.nix
     ./plugins.nix
+    ./qt.nix
     ./storage.nix
     ./theme.nix
   ];

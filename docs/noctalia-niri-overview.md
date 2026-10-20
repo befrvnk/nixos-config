@@ -280,7 +280,8 @@ Before this handover, checkpoint `3f51f68` retained the old Darkman controller;
 rolling back also requires reconciling any subsequently saved `theme.mode` override.
 
 Build validation includes 14 mocked bridge tests, 4 overview tests, 10 Ghostty
-integration/migration tests, 6 GTK tests, 11 safe-suspend tests and
+integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
+11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -374,6 +375,43 @@ See [GTK's CssProvider docs](https://docs.gtk.org/gtk4/class.CssProvider.html) a
 Template enablement stays declarative: upstream undo hooks try to edit the entrypoint,
 so rollback via Nix/rebuild rather than invoking GUI template undo on managed CSS.
 
+## Qt built-in template (runtime palette propagation verified)
+
+`noctalia/qt.nix` enables the shipped `qt` template. It generates separate writable
+`qt5ct/colors/noctalia.conf` and `qt6ct/colors/noctalia.conf` files. Their corresponding
+main configs remain Nix-managed, explicitly select the runtime palette, and keep
+Noto Sans 11, JetBrainsMono Nerd Font 11 and Papirus. They moved out of `vicinae.nix`.
+
+The style changes from Kvantum to Fusion so widgets honor QPalette colors. System
+Qt still supplies both qtct plugins and the existing `QT_QPA_PLATFORMTHEME=qt5ct`;
+Qt6ct advertises that alias too. Real offscreen Qt5/Qt6 tests exercise it rather than
+assuming compatibility. No environment change or new service is introduced.
+
+The common output preparer handles old read-only palettes before linkGeneration,
+backing up to `~/.local/state/noctalia/qt5ct.pre-template.conf` and its Qt6 counterpart.
+It leaves writable runtime colors alone on later activations and seeds new files
+with an INI header until the native renderer runs. Link targets are never modified.
+
+Four tests render the pinned template and launch isolated offscreen Qt5/Qt6 probes,
+checking two distinct palettes in both modes, fonts/icons/Fusion, bootstrap and
+protected legacy output. Main-config symlinks stay intact. Full build/config checks
+pass. After the user's rebuild with substitutions disabled, both live configs and
+writable outputs were verified, and real offscreen Qt 5.15.19/Qt 6.11.1 probes matched
+the live generated colors, Fusion, fonts and Papirus without changing the managed
+config symlinks. The overview watcher is active and compatibility worker successful.
+The user then selected Kanagawa, still in light mode. Both Qt probes changed from
+Catppuccin's window/foreground/highlight colors to Kanagawa's #f2ecbc/#545464/#c7d6b3,
+matching the freshly generated palettes. Fonts, icons, Fusion and protected config
+symlinks stayed intact; shell/watcher remained active. This verifies palette
+propagation, not just mode switching. Already-running GUI hot reload and
+app-specific visual behavior remain untested.
+
+After rebuilding, confirm both main config symlinks and private writable palette
+outputs. Test an actual Qt app that honors system palettes; reopen if needed.
+The stock template has no reload hook, so do not promise universal live switching.
+Apps with custom styles may ignore it. **Vicinae still uses its own Stylix-generated
+palette** and is intentionally a separate subsequent migration.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -385,7 +423,7 @@ and idle tests, and the Lid Guard trial is accepted. Native battery warnings are
 accepted after deployment checks. The palette-warning fix is accepted; the runtime
 controller handover and Ghostty's native palette propagation have passed their live
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
-isolated migration, with Vicinae and other apps subsequent.
+isolated migration with runtime palette propagation verified; Vicinae is next.
 
 ## Build and validate
 

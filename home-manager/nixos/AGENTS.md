@@ -66,7 +66,7 @@ Theme switching without full rebuilds:
 - Noctalia config and shell/bridge units must be identical across dark/light generations
   (`checks.x86_64-linux.noctalia-theme-invariants` enforces this).
 - Neither system nor HM Darkman module is imported. Old files remain rollback-only.
-- Ghostty and GTK3/GTK4 are configured for Noctalia's built-in templates; other app
+- Ghostty, GTK3/GTK4 and Qt are configured for Noctalia's built-in templates; other app
   palettes still use the compatibility generations until individually migrated.
 - Keep Ghostty's main config declarative with literal `theme = noctalia`, so the shipped
   apply hook skips rewriting its read-only symlink. Never manage `themes/noctalia` as
@@ -84,6 +84,14 @@ Theme switching without full rebuilds:
   Native GTK is covered; sandboxed-app integration remains separate.
 - Keep built-in template enablement declarative; upstream GTK undo hooks try to edit
   managed gtk.css. Roll back through Nix, not GUI template undo.
+
+- `noctalia/qt.nix` owns Qt5ct/Qt6ct main configs; keep them declarative and select
+  custom_palette with the separate writable Noctalia color path. Fusion honors
+  QPalette; reintroducing Kvantum can bypass these colors.
+- System Qt owns plugin installation/environment. Qt6ct accepts the existing qt5ct
+  alias, tested using real offscreen Qt5/Qt6 probes. Do not add a competing env owner.
+- The stock Qt template has no reload hook. Do not infer live reload from startup
+  tests or expect Vicinae's independently managed theme to follow generic Qt colors.
 
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
@@ -191,9 +199,9 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - Framework imports `inputs.vicinae.homeManagerModules.default`
 - Uses `programs.vicinae` and its user systemd integration
 - Bound to `Mod+Space` in `niri/binds.nix` (`vicinae toggle`)
-- Both theme modes use the generated `stylix` theme; Darkman try-restarts the service
+- Both modes use the generated `stylix` theme; the temporary Noctalia bridge restarts the service
 - `launcher_window.layer_shell.enabled = false` for Niri compatibility
-- GTK/Papirus and Qt5ct/Qt6ct configuration stays in `stylix.nix`, not `vicinae.nix`
+- GTK/Papirus stays in `stylix.nix`; generic Qt palettes/main configs live in `noctalia/qt.nix`
 - Stylix's built-in Vicinae target is disabled; the launcher module owns its theme
 - Configuration in `vicinae.nix`; Bluetooth remains disabled due to its prior Node.js/usocket build issue
 

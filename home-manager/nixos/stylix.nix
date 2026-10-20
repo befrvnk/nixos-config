@@ -48,7 +48,6 @@ in
     # autoEnable handles most apps; explicitly disable only what's needed
     targets = {
       anki.enable = false;
-      qt.enable = pkgs.lib.mkForce false;
       # Disable Stylix auto-generation for Zen Browser - we manage manually with media queries
       zen-browser.enable = false;
     };
@@ -63,23 +62,6 @@ in
       name = "Papirus";
     };
   };
-
-  home.file.".config/qt5ct/qt5ct.conf".text = ''
-    [Appearance]
-    icon_theme=Papirus
-    style=kvantum
-    [Fonts]
-    fixed="JetBrainsMono Nerd Font,11"
-    general="Noto Sans,11"
-  '';
-  home.file.".config/qt6ct/qt6ct.conf".text = ''
-    [Appearance]
-    icon_theme=Papirus
-    style=kvantum
-    [Fonts]
-    fixed="JetBrainsMono Nerd Font,11"
-    general="Noto Sans,11"
-  '';
 
   specialisation = {
     dark.configuration = {
