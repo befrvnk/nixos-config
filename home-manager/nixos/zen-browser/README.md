@@ -1,125 +1,73 @@
-# Zen Browser Theme Switching
+# Zen Browser + Noctalia (NixOS)
 
-This configuration provides automatic theme switching for Zen Browser that responds to system-wide theme changes via darkman.
+Zen uses the reviewed community styles from the pinned
+`noctalia-dev/community-templates@7aae018927ae35d007734868388c34c901870f45`.
+The source files are consumed verbatim, not copied into a custom color generator.
+The NixOS integration is in `../noctalia/zen-browser.nix`; Darwin is unaffected.
 
-## How It Works
+## Ownership
 
-1. **userChrome.nix** and **userContent.nix** generate CSS files with both light and dark themes using CSS media queries
-2. **CSS Media Queries** automatically select the correct theme based on `prefers-color-scheme`
-3. **Darkman** sets the system-wide color preference via freedesktop portal (`org.gnome.desktop.interface.color-scheme`)
-4. **Zen Browser** automatically detects the system preference change and applies the correct theme
+- `default.nix` keeps the profile-aware launcher, desktop actions, extensions and
+  privacy/password-manager policies. The launcher uses the Home Manager-configured
+  beta package and still passes `-P "Default Profile"`. Do not replace it with the
+  raw flake package: that bypasses the module's policy configuration.
+- Nix owns `.zen/default/chrome/userChrome.css` and `userContent.css`, containing
+  absolute imports of the writable generated styles.
+- Noctalia renders the two upstream CSS templates to
+  `~/.local/state/noctalia/zen-browser/zen-userChrome.css` and `zen-userContent.css`.
+  State storage keeps imported files available after cache cleanup.
+- The shared activation preparer seeds valid CSS placeholders before imports are
+  linked, safely privatizes protected legacy output with backups, and leaves
+  writable generated colors alone during later Home Manager activations.
+- `newtab-layout.css` preserves the existing 82px/64px responsive logo sizing,
+  independently of palette colors. Upstream owns the color rules, including Glance.
+- The required `toolkit.legacyUserProfileCustomizations.stylesheets` preference is
+  enabled through package policies. Privileged developer tools are not enabled.
 
-## Architecture
+## Why the community apply hook is not used
 
-### CSS Generation
+Upstream's hook scans every profile with `prefs.js` under `.zen`/XDG Zen roots,
+including old and backup profiles. It writes through CSS symlinks and rewrites
+`user.js`, without backups. That is incompatible with these Nix-managed imports.
 
-- **userChrome.css**: Styles browser UI elements (toolbars, tabs, menus, etc.)
-- **userContent.css**: Styles internal browser pages (about:newtab, about:preferences, etc.)
+Only the two reviewed stylesheet inputs are registered as declarative user templates.
+There is no `post_hook`, profile scan, `user.js` change, profile migration or browser
+restart command. Do not additionally enable the mutable Zen community catalog entry
+in the GUI: that would reintroduce the unsafe hook alongside the Nix registrations.
+Current GUI template overrides were checked and do not enable a duplicate.
+Other profiles, cookies, sessions, credentials and preferences
+are not edited by the renderer. Existing browser policy declarations are retained;
+tests check their actual presence in the packaged browser.
 
-Both files include light and dark themes:
+## Appearance and reload
 
-```css
-@media (prefers-color-scheme: dark) {
-  /* Dark theme CSS variables and rules */
-}
+Both generated files contain dark/light palettes selected by `prefers-color-scheme`.
+Noctalia owns the system appearance preference; Darkman is not involved.
+Mode switching and palette replacement are different tests: changing mode can
+select existing CSS through media queries, but changed palette files may require
+a full browser restart. No live reload is promised and the agent never closes Zen.
 
-@media (prefers-color-scheme: light) {
-  /* Light theme CSS variables and rules */
-}
+The template primarily styles browser chrome and internal pages, not complete
+website themes. It also has global content accents (selection/form controls).
+The upstream README warns that coverage of `about:logins`/`about:protections` is
+not guaranteed. Those are upstream limitations, not reasons to fork the theme here.
+
+## Test after rebuilding
+
+```sh
+rebuild switch -- --option substitute false
 ```
 
-### Theme Switching Flow
+Select a noticeably different Noctalia palette, save work and fully quit/reopen
+Zen using the existing launcher. Check the toolbar/sidebar and `about:newtab` or
+`about:preferences`; then test light/dark separately. Confirm the expected profile,
+extensions and 1Password behavior remain intact. `about:policies` can show active
+policies. Report whether another palette change refreshes live or needs a restart.
 
-1. User triggers theme change (manually via `darkman set <mode>` or automatically based on time/location)
-2. Darkman activates the appropriate home-manager specialization
-3. Darkman sets freedesktop color-scheme: `dconf write /org/gnome/desktop/interface/color-scheme "'prefer-dark'"` or `"'prefer-light'"`
-4. Zen Browser detects the system preference change
-5. CSS media queries automatically apply the matching theme
-6. Theme updates instantly - no browser restart or reload required
-
-## Theme Sources
-
-- **Dark theme**: Catppuccin Mocha (base16 scheme)
-- **Light theme**: Catppuccin Latte (base16 scheme)
-- **Shared configuration**: `home-manager/themes.nix`
-
-Both themes are based on Stylix's Zen Browser implementation, ensuring compatibility and comprehensive styling.
-
-## Testing
-
-Test theme switching:
-
-```bash
-# Switch to dark mode
-darkman set dark
-
-# Switch to light mode
-darkman set light
-```
-
-The browser UI and internal pages should update immediately without restart.
-
-## File Structure
-
-```
-home-manager/zen-browser/
-├── default.nix          # Main configuration, links CSS files to browser profile
-├── userChrome.nix       # Generates browser UI theme CSS
-├── userContent.nix      # Generates internal pages theme CSS
-└── README.md            # This file
-```
-
-## Technical Details
-
-- **CSS location**: `~/.zen/default/chrome/`
-- **Theme switching**: Automatic via CSS `@media (prefers-color-scheme)` queries
-- **Color scheme**: Base16 palette from YAML files
-- **Browser preference**: Reads system `prefers-color-scheme` automatically
-
-## No Manual Configuration Required
-
-Unlike traditional Firefox theming approaches, this setup requires:
-- ❌ No `devtools.debugger.remote-enabled` preference
-- ❌ No manual reload scripts
-- ❌ No browser restarts
-- ❌ No direct preference file modification
-
-Everything works automatically through standard web platform features (CSS media queries) and system integration (freedesktop color-scheme portal).
-
-## Troubleshooting
-
-### Theme doesn't update
-
-1. Verify darkman is running:
-   ```bash
-   systemctl --user status darkman.service
-   ```
-
-2. Check that CSS files exist:
-   ```bash
-   ls -la ~/.zen/*/chrome/userChrome.css
-   ls -la ~/.zen/*/chrome/userContent.css
-   ```
-
-3. Verify freedesktop color-scheme is set:
-   ```bash
-   dconf read /org/gnome/desktop/interface/color-scheme
-   # Should return 'prefer-dark' or 'prefer-light'
-   ```
-
-4. Check darkman logs:
-   ```bash
-   journalctl --user -u darkman.service -f
-   ```
-
-### Browser doesn't respect system theme preference
-
-If Zen Browser doesn't respond to the system color-scheme preference, check:
-- Browser version (older versions may not support `prefers-color-scheme` properly)
-- Any conflicting browser extensions that override CSS
-
-## Sources
-
-- [Stylix Zen Browser Module](https://github.com/nix-community/stylix/tree/master/modules/zen-browser)
-- [CSS prefers-color-scheme](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme)
-- [Freedesktop Color Scheme Portal](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Settings.html)
+Tests render two palettes in both modes, check immutable profile imports, unrelated
+profile/preferences/backups remaining untouched, bootstrap/legacy-output handling,
+non-color layout, and actual packaged policies/launcher selection. They do not
+start Zen or validate CSS with Gecko. The user rebuilt and confirmed the integration
+works. Live inspection verified protected imports, writable output and healthy
+shell/overview services; detailed extension/profile and live reload behavior were
+not independently instrumented by the agent.

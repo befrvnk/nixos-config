@@ -254,6 +254,22 @@
                   builtins.toJSON home.programs.zed-editor.userSettings
                 );
                 ZED_SETTINGS_ACTIVATION = pkgs.writeText "zed-test-activation.sh" home.home.activation.zedSettingsActivation.data;
+                MANAGED_STATE_HOME = home.xdg.stateHome;
+                ZEN_CHROME_ENTRY = home.home.file.".zen/default/chrome/userChrome.css".source;
+                ZEN_CONTENT_ENTRY = home.home.file.".zen/default/chrome/userContent.css".source;
+                ZEN_POLICY_PACKAGE = home.programs.zen-browser.package.unwrapped;
+                ZEN_PACKAGE_BIN = "${home.programs.zen-browser.package}/bin/zen-beta";
+                ZEN_LAUNCHER = "${
+                  builtins.head (builtins.filter (p: p.name == "zen-launch") home.home.packages)
+                }/bin/zen-launch";
+                ZEN_INTEGRATION = pkgs.writeText "zen-test-integration.json" (
+                  builtins.toJSON {
+                    policies = home.programs.zen-browser.policies;
+                    chrome = home.programs.noctalia.settings.theme.templates.user.zen_browser_chrome;
+                    content = home.programs.noctalia.settings.theme.templates.user.zen_browser_content;
+                    launcher = home.xdg.desktopEntries.zen-browser.exec;
+                  }
+                );
                 nativeBuildInputs = [
                   pkgs.bash
                   pkgs.coreutils
@@ -401,6 +417,39 @@
                 && !(managedConfig h "zed/themes/noctalia.json")
               ) variants
             ) "Zed must keep constant settings/fonts and select the writable native theme family";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.programs.zen-browser.policies) variants)
+              && builtins.all (
+                h:
+                !h.stylix.targets.zen-browser.enable
+                &&
+                  h.programs.zen-browser.policies.Preferences."toolkit.legacyUserProfileCustomizations.stylesheets"
+                  == {
+                    Value = true;
+                    Status = "locked";
+                  }
+                && h.xdg.desktopEntries.zen-browser.exec == "zen-launch %U"
+                &&
+                  builtins.all
+                    (
+                      part:
+                      let
+                        entry = h.programs.noctalia.settings.theme.templates.user."zen_browser_${part}";
+                      in
+                      !(entry ? post_hook) && !(entry ? pre_hook) && !(entry ? post_action)
+                    )
+                    [
+                      "chrome"
+                      "content"
+                    ]
+                &&
+                  pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/zen-browser/zen-userChrome.css"
+                    h.home.file.".zen/default/chrome/userChrome.css".text
+                &&
+                  pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/zen-browser/zen-userContent.css"
+                    h.home.file.".zen/default/chrome/userContent.css".text
+              ) variants
+            ) "Zen must keep declarative profile imports/policies and never run profile-mutating hooks";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

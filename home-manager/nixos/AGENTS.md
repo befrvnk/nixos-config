@@ -100,6 +100,16 @@ Theme switching without full rebuilds:
   preferences. Only the separate runtime family is writable by Noctalia; no settings
   post-hook or custom reload process. Shared/Darwin Zed configuration is unaffected.
 
+- `noctalia/zen-browser.nix` consumes upstream community CSS but must NOT run its
+  apply.sh: it writes through Nix symlinks and scans old/backup profiles/user.js.
+  Keep imports declarative in `.zen/default`; render separate persistent state CSS.
+  Do not enable a duplicate Zen community catalog entry via GUI; its hook is unsafe.
+- Enable toolkit.legacyUserProfileCustomizations.stylesheets via package policies,
+  not privileged devtools or user.js. Keep the profile-aware launcher on the module's
+  configured package so policies are actually bundled; raw flake packages bypass it.
+- Zen may require restart for palette replacement; no browser restart automation.
+  The shared/Darwin browser module is separate. Non-color new-tab sizing is retained.
+
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
 - Noctalia's theme adapter sends `awww img` on mode change/hotplug

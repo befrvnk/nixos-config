@@ -1,15 +1,12 @@
 {
+  config,
   pkgs,
-  inputs,
   ...
 }:
 
 let
-  # Import CSS generation modules
-  userChromeCSS = import ./userChrome.nix { inherit pkgs; };
-  userContentCSS = import ./userContent.nix { inherit pkgs; };
-
-  zenPackage = inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.beta;
+  # Use the module's configured beta package so declared policies are applied.
+  zenPackage = config.programs.zen-browser.package;
 
   # Create a launcher script that forces the correct profile
   # This prevents Zen from using wrong profiles when the nix store path changes
@@ -22,12 +19,6 @@ in
     # Add our launcher script to PATH
     packages = [ zenLauncher ];
 
-    # Link generated userChrome.css with light/dark media queries
-    file = {
-      ".zen/default/chrome/userChrome.css".source = userChromeCSS;
-      # Link generated userContent.css for internal browser pages
-      ".zen/default/chrome/userContent.css".source = userContentCSS;
-    };
   };
 
   # Single desktop entry using our profile-aware launcher
@@ -77,7 +68,6 @@ in
 
   programs.zen-browser = {
     enable = true;
-    package = zenPackage;
 
     # Declarative extension management using policies
     # Extensions are auto-installed and force-enabled

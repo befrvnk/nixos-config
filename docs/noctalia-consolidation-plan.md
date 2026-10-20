@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae and Zed accepted; Zen Browser community template next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae, Zed and Zen Browser accepted; VS Code community template next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -619,11 +619,43 @@ Zed community-template implementation accepted:
   overview watcher. GUI behavior is user-confirmed; JSON tests themselves do not
   establish full schema validation or independently instrument editor reload.
 
+Zen Browser community-template implementation accepted:
+- `noctalia/zen-browser.nix` consumes both pinned upstream CSS files verbatim.
+  Register them without the community apply hook: it writes through protected CSS
+  symlinks, scans obsolete/backup profiles, and rewrites user.js without backups.
+- GUI template overrides were checked: no duplicate community Zen entry is active.
+  Do not enable that mutable catalog entry alongside these hook-free registrations.
+- Nix owns imports only in `.zen/default/chrome`. Rendered CSS lives in persistent
+  XDG state rather than upstream's cache path, avoiding missing imports after cache
+  cleanup. The shared preparer creates valid placeholders/handles protected output.
+- Removed the two custom Base16 generators. Retained the old responsive 82px/64px
+  new-tab logo layout separately; upstream now owns colors, including Glance styling.
+- Enable only the required stylesheet preference through package policy, not
+  devtools.chrome.enabled. No profile scan, browser kill/restart or user.js writer.
+  Existing declared extensions, password-manager and tracking policies are preserved.
+- Found the launcher explicitly used the raw flake package, bypassing module policy
+  configuration. It now uses the module-configured beta package while keeping the
+  exact `-P "Default Profile"` argument and existing desktop actions. Tests inspect
+  the actual built unwrapped browser's policies.json, not just declared option data.
+- Seven tests cover two palettes/both media-query modes, mode-independent CSS,
+  protected profile entrypoints, unchanged user.js/preferences/backup profiles,
+  existing policies/launcher, logo layout and runtime output handling. No browser
+  starts in tests; no Gecko CSS validation or GUI behavior is claimed. Total Noctalia
+  tests: 58, plus 11 safe-suspend tests. Invariants enforce no profile-mutating hooks.
+- Full Framework build and native config validation pass with substitutions disabled.
+  User rebuilt and confirmed it works. Deployment inspection verified managed imports,
+  writable generated chrome/content CSS, active shell/overview services and no recent
+  renderer errors. Detailed profile/extension checks and live-versus-restart reload
+  behavior were not independently instrumented. Dark/light media-query changes are distinct from new palette reloads;
+  upstream has no live-reload hook. Global selection/form accents can affect web
+  content; the template is not a complete website theme. Some about-page coverage
+  is documented upstream as limited.
+
 Remaining community-template queue (one app per tested checkpoint):
-Zen Browser, VS Code, lazygit and fzf. All IDs exist in the same pinned source.
+VS Code, lazygit and fzf. All IDs exist in the same pinned source.
 Reuse their upstream files rather than authoring replacements; audit hooks separately.
-Zen rewrites profile CSS/user.js, VS Code targets extension paths, and fzf offers
-shell-specific output that needs a Nushell compatibility review. These four are not enabled yet.
+VS Code targets extension paths, and fzf offers shell-specific output that needs a
+Nushell compatibility review. These three are not enabled yet.
 
 | Target | Proposed integration / caution |
 |---|---|

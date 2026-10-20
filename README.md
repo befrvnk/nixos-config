@@ -517,6 +517,8 @@ This configuration separates concerns between system-level and user-level settin
   reload, while its launcher settings, extensions and keybindings remain declarative
 - **Zed (NixOS)** uses the pinned community theme family with native system-mode
   selection, preserving fonts and existing editor preferences
+- **Zen Browser (NixOS)** imports pinned community CSS through declarative profile
+  entrypoints; generated colors stay separate from browser preferences and user.js
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

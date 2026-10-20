@@ -21,6 +21,7 @@ in
     ./theme.nix
     ./vicinae.nix
     ./zed.nix
+    ./zen-browser.nix
   ];
 
   # Noctalia owns its palette/font; avoid competing automatic Stylix settings.

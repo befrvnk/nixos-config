@@ -1,0 +1,17 @@
+/* Preserve the existing new-tab logo layout independently of palette colors. */
+@-moz-document url("about:newtab"), url("about:home") {
+  .search-wrapper .logo-and-wordmark .logo {
+    display: inline-block !important;
+    height: 82px !important;
+    width: 82px !important;
+    background-size: 82px !important;
+  }
+
+  @media (max-width: 609px) {
+    .search-wrapper .logo-and-wordmark .logo {
+      background-size: 64px !important;
+      height: 64px !important;
+      width: 64px !important;
+    }
+  }
+}

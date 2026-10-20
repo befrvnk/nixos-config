@@ -282,7 +282,8 @@ rolling back also requires reconciling any subsequently saved `theme.mode` overr
 Build validation includes 15 mocked bridge tests, 4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
 6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
-Home Manager settings merger), 11 safe-suspend tests and
+Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
+11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -454,10 +455,9 @@ settings write. Confirm the running PID remains stable after palette/mode change
 the main overrides still select `noctalia`, and template/launcher logs have no errors.
 
 Zed's subsequent integration is described below. Remaining community-template
-migrations requested by the user: Zen Browser, VS Code, lazygit and fzf. All exist
-in the pinned repository; enable only after per-app hook/ownership/reload review.
-Zen profile mutations, VS Code extension paths and fzf's shell-specific output need
-particular care. Those four are not enabled here.
+migrations requested by the user are tracked below. Zen's safe CSS integration is
+prepared; VS Code, lazygit and fzf remain. All exist in the pinned repository; review
+per-app ownership/reload before enabling. The remaining three are not enabled here.
 
 ## Zed community template (accepted)
 
@@ -496,6 +496,43 @@ pinning a theme in Zed's picker. If it doesn't refresh while running, fully reop
 Zed once and report whether the new palette appears. No live theme has been changed
 by the agent. See [Zed's theme settings](https://zed.dev/docs/themes).
 
+## Zen Browser community CSS (accepted)
+
+`noctalia/zen-browser.nix` registers both pinned upstream CSS templates verbatim.
+The generated chrome/content files live in persistent XDG state under
+`noctalia/zen-browser`, not cache storage. Nix-managed CSS entrypoints in only the
+existing `.zen/default` profile import them by absolute file URI. Valid placeholders
+are prepared before linkGeneration; generated output stays writable.
+
+The upstream apply hook is deliberately not run: it scans all matching profiles,
+including old/backups, writes through protected symlinks and rewrites user.js.
+Instead Nix owns the imports and enables only the required stylesheet preference
+through browser policy. No developer-tools preference, profile scan, prefs.js/user.js
+writer or browser restart process is added. The custom Base16 generators are removed;
+responsive 82px/64px new-tab logo sizing remains in a separate non-color stylesheet.
+
+The profile-aware launcher now uses the module-configured beta package rather than
+the raw flake package, ensuring the declared policies actually reach the browser.
+The exact `-P "Default Profile"` behavior, desktop actions, extension declarations,
+privacy and password-manager policies are retained. Shared/Darwin browser config is
+unaffected. Tests inspect actual packaged policies as well as the launcher script.
+
+Seven tests render two palettes and both modes, check import/profile boundaries,
+policy/launcher preservation, non-color layout and output preparation. They do not
+launch Zen or validate CSS with Gecko. Both files already include dark/light media
+queries, so mode selection needn't regenerate colors, but a newly generated palette
+may require fully quitting/reopening Zen. No live reload is promised. The upstream
+styles have some global content accents and limited coverage of certain about pages.
+
+After rebuilding, select a different Noctalia palette, save work and fully quit/
+reopen Zen via the existing launcher. Check chrome/internal pages, profile identity,
+extensions and 1Password; test light/dark separately. `about:policies` can verify the
+active policies. The user rebuilt and confirmed it works. Live inspection verified
+Nix-managed imports, regular writable generated CSS, active shell/overview services
+and no recent renderer errors. The agent did not restart Zen or independently
+instrument profile/extension behavior or live-versus-restart palette reload.
+See [the browser module guide](../home-manager/nixos/zen-browser/README.md).
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -508,8 +545,8 @@ accepted after deployment checks. The palette-warning fix is accepted; the runti
 controller handover and Ghostty's native palette propagation have passed their live
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
 isolated migration with runtime palette propagation verified; Vicinae is now
-accepted by the user, as is Zed. Zen Browser is next; VS Code/lazygit/fzf remain
-subsequent community-template migrations.
+accepted by the user, as are Zed and Zen Browser. VS Code is next;
+lazygit/fzf remain subsequent community-template migrations.
 
 ## Build and validate
 

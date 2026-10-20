@@ -167,8 +167,9 @@ Single source of truth for both platforms:
 }
 ```
 
-**Imported by (NixOS):** stylix.nix, nushell.nix, zen-browser/.
-Ghostty's runtime palette comes from Noctalia's built-in template instead.
+**Imported by (NixOS):** stylix.nix, nushell.nix.
+Ghostty/GTK/Qt use Noctalia's built-in templates; Vicinae/Zed/Zen consume pinned
+community styles rather than importing fixed Base16 colors.
 
 ### Wallpapers (`nixos/wallpapers/default.nix`)
 ```nix
