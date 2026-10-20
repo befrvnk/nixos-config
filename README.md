@@ -529,6 +529,8 @@ This configuration separates concerns between system-level and user-level settin
   and overview behavior declarative; native file watching reloads the color fragment
 - **Nushell (NixOS)** reads native Noctalia-rendered NUON at prompt time, preserving
   shell integrations and retaining previous colors if a theme write is incomplete
+- **Starship (NixOS)** renders the shipped Noctalia palette alongside its declarative
+  base into a separate runtime config, preserving the existing prompt layout
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

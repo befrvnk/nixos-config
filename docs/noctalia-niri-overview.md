@@ -286,7 +286,8 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 6 VS Code tests (including isolated CLI extension discovery), 6 lazygit tests
 (including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
 7 Niri template tests (full KDL validation, colors and backdrop-only placement), 6 Nushell tests
-(real Nu rendering/reader/hook checks), 11 safe-suspend tests and
+(real Nu rendering/reader/hook checks), 6 Starship tests (real CLI/prompt RGB),
+11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -770,6 +771,45 @@ lint and Framework build pass. Live inspection verified the single native wallpa
 layer, disabled extra backdrop, absent awww process/hotplug service, correct dark image,
 valid full Niri config and active shell/overview services. Appearance/fades are accepted;
 monitor reconnect and shell-restart behavior remain untested.
+
+## Remaining consumers and native Starship palette (accepted)
+
+The audit compares actual enabled managed files across specialisations, not just
+Stylix target flags: many targets emit assets for apps not actively configured.
+Mode-dependent outputs still include swaylock, btop/gdu, GTK source styles, Vencord,
+Blender/Forge/Xresources and some environment/font paths. Package-generated Emacs
+configuration also needs review before removing the compatibility generations.
+
+SwayOSD's service has no mode-varying stylesheet here, but volume-ctl delegates the
+actual volume operation to its client. Replacing it with Noctalia OSD is a separate
+functional migration. This step leaves all volume/brightness/DDC controls, Framework
+audio initialization and lock/authentication code unchanged.
+
+`noctalia/starship.nix` consumes the shipped Starship palette unchanged. Since Starship
+has no config include, a build-time concatenation composes the actual declarative
+Home Manager base (including any presets) and that palette input. Noctalia renders
+the complete runtime file to `$XDG_STATE_HOME/noctalia/starship.toml`. The managed
+base remains immutable and its fixed Base16 palette is disabled. No template hook
+rewrites it, no process-environment scan or runtime merge service is introduced.
+
+STARSHIP_CONFIG points at runtime output in home session vars and Nu environment.
+Shared/Darwin settings and the existing prompt format/module/integration remain
+unchanged. The standard output preparer seeds a valid comment until rendering and
+handles protected data with backup. Native Starship reads config each invocation;
+open a fresh Nu session after rebuilding to install the new pointer. Edit prompt
+settings in Nix, not the generated runtime file. Don't enable the duplicate built-in
+catalog entry with its config-mutating hook.
+
+Six tests render two palettes/both modes, invoke real Starship prompt/config commands,
+verify ANSI RGB, verbatim input/base composition, config pointers and protected/
+bootstrap behavior. They never change an active prompt. Full build/native config/
+cache/invariants/lint pass. After rebuilding, open a fresh Nu shell, select another
+Noctalia palette and reach a new prompt; test light/dark separately. The regular
+prompt layout should stay the same. The user rebuilt and confirmed it works.
+Live inspection verified the immutable base, writable runtime config, selected
+native palette without Base16, installed Nu pointer and real ANSI RGB prompt output.
+Shell/overview services remain active. Detailed integrations were not independently
+instrumented beyond automated tests.
 
 ## Consolidation plan
 

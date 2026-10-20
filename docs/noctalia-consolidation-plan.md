@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper migration accepted with backdrop-only placement; remaining-consumer audit, deferred GTK checks and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; SwayOSD/control migration, deferred GTK/remaining targets and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -842,6 +842,37 @@ Native Noctalia wallpaper migration accepted:
   Monitor reconnect and shell-restart behavior remain untested. A Noctalia restart may briefly remove its wallpaper; standalone
   awww isolation is intentionally traded for native ownership. Manual picker choices
   persist until a subsequent mode/forced startup refresh restores the configured pair.
+
+Remaining-consumer audit and Starship implementation accepted:
+- SwayOSD has no mode-specific generated style/service config here, but its client
+  performs volume mutations as well as drawing OSD. Native Noctalia OSD migration
+  is a separate functional checkpoint: preserve current controls/DDC/audio init and
+  don't conflate replacing the service with removing a color consumer. No volume,
+  brightness, audio-init or lock/authentication changes made in this step.
+- Real mode-varying managed outputs still include Starship, swaylock, btop, gdu,
+  gtksourceview/gedit, Vencord, Blender, Forge, Xresources and generated environment/
+  font files. Some targets write files despite their app modules being disabled;
+  enabled-target names alone do not prove actual app use. Audit remaining package/
+  Emacs config too before retiring specialisations.
+- `noctalia/starship.nix` disables fixed Base16 prompt colors and composes the
+  Home Manager-generated base (including presets) with the unmodified shipped
+  Starship palette at build time. Noctalia renders that complete template to
+  `$XDG_STATE_HOME/noctalia/starship.toml`; no runtime merge or config-writing hook.
+- Starship has no include. Keep the base immutable/declarative and set STARSHIP_CONFIG
+  to runtime output in session/Nu environment. Prompt format/modules/integration and
+  shared/Darwin config stay unchanged. The upstream hook is deliberately not used:
+  it scans process environment and writes through the managed config symlink.
+- A valid comment placeholder keeps default prompts functional before first render;
+  the standard preparer handles protected runtime data. Native Starship reads the
+  current output per prompt. A fresh Nu session installs the new config pointer.
+- Six tests cover two palettes/both modes, real prompt ANSI RGB, actual computed
+  config, verbatim upstream/base composition, immutable base/pointers and bootstrap/
+  legacy data. Total Noctalia tests: 99, plus 11 safe-suspend. Native config/cache/
+  invariants/lint/full Framework build pass. User rebuilt and confirmed it works.
+  Live inspection verified the immutable base, writable complete runtime config,
+  native palette without Base16, installed Nu pointer and actual RGB prompt output.
+  Shell/overview remain active; detailed user integrations were not independently
+  instrumented beyond the automated tests.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

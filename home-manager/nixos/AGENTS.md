@@ -156,6 +156,15 @@ Theme switching without full rebuilds:
   Keep unrelated hooks/keybindings/shared/Darwin config unchanged; no source/eval of
   generated data. Old static light/dark NUON and env-stage copying are removed.
 
+- `noctalia/starship.nix` composes the managed base with the verbatim built-in palette
+  as a native input. STARSHIP_CONFIG points to a separate writable full runtime config
+  because Starship has no include. No upstream config-writing hook/process scan.
+- Preserve prompt format/modules and integration. Session and Nu env pointers must
+  agree; open a fresh Nu session after migration. Keep runtime palette names out of
+  the declarative base's palettes table to avoid duplicate TOML definitions.
+- SwayOSD isn't just a style target: its client changes volume. Don't remove/replace
+  it as a cosmetic cleanup or modify Framework audio init/brightness DDC incidentally.
+
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:

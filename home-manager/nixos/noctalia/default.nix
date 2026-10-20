@@ -21,6 +21,7 @@ in
     ./nushell.nix
     ./plugins.nix
     ./qt.nix
+    ./starship.nix
     ./storage.nix
     ./theme.nix
     ./vicinae.nix

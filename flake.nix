@@ -307,6 +307,16 @@
                 );
                 ZED_SETTINGS_ACTIVATION = pkgs.writeText "zed-test-activation.sh" home.home.activation.zedSettingsActivation.data;
                 MANAGED_STATE_HOME = home.xdg.stateHome;
+                STARSHIP_CLI = "${pkgs.starship}/bin/starship";
+                STARSHIP_TEMPLATE = home.programs.noctalia.settings.theme.templates.user.starship.input_path;
+                STARSHIP_BASE = home.home.file.${home.programs.starship.configPath}.source;
+                STARSHIP_POINTERS = pkgs.writeText "starship-test-pointers.json" (
+                  builtins.toJSON {
+                    session = home.home.sessionVariables.STARSHIP_CONFIG;
+                    nushell = home.programs.nushell.environmentVariables.STARSHIP_CONFIG;
+                    entry = home.programs.noctalia.settings.theme.templates.user.starship;
+                  }
+                );
                 VSCODE_EXTENSION = "${vscodeTheme}/share/vscode/extensions/noctalia.noctaliatheme";
                 VSCODE_CLI = "${pkgs.vscode}/bin/code";
                 VSCODE_SETTINGS = home.home.file."${home.xdg.configHome}/Code/User/settings.json".source;
@@ -611,6 +621,23 @@
                 ) h.programs.niri.settings.layer-rules
               ) variants)
               "Noctalia must render a single wallpaper within Niri's backdrop, never duplicate it inside workspaces";
+            assert pkgs.lib.assertMsg
+              (
+                same (map (h: builtins.toJSON h.programs.starship.settings) variants)
+                && builtins.all (
+                  h:
+                  h.programs.starship.enable
+                  && h.programs.starship.enableNushellIntegration
+                  && !h.stylix.targets.starship.enable
+                  && h.programs.starship.settings.palette == "noctalia"
+                  && !((h.programs.starship.settings.palettes or { }) ? base16)
+                  && h.home.sessionVariables.STARSHIP_CONFIG == "${h.xdg.stateHome}/noctalia/starship.toml"
+                  &&
+                    h.programs.nushell.environmentVariables.STARSHIP_CONFIG == h.home.sessionVariables.STARSHIP_CONFIG
+                  && !(h.programs.noctalia.settings.theme.templates.user.starship ? post_hook)
+                ) variants
+              )
+              "Starship must render native palette data without rewriting its declarative base or prompt integrations";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';
