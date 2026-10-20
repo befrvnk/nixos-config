@@ -66,6 +66,7 @@ in
         pkgs.systemd
         pkgs.udiskie
         pkgs.udisks
+        config.programs.vicinae.package
         pkgs.xdg-utils
       ]
     }:${config.home.profileDirectory}/bin:/run/current-system/sw/bin"

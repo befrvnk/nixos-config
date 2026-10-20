@@ -66,8 +66,8 @@ Theme switching without full rebuilds:
 - Noctalia config and shell/bridge units must be identical across dark/light generations
   (`checks.x86_64-linux.noctalia-theme-invariants` enforces this).
 - Neither system nor HM Darkman module is imported. Old files remain rollback-only.
-- Ghostty, GTK3/GTK4 and Qt are configured for Noctalia's built-in templates; other app
-  palettes still use the compatibility generations until individually migrated.
+- Ghostty, GTK3/GTK4 and Qt use Noctalia's built-in templates; Vicinae consumes a
+  reviewed pinned community template. Other apps migrate individually.
 - Keep Ghostty's main config declarative with literal `theme = noctalia`, so the shipped
   apply hook skips rewriting its read-only symlink. Never manage `themes/noctalia` as
   `home.file`; it is a separate writable runtime output.
@@ -195,15 +195,22 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - Check: `systemctl --user status psd`, `psd preview`
 
 ### Vicinae Configuration
-- App and build helpers pinned by the `vicinae` flake input (v0.29.2)
-- Framework imports `inputs.vicinae.homeManagerModules.default`
-- Uses `programs.vicinae` and its user systemd integration
-- Bound to `Mod+Space` in `niri/binds.nix` (`vicinae toggle`)
-- Both modes use the generated `stylix` theme; the temporary Noctalia bridge restarts the service
-- `launcher_window.layer_shell.enabled = false` for Niri compatibility
-- GTK/Papirus stays in `stylix.nix`; generic Qt palettes/main configs live in `noctalia/qt.nix`
-- Stylix's built-in Vicinae target is disabled; the launcher module owns its theme
-- Configuration in `vicinae.nix`; Bluetooth remains disabled due to its prior Node.js/usocket build issue
+- App and build helpers pinned by the `vicinae` flake input (v0.29.2).
+- Framework imports `inputs.vicinae.homeManagerModules.default`; use `programs.vicinae`
+  and its systemd integration. `Mod+Space` runs `vicinae toggle`.
+- Use `theme.light`/`theme.dark` and `launcher_window`; layer_shell stays disabled for Niri.
+- `noctalia/vicinae.nix` consumes the pinned community TOML/apply.sh, not a fork.
+- Both mode selectors must remain "noctalia" so native theme-set rescans/reloads
+  without taking the settings-write branch. Keep Papirus and the HM override wrapper.
+- Only `~/.local/share/vicinae/themes/noctalia.toml` is runtime-writable; don't declare
+  it as home.file/xdg.dataFile or regenerate static Stylix colors.
+- Native community apply.sh owns reload. The compatibility bridge must not restart
+  Vicinae; settings and service units remain identical across specialisations.
+- Zed, Zen Browser, VS Code, lazygit and fzf also have community templates in the pin;
+  audit and reuse those individually rather than writing custom replacements.
+- GTK/Papirus stays in `stylix.nix`; generic Qt palettes/main configs live in `noctalia/qt.nix`.
+- Stylix's Vicinae target is disabled; Bluetooth remains disabled due to its prior
+  Node.js/usocket build issue.
 
 ## Module Locations
 

@@ -132,7 +132,7 @@ def process_requests(runtime, state_path, home, noctalia, awww, wallpapers, hm_u
                 # Let Noctalia reassert its own preference through its native
                 # template pipeline; this neither changes mode nor fires palette hooks.
                 run([noctalia, "msg", "templates-apply"], timeout=10)
-                run(["systemctl", "--user", "try-restart", "swayosd.service", "vicinae.service"], timeout=60)
+                run(["systemctl", "--user", "try-restart", "swayosd.service"], timeout=60)
             if changed or forced or retry_refresh or pending.get("refresh", False):
                 refresh_clients(mode, home, awww, wallpapers)
                 atomic_json(state_path, {**applied, "refresh_pending": False})

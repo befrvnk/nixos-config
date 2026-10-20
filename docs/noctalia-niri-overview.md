@@ -239,7 +239,7 @@ Per-app templates will replace that dependency one application at a time.
 Noctalia's mode hook submits an atomic request. `noctalia-theme.path` starts a
 serialized oneshot `noctalia-theme.service` to apply it. The worker queries the
 resolved mode, waits for ordinary HM activation, uses a shared linking lock and
-suppresses its own activation hooks. It then refreshes SwayOSD/Vicinae, the existing
+suppresses its own activation hooks. It then refreshes SwayOSD, the existing
 Nushell theme state and awww. Duplicate events skip activation; newer events and
 failed work remain pending. It never runs a Nix build, changes Noctalia's mode,
 writes a reverse portal preference, or restarts Noctalia. After app activation it
@@ -279,9 +279,9 @@ for this change. Do not restore the whole file blindly or lose newer plugin/UI c
 Before this handover, checkpoint `3f51f68` retained the old Darkman controller;
 rolling back also requires reconciling any subsequently saved `theme.mode` override.
 
-Build validation includes 14 mocked bridge tests, 4 overview tests, 10 Ghostty
+Build validation includes 15 mocked bridge tests, 4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
-11 safe-suspend tests and
+6 Vicinae tests (with its actual pinned theme parser), 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -409,8 +409,53 @@ app-specific visual behavior remain untested.
 After rebuilding, confirm both main config symlinks and private writable palette
 outputs. Test an actual Qt app that honors system palettes; reopen if needed.
 The stock template has no reload hook, so do not promise universal live switching.
-Apps with custom styles may ignore it. **Vicinae still uses its own Stylix-generated
-palette** and is intentionally a separate subsequent migration.
+Apps with custom styles may ignore it. Vicinae uses a separate community template,
+not the generic Qt palette; its integration is described below.
+
+## Vicinae community template (accepted)
+
+There is no shipped Vicinae built-in template. The reviewed community integration
+is pinned at `noctalia-dev/community-templates@7aae018927ae35d007734868388c34c901870f45`.
+`noctalia/vicinae.nix` registers its upstream TOML and Bash hook as a user template,
+not a mutable community catalog download or custom replacement. No theme file is forked.
+
+Both declarative Vicinae mode selectors are `noctalia`, preserving Papirus. The
+existing Home Manager wrapper keeps settings in high-priority VICINAE_OVERRIDES.
+The upstream hook calls `vicinae theme set noctalia`; v0.23.0 rescans and reloads the
+current theme without writing settings when the selector already matches. Its
+normal config-writing branch is intentionally avoided. Other launcher settings,
+extensions and keybindings are unchanged. The old custom Stylix theme is removed.
+
+Only `~/.local/share/vicinae/themes/noctalia.toml` is writable runtime output. The
+shared preparer seeds a valid inherited built-in theme until rendering, privatizes
+protected legacy output with a backup, and leaves writable colors alone later.
+Upstream's optional icon argument copies the pinned Noctalia SVG only if absent;
+existing icons are preserved. No new watcher/service/restart script is added.
+The compatibility bridge no longer restarts Vicinae; native theme-set owns reload.
+
+Six tests render two palettes in both modes and use the actual pinned theme parser/
+resolver, exercise upstream hook calls with a fake CLI, and check legacy/icon/config
+preservation and bootstrap. No user server is contacted by tests. A bridge regression
+test forbids Vicinae restarts; config/unit invariants prevent mode-dependent restart
+triggers. Full build and native validation pass. The user rebuilt and confirmed
+palette propagation works. Inspection verified the writable theme, removal of the
+old Stylix output and active launcher/shell/overview services. PID stability across
+palette changes was not independently sampled.
+
+A startup hook ran before Vicinae's IPC socket was ready and logged connection
+refused. The generated theme was available for startup and later palette tests
+worked; this remains a documented transient warning, not a persistent failure or
+an error-free startup claim. No custom restart/retry daemon was added.
+
+After rebuilding, use the normal launcher keybinding, select another Noctalia
+palette and compare the launcher. It should update without a server restart or
+settings write. Confirm the running PID remains stable after palette/mode changes,
+the main overrides still select `noctalia`, and template/launcher logs have no errors.
+
+Subsequent community-template migrations requested by the user: Zed, Zen Browser,
+VS Code, lazygit and fzf. All exist in the pinned repository; enable only after
+per-app hook/ownership/reload review. Zen profile mutations, VS Code extension paths
+and fzf's shell-specific output need particular care. They are not enabled here.
 
 ## Consolidation plan
 
@@ -423,7 +468,9 @@ and idle tests, and the Lid Guard trial is accepted. Native battery warnings are
 accepted after deployment checks. The palette-warning fix is accepted; the runtime
 controller handover and Ghostty's native palette propagation have passed their live
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
-isolated migration with runtime palette propagation verified; Vicinae is next.
+isolated migration with runtime palette propagation verified; Vicinae is now
+accepted by the user. Zed is next, followed by Zen/VS Code/lazygit/fzf as separate
+community-template migrations.
 
 ## Build and validate
 

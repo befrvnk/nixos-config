@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae community-template integration accepted; Zed community template next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -560,6 +560,44 @@ Qt implementation deployed, runtime consumption verified:
   GUI app reload and app-specific visual behavior remain unverified.
 - Vicinae is deliberately unchanged: it has its own generated Stylix theme and needs
   a separately reviewed integration after Qt is accepted.
+
+Vicinae community-template implementation accepted:
+- Pinned `noctalia-dev/community-templates` at
+  `7aae018927ae35d007734868388c34c901870f45` as a non-flake input. Register only its
+  reviewed `vicinae/vicinae.toml` and `apply.sh` via a declarative user template;
+  no fork, mutable runtime download or custom color generator.
+- `noctalia/vicinae.nix` selects `noctalia` for both light/dark modes with Papirus.
+  The installed v0.23.0's theme-set handler rescans the database and reloads when
+  that ID already matches the effective configured theme, without writing settings.
+  Nix's existing high-priority VICINAE_OVERRIDES wrapper remains the config owner.
+- Removed the custom Stylix color mapping/theme file, retaining launcher settings,
+  extensions, keybindings, fonts and service integration. Removed Vicinae from the
+  compatibility bridge restart list; only SwayOSD remains there.
+- Prepare writable `~/.local/share/vicinae/themes/noctalia.toml` before linkGeneration,
+  with safe legacy backup handling and built-in-theme inheritance until first render.
+  Upstream apply.sh receives the pinned Noctalia SVG, installs it only if missing,
+  and preserves any legacy icon. Explicit service PATH includes the Vicinae CLI.
+- Six integration tests exercise upstream rendering, its unchanged hook with fake
+  CLI, protected files/icon preservation, placeholders and idempotence. A test-only
+  probe compiles the pinned Vicinae theme parser/resolver and checks both modes and
+  two palettes without starting a server. One added bridge test forbids Vicinae
+  restarts. Total Noctalia tests: 45, plus 11 safe-suspend tests.
+- Invariants enforce the fixed selector and identical launcher settings/units across
+  variants. Full Framework build and native config validation pass, with substitutions
+  disabled. User rebuilt and confirmed palette integration works. Deployment checks
+  confirmed a writable runtime theme, removed static Stylix output and active launcher,
+  shell and overview watcher. PID stability across changes was not independently
+  sampled, so do not claim that from parser/hook mocks alone.
+- One initial post-hook invocation preceded Vicinae socket readiness and logged
+  connection refused during the rebuild. The rendered file was present for launcher
+  startup and subsequent user palette tests worked. Retain this as a known transient
+  startup warning, not an error-free-startup claim or reason to add a restart daemon.
+
+User-requested community-template queue (one app per tested checkpoint): Zed,
+Zen Browser, VS Code, lazygit and fzf. All five IDs exist in the same pinned source.
+Reuse their upstream files rather than authoring replacements; audit hooks separately.
+Zen rewrites profile CSS/user.js, VS Code targets extension paths, and fzf offers
+shell-specific output that needs a Nushell compatibility review. None are enabled yet.
 
 | Target | Proposed integration / caution |
 |---|---|

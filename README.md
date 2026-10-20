@@ -512,7 +512,9 @@ This configuration separates concerns between system-level and user-level settin
 - **Native GTK3/GTK4** use shipped Noctalia color templates via declarative CSS imports;
   fonts, Papirus icons and cursors remain Nix-managed (Flatpak theming is separate)
 - **Qt5/Qt6** select Noctalia's stock runtime palette through declarative qtct configs
-  and Fusion; app-specific themes such as Vicinae remain separate
+  and Fusion
+- **Vicinae** uses a reviewed, pinned Noctalia community template and native theme
+  reload, while its launcher settings, extensions and keybindings remain declarative
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

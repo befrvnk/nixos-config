@@ -47,6 +47,10 @@
       url = "github:noctalia-dev/community-plugins/bd834815ee5da2ed744a9cbf1425342a4eecba6f";
       flake = false;
     };
+    noctalia-community-templates = {
+      url = "github:noctalia-dev/community-templates/7aae018927ae35d007734868388c34c901870f45";
+      flake = false;
+    };
     awww = {
       url = "git+https://codeberg.org/LGFae/awww?ref=refs/tags/v0.12.0";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -197,6 +201,26 @@
               home = inputs.self.nixosConfigurations.framework.config.home-manager.users.frank;
               qt5 = pkgs.qt5.qtbase;
               qt6 = pkgs.qt6.qtbase;
+              vicinaeProbe =
+                pkgs.runCommandCC "noctalia-vicinae-theme-probe"
+                  {
+                    nativeBuildInputs = [ pkgs.pkg-config ];
+                    buildInputs = [
+                      qt6
+                      pkgs.tomlplusplus
+                    ];
+                  }
+                  ''
+                    mkdir -p $out/bin
+                    source=${inputs.vicinae}/src/server/src
+                    mkdir -p include
+                    ln -s ${pkgs.tomlplusplus}/include/toml++ include/tomlplusplus
+                    $CXX -std=c++23 -include bits/stdc++.h -ffunction-sections -fdata-sections \
+                      -Wl,--gc-sections -Iinclude -I$source -I$source/utils \
+                      ${./home-manager/nixos/noctalia/test_vicinae_theme.cpp} \
+                      $source/theme/theme-parser.cpp $source/theme/theme-file.cpp \
+                      $(pkg-config --cflags --libs Qt6Gui) -o $out/bin/probe
+                  '';
               probe =
                 major: qtbase:
                 pkgs.runCommandCC "noctalia-qt${major}-probe"
@@ -221,6 +245,11 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 QT_CONFIG_HOME = home.xdg.configHome;
+                VICINAE_PROBE = "${vicinaeProbe}/bin/probe";
+                VICINAE_TEMPLATE_SOURCE = inputs.noctalia-community-templates.outPath;
+                VICINAE_SETTINGS = pkgs.writeText "vicinae-test-settings.json" (
+                  builtins.toJSON home.programs.vicinae.settings
+                );
                 nativeBuildInputs = [
                   pkgs.bash
                   pkgs.coreutils
@@ -335,6 +364,20 @@
                     ]
               ) variants
             ) "Qt must select the native writable palettes without changing platform integration";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.programs.vicinae.settings) variants)
+              && same (map (h: builtins.toJSON h.systemd.user.services.vicinae) variants)
+              && builtins.all (
+                h:
+                h.programs.vicinae.settings.theme.dark.name == "noctalia"
+                && h.programs.vicinae.settings.theme.light.name == "noctalia"
+                && h.programs.vicinae.settings.theme.dark.icon_theme == "Papirus"
+                && h.programs.vicinae.settings.theme.light.icon_theme == "Papirus"
+                && h.programs.noctalia.settings.theme.templates.user ? vicinae
+                && !(h.programs.vicinae.themes ? stylix)
+                && !(h.xdg.dataFile ? "vicinae/themes/noctalia.toml")
+              ) variants
+            ) "Vicinae must reload a native runtime theme without mode-specific config or unit changes";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

@@ -956,6 +956,23 @@
         "type": "github"
       }
     },
+    "noctalia-community-templates": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792500282,
+        "narHash": "sha256-Rqeme4uEaQ5Rt8d1xTgu9yuhT29g4j0bFmp6p3DL9s4=",
+        "owner": "noctalia-dev",
+        "repo": "community-templates",
+        "rev": "7aae018927ae35d007734868388c34c901870f45",
+        "type": "github"
+      },
+      "original": {
+        "owner": "noctalia-dev",
+        "repo": "community-templates",
+        "rev": "7aae018927ae35d007734868388c34c901870f45",
+        "type": "github"
+      }
+    },
     "noctalia-rebase-flake-parts_3": {
       "inputs": {
         "nixpkgs-lib": "nixpkgs-lib_3"
@@ -1136,6 +1153,7 @@
         "nixpkgs": "nixpkgs_5",
         "noctalia": "noctalia",
         "noctalia-community-plugins": "noctalia-community-plugins",
+        "noctalia-community-templates": "noctalia-community-templates",
         "qml-niri": "qml-niri",
         "quickshell": "quickshell",
         "shellpin": "shellpin",

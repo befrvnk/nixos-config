@@ -101,6 +101,13 @@ class ThemeBridgeTests(unittest.TestCase):
         self.assertFalse(any(args[0] in ("dconf", "gsettings") for args in commands))
         self.assertFalse(any("theme-mode-set" in args for args in commands))
 
+    def test_vicinae_is_not_restarted_by_compatibility_refresh(self):
+        bridge.request(self.runtime)
+        self.process()
+        self.assertFalse(any("vicinae.service" in args for args, _ in self.calls))
+        self.assertTrue(any(args == ["systemctl", "--user", "try-restart", "swayosd.service"]
+                            for args, _ in self.calls))
+
     def test_duplicate_mode_does_not_reactivate(self):
         bridge.request(self.runtime)
         self.process()

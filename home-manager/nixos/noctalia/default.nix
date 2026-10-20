@@ -19,6 +19,7 @@ in
     ./qt.nix
     ./storage.nix
     ./theme.nix
+    ./vicinae.nix
   ];
 
   # Noctalia owns its palette/font; avoid competing automatic Stylix settings.
