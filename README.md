@@ -555,6 +555,8 @@ This configuration separates concerns between system-level and user-level settin
 - **TPM2 auto-unlock** for LUKS encrypted disk
 - **Fingerprint authentication** for sudo, login, and screen lock
 - **1Password** integration with polkit
+- **Binary-cache trust checks** keep flake/runtime policy synchronized and exclude
+  the compromised Lantian endpoint/key; see [cache incident guidance](docs/security-hardening.md#binary-cache-trust-lantian-incident)
 
 ### Power Management
 

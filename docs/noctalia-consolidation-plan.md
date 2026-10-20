@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; remaining E3 targets, deferred GTK checks and bridge/security cleanup still pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; remaining E3 targets/deferred GTK/bridge work pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -735,6 +735,23 @@ fzf community-template/Nushell implementation accepted:
   verified the writable generated snippet and per-invocation wrapper; a native filter
   smoke test returned the expected selection and shell/overview services remain active.
   Detailed user keybinding behavior was not independently instrumented.
+
+Security checkpoint activated and verified before remaining app work:
+- Remove the compromised Lantian URL and signing key from shared runtime policy
+  and the mirrored flake literals. New `checks.<system>.cache-trust` enforces source
+  synchronization and rejects the endpoint/key, including Framework runtime settings
+  on Linux.
+- Full Framework build, cache trust check, all 77 Noctalia/11 safe-suspend tests and
+  invariants pass with substitutions disabled. Generated nix.conf was inspected and
+  contains neither endpoint nor key. Built/deployed kernel store paths are identical;
+  no kernel input, power policy, store artifacts or system services were changed live.
+- User activated with substitutions disabled. `/etc/nix/nix.conf` and effective
+  `nix config show` exclude both old endpoint and key; nix-daemon is active with its
+  restart timestamp updated, and shell/overview services remain active. Revocation
+  is accepted. Artifact/kernel integrity review remains separate: removing cache
+  trust does not certify old downloads as safe. See security-hardening.md.
+- Niri's built-in template is the next theming checkpoint, followed by Nushell/other
+  remaining consumers; do not remove the compatibility bridge prematurely.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

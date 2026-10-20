@@ -9,6 +9,38 @@ The security configuration is located in `modules/system/security.nix` and provi
 - **Firewall**: Blocks incoming connections by default
 - **Kernel Hardening**: Restricts information leakage and network attack surface
 
+## Binary-cache trust: Lantian incident
+
+The Lantian cache and its signing key have been removed from both
+`shared/caches.nix` (NixOS runtime policy) and the literal `flake.nix` cache settings.
+The maintainer [reported compromised servers on 2026-10-15](https://github.com/xddxdd/nix-cachyos-kernel/issues/110#issuecomment-6189203183).
+Do not restore the old endpoint/key merely because the service becomes reachable.
+Any replacement trust requires explicit review.
+
+`checks.<system>.cache-trust` checks that the flake literals match shared policy
+and rejects the endpoint/key; on Linux it also checks Framework's runtime settings.
+This checkpoint does not update the kernel input, change the selected kernel,
+rebuild existing artifacts from source, purge store paths, or establish that any
+previously downloaded artifacts are safe. Kernel/cache-origin integrity review is
+separate work. The maintainer's belief that kernels were not modified is not an
+independent verification of this machine's store.
+
+The user activated this checkpoint on 2026-10-20. Inspection confirmed the old
+endpoint/key are absent from `/etc/nix/nix.conf` and effective `nix config show`,
+and nix-daemon is active with its restart timestamp updated. Noctalia/overview
+remain active. Existing artifact/kernel integrity is still a separate question.
+
+For any machine not yet updated, the live configuration keeps old trust until
+activation. Use an already-built closure without cache substitution:
+
+```sh
+rebuild switch -- --option substitute false
+```
+
+After activation, inspect `/etc/nix/nix.conf` and `nix config show`: neither cache
+lists nor trusted public keys should contain the old endpoint or `lantian:` key.
+The agent does not run privileged activation or restart the system daemon.
+
 ## Firewall
 
 ### How It Works

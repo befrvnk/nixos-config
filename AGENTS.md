@@ -127,6 +127,8 @@ Detailed guides in docs/:
 
 ## Common Gotchas (All Platforms)
 
+- **Binary-cache trust:** The Lantian endpoint and key were removed after its server compromise. Do not restore them just to fix cache misses. Mirror cache changes between `shared/caches.nix` and the literal flake lists; `checks.<system>.cache-trust` prevents drift/reintroduction. Until removal is activated, build with `--option substitute false`. Removing trust does not verify old store artifacts or the existing kernel.
+
 - **State versions:** Never change (NixOS: `25.05`, Darwin system: `5`)
 - **Home directory:** Use `config.home.homeDirectory` for portability
 - **Claude Code plugin marketplace schema:** `extraKnownMarketplaces` requires a nested object, not a plain string path — `{ "local": { "source": { "source": "directory", "path": "/abs/path" } } }`. A plain string crashes Claude Code on startup with no error message.

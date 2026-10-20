@@ -112,7 +112,6 @@
       "https://noctalia.cachix.org"
       "https://nixos-raspberrypi.cachix.org"
       "https://vicinae.cachix.org"
-      "https://attic.xuyh0120.win/lantian"
     ];
     trusted-extra-public-keys = [
       "claude-code.cachix.org-1:YeXf2aNu7UTX8Vwrze0za1WEDS+4DuI2kVeWEE4fsRk="
@@ -122,7 +121,6 @@
       "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
       "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
-      "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
     ];
   };
 
@@ -172,6 +170,35 @@
           };
         in
         {
+          cache-trust =
+            let
+              shared = import ./shared/caches.nix;
+              declared = (import ./flake.nix).nixConfig;
+              runtime =
+                if pkgs.stdenv.hostPlatform.isLinux then
+                  inputs.self.nixosConfigurations.framework.config.nix.settings
+                else
+                  { };
+              safe =
+                value: !(pkgs.lib.hasInfix "attic.xuyh0120.win" value) && !(pkgs.lib.hasPrefix "lantian:" value);
+              values =
+                shared.substituters
+                ++ shared.publicKeys
+                ++ (runtime.substituters or [ ])
+                ++ (runtime.trusted-public-keys or [ ])
+                ++ (runtime.extra-substituters or [ ])
+                ++ (runtime.extra-trusted-public-keys or [ ]);
+            in
+            assert pkgs.lib.assertMsg (
+              declared.trusted-extra-substituters == shared.substituters
+              && declared.trusted-extra-public-keys == shared.publicKeys
+            ) "Flake cache literals must match shared cache policy";
+            assert pkgs.lib.assertMsg (builtins.all safe values)
+              "The compromised Lantian endpoint and signing key must not be trusted";
+            pkgs.runCommand "cache-trust-check" { } ''
+              touch $out
+            '';
+
           home-cleanup = pkgs.callPackage ./pkgs/home-cleanup/package.nix { };
 
           pi-extension-tests = pkgs.runCommand "pi-extension-tests" { } ''

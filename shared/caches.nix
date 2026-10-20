@@ -2,8 +2,9 @@
 #
 # Used by both flake.nix (nixConfig, for non-NixOS/CI consumers and the
 # sudo-level trusted caches) and modules/system/core.nix (nix.settings, which
-# is what actually applies at runtime on NixOS). Keep these lists updated here
-# only, so the two don't drift.
+# is what actually applies at runtime on NixOS). Mirror changes in flake.nix's
+# literal lists; checks.cache-trust enforces that they stay synchronized.
+# The compromised Lantian endpoint/key must not be restored without a new review.
 {
   # EU mirror/proxy of cache.nixos.org (Hetzner, Germany). It serves narinfos
   # signed by cache.nixos.org's own key, so no extra public key is required.
@@ -19,7 +20,6 @@
     "https://noctalia.cachix.org"
     "https://nixos-raspberrypi.cachix.org"
     "https://vicinae.cachix.org"
-    "https://attic.xuyh0120.win/lantian"
   ];
 
   publicKeys = [
@@ -30,6 +30,5 @@
     "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
     "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
     "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
-    "lantian:EeAUQ+W+6r7EtwnmYjeVwx5kOGEBpjlBfPlzGlTNvHc="
   ];
 }
