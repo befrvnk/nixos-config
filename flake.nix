@@ -250,6 +250,12 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                LAZYGIT_CLI = "${pkgs.lazygit}/bin/lazygit";
+                LAZYGIT_WRAPPER = "${home.programs.lazygit.package}/bin/lazygit";
+                LAZYGIT_BASE = home.home.file."${home.xdg.configHome}/lazygit/config.yml".source;
+                LAZYGIT_REGISTRATION = pkgs.writeText "lazygit-test-template.json" (
+                  builtins.toJSON home.programs.noctalia.settings.theme.templates.user.lazygit
+                );
                 VICINAE_PROBE = "${vicinaeProbe}/bin/probe";
                 COMMUNITY_TEMPLATE_SOURCE = inputs.noctalia-community-templates.outPath;
                 VICINAE_SETTINGS = pkgs.writeText "vicinae-test-settings.json" (
@@ -285,6 +291,7 @@
                   pkgs.bash
                   pkgs.coreutils
                   pkgs.diffutils
+                  pkgs.git
                   pkgs.gnugrep
                   pkgs.gnused
                 ];
@@ -477,6 +484,21 @@
                 ) h.programs.vscode.profiles.default.extensions
               ) variants
             ) "VS Code must keep declarative settings/extension metadata and writable native palette data";
+            assert pkgs.lib.assertMsg
+              (
+                same (map (h: toString h.programs.lazygit.package) variants)
+                && builtins.all (
+                  h:
+                  h.programs.lazygit.enable
+                  && h.programs.lazygit.enableNushellIntegration
+                  && !h.stylix.targets.lazygit.enable
+                  && !(h.programs.lazygit.settings.gui ? theme)
+                  && h.programs.noctalia.settings.theme.templates.user ? lazygit
+                  && !(h.programs.noctalia.settings.theme.templates.user.lazygit ? post_hook)
+                  && !(managedConfig h "lazygit/themes/noctalia.yml")
+                ) variants
+              )
+              "lazygit must overlay native runtime colors without rewriting its managed base or shell integration";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

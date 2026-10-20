@@ -119,6 +119,15 @@ Theme switching without full rebuilds:
 - The VS Code module, not packages.nix, installs the app. Do not enable a duplicate
   community catalog entry using upstream's versioned mutable extension paths.
 
+- `noctalia/lazygit.nix` uses the pinned community YAML with native LG_CONFIG_FILE
+  layering (base first, theme second), not its config-rewriting apply.sh. Keep an
+  empty gui map if needed so the managed base exists; runtime YAML stays separate.
+- The package wrapper sets only a default file list, works with the unchanged Nu `lg`
+  function and honors explicit native overrides. Don't add a global shell env owner,
+  merge script or restart daemon. Never enable the duplicate community hook via GUI.
+- PTY tests launch only isolated fixture repos, checking real RGB colors and config
+  layering; they don't operate on the user's repository or prove live hot reload.
+
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
 - Noctalia's theme adapter sends `awww img` on mode change/hotplug

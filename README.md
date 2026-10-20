@@ -521,6 +521,8 @@ This configuration separates concerns between system-level and user-level settin
   entrypoints; generated colors stay separate from browser preferences and user.js
 - **VS Code (NixOS)** uses the official pinned Noctalia theme extension with separate
   writable community-generated colors and declarative editor settings
+- **lazygit (NixOS)** overlays pinned community theme colors using native multi-file
+  config loading, preserving its declarative base and Nushell integration
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

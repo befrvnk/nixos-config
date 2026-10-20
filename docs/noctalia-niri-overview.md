@@ -283,7 +283,8 @@ Build validation includes 15 mocked bridge tests, 4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
 6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
-6 VS Code tests (including isolated CLI extension discovery), 11 safe-suspend tests and
+6 VS Code tests (including isolated CLI extension discovery), 6 lazygit tests
+(including real isolated PTY/color checks), 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -574,6 +575,42 @@ the Noctalia palette and test light/dark separately. Report any missing live ref
 or light-mode contrast problems; a window reload may be needed. Do not enable the
 mutable community VSCode catalog entry too: it writes different versioned paths.
 
+## lazygit community theme (accepted)
+
+`noctalia/lazygit.nix` registers the pinned community YAML unchanged, rendering
+`~/.config/lazygit/themes/noctalia.yml`. It deliberately skips the upstream apply
+hook because that hook copies colors into config.yml through its Nix-store symlink.
+
+The package wrapper supplies lazygit's native `LG_CONFIG_FILE` with base config
+first, theme overlay second. This is a default, not a forced global environment:
+explicit LG_CONFIG_FILE or --use-config-file can override it. Repo-local configs
+retain native precedence too. No new login is required; the existing Nushell `lg`
+function resolves the wrapped executable. Shared/Darwin configuration is unchanged.
+
+Stylix's lazygit target is disabled. A managed empty gui map keeps config.yml present
+when no other settings exist; user-defined non-theme settings still merge normally.
+The common preparer creates a valid empty-YAML output until rendering, safely backs
+up protected legacy data and preserves writable colors on later activations. No
+custom color mapper, merge script, poller or restart hook is added.
+
+Six tests render two palettes/modes and use the real lazygit binary in isolated PTYs
+and temporary git repositories to observe expected RGB output and retention of a
+custom base quit key. They also check explicit flag precedence, protected config,
+wrapper defaults and output preparation. Only fixture repositories are initialized/
+committed; no user repository or terminal is affected. GUI startup/update/fetch
+settings used by tests are not applied to production config.
+
+Full build/config/lint/invariant checks pass. The user rebuilt and confirmed it works.
+Live inspection verified the managed base symlink, separate writable overlay, ordered
+wrapper default and healthy shell/overview services. Exact running-TUI hot reload was
+not independently instrumented.
+
+After rebuilding, open lazygit or `lg`
+in a repository and test a different Noctalia palette and light/dark separately.
+If an already-running TUI doesn't update, quit/reopen it and report the distinction.
+Native hot reload is not claimed from startup tests. Do not enable the community
+catalog entry too: its hook would try to rewrite the managed base file.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -586,8 +623,8 @@ accepted after deployment checks. The palette-warning fix is accepted; the runti
 controller handover and Ghostty's native palette propagation have passed their live
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
 isolated migration with runtime palette propagation verified; Vicinae is now
-accepted by the user, as are Zed, Zen Browser and VS Code. lazygit is next;
-fzf remains the subsequent community-template migration.
+accepted by the user, as are Zed, Zen Browser, VS Code and lazygit. fzf is next,
+including its Nushell compatibility review.
 
 ## Build and validate
 

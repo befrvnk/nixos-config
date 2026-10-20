@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae, Zed, Zen Browser and VS Code accepted; lazygit community template next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae, Zed, Zen Browser, VS Code and lazygit accepted; fzf community-template/Nushell review next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -683,11 +683,36 @@ VS Code community-template implementation accepted:
   instrumented. Do not enable the duplicate mutable community catalog
   entry: it targets versioned extension directories outside this registration.
 
-Remaining community-template queue (one app per tested checkpoint):
-lazygit and fzf. Both IDs exist in the same pinned source.
+lazygit community-template implementation accepted:
+- `noctalia/lazygit.nix` consumes the pinned upstream `lazygit/lazygit.yml` verbatim.
+  Its merge hook is not run: that hook writes through the managed config.yml symlink.
+- Native LG_CONFIG_FILE loading merges the managed base first and generated overlay
+  second. A small package wrapper supplies this list only as an environment default,
+  avoiding login-shell dependency while respecting custom env/explicit CLI config.
+  Existing Nushell `lg` integration remains unchanged. Shared/Darwin modules are untouched.
+- Disable the fixed Stylix color target; keep `gui: {}` so a valid managed base always
+  exists even with no other settings. Render the separate writable
+  `lazygit/themes/noctalia.yml`, prepared safely before linkGeneration. No color
+  generator, config-writing hook, poller or restart process is added.
+- Six tests render two palettes/both modes, exercise real lazygit in isolated PTYs
+  and temporary git repos, observe expected truecolor ANSI output, prove non-theme
+  base settings survive (custom quit key), and verify explicit config flag precedence,
+  protected base files, wrapper/default contract and bootstrap/legacy output handling.
+  Test-only startup/update/fetch options prevent network and prompts; production
+  defaults/keybindings are not changed. No user's repository/TUI is used.
+- Total Noctalia tests: 70, plus 11 safe-suspend. Invariants, native config validation,
+  lint and full Framework build pass with substitutions disabled. User rebuilt and
+  confirmed it works. Live inspection verified the protected base symlink with empty
+  gui map, writable theme overlay, ordered wrapper default and active shell/overview
+  services. Exact running-TUI hot-reload behavior was not independently instrumented.
+- Keep the duplicate mutable community catalog entry disabled: it would reintroduce
+  the unsafe config-writing hook. Repo-local config and explicit user overrides may
+  intentionally supersede the global theme; no such native behavior is disabled.
+
+Remaining community-template queue: fzf, with a Nushell compatibility review.
 Reuse their upstream files rather than authoring replacements; audit hooks separately.
 fzf offers shell-specific output that needs a Nushell compatibility review.
-These two are not enabled yet.
+fzf is not enabled yet.
 
 | Target | Proposed integration / caution |
 |---|---|

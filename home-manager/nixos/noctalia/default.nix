@@ -15,6 +15,7 @@ in
     inputs.noctalia.homeModules.default
     ./ghostty.nix
     ./gtk.nix
+    ./lazygit.nix
     ./plugins.nix
     ./qt.nix
     ./storage.nix
