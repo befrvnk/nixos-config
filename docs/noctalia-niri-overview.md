@@ -283,7 +283,7 @@ Build validation includes 15 mocked bridge tests, 4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
 6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
-11 safe-suspend tests and
+6 VS Code tests (including isolated CLI extension discovery), 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -533,6 +533,47 @@ and no recent renderer errors. The agent did not restart Zen or independently
 instrument profile/extension behavior or live-versus-restart palette reload.
 See [the browser module guide](../home-manager/nixos/zen-browser/README.md).
 
+## VS Code community template (accepted)
+
+`noctalia/vscode.nix` enables Home Manager's VS Code module (previously only the
+package was installed, without local Code/.vscode directories). Its default profile
+owns the Noctalia selector and settings; manual installation of other extensions
+remains possible. The duplicate package-list entry is removed. Shared/Darwin editor
+configuration is unaffected.
+
+The official Marketplace Noctalia extension 0.0.5 is pinned by hash. Its original
+manifest/icon remain immutable; only its theme JSON is replaced with a symlink to
+`~/.local/state/noctalia/vscode/NoctaliaTheme-color-theme.json`. The pinned community
+renderer writes that separate state file verbatim. This avoids writing through a
+Nix-managed extension link or relying on the upstream versioned-directory layout.
+No activation code, custom extension manifest/color theme or reload script is added.
+The shared preparer handles writable bootstrap/legacy output before linkGeneration.
+
+The dormant Stylix VS Code target/extension is disabled. Its intended static font
+mapping is retained from the pinned source, with NoctaliaTheme replacing the fixed
+selector. Automatic competing theme selection, editor updates and extension
+updates are disabled; other extensions can still be installed/updated manually.
+Settings remain Nix-managed, not editable by the template.
+
+Upstream has one vs-dark contribution and hardcodes JSON type dark. It renders
+light colors when Noctalia selects light, but VS Code still classifies it as dark;
+fallback colors or extensions may reflect that limitation. It is documented, not
+silently fixed by forking the community template. Native live reload is unverified.
+
+Six tests render two palettes/both modes, check real CLI extension discovery,
+metadata/link ownership, font/update settings and bootstrap. In the build sandbox
+the packaged CLI script runs under Nix Bash because /usr/bin/env is unavailable.
+No editor GUI/user profile is opened. Native config/lint/invariants/full build pass.
+The user rebuilt and confirmed it works. Live inspection verified Nix-managed settings
+and extension links, selected NoctaliaTheme 0.0.5, declared fonts and a writable 0644
+runtime palette; shell/overview remain active. Exact GUI reload mechanics and light
+classification behavior were not independently instrumented.
+
+After rebuilding, open VS Code, confirm NoctaliaTheme is installed/selected, change
+the Noctalia palette and test light/dark separately. Report any missing live refresh
+or light-mode contrast problems; a window reload may be needed. Do not enable the
+mutable community VSCode catalog entry too: it writes different versioned paths.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -545,8 +586,8 @@ accepted after deployment checks. The palette-warning fix is accepted; the runti
 controller handover and Ghostty's native palette propagation have passed their live
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
 isolated migration with runtime palette propagation verified; Vicinae is now
-accepted by the user, as are Zed and Zen Browser. VS Code is next;
-lazygit/fzf remain subsequent community-template migrations.
+accepted by the user, as are Zed, Zen Browser and VS Code. lazygit is next;
+fzf remains the subsequent community-template migration.
 
 ## Build and validate
 

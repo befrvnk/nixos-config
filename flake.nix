@@ -201,6 +201,11 @@
               home = inputs.self.nixosConfigurations.framework.config.home-manager.users.frank;
               qt5 = pkgs.qt5.qtbase;
               qt6 = pkgs.qt6.qtbase;
+              vscodeTheme = builtins.head (
+                builtins.filter (
+                  extension: (extension.vscodeExtUniqueId or "") == "noctalia.noctaliatheme"
+                ) home.programs.vscode.profiles.default.extensions
+              );
               vicinaeProbe =
                 pkgs.runCommandCC "noctalia-vicinae-theme-probe"
                   {
@@ -255,6 +260,12 @@
                 );
                 ZED_SETTINGS_ACTIVATION = pkgs.writeText "zed-test-activation.sh" home.home.activation.zedSettingsActivation.data;
                 MANAGED_STATE_HOME = home.xdg.stateHome;
+                VSCODE_EXTENSION = "${vscodeTheme}/share/vscode/extensions/noctalia.noctaliatheme";
+                VSCODE_CLI = "${pkgs.vscode}/bin/code";
+                VSCODE_SETTINGS = home.home.file."${home.xdg.configHome}/Code/User/settings.json".source;
+                VSCODE_TEMPLATE = pkgs.writeText "vscode-test-template.json" (
+                  builtins.toJSON home.programs.noctalia.settings.theme.templates.user.vscode
+                );
                 ZEN_CHROME_ENTRY = home.home.file.".zen/default/chrome/userChrome.css".source;
                 ZEN_CONTENT_ENTRY = home.home.file.".zen/default/chrome/userContent.css".source;
                 ZEN_POLICY_PACKAGE = home.programs.zen-browser.package.unwrapped;
@@ -450,6 +461,22 @@
                     h.home.file.".zen/default/chrome/userContent.css".text
               ) variants
             ) "Zen must keep declarative profile imports/policies and never run profile-mutating hooks";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.programs.vscode.profiles.default.userSettings) variants)
+              && builtins.all (
+                h:
+                h.programs.vscode.enable
+                && !h.stylix.targets.vscode.enable
+                && h.programs.vscode.profiles.default.userSettings."workbench.colorTheme" == "NoctaliaTheme"
+                && !h.programs.vscode.profiles.default.userSettings."window.autoDetectColorScheme"
+                && !h.programs.vscode.profiles.default.userSettings."extensions.autoUpdate"
+                && h.programs.noctalia.settings.theme.templates.user ? vscode
+                && !(h.programs.noctalia.settings.theme.templates.user.vscode ? post_hook)
+                && builtins.all (
+                  ext: (ext.vscodeExtUniqueId or "") != "stylix.stylix"
+                ) h.programs.vscode.profiles.default.extensions
+              ) variants
+            ) "VS Code must keep declarative settings/extension metadata and writable native palette data";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

@@ -22,7 +22,6 @@
       papirus-icon-theme
       powertop
       sushi # nautilus preview
-      vscode
     ])
     # x86_64-only packages (no ARM64 builds available)
     ++ lib.optionals pkgs.stdenv.hostPlatform.isx86_64 [

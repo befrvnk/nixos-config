@@ -519,6 +519,8 @@ This configuration separates concerns between system-level and user-level settin
   selection, preserving fonts and existing editor preferences
 - **Zen Browser (NixOS)** imports pinned community CSS through declarative profile
   entrypoints; generated colors stay separate from browser preferences and user.js
+- **VS Code (NixOS)** uses the official pinned Noctalia theme extension with separate
+  writable community-generated colors and declarative editor settings
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

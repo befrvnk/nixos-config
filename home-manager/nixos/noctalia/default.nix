@@ -20,6 +20,7 @@ in
     ./storage.nix
     ./theme.nix
     ./vicinae.nix
+    ./vscode.nix
     ./zed.nix
     ./zen-browser.nix
   ];

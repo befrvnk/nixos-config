@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae, Zed and Zen Browser accepted; VS Code community template next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae, Zed, Zen Browser and VS Code accepted; lazygit community template next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -651,11 +651,43 @@ Zen Browser community-template implementation accepted:
   content; the template is not a complete website theme. Some about-page coverage
   is documented upstream as limited.
 
+VS Code community-template implementation accepted:
+- VS Code was installed as a plain package, with its Home Manager module disabled
+  and no local Code/.vscode user directories. Enable the module, remove the duplicate
+  package-list entry, and declare the selected theme/settings/extension there.
+- Consume the pinned community `vscode/vscode.json` verbatim. Pin the official
+  Marketplace `noctalia.noctaliatheme` VSIX at 0.0.5 with a fixed hash. It is a theme-only
+  extension, with no activation script. Keep manifest/icon immutable; redirect only
+  its contributed JSON file to writable XDG state via a package symlink adaptation.
+- Register the renderer output in that state path, not upstream's versioned mutable
+  extension-directory assumption. No custom manifest, forked color template, settings
+  hook or restart script. The existing preparer seeds valid JSON and backs up old
+  protected output before extension links are installed.
+- Disable the dormant Stylix color target/extension while retaining its intended
+  static font settings from the pinned font mapping. Select NoctaliaTheme, disable
+  competing auto color-theme selection and auto-updates. Manual installation of other
+  extensions remains available through mutableExtensionsDir; managed settings stay Nix-owned.
+- Upstream contributes only vs-dark, and its JSON type is dark even when rendered
+  with light colors. Preserve/document that classification limitation rather than
+  forking it. Do not assume full native light-theme classification or live reload.
+- Six tests cover actual CLI extension discovery in isolated dirs, official manifest/
+  link ownership, two palettes in both modes, settings/font/update policy, unchanged
+  metadata/settings during rendering and bootstrap/legacy output. The packaged CLI
+  script runs via Nix Bash because /usr/bin/env is absent in the build sandbox;
+  no editor GUI or user profile is opened. Total Noctalia tests: 64, plus 11 suspend.
+- Invariants and full Framework build pass with substitutions disabled. Native config
+  validation/lint pass. User rebuilt and confirmed it works. Live inspection verified
+  the Nix-managed settings and extension links, NoctaliaTheme 0.0.5 selection, declared
+  fonts and a writable 0644 runtime palette. Shell/overview remain active. Exact GUI
+  reload mechanics and upstream light-classification behavior were not independently
+  instrumented. Do not enable the duplicate mutable community catalog
+  entry: it targets versioned extension directories outside this registration.
+
 Remaining community-template queue (one app per tested checkpoint):
-VS Code, lazygit and fzf. All IDs exist in the same pinned source.
+lazygit and fzf. Both IDs exist in the same pinned source.
 Reuse their upstream files rather than authoring replacements; audit hooks separately.
-VS Code targets extension paths, and fzf offers shell-specific output that needs a
-Nushell compatibility review. These three are not enabled yet.
+fzf offers shell-specific output that needs a Nushell compatibility review.
+These two are not enabled yet.
 
 | Target | Proposed integration / caution |
 |---|---|

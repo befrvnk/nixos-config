@@ -110,6 +110,15 @@ Theme switching without full rebuilds:
 - Zen may require restart for palette replacement; no browser restart automation.
   The shared/Darwin browser module is separate. Non-color new-tab sizing is retained.
 
+- `noctalia/vscode.nix` installs the official pinned Noctalia VSIX declaratively.
+  Only its theme JSON points to writable XDG state; never let templates write through
+  the Nix-managed extension directory. Keep manifest/icon unchanged and settings managed.
+- The upstream VS Code theme is single vs-dark even with light palette data. Document
+  that limitation; don't fork the community template/manifest to hide it. Auto theme
+  selection/updates are disabled; other extensions can still be installed manually.
+- The VS Code module, not packages.nix, installs the app. Do not enable a duplicate
+  community catalog entry using upstream's versioned mutable extension paths.
+
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
 - Noctalia's theme adapter sends `awww img` on mode change/hotplug
