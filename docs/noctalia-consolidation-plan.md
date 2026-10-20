@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; remaining E3 targets/deferred GTK/bridge work pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri built-in template accepted; Nushell next, with remaining E3/deferred GTK/bridge work pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -752,6 +752,33 @@ Security checkpoint activated and verified before remaining app work:
   trust does not certify old downloads as safe. See security-hardening.md.
 - Niri's built-in template is the next theming checkpoint, followed by Nushell/other
   remaining consumers; do not remove the compatibility bridge prematurely.
+
+Niri built-in template implementation accepted:
+- `noctalia/niri.nix` enables the shipped built-in `niri` integration unchanged.
+  Niri-flake's settings renderer remains the source of the main config; append a
+  declarative absolute include of writable `niri/noctalia.kdl`. The upstream hook
+  recognizes it and skips editing the read-only managed config.
+- Niri 26.04 supports `optional=true`, used so build-time validation can run without
+  home files. Activation prepares valid output before linkGeneration. Tests also
+  validate the full config with generated output present and reject invalid included
+  data; optional doesn't mean invalid content is ignored.
+- Remove only the two fixed active/inactive Base16 colors from layout.nix. Keep
+  borders enabled/4px, focus ring off, 12px gaps, transparent workspace backgrounds,
+  shadow flags, zoom/struts, bindings, rules, inputs, outputs and startup unchanged.
+  The stock template changes border/focus/tab/insert/recent-window highlight colors;
+  native include merging preserves the separately declared layout properties.
+- Six tests render two palettes/both modes, validate complete KDL with the actual
+  Niri binary, exercise the stock output/apply hook against a read-only config
+  symlink, check generated structure, optional/invalid handling and protected output.
+  No compositor is started/reloaded or live config edited by tests. Total Noctalia
+  tests: 83, plus 11 safe-suspend.
+- Main Niri config is identical across base/light/dark generations; colors are only
+  in the runtime include. Native file watching owns reload, not an extra script or
+  compositor restart. Cache trust/invariants/lint/full Framework build pass. User
+  rebuilt and confirmed it works. Live inspection verified the protected main config,
+  writable generated include and active shell/overview services; the real Niri validator
+  accepted the complete live config. GUI behavior is user-confirmed, not independently
+  instrumented by the structural tests.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

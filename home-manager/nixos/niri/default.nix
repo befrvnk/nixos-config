@@ -84,7 +84,7 @@
     settings = lib.mkMerge [
       (import ./outputs.nix { })
       (import ./inputs.nix { })
-      (import ./layout.nix { inherit config; })
+      (import ./layout.nix { })
       (import ./rules.nix { })
       (import ./binds.nix { })
       (import ./startup.nix { inherit pkgs config inputs; })

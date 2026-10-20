@@ -17,6 +17,7 @@ in
     ./ghostty.nix
     ./gtk.nix
     ./lazygit.nix
+    ./niri.nix
     ./plugins.nix
     ./qt.nix
     ./storage.nix

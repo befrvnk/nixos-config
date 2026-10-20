@@ -525,6 +525,8 @@ This configuration separates concerns between system-level and user-level settin
   config loading, preserving its declarative base and Nushell integration
 - **fzf (NixOS)** reads community-generated colors per picker through a child wrapper,
   compatible with Nushell without altering keybindings or accumulating shell options
+- **Niri** imports Noctalia's built-in runtime colors while keeping layout, bindings
+  and overview behavior declarative; native file watching reloads the color fragment
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

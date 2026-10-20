@@ -285,7 +285,7 @@ integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
 6 VS Code tests (including isolated CLI extension discovery), 6 lazygit tests
 (including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
-11 safe-suspend tests and
+6 Niri template tests (full KDL validation with runtime colors), 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -649,6 +649,42 @@ and shell/overview services remain active. Detailed keybindings were not indepen
 instrumented. All requested community integrations are accepted, but this does not
 finish all app migration or retire the compatibility bridge.
 
+## Niri built-in colors (accepted)
+
+`noctalia/niri.nix` enables the unmodified stock `niri` template and appends a
+managed absolute `include ... optional=true` to niri-flake's rendered configuration.
+Only `~/.config/niri/noctalia.kdl` is runtime-writable. Upstream's output hook resolves
+that path; its apply hook recognizes the include and never appends through the
+Home Manager config symlink. No custom color template/reload script is introduced.
+
+Niri 26.04 merges color properties from included layout blocks without resetting
+other declared settings, and watches included files for live config reload. The
+main config retains 4px borders, focus ring off, 12px gaps, transparent backgrounds,
+shadow/overview settings, rules, bindings, inputs/outputs and startup behavior. Only
+the two fixed active/inactive Base16 colors are removed from layout.nix. The shipped
+fragment also themes tab/insert/recent-window highlights without changing layout flags.
+
+The optional include is necessary for niri-flake's build-time validator, which has
+no user-home file. Activation seeds a valid comment/private output before linking.
+Runtime files normally exist, so missing-file warnings aren't expected there. Invalid
+included content still fails validation even with optional=true. Protected old output
+is safely backed up; existing writable colors remain untouched by HM activation.
+
+Six tests validate the complete generated config with real rendered fragments for
+two palettes/both modes, exercise the pinned hook against a protected symlink, check
+structure/bootstrap and reject invalid data. They do not start/reload the compositor.
+Main config is identical across theme specialisations. Native config/cache/invariant/
+lint/full Framework build checks pass. The user rebuilt and confirmed it works.
+Live inspection verified the managed main config, writable include and active
+shell/overview services; `niri validate` accepted the complete live configuration.
+GUI behavior is user-confirmed rather than independently instrumented by tests.
+
+After rebuilding, select a different Noctalia palette and check focused/inactive window
+borders. Test light/dark separately; ensure border width, gaps, background transparency,
+focus-ring state, bindings/window behavior and overview-only bar are unchanged. Niri
+should pick up the file change without a compositor restart. See
+[Niri include merging](https://niri-wm.github.io/niri/Configuration%3A-Include.html).
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -662,8 +698,9 @@ controller handover and Ghostty's native palette propagation have passed their l
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
 isolated migration with runtime palette propagation verified; Vicinae is now
 accepted by the user, as are Zed, Zen Browser, VS Code, lazygit and fzf's reviewed
-Nushell-compatible wrapper. Remaining E3 targets, deferred GTK checks and bridge/
-security cleanup are still tracked separately.
+Nushell-compatible wrapper. Cache trust revocation is verified and Niri is accepted.
+Nushell is next; other remaining E3 targets, deferred GTK checks, bridge
+cleanup and artifact-integrity review remain separate.
 
 ## Build and validate
 

@@ -31,8 +31,9 @@ in {
   '';
 }
 ```
-Used in: `niri/layout.nix`. Noctalia uses its built-in Catppuccin palette and chooses
-its own mode. The compatibility adapter selects the matching prebuilt app generation.
+Use this only for remaining static targets during migration. Niri now uses Noctalia's
+built-in runtime color include; don't reintroduce fixed border colors into layout.nix.
+The compatibility adapter still selects prebuilt generations for remaining consumers.
 
 ### Specialization Pattern
 Theme switching without full rebuilds:
@@ -136,6 +137,16 @@ Theme switching without full rebuilds:
 - Existing FZF_DEFAULT_OPTS/options files and explicit CLI flags retain native
   precedence. New pickers read new colors; already-running pickers are not mutated.
   No Fish universal variables, shell eval hooks or custom color generators.
+
+- `noctalia/niri.nix` appends an absolute optional include to niri-flake's default
+  rendered document. Preserve the settings renderer; never replace the whole config
+  with a color template. Niri 26.04 optional includes allow build validation without
+  home files; the activation preparer normally ensures runtime output exists.
+- Keep only layout/flags/bindings/rules in the managed Niri config, with colors in
+  writable noctalia.kdl. Stock apply.sh recognizes the include and skips main writes.
+  Validate full KDL plus generated output; optional=true doesn't ignore invalid data.
+- Native include watching reloads colors. Never restart Niri or change focus-ring,
+  border width, gaps, transparency or overview behavior as a theming side effect.
 
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)

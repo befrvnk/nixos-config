@@ -277,6 +277,9 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                NIRI_VALIDATOR = "${pkgs.niri}/bin/niri";
+                NIRI_CONFIG = pkgs.writeText "niri-test-config.kdl" home.programs.niri.finalConfig;
+                NIRI_NODES = pkgs.writeText "niri-test-nodes.json" (builtins.toJSON home.programs.niri.config);
                 FZF_WRAPPER = "${
                   pkgs.callPackage ./home-manager/nixos/noctalia/fzf-package.nix {
                     configHome = home.xdg.configHome;
@@ -551,6 +554,24 @@
                 ) variants
               )
               "fzf must consume native community colors per process without shell integration or global env changes";
+            assert pkgs.lib.assertMsg (
+              same (map (h: h.programs.niri.finalConfig) variants)
+              && builtins.all (
+                h:
+                h.programs.niri.settings.layout.border.enable
+                && h.programs.niri.settings.layout.border.width == 4
+                && h.programs.niri.settings.layout.border.active == null
+                && h.programs.niri.settings.layout.border.inactive == null
+                && !h.programs.niri.settings.layout.focus-ring.enable
+                && !h.programs.niri.settings.layout.shadow.enable
+                && h.programs.niri.settings.layout.background-color == "transparent"
+                && h.programs.niri.settings.layout.gaps == 12
+                && h.programs.niri.settings.overview.zoom == 0.5
+                && !h.programs.niri.settings.overview.workspace-shadow.enable
+                && pkgs.lib.elem "niri" h.programs.noctalia.settings.theme.templates.builtin_ids
+                && !(managedConfig h "niri/noctalia.kdl")
+              ) variants
+            ) "Niri must keep its layout/overview unchanged while only native colors vary at runtime";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

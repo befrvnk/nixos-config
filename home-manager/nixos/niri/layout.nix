@@ -1,8 +1,4 @@
-{ config, ... }:
-let
-  inherit (config.lib.stylix.colors.withHashtag) base0D base03;
-in
-{
+_: {
   cursor = {
     theme = "default";
     size = 24;
@@ -38,8 +34,6 @@ in
     border = {
       enable = true;
       width = 4;
-      active.color = base0D;
-      inactive.color = base03; # Subtle gray for visual distinction
     };
     default-column-width = {
       proportion = 0.5;
