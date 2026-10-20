@@ -25,6 +25,7 @@
     ./zed.nix
     ./nushell.nix
     ./packages.nix
+    ./vicinae.nix
     ./zellij.nix
     ./zen-browser.nix
   ];

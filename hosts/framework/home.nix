@@ -12,6 +12,7 @@
     users.${hostConfig.primaryUser} = ../../home-manager/nixos/frank.nix;
     sharedModules = [
       inputs.stylix.homeModules.stylix
+      inputs.vicinae.homeManagerModules.default
       inputs.niri.homeModules.niri
 
       # Home Manager uses the system pkgs set; keep Stylix from defining

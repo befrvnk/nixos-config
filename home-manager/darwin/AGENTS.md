@@ -128,7 +128,7 @@ homebrew.casks = [ "jetbrains-toolbox" "ghostty" ];
 ```
 Current Homebrew-managed packages/exceptions:
 - `1password` - Requires /Applications for security features
-- `betterdisplay` - Self-updating display manager; provides the `betterdisplaycli` used for brightness control
+- `betterdisplay` - Self-updating display manager; provides the `betterdisplaycli` used by the Vicinae brightness extension
 - `jetbrains-toolbox` - Not in nixpkgs for Darwin
 - `ghostty` - Linux only in nixpkgs
 - `miro` - Not in nixpkgs
@@ -136,6 +136,12 @@ Current Homebrew-managed packages/exceptions:
 - `orca` - ADE for parallel agents; installed from `stablyai/orca` tap as `stablyai/orca/orca` with self-updating behavior
 - `slack` - Needs native macOS self-update support
 - `spotify` - Needs native macOS self-update support
+- `vicinae` - Signed app with stable Accessibility identity; `vicinae.nix` only deploys extensions, not a Nix-built app or launchd service
+
+Vicinae window layouts use Rectangle URL actions. Keep Rectangle installed and
+grant it Accessibility access separately. Agenda uses iCal feeds, not EventKit.
+Before removing a launcher cask, back up its settings: Homebrew activation uses
+`cleanup = "zap"`. See `docs/vicinae-migration.md`.
 
 ### Shared Packages
 Modules in `shared/` (e.g., `shared/worktrunk.nix`) apply to both platforms automatically.

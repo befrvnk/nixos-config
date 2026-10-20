@@ -100,14 +100,16 @@ Key features in this setup:
 - Variable refresh rate on external monitors
 - Overview mode (`Mod+O`) shows all windows
 
-### Asyar (Application Launcher)
+### Vicinae (Application Launcher)
 
-On macOS, the Agenda extension reads private calendars synced to Apple Calendar
-through the packaged `ical-guy` CLI and EventKit. Grant local calendar access
-when prompted; no public calendar feed is required. See
-[private calendar setup](docs/macbook-darwin-setup.md#private-calendar-agenda).
+[Vicinae](https://github.com/vicinaehq/vicinae) is the application launcher on
+NixOS and macOS. Press `Mod+Space` on NixOS; configure the macOS shortcut in
+Vicinae's General Settings.
 
-[Asyar](https://github.com/Xoshbin/asyar) is the application launcher. Press `Mod+Space` to open it and start typing to search for applications.
+The macOS setup includes Agenda (iCal feeds), Gemini Text Tools, BetterDisplay
+brightness commands, and Rectangle-backed window layouts. Local Apple Calendar
+access and the former Asyar theme-toggle extension are not included. See the
+[migration checklist](docs/vicinae-migration.md) before rebuilding from Asyar.
 
 ### Ironbar (Status Bar)
 
@@ -131,7 +133,7 @@ when prompted; no public calendar feed is required. See
 
 | Shortcut | Action |
 |----------|--------|
-| `Mod+Space` | Open application launcher (Asyar) |
+| `Mod+Space` | Open application launcher (Vicinae) |
 | `Mod+G` | Open terminal (Ghostty) |
 | `Mod+Q` | Close focused window |
 | `Mod+O` | Toggle overview mode |
@@ -429,7 +431,7 @@ Installed via Home Manager in the platform-specific package sets:
 #### Desktop Environment
 - **niri** - Scrollable-tiling Wayland compositor
 - **ironbar** - Customizable status bar
-- **asyar** - Application launcher
+- **vicinae** - Application launcher
 - **dunst** - Notification daemon
 - **swayosd** - On-screen display for volume/brightness
 - **swaylock** - Screen locker
@@ -493,7 +495,7 @@ This configuration separates concerns between system-level and user-level settin
 - Shell configuration (nushell, starship, atuin, carapace)
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
-- Desktop environment (ironbar, asyar, dunst)
+- Desktop environment (ironbar, vicinae, dunst)
 - User services (swayidle, battery notifications, profile-sync-daemon)
 - Theming specializations (dark/light modes)
 
