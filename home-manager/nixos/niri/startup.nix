@@ -1,17 +1,10 @@
 {
   pkgs,
-  inputs,
   ...
 }:
 {
   spawn-at-startup = [
     { command = [ "${pkgs.xwayland-satellite}/bin/xwayland-satellite" ]; }
-    # Start awww daemon for wallpaper management with fade transitions
-    {
-      command = [
-        "${inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww}/bin/awww-daemon"
-      ];
-    }
     # Initialize audio enhancement sink for volume control
     # The Framework audio enhancement filter-chain starts in an uninitialized state
     # where wpctl reports incorrect volume (1.0) and volume changes don't apply.

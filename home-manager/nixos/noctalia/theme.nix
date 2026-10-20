@@ -1,6 +1,5 @@
 {
   config,
-  inputs,
   lib,
   pkgs,
   ...
@@ -9,21 +8,11 @@ let
   wallpapers = import ../wallpapers;
   fonts = config.stylix.fonts;
   noctalia = config.programs.noctalia.package;
-  awww = inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww;
   request = pkgs.writeShellScript "noctalia-theme-request" ''
     exec ${pkgs.python3}/bin/python3 ${./theme_bridge.py} request "$@"
   '';
   worker = pkgs.writeShellScript "noctalia-theme-worker" ''
     exec ${pkgs.python3}/bin/python3 ${./theme_bridge.py} run
-  '';
-  hotplug = pkgs.writeShellScript "noctalia-monitor-hotplug" ''
-    export PATH="${
-      lib.makeBinPath [
-        pkgs.coreutils
-        pkgs.systemd
-      ]
-    }"
-    exec ${pkgs.bash}/bin/bash ${./monitor-hotplug.sh} ${request}
   '';
 in
 {
@@ -102,7 +91,6 @@ in
           TimeoutStartSec = "infinity";
           Environment = [
             "NOCTALIA_COMMAND=${lib.getExe noctalia}"
-            "NOCTALIA_AWWW=${awww}/bin/awww"
             "NOCTALIA_WALLPAPER_LIGHT=${wallpapers.light}"
             "NOCTALIA_WALLPAPER_DARK=${wallpapers.dark}"
             "NOCTALIA_HM_UNIT=home-manager-${config.home.username}.service"
@@ -116,20 +104,6 @@ in
         };
       };
 
-      # Keep the existing wallpaper backend while removing all Darkman queries.
-      monitor-hotplug = {
-        Unit = {
-          Description = "Refresh awww from Noctalia mode after monitor hotplug";
-          After = [ "graphical-session.target" ];
-          PartOf = [ "graphical-session.target" ];
-        };
-        Service = {
-          ExecStart = hotplug;
-          Restart = "always";
-          RestartSec = "3s";
-        };
-        Install.WantedBy = [ "graphical-session.target" ];
-      };
     };
   };
 }

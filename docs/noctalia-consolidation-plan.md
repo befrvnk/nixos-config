@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; remaining-consumer audit, deferred GTK checks and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper migration accepted with backdrop-only placement; remaining-consumer audit, deferred GTK checks and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -806,6 +806,42 @@ Nushell runtime producer implementation accepted:
   shell/overview services. Detailed integration behavior was not independently instrumented.
   Existing shells at the default state path can read the new record format; open a
   fresh Nu session once to install the improved reader itself.
+
+Native Noctalia wallpaper migration accepted:
+- `noctalia/wallpaper.nix` enables native image surfaces but disables Noctalia's
+  separate backdrop. Niri places `^noctalia-wallpaper$` within its own backdrop only,
+  with crop and one-second fade; workspace previews remain transparent. Path-only favorites retain the two
+  existing mountain images without changing palette/mode when clicked. No automation
+  or wallpaper-derived palette selection is introduced.
+- V5's mode-aware directories don't directly map/apply these two files at mode change.
+  Retain the existing deterministic mode selector in the temporary bridge, replacing
+  awww query/img with native `wallpaper-set`. Native errors leave work pending for
+  retry. This is still small mode-pair glue, not entirely script-free wallpaper policy.
+- Remove the active awww package/startup, switch the Niri layer rule to
+  `^noctalia-wallpaper$`, remove monitor-hotplug.service and its udev script. Native
+  Noctalia output handling owns reconnects. The awww input/inactive Darkman rollback
+  code remain intentionally for now; do not remove the compatibility bridge yet.
+- Two added mocked tests cover native light/dark calls, no reverse palette/mode
+  writes and failed-IPC retries. Invariants enforce native ownership, fade/zero
+  disabled extra backdrop, path-only favorites and no old startup/package/hotplug
+  service. A new Niri regression checks the single wallpaper's backdrop placement,
+  and full validation includes that rule. Total Noctalia tests: 93,
+  plus 11 safe-suspend. Native config/lint/full Framework build pass.
+- First live trial exposed a regression: normal wallpaper plus a separate native
+  backdrop put images inside workspace previews too. Corrected by moving only the
+  native wallpaper surface into Niri's backdrop and disabling the extra renderer.
+  User rebuilt and confirmed transparent workspace previews and light/dark fades.
+- The old loose awww daemon survived initial activation. Native surfaces, selected
+  mountain image and successful light/dark texture changes were verified first;
+  then its pinned official `awww kill` IPC retired that exact user backend. Process
+  and layer inspection confirmed it exited. Niri was not restarted and no automatic
+  migration/process-kill hook was added.
+- User confirmed backdrop-only appearance and fades between light/dark images. Live
+  inspection verified one noctalia-wallpaper layer, no extra backdrop/awww, the correct
+  dark image, removed hotplug service, valid full Niri config and active shell/overview.
+  Monitor reconnect and shell-restart behavior remain untested. A Noctalia restart may briefly remove its wallpaper; standalone
+  awww isolation is intentionally traded for native ownership. Manual picker choices
+  persist until a subsequent mode/forced startup refresh restores the configured pair.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

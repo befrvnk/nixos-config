@@ -69,9 +69,9 @@ _: {
       matches = [ { namespace = "notifications"; } ];
       block-out-from = "screen-capture";
     }
-    # Place awww wallpaper on backdrop layer (visible in overview mode)
+    # Wallpaper belongs behind the overview, not inside workspace previews.
     {
-      matches = [ { namespace = "awww-daemon"; } ];
+      matches = [ { namespace = "^noctalia-wallpaper$"; } ];
       place-within-backdrop = true;
     }
   ];

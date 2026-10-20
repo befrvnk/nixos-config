@@ -588,6 +588,29 @@
                 ) variants
               )
               "Nushell must read Noctalia's runtime data without prebuilt color files or prompt integration changes";
+            assert pkgs.lib.assertMsg
+              (builtins.all (
+                h:
+                h.programs.noctalia.settings.wallpaper.enabled
+                && !h.programs.noctalia.settings.backdrop.enabled
+                && h.programs.noctalia.settings.backdrop.blur_intensity == 0.0
+                && h.programs.noctalia.settings.backdrop.tint_intensity == 0.0
+                && h.programs.noctalia.settings.wallpaper.transition == [ "fade" ]
+                && h.programs.noctalia.settings.wallpaper.transition_duration == 1000
+                && !h.programs.noctalia.settings.wallpaper.automation.enabled
+                && builtins.all (
+                  favorite: builtins.attrNames favorite == [ "path" ]
+                ) h.programs.noctalia.settings.wallpaper.favorite
+                && !(builtins.any (package: pkgs.lib.hasPrefix "awww-" package.name) h.home.packages)
+                && !(h.systemd.user.services ? monitor-hotplug)
+                && !(pkgs.lib.hasInfix "awww-daemon" h.programs.niri.finalConfig)
+                && builtins.any (
+                  rule:
+                  (rule.place-within-backdrop or false) == true
+                  && builtins.any (match: (match.namespace or "") == "^noctalia-wallpaper$") rule.matches
+                ) h.programs.niri.settings.layer-rules
+              ) variants)
+              "Noctalia must render a single wallpaper within Niri's backdrop, never duplicate it inside workspaces";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

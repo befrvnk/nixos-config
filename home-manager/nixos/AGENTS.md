@@ -156,11 +156,19 @@ Theme switching without full rebuilds:
   Keep unrelated hooks/keybindings/shared/Darwin config unchanged; no source/eval of
   generated data. Old static light/dark NUON and env-stage copying are removed.
 
-### Wallpaper Management (awww)
-- awww-daemon starts at session startup (`niri/startup.nix`)
-- Noctalia's theme adapter sends `awww img` on mode change/hotplug
-- 1-second fade transitions
-- Backdrop layer (visible in Niri overview)
+### Native wallpaper/backdrop
+- `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
+  Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:
+  exactly one surface behind overview, never inside workspace previews. Enabling
+  ordinary wallpaper plus a separate backdrop duplicates the image in workspaces.
+- The existing bridge retains only deterministic light/dark image selection via
+  `wallpaper-set`; V5 directory modes don't directly apply this fixed pair. Keep
+  favorites path-only to avoid reverse palette/mode control.
+- Native Noctalia owns reconnects; no custom monitor-hotplug service/script or active
+  awww startup/package remains. The old loose awww daemon can survive a rebuild:
+  verify native surfaces before one-time official shutdown. Never kill it beforehand.
+- No automatic process-kill hook. Inactive rollback code/input remain until cleanup.
+  A Noctalia restart may briefly remove its wallpaper.
 
 ## Audio Gotchas
 
@@ -282,7 +290,7 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 | `niri/` | Window manager (binds, layout, rules, startup, lid-switch) |
 | `noctalia/` | Native V5 shell, palettes and overview IPC bridge |
 | `quickshell/` | Previous custom shell, retained but not imported |
-| `noctalia/theme.nix` | Runtime mode hooks, app-theme adapter and wallpaper hotplug |
+| `noctalia/theme.nix` | Runtime mode hooks and temporary app-theme adapter |
 | `darkman/` | Legacy controller (not imported) |
 | `stylix.nix` | Theming with specializations |
 | `android/` | Emulator environment variables |

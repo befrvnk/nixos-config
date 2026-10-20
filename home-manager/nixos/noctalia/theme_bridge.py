@@ -85,13 +85,16 @@ def generation_for(mode):
     return candidates[0]
 
 
-def refresh_clients(mode, awww, wallpapers):
-    run([awww, "query"], capture_output=True, timeout=10)
-    run([awww, "img", str(wallpapers[mode]), "--transition-type", "simple",
-         "--transition-duration", "1"], timeout=30)
+def refresh_wallpaper(mode, noctalia, wallpapers):
+    # Native Noctalia owns surfaces, transitions and monitor reconnects. This
+    # temporary adapter only retains the existing deterministic light/dark pair.
+    reply = run([noctalia, "msg", "wallpaper-set", str(wallpapers[mode])],
+                capture_output=True, text=True, timeout=30).stdout.strip()
+    if reply.startswith("error:"):
+        raise RuntimeError(f"Native wallpaper selection failed: {reply}")
 
 
-def process_requests(runtime, state_path, noctalia, awww, wallpapers, hm_unit):
+def process_requests(runtime, state_path, noctalia, wallpapers, hm_unit):
     while read_json(runtime / "request.json"):
         wait_for_activation(hm_unit)
         # The same lock is held by ordinary HM activation hooks, so even a
@@ -124,7 +127,7 @@ def process_requests(runtime, state_path, noctalia, awww, wallpapers, hm_unit):
                 run([noctalia, "msg", "templates-apply"], timeout=10)
                 run(["systemctl", "--user", "try-restart", "swayosd.service"], timeout=60)
             if changed or forced or retry_refresh or pending.get("refresh", False):
-                refresh_clients(mode, awww, wallpapers)
+                refresh_wallpaper(mode, noctalia, wallpapers)
                 atomic_json(state_path, {**applied, "refresh_pending": False})
                 print(f"Refreshed {mode} wallpaper and app-theme clients", flush=True)
 
@@ -151,7 +154,7 @@ def main():
     state_root = Path(os.environ.get("XDG_STATE_HOME", home / ".local" / "state"))
     process_requests(
         runtime, state_root / "noctalia" / "theme-bridge.json",
-        os.environ["NOCTALIA_COMMAND"], os.environ["NOCTALIA_AWWW"],
+        os.environ["NOCTALIA_COMMAND"],
         {"light": Path(os.environ["NOCTALIA_WALLPAPER_LIGHT"]),
          "dark": Path(os.environ["NOCTALIA_WALLPAPER_DARK"])},
         os.environ["NOCTALIA_HM_UNIT"],

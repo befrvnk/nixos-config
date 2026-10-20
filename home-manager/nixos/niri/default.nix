@@ -1,8 +1,6 @@
 {
   pkgs,
-  config,
   lib,
-  inputs,
   ...
 }:
 {
@@ -12,7 +10,6 @@
     pkgs.xwayland-satellite
     pkgs.brightnessctl
     pkgs.pavucontrol
-    inputs.awww.packages.${pkgs.stdenv.hostPlatform.system}.awww
 
     # Toggle internal display on/off
     (pkgs.writeShellScriptBin "toggle-internal-display" ''
@@ -87,7 +84,7 @@
       (import ./layout.nix { })
       (import ./rules.nix { })
       (import ./binds.nix { })
-      (import ./startup.nix { inherit pkgs config inputs; })
+      (import ./startup.nix { inherit pkgs; })
     ];
   };
 }

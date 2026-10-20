@@ -107,6 +107,19 @@ class NiriThemeTests(unittest.TestCase):
         template = (self.assets / "niri.kdl").read_text()
         self.assertFalse(re.search(r"^\s*(?:on|off|width|gaps|background-color)\b", template, re.MULTILINE))
 
+    def test_wallpaper_surface_is_only_in_niri_backdrop_not_workspace_previews(self):
+        nodes = json.loads(Path(os.environ["NIRI_NODES"]).read_text())
+        rules = [node for node in nodes if node["name"] == "layer-rule"]
+        wallpaper = [rule for rule in rules if any(
+            child["name"] == "match"
+            and child["properties"].get("namespace") == "^noctalia-wallpaper$"
+            for child in rule["children"])]
+        self.assertEqual(len(wallpaper), 1)
+        self.assertTrue(any(child["name"] == "place-within-backdrop" and child["arguments"] == [True]
+                            for child in wallpaper[0]["children"]))
+        self.assertFalse(any(child["properties"].get("namespace") in ("^noctalia-backdrop", "awww-daemon")
+                             for rule in rules for child in rule["children"]))
+
     def test_optional_bootstrap_and_prepared_placeholder_both_validate(self):
         self.validate()  # Missing optional user output must not block Nix builds.
         migration.prepare(self.output, self.root / "backup.kdl", "// Awaiting native colors.\n")

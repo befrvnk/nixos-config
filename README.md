@@ -535,23 +535,23 @@ This configuration separates concerns between system-level and user-level settin
 
 ### Wallpaper Management
 
-- **awww** (animated wayland wallpaper daemon) runs continuously from Niri startup
-- Wallpapers change automatically with light/dark mode transitions
-- Smooth fade transitions (1 second) between wallpapers
-- Wallpaper placed on backdrop layer (visible in overview mode)
+- **Native Noctalia wallpaper** replaces awww, placed within Niri's backdrop only
+- One-second fade with no overview blur/tint; native output handling for reconnects
 - Light mode: `mountain.jpg`, Dark mode: `mountain_dark.jpg`
-
-**How it works:**
-1. `awww-daemon` starts with Niri and stays running
-2. Noctalia chooses light/dark mode manually or from its sunrise/sunset schedule
-3. Its compatibility bridge sends `awww img` with the selected wallpaper
-4. awww fades smoothly to the new wallpaper without daemon restart
+- The temporary mode bridge selects the pair via Noctalia IPC; palette choice stays independent
+- Manual picker choices remain until a later mode/forced-startup refresh restores that pair
 
 **Key configuration:**
-- Daemon started in `home-manager/nixos/niri/startup.nix`
-- Layer rule in `home-manager/nixos/niri/rules.nix` places awww on backdrop
-- Mode/refresh adapter in `home-manager/nixos/noctalia/theme.nix` and `theme_bridge.py`
-- Wallpaper paths defined in `home-manager/nixos/wallpapers/default.nix`
+- Renderer settings in `home-manager/nixos/noctalia/wallpaper.nix`
+- Niri places `^noctalia-wallpaper$` within its backdrop; the extra Noctalia backdrop
+  renderer is disabled so workspace previews stay transparent
+- Mode adapter in `home-manager/nixos/noctalia/theme_bridge.py`
+- Image paths in `home-manager/nixos/wallpapers/default.nix`
+
+The old awww daemon was retired after verifying native rendering. Corrected
+backdrop-only placement and light/dark fades are user-tested; monitor reconnect
+and shell-restart checks remain separate. See [handover/testing](docs/noctalia-niri-overview.md#existing-session-handover).
+Noctalia restarts may briefly remove its wallpaper; it is no longer independently rendered.
 
 ### Security
 

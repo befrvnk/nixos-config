@@ -25,13 +25,12 @@ standard freedesktop interface continue to work.
 Existing managers remain responsible for:
 
 - Vicinae launcher and its keybinding.
-- awww wallpaper surfaces, with mode/refresh requests now driven by Noctalia.
 - SwayOSD and the existing audio/brightness keys, including Framework sink init.
 - swaylock, idle/audio-inhibit services and the existing polkit agent.
 - Gammastep and tuned Framework profiles.
 - udiskie removable-drive mounting.
 
-Noctalia's competing wallpaper, dock, clipboard history, screen lock, idle actions,
+Noctalia's dock, clipboard history, screen lock, idle actions,
 nightlight, polkit agent and volume/brightness OSD are disabled.
 Do not enable competing owners in Settings without disabling their existing service.
 
@@ -239,7 +238,8 @@ Per-app templates will replace that dependency one application at a time.
 Noctalia's mode hook submits an atomic request. `noctalia-theme.path` starts a
 serialized oneshot `noctalia-theme.service` to apply it. The worker queries the
 resolved mode, waits for ordinary HM activation, uses a shared linking lock and
-suppresses its own activation hooks. It then refreshes SwayOSD and awww.
+suppresses its own activation hooks. It then refreshes SwayOSD and requests the
+current light/dark wallpaper pair through native Noctalia IPC.
 Nushell's runtime data is now written only by Noctalia's native template renderer. Duplicate events skip activation; newer events and
 failed work remain pending. It never runs a Nix build, changes Noctalia's mode,
 writes a reverse portal preference, or restarts Noctalia. After app activation it
@@ -251,8 +251,8 @@ with `default` in light generations. Its Noto/monospace app-font defaults are
 preserved explicitly; GTK app themes and other Stylix targets remain in place.
 The theme invariant check rejects any managed color-scheme key in either variant.
 
-Ordinary rebuilds request reapplication after linking. The awww monitor-hotplug
-watcher submits refresh-only requests; it no longer queries Darkman. Darkman is
+Ordinary rebuilds request reapplication after linking. Native Noctalia now owns
+wallpaper output/hotplug handling; the custom monitor-hotplug watcher is removed. Darkman is
 not imported at either system or HM level; its old files are rollback material.
 The normal HM activation hook also stops a remaining legacy Darkman user daemon.
 
@@ -279,13 +279,13 @@ for this change. Do not restore the whole file blindly or lose newer plugin/UI c
 Before this handover, checkpoint `3f51f68` retained the old Darkman controller;
 rolling back also requires reconciling any subsequently saved `theme.mode` override.
 
-Build validation includes 16 mocked bridge tests, 4 overview tests, 10 Ghostty
+Build validation includes 18 mocked bridge tests, 4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
 6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
 6 VS Code tests (including isolated CLI extension discovery), 6 lazygit tests
 (including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
-6 Niri template tests (full KDL validation with runtime colors), 6 Nushell tests
+7 Niri template tests (full KDL validation, colors and backdrop-only placement), 6 Nushell tests
 (real Nu rendering/reader/hook checks), 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
@@ -721,6 +721,55 @@ the Noctalia palette, return to the same shell and reach a new prompt; inspect s
 and table colors. Test light/dark separately and confirm Atuin, completion, navigation
 bindings and other prompt integrations still work. Existing old readers at the default
 state path can consume the new data, but lack the new partial-read protection.
+
+## Native wallpaper migration (accepted)
+
+`noctalia/wallpaper.nix` enables the native wallpaper renderer, placed by Niri within
+its backdrop only. Noctalia's extra backdrop renderer is disabled. Crop and one-second
+fade preserve the basic appearance; wallpaper must not be inside workspace previews. The two mountain images are path-only favorites, without theme/palette
+presets. Palette source remains independent. Native automation is disabled.
+
+V5 supports mode-aware browse directories, but doesn't directly apply this fixed
+image pair on mode change. The existing temporary bridge still chooses the resolved
+light/dark image, now using `wallpaper-set` instead of awww. That native IPC persists
+the default/current-output paths; Noctalia owns rendering, transitions, future-output
+handling. Niri determines the backdrop-only placement. Error replies preserve pending work for retry.
+
+Niri startup no longer spawns awww; its package and active backdrop rule are removed.
+The new rule places `^noctalia-wallpaper$` within Niri's backdrop. The custom udev
+monitor-hotplug service/script are removed. No replacement daemon or restart helper
+is added. Inactive Darkman rollback code and the awww flake input remain for now.
+
+### Existing-session handover
+
+The initial two-renderer trial duplicated wallpaper inside workspace previews.
+The corrected configuration uses a single `noctalia-wallpaper` surface within Niri's
+backdrop, with no `noctalia-backdrop` surface. The user rebuilt and confirmed transparent
+workspace previews and working fades between light/dark wallpapers.
+
+A rebuild did not kill the loose awww daemon launched earlier by Niri. Native
+wallpaper/backdrop surfaces, the selected mountain image and successful texture
+changes were verified first. The pinned official `awww kill` IPC then retired that
+old backend; process/layer inspection confirmed its exit. Niri was not restarted.
+No automatic migration/process-kill hook is installed. After the corrected rebuild,
+expect only `noctalia-wallpaper` behind overview (plus the normal bar/panels), no
+awww or extra backdrop, and no wallpaper inside workspace previews.
+
+Test desktop/overview appearance, manual dark/light changes, monitor reconnects and
+Noctalia restart behavior. Native surfaces depend on the shell, so a restart may
+briefly remove the background. Manual picker selections can be used, but a later
+mode/forced-startup refresh restores the declarative pair under the retained policy.
+GUI wallpaper default overrides are reconciled by the native mode-pair IPC, not by
+rewriting the whole settings.toml. Tests mock IPC, never alter live wallpaper state.
+
+The two added bridge tests cover both image choices/no reverse palette writes and
+native-error retries. Invariants enforce no active awww package/startup or custom
+hotplug service, a disabled extra backdrop and path-only favorites. An additional
+Niri regression checks the ordinary wallpaper's backdrop placement. Full config/Niri validation,
+lint and Framework build pass. Live inspection verified the single native wallpaper
+layer, disabled extra backdrop, absent awww process/hotplug service, correct dark image,
+valid full Niri config and active shell/overview services. Appearance/fades are accepted;
+monitor reconnect and shell-restart behavior remain untested.
 
 ## Consolidation plan
 

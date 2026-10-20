@@ -25,6 +25,7 @@ in
     ./theme.nix
     ./vicinae.nix
     ./vscode.nix
+    ./wallpaper.nix
     ./zed.nix
     ./zen-browser.nix
   ];
@@ -141,8 +142,6 @@ in
       # Noctalia owns battery warnings: low at 20%, native critical at 5%/2%.
       battery.warning_threshold = 20;
       # Keep the existing managers; do not start competing surfaces/services.
-      wallpaper.enabled = false;
-      backdrop.enabled = false;
       dock.enabled = false;
       desktop_widgets.enabled = false;
       lockscreen.enabled = false;
