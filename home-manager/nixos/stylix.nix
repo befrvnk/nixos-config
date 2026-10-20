@@ -56,7 +56,7 @@ in
 
   # GTK icon theme
   gtk = {
-    # Keep GTK4 on libadwaita; override Stylix's generated GTK4 theme.
+    # Keep GTK4 on libadwaita; Noctalia supplies colors through its CSS import.
     gtk4.theme = pkgs.lib.mkForce null;
     iconTheme = {
       package = pkgs.papirus-icon-theme;

@@ -35,6 +35,20 @@ Noctalia's competing wallpaper, dock, clipboard history, screen lock, idle actio
 nightlight, polkit agent and volume/brightness OSD are disabled.
 Do not enable competing owners in Settings without disabling their existing service.
 
+## Overview watcher lifecycle
+
+`noctalia-overview.service` is wanted by the graphical session, ordered after
+Noctalia, and stopped with it. The native `started` hook restarts the watcher once
+IPC is ready. Home Manager also idempotently starts the watcher after reloadSystemd.
+This second path is necessary: unit reconciliation can stop a PartOf dependent
+while a concurrent job cancels the shell's own restart. The shell stays alive,
+its started hook never runs, and an otherwise healthy overview-only bar stays hidden.
+
+The GTK-stage rebuild exposed this on 2026-10-20. Starting only the watcher restored
+its event subscription without restarting Noctalia or changing bar appearance.
+Flake invariants now enforce session enablement, post-reconciliation recovery and
+identical watcher units across app-theme variants. The permanent fix awaits rebuild.
+
 ## Native battery warnings
 
 Noctalia owns system-battery warnings with a 20% low threshold and native critical
@@ -266,7 +280,8 @@ Before this handover, checkpoint `3f51f68` retained the old Darkman controller;
 rolling back also requires reconciling any subsequently saved `theme.mode` override.
 
 Build validation includes 14 mocked bridge tests, 4 overview tests, 10 Ghostty
-integration/migration tests, 11 safe-suspend tests and `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
+integration/migration tests, 6 GTK tests, 11 safe-suspend tests and
+`checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
 matches Noctalia's resolved mode, and the user confirmed dark/light switching works.
@@ -310,6 +325,55 @@ now changes Ghostty rather than leaving it on the old fixed Catppuccin colors.
 Deployment inspection confirmed the protected config symlink, writable private theme,
 secure backup and removal of the old static theme links.
 
+## GTK3/GTK4 built-in templates (checkpoint approved)
+
+`noctalia/gtk.nix` enables the stock `gtk3`/`gtk4` templates alongside Ghostty. Both
+Nix-managed `gtk.css` files contain `@import url("noctalia.css");`. The pinned apply
+hook detects that literal import and leaves the symlinks alone. Each template writes
+only its separate `gtk-3.0/noctalia.css` or `gtk-4.0/noctalia.css` runtime output.
+The shared `prepare_theme_output.py` seeds both outputs with valid CSS comments before
+linkGeneration, handles protected legacy files with backups, and leaves existing
+writable colors alone during later compatibility activations.
+
+The Stylix GTK target is disabled: no fixed generated CSS and no managed `gtk-theme`
+dconf preference. Noto Sans 11, Papirus icons, Quintom_Snow/24 and adw-gtk3 remain.
+GTK4 stays on libadwaita. The stock hook chooses adw-gtk3/adw-gtk3-dark through
+settings tools; the existing Noctalia path still owns the color-scheme preference.
+
+This also removes Stylix's flattened `~/.themes/adw-gtk3` and its fixed Flatpak override.
+Native GTK apps are this stage's scope; sandboxed apps need separate theme/access
+review. Do not claim that every Flatpak app will adopt these CSS files.
+
+After rebuilding:
+- Check both `gtk.css` files remain symlinks containing only the import; both
+  `noctalia.css` outputs should be private writable regular files.
+- Select a different Noctalia palette, not merely dark/light mode. Compare a native
+  GTK3 app and a GTK4/libadwaita app (e.g. Nautilus); then test dark/light separately.
+- Check fonts, Papirus icons and the cursor are unchanged. Some GTK apps may require
+  reopening for CSS changes; check fresh windows as well as existing ones.
+- Inspect native template logs for errors and confirm gsettings/dconf selects
+  adw-gtk3 in light mode and adw-gtk3-dark in dark mode.
+
+Six tests exercise the pinned templates and hook with isolated XDG dirs and mocked
+settings tools, including two distinct palettes in both modes. No live preference
+is changed by tests. Full build/config/invariant checks pass; live acceptance is pending.
+Initial live test: Files and Adwaita Bluetooth did not update while running. Both
+are GTK4/libadwaita, and both processes predated the most recent rendered CSS.
+The runtime CSS is generated and parses cleanly using their actual GTK 4.22.4 library,
+including the managed relative import. GTK4 loads user CSS at initialization; the
+shipped hook has no generic running-app CSS reload mechanism. Full quit/relaunch
+with a different selected palette was the next check. User confirmed Adwaita Bluetooth
+adopts the palette after restarting, but Files still does not. Both were closed at
+the next process inspection; inspect a fresh Files instance's origin/environment
+before assuming it is just caching. Files and GTK3 acceptance remain pending.
+User approved committing this partial checkpoint and continuing; Files and GTK3 checks
+are explicitly deferred. Do not treat file generation as live success.
+See [GTK's CssProvider docs](https://docs.gtk.org/gtk4/class.CssProvider.html) and
+[GTK's dynamic CSS reload issue](https://gitlab.gnome.org/GNOME/gtk/-/issues/3409).
+
+Template enablement stays declarative: upstream undo hooks try to edit the entrypoint,
+so rollback via Nix/rebuild rather than invoking GUI template undo on managed CSS.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -320,7 +384,8 @@ the storage trial has passed its basic live test. Native Caffeine passed its inh
 and idle tests, and the Lid Guard trial is accepted. Native battery warnings are
 accepted after deployment checks. The palette-warning fix is accepted; the runtime
 controller handover and Ghostty's native palette propagation have passed their live
-tests. GTK templates are the next per-app migration.
+tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
+isolated migration, with Vicinae and other apps subsequent.
 
 ## Build and validate
 

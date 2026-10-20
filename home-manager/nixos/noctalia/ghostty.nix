@@ -15,7 +15,7 @@
   home.activation.prepareGhosttyNoctaliaTheme =
     lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
       ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_ghostty_theme.py} \
+        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
           ${lib.escapeShellArg "${config.xdg.configHome}/ghostty/themes/noctalia"} \
           ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/ghostty-theme.pre-template"}
       '';

@@ -66,14 +66,24 @@ Theme switching without full rebuilds:
 - Noctalia config and shell/bridge units must be identical across dark/light generations
   (`checks.x86_64-linux.noctalia-theme-invariants` enforces this).
 - Neither system nor HM Darkman module is imported. Old files remain rollback-only.
-- Ghostty is configured for Noctalia's built-in template; other app palettes still use
-  the compatibility generations until individually migrated.
+- Ghostty and GTK3/GTK4 are configured for Noctalia's built-in templates; other app
+  palettes still use the compatibility generations until individually migrated.
 - Keep Ghostty's main config declarative with literal `theme = noctalia`, so the shipped
   apply hook skips rewriting its read-only symlink. Never manage `themes/noctalia` as
   `home.file`; it is a separate writable runtime output.
 - `noctalia/ghostty.nix` prepares legacy read-only theme output before linkGeneration,
   backing up once without modifying symlink/hardlink targets. The pinned apply hook and
   template rendering are tested with a fake reload script, never real terminal signals.
+
+- `noctalia/gtk.nix` disables Stylix's GTK target, preserves fonts/icons/cursors and
+  packages adw-gtk3. Do not reintroduce managed gtk-theme/color-scheme dconf keys.
+- Keep both GTK CSS entrypoints declarative with the literal Noctalia import. Only
+  `noctalia.css` is writable; `prepare_theme_output.py` seeds valid placeholders for
+  both versions before linkGeneration. Never register runtime CSS as home.file.
+- Disabling the Stylix GTK target removes its flattened fixed theme/Flatpak pin.
+  Native GTK is covered; sandboxed-app integration remains separate.
+- Keep built-in template enablement declarative; upstream GTK undo hooks try to edit
+  managed gtk.css. Roll back through Nix, not GUI template undo.
 
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
@@ -148,7 +158,10 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
   custom palette JSON is runtime-valid: V5.3.0 also requires terminal color data.
   Prefer the shipped Catppuccin palette instead of an incomplete UI-only mapping.
 - `noctalia-overview.service` bridges Niri overview events to `bar-show`/`bar-hide`.
-- The Noctalia `started` hook starts that watcher only after IPC is ready.
+- The Noctalia `started` hook restarts that watcher after IPC is ready. It is also
+  wanted by graphical-session.target and idempotently started after reloadSystemd:
+  reconciliation can stop PartOf dependents while the shell's restart is cancelled,
+  so the started hook alone cannot recover it. Never restart the shell to fix this.
 - Noctalia owns notifications and system-battery warnings (20%, native 5%/2% escalation).
   Dunst and `battery-notifications` are not imported; keep those inactive while native
   warnings are enabled. The old full-charge toast is not retained. Other managers remain.

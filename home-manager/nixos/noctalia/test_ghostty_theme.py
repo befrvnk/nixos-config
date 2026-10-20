@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 import unittest
 
-import prepare_ghostty_theme as migration
+import prepare_theme_output as migration
 
 
 class PrepareGhosttyThemeTests(unittest.TestCase):

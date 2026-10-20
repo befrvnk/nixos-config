@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty template accepted, GTK templates next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint approved with Files/GTK3 follow-up deferred; Qt next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -476,6 +476,51 @@ Ghostty implementation accepted:
   backup is private (0600), and both old static Stylix theme links are gone.
 - No recent Ghostty/template permission errors were found. Individual keybindings
   were preserved in code but not separately claimed as live-tested.
+
+GTK3/GTK4 checkpoint approved for commit (partial visual acceptance):
+- `noctalia/gtk.nix` enables the pinned built-in `gtk3` and `gtk4` templates alongside
+  Ghostty. Both `gtk.css` entrypoints declaratively contain only the literal
+  `@import url("noctalia.css");`, so the upstream apply hook skips rewriting them.
+- Separate `noctalia.css` outputs remain writable. The shared activation-only preparer
+  seeds both with valid CSS comments before linkGeneration and safely privatizes old
+  protected outputs if needed. Existing runtime colors are not replaced on activation.
+  The preparer was renamed to `prepare_theme_output.py`; Ghostty behavior is unchanged.
+- Disabled the Stylix GTK target's fixed CSS and removed the competing managed
+  `gtk-theme` preference. Kept Noto Sans 11, Papirus, Quintom_Snow/24 and the adw-gtk3
+  package. The upstream GTK hook selects adw-gtk3/adw-gtk3-dark through gsettings or
+  dconf; Noctalia still owns color-scheme preference through its existing native path.
+- Removing that Stylix target also removes its flattened `~/.themes/adw-gtk3` and
+  Flatpak override pin. This stage covers native GTK apps; Flatpak-specific palette
+  access/theming needs a separate review rather than retaining an obsolete fixed palette.
+- Six tests cover both read-only import symlinks, gsettings and dconf paths, missing
+  output handling, valid placeholders, idempotence and actual stock template rendering
+  for two distinct palettes in both modes. Settings calls are mocked, never live.
+  The common Noctalia check now runs 34 tests. Flake invariants also enforce preserved
+  assets, import ownership, enabled template IDs and absence of a managed gtk-theme key.
+- Native config validation, tests/invariants, statix and full Framework build pass.
+  User rebuild and native GTK3/GTK4 palette/mode/font/icon/cursor checks remain pending.
+  Some GTK apps may require reopening to pick up CSS; do not promise universal live reload.
+- First GTK rebuild exposed an overview-watcher lifecycle gap: the watcher stopped,
+  Noctalia's restart was cancelled, and its started hook never ran. Manually starting
+  only the watcher restored its subscription. Added graphical-session enablement and
+  idempotent post-reloadSystemd start, with invariants across all variants. Permanent
+  lifecycle fix awaits rebuild; GTK visual acceptance remains pending.
+- User reported no live palette update in Files and Adwaita Bluetooth. Both are
+  GTK4/libadwaita apps, not a GTK3/GTK4 pair. Both processes predate the latest CSS
+  render; Files also predates the migration. Runtime outputs contain the selected
+  palette and the actual apps' GTK 4.22.4 library parses the managed import plus
+  generated CSS without diagnostics. GTK4 loads user CSS at initialization; the
+  stock hook does not provide generic live user-CSS reload. A full quit/relaunch
+  after choosing a different palette was the next diagnostic gate. User then confirmed
+  Adwaita Bluetooth adopts the palette after restart, but Files still does not. Neither
+  process was running at the next inspection, so a fresh Files launch/environment must
+  be inspected before attributing its behavior to caching. GTK3 remains untested.
+- User explicitly approved committing this checkpoint and moving on. Adwaita Bluetooth
+  startup palette propagation is confirmed; Files behavior, GTK3, and full visual
+  acceptance remain deferred rather than being marked as successful. The overview
+  lifecycle fix is included; its rebuild recovery still needs observation.
+- Keep template enablement declarative. Upstream undo hooks try to edit gtk.css and are
+  not the rollback path for Nix-managed imports; revert the Nix change/rebuild instead.
 
 | Target | Proposed integration / caution |
 |---|---|

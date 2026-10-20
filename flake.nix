@@ -220,13 +220,12 @@
                 home.specialisation.light.configuration
               ];
               same = values: builtins.length (pkgs.lib.unique values) == 1;
-              managedGhosttyTheme =
-                h: name:
+              managedConfig =
+                h: path:
                 builtins.any (
-                  file:
-                  file.target == ".config/ghostty/themes/${name}"
-                  || file.target == "${h.xdg.configHome}/ghostty/themes/${name}"
+                  file: file.target == ".config/${path}" || file.target == "${h.xdg.configHome}/${path}"
                 ) (builtins.attrValues h.home.file);
+              managedGhosttyTheme = h: name: managedConfig h "ghostty/themes/${name}";
             in
             assert pkgs.lib.assertMsg (same (
               map (h: toString h.xdg.configFile."noctalia/config.toml".source) variants
@@ -237,6 +236,15 @@
             assert pkgs.lib.assertMsg (same (
               map (h: builtins.toJSON h.systemd.user.services.noctalia-theme) variants
             )) "The theme bridge must not restart itself during app-theme activation";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.systemd.user.services.noctalia-overview) variants)
+              && builtins.all (
+                h:
+                pkgs.lib.elem "graphical-session.target" h.systemd.user.services.noctalia-overview.Install.WantedBy
+                && pkgs.lib.elem "reloadSystemd" h.home.activation.noctaliaOverviewEnsure.after
+                && pkgs.lib.hasInfix "--no-block start noctalia-overview.service" h.home.activation.noctaliaOverviewEnsure.data
+              ) variants
+            ) "Overview watcher must recover after rebuilds without restarting the shell";
             assert pkgs.lib.assertMsg (
               !(cfg.systemd.user.services ? darkman) && !(home.home.activation ? restartDarkman)
             ) "The legacy Darkman controller must be disabled";
@@ -251,6 +259,32 @@
               && !(managedGhosttyTheme h "stylix-dark")
               && !(managedGhosttyTheme h "stylix-light")
             ) variants) "Ghostty must select the native template and leave its output runtime-writable";
+            assert pkgs.lib.assertMsg (builtins.all (
+              h:
+              !h.stylix.targets.gtk.enable
+              && h.gtk.theme == null
+              && h.gtk.gtk4.theme == null
+              && !(h.dconf.settings."org/gnome/desktop/interface" ? gtk-theme)
+              && h.gtk.font.name == h.stylix.fonts.sansSerif.name
+              && h.gtk.font.size == h.stylix.fonts.sizes.applications
+              && h.gtk.iconTheme.name == "Papirus"
+              && h.gtk.cursorTheme.name == h.stylix.cursor.name
+              &&
+                builtins.all
+                  (
+                    version:
+                    h.xdg.configFile."gtk-${version}/gtk.css".text == ''@import url("noctalia.css");''
+                    && !(managedConfig h "gtk-${version}/noctalia.css")
+                  )
+                  [
+                    "3.0"
+                    "4.0"
+                  ]
+              && builtins.all (id: pkgs.lib.elem id h.programs.noctalia.settings.theme.templates.builtin_ids) [
+                "gtk3"
+                "gtk4"
+              ]
+            ) variants) "GTK must preserve assets, use native writable colors and avoid preference conflicts";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';
