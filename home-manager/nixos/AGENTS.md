@@ -128,6 +128,15 @@ Theme switching without full rebuilds:
 - PTY tests launch only isolated fixture repos, checking real RGB colors and config
   layering; they don't operate on the user's repository or prove live hot reload.
 
+- `noctalia/fzf.nix` registers the upstream Bash snippet, not a custom Nu theme.
+  `fzf-package.nix` sources it inside each child invocation, leaving parent options
+  and keybindings alone. Keep programs.fzf.enable false; enabling it adds integrations.
+- Shared packages reference programs.fzf.package; Darwin's default package remains
+  unchanged. The NixOS wrapper preserves man pages and reads current XDG config.
+- Existing FZF_DEFAULT_OPTS/options files and explicit CLI flags retain native
+  precedence. New pickers read new colors; already-running pickers are not mutated.
+  No Fish universal variables, shell eval hooks or custom color generators.
+
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)
 - Noctalia's theme adapter sends `awww img` on mode change/hotplug

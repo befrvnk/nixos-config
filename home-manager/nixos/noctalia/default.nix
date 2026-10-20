@@ -13,6 +13,7 @@ in
 {
   imports = [
     inputs.noctalia.homeModules.default
+    ./fzf.nix
     ./ghostty.nix
     ./gtk.nix
     ./lazygit.nix

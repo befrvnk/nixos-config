@@ -284,7 +284,8 @@ integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt
 6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
 6 VS Code tests (including isolated CLI extension discovery), 6 lazygit tests
-(including real isolated PTY/color checks), 11 safe-suspend tests and
+(including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
+11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -611,6 +612,43 @@ If an already-running TUI doesn't update, quit/reopen it and report the distinct
 Native hot reload is not claimed from startup tests. Do not enable the community
 catalog entry too: its hook would try to rewrite the managed base file.
 
+## fzf community colors + Nushell (accepted)
+
+The pinned community repo has Bash/Fish snippets but no Nu template. `noctalia/fzf.nix`
+uses the upstream Bash input unchanged. `fzf-package.nix` sources the generated
+`~/.config/fzf/themes/noctalia.sh` inside each fzf child wrapper, then execs the real
+binary. The parent Nu session is not modified and needs no generated-code evaluation.
+No custom theme, Fish universal variable or shell-startup hook is introduced.
+
+`programs.fzf.enable` remains false, so existing Atuin/history/picker keybindings
+are untouched. The shared package list consumes programs.fzf.package: NixOS gets the
+wrapper while Darwin's package/integrations remain unchanged. The wrapper includes
+the original manual pages. Only the dormant Stylix color target is disabled.
+
+The standard output preparer creates a valid comment until the first render and
+handles protected legacy snippets with a backup. XDG_CONFIG_HOME is resolved at
+invocation time, with the configured fallback. Existing FZF_DEFAULT_OPTS/options
+files are retained; CLI flags can still override defaults. Repeated top-level calls
+do not accumulate colors in the parent shell. A newly opened picker reads the latest
+palette, while an already-running picker retains its startup options.
+
+Seven tests use two palettes/modes, native selectors, real Nu and isolated PTYs,
+checking RGB output, unchanged parent options, file/CLI precedence and bootstrap.
+Tests do not open a user picker or change a user shell. Full build/native config/
+invariants/lint pass. After rebuilding, open a picker, change the Noctalia palette
+and open a new picker to compare; test light/dark separately. Existing keybindings
+should be unchanged. For a simple Nu test:
+
+```nu
+["alpha" "beta" "gamma"] | str join (char nl) | fzf
+```
+
+The user rebuilt and confirmed it works. Live inspection verified the writable
+snippet and per-invocation wrapper; a filter smoke test selected the expected line,
+and shell/overview services remain active. Detailed keybindings were not independently
+instrumented. All requested community integrations are accepted, but this does not
+finish all app migration or retire the compatibility bridge.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
@@ -623,8 +661,9 @@ accepted after deployment checks. The palette-warning fix is accepted; the runti
 controller handover and Ghostty's native palette propagation have passed their live
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
 isolated migration with runtime palette propagation verified; Vicinae is now
-accepted by the user, as are Zed, Zen Browser, VS Code and lazygit. fzf is next,
-including its Nushell compatibility review.
+accepted by the user, as are Zed, Zen Browser, VS Code, lazygit and fzf's reviewed
+Nushell-compatible wrapper. Remaining E3 targets, deferred GTK checks and bridge/
+security cleanup are still tracked separately.
 
 ## Build and validate
 

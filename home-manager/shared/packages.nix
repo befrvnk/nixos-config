@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   home.packages = with pkgs; [
@@ -9,7 +9,7 @@
     eza
     fastfetch
     fd
-    fzf
+    config.programs.fzf.package
     helix
     htop
     imagemagick

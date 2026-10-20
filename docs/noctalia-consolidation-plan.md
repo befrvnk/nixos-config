@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae, Zed, Zen Browser, VS Code and lazygit accepted; fzf community-template/Nushell review next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; remaining E3 targets, deferred GTK checks and bridge/security cleanup still pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -709,10 +709,36 @@ lazygit community-template implementation accepted:
   the unsafe config-writing hook. Repo-local config and explicit user overrides may
   intentionally supersede the global theme; no such native behavior is disabled.
 
-Remaining community-template queue: fzf, with a Nushell compatibility review.
-Reuse their upstream files rather than authoring replacements; audit hooks separately.
-fzf offers shell-specific output that needs a Nushell compatibility review.
-fzf is not enabled yet.
+fzf community-template/Nushell implementation accepted:
+- The pinned repo provides Bash/Fish snippets but no Nushell template. Consume the
+  upstream Bash file verbatim; a small fzf package wrapper sources it only in the
+  child process before exec. No custom color mapping, Nu eval/translation, shell
+  profile hook, Fish universal variable or new keybinding is introduced.
+- Keep programs.fzf.enable false, as before, so Atuin/current picker bindings are
+  unaffected. Disable only the dormant Stylix color target. Shared packages now
+  reference programs.fzf.package: NixOS gets the wrapper; Darwin retains its default
+  unwrapped package. Manual pages are retained in the wrapper output too.
+- Render only `fzf/themes/noctalia.sh`. The standard preparer seeds a comment,
+  safely privatizes protected legacy output and preserves writable data. No apply
+  hook or new service. XDG_CONFIG_HOME is resolved per invocation with HM fallback.
+- Existing FZF_DEFAULT_OPTS and FZF_DEFAULT_OPTS_FILE survive; native CLI flags
+  retain precedence. Repeated top-level invocations don't mutate/accumulate colors
+  in the parent Nu session. Each new picker reads the current palette; an already
+  running picker retains its process options (no live mutation/reload is claimed).
+- Seven tests render two palettes/modes, run real fzf selectors and real Nushell,
+  prove repeated parent options stay stable, exercise native option/file/CLI
+  precedence, and observe RGB output in isolated PTYs after palette replacement.
+  Bootstrap, protected output and hook-free registration are covered. No user shell
+  or picker is touched. Total Noctalia tests: 77, plus 11 safe-suspend tests.
+- Native config validation, lint, invariants and full Framework build pass with
+  substitutions disabled. User rebuilt and confirmed it works. Deployment inspection
+  verified the writable generated snippet and per-invocation wrapper; a native filter
+  smoke test returned the expected selection and shell/overview services remain active.
+  Detailed user keybinding behavior was not independently instrumented.
+
+All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
+Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility
+bridge and the separate compromised-cache follow-up are not marked complete.
 
 | Target | Proposed integration / caution |
 |---|---|

@@ -250,6 +250,15 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                FZF_WRAPPER = "${
+                  pkgs.callPackage ./home-manager/nixos/noctalia/fzf-package.nix {
+                    configHome = home.xdg.configHome;
+                  }
+                }/bin/fzf";
+                NUSHELL_CLI = "${pkgs.nushell}/bin/nu";
+                FZF_REGISTRATION = pkgs.writeText "fzf-test-template.json" (
+                  builtins.toJSON home.programs.noctalia.settings.theme.templates.user.fzf
+                );
                 LAZYGIT_CLI = "${pkgs.lazygit}/bin/lazygit";
                 LAZYGIT_WRAPPER = "${home.programs.lazygit.package}/bin/lazygit";
                 LAZYGIT_BASE = home.home.file."${home.xdg.configHome}/lazygit/config.yml".source;
@@ -499,6 +508,22 @@
                 ) variants
               )
               "lazygit must overlay native runtime colors without rewriting its managed base or shell integration";
+            assert pkgs.lib.assertMsg
+              (
+                same (map (h: toString h.programs.fzf.package) variants)
+                && builtins.all (
+                  h:
+                  !h.programs.fzf.enable
+                  && !h.stylix.targets.fzf.enable
+                  && h.programs.fzf.colors == { }
+                  && !(h.home.sessionVariables ? FZF_DEFAULT_OPTS)
+                  && h.programs.noctalia.settings.theme.templates.user ? fzf
+                  && !(h.programs.noctalia.settings.theme.templates.user.fzf ? post_hook)
+                  && !(managedConfig h "fzf/themes/noctalia.sh")
+                  && pkgs.lib.elem h.programs.fzf.package h.home.packages
+                ) variants
+              )
+              "fzf must consume native community colors per process without shell integration or global env changes";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';
