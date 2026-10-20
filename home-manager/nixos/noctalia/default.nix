@@ -20,6 +20,7 @@ in
     ./storage.nix
     ./theme.nix
     ./vicinae.nix
+    ./zed.nix
   ];
 
   # Noctalia owns its palette/font; avoid competing automatic Stylix settings.

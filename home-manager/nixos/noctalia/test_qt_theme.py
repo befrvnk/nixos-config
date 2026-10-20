@@ -38,7 +38,7 @@ class QtThemeTests(unittest.TestCase):
             output = directory / "colors/noctalia.conf"
             migration.prepare(output, self.root / f"backup-{major}", "[ColorScheme]\n")
             source = Path(os.environ[f"QT{major}_CONFIG_SOURCE"]).read_text()
-            source = source.replace(os.environ["QT_CONFIG_HOME"], str(self.config))
+            source = source.replace(os.environ["MANAGED_CONFIG_HOME"], str(self.config))
             target = self.root / f"managed-qt{major}ct.conf"
             target.write_text(source)
             target.chmod(0o444)

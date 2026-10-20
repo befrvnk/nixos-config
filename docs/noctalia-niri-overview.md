@@ -281,7 +281,8 @@ rolling back also requires reconciling any subsequently saved `theme.mode` overr
 
 Build validation includes 15 mocked bridge tests, 4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
-6 Vicinae tests (with its actual pinned theme parser), 11 safe-suspend tests and
+6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
+Home Manager settings merger), 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -452,10 +453,48 @@ palette and compare the launcher. It should update without a server restart or
 settings write. Confirm the running PID remains stable after palette/mode changes,
 the main overrides still select `noctalia`, and template/launcher logs have no errors.
 
-Subsequent community-template migrations requested by the user: Zed, Zen Browser,
-VS Code, lazygit and fzf. All exist in the pinned repository; enable only after
-per-app hook/ownership/reload review. Zen profile mutations, VS Code extension paths
-and fzf's shell-specific output need particular care. They are not enabled here.
+Zed's subsequent integration is described below. Remaining community-template
+migrations requested by the user: Zen Browser, VS Code, lazygit and fzf. All exist
+in the pinned repository; enable only after per-app hook/ownership/reload review.
+Zen profile mutations, VS Code extension paths and fzf's shell-specific output need
+particular care. Those four are not enabled here.
+
+## Zed community template (accepted)
+
+`noctalia/zed.nix` registers the pinned upstream `zed/zed.json` verbatim, producing
+only `~/.config/zed/themes/noctalia.json` (not the repository's optional Gram output).
+The family always contains `Noctalia Dark`, `Noctalia Light` and their transparent
+variants. Declarative settings select the opaque pair with `theme.mode = system`,
+so Noctalia's existing native appearance preference determines the editor mode.
+
+Stylix's Zed target and static Base16 family are disabled. JetBrainsMono/Noto font
+families and their existing 4/3 point conversion are kept explicitly. Tab-bar settings,
+Nix extension and other editor preferences are unchanged. Home Manager retains its
+existing mutable JSON5 merge: it owns the configured fields without discarding
+unrelated user settings (including icon theme and language-server preferences).
+Shared and Darwin modules are untouched; this integration is NixOS-only.
+
+The common output preparer handles protected legacy JSON with backups and provides a
+minimal empty-refinement family containing the selected names until the first render.
+Already writable generated output is left alone by subsequent activations. No
+Noctalia hook edits settings, invokes Zed or restarts it. The upstream template
+provides no reload hook; actual live editor behavior remains for user verification.
+
+Six tests cover two palettes/all four variants, active-mode independence, the actual
+Home Manager merger on JSON5 user settings, settings untouched by template rendering,
+bootstrap and protected output. These validate rendered JSON/structure, not Zed's
+full schema/parser or GUI reload. Native config/invariants/lint/full build pass.
+The user rebuilt and confirmed it works. Live inspection verified the system-mode
+selectors, all four variants in a writable regular file, preserved font families/
+sizes, removed Stylix output and active shell/overview watcher. GUI behavior is
+user-confirmed, not independently instrumented by the rendering tests.
+
+After rebuilding, open Zed and check it selects Noctalia Light/Dark through system
+mode. Choose a noticeably different palette in Noctalia and compare Zed, then test
+light/dark mode separately. Keep the configured system selector rather than manually
+pinning a theme in Zed's picker. If it doesn't refresh while running, fully reopen
+Zed once and report whether the new palette appears. No live theme has been changed
+by the agent. See [Zed's theme settings](https://zed.dev/docs/themes).
 
 ## Consolidation plan
 
@@ -469,8 +508,8 @@ accepted after deployment checks. The palette-warning fix is accepted; the runti
 controller handover and Ghostty's native palette propagation have passed their live
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
 isolated migration with runtime palette propagation verified; Vicinae is now
-accepted by the user. Zed is next, followed by Zen/VS Code/lazygit/fzf as separate
-community-template migrations.
+accepted by the user, as is Zed. Zen Browser is next; VS Code/lazygit/fzf remain
+subsequent community-template migrations.
 
 ## Build and validate
 

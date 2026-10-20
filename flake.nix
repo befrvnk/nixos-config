@@ -244,12 +244,16 @@
                 QT6_PLUGIN_PATH = "${pkgs.qt6Packages.qt6ct}/${qt6.qtPluginPrefix}:${qt6}/${qt6.qtPluginPrefix}";
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
-                QT_CONFIG_HOME = home.xdg.configHome;
+                MANAGED_CONFIG_HOME = home.xdg.configHome;
                 VICINAE_PROBE = "${vicinaeProbe}/bin/probe";
-                VICINAE_TEMPLATE_SOURCE = inputs.noctalia-community-templates.outPath;
+                COMMUNITY_TEMPLATE_SOURCE = inputs.noctalia-community-templates.outPath;
                 VICINAE_SETTINGS = pkgs.writeText "vicinae-test-settings.json" (
                   builtins.toJSON home.programs.vicinae.settings
                 );
+                ZED_SETTINGS = pkgs.writeText "zed-test-settings.json" (
+                  builtins.toJSON home.programs.zed-editor.userSettings
+                );
+                ZED_SETTINGS_ACTIVATION = pkgs.writeText "zed-test-activation.sh" home.home.activation.zedSettingsActivation.data;
                 nativeBuildInputs = [
                   pkgs.bash
                   pkgs.coreutils
@@ -378,6 +382,25 @@
                 && !(h.xdg.dataFile ? "vicinae/themes/noctalia.toml")
               ) variants
             ) "Vicinae must reload a native runtime theme without mode-specific config or unit changes";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.programs.zed-editor.userSettings) variants)
+              && builtins.all (
+                h:
+                !h.stylix.targets.zed.enable
+                && h.programs.zed-editor.mutableUserSettings
+                &&
+                  h.programs.zed-editor.userSettings.theme == {
+                    mode = "system";
+                    dark = "Noctalia Dark";
+                    light = "Noctalia Light";
+                  }
+                && h.programs.zed-editor.userSettings.buffer_font_family == h.stylix.fonts.monospace.name
+                && h.programs.zed-editor.userSettings.ui_font_family == h.stylix.fonts.sansSerif.name
+                && h.programs.noctalia.settings.theme.templates.user ? zed
+                && !(h.programs.zed-editor.themes ? stylix)
+                && !(managedConfig h "zed/themes/noctalia.json")
+              ) variants
+            ) "Zed must keep constant settings/fonts and select the writable native theme family";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

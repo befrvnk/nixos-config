@@ -67,7 +67,7 @@ Theme switching without full rebuilds:
   (`checks.x86_64-linux.noctalia-theme-invariants` enforces this).
 - Neither system nor HM Darkman module is imported. Old files remain rollback-only.
 - Ghostty, GTK3/GTK4 and Qt use Noctalia's built-in templates; Vicinae consumes a
-  reviewed pinned community template. Other apps migrate individually.
+  reviewed pinned community template, as does Zed. Other apps migrate individually.
 - Keep Ghostty's main config declarative with literal `theme = noctalia`, so the shipped
   apply hook skips rewriting its read-only symlink. Never manage `themes/noctalia` as
   `home.file`; it is a separate writable runtime output.
@@ -92,6 +92,13 @@ Theme switching without full rebuilds:
   alias, tested using real offscreen Qt5/Qt6 probes. Do not add a competing env owner.
 - The stock Qt template has no reload hook. Do not infer live reload from startup
   tests or expect Vicinae's independently managed theme to follow generic Qt colors.
+
+- `noctalia/zed.nix` consumes the pinned community family verbatim and registers
+  only Zed, not Gram. Keep opaque Noctalia Light/Dark selectors in native system mode.
+  Disable Stylix's Zed target while preserving its font sizes/families explicitly.
+- Preserve Zed's mutable HM settings merger; it owns theme/fonts but retains unrelated
+  preferences. Only the separate runtime family is writable by Noctalia; no settings
+  post-hook or custom reload process. Shared/Darwin Zed configuration is unaffected.
 
 ### Wallpaper Management (awww)
 - awww-daemon starts at session startup (`niri/startup.nix`)

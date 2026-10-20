@@ -515,6 +515,8 @@ This configuration separates concerns between system-level and user-level settin
   and Fusion
 - **Vicinae** uses a reviewed, pinned Noctalia community template and native theme
   reload, while its launcher settings, extensions and keybindings remain declarative
+- **Zed (NixOS)** uses the pinned community theme family with native system-mode
+  selection, preserving fonts and existing editor preferences
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

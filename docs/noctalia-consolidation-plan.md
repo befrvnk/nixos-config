@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae community-template integration accepted; Zed community template next.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Vicinae and Zed accepted; Zen Browser community template next.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -593,11 +593,37 @@ Vicinae community-template implementation accepted:
   startup and subsequent user palette tests worked. Retain this as a known transient
   startup warning, not an error-free-startup claim or reason to add a restart daemon.
 
-User-requested community-template queue (one app per tested checkpoint): Zed,
-Zen Browser, VS Code, lazygit and fzf. All five IDs exist in the same pinned source.
+Zed community-template implementation accepted:
+- `noctalia/zed.nix` consumes the same pinned community repository's `zed/zed.json`
+  verbatim, registering only Zed's output, not the optional Gram entry. The upstream
+  family contains both modes and four opaque/transparent variants; select the opaque
+  `Noctalia Dark`/`Noctalia Light` variants with Zed's native `theme.mode = system`.
+- Disabled the Stylix Zed target and removed its static Base16 theme. Preserved
+  JetBrainsMono/Noto fonts and their existing 4/3 point conversion, tab-bar options,
+  Nix extension/LSP setup and mutable settings merge behavior. Unrelated user settings,
+  icon choice, language servers and extension selections remain untouched.
+- Separate `zed/themes/noctalia.json` stays writable. The shared preparer seeds the
+  two selected names with an empty-refinement family before linkGeneration, handles
+  protected legacy output with a backup, and preserves existing writable output.
+  No app-setting apply hook, custom color generator or restart service is added.
+- Six tests render two palettes/all four variants in both default modes, verify the
+  complete family is independent of the active mode, execute the actual generated
+  Home Manager JSON5/settings merger in temporary dirs, and check settings preservation,
+  bootstrap and protected output. Total Noctalia tests: 51, plus 11 safe-suspend tests.
+- Invariants enforce stable settings across specialisations, font preservation,
+  system-mode selectors and runtime-file ownership. Shared/Darwin modules are unchanged.
+- Native config validation, lint, full Framework build and tests pass with substitutions
+  disabled. User rebuilt and confirmed the integration works. Deployment inspection
+  verified system-mode selectors, all four generated variants in a regular 0644 file,
+  unchanged font families/sizes, removal of the old Stylix theme and active shell/
+  overview watcher. GUI behavior is user-confirmed; JSON tests themselves do not
+  establish full schema validation or independently instrument editor reload.
+
+Remaining community-template queue (one app per tested checkpoint):
+Zen Browser, VS Code, lazygit and fzf. All IDs exist in the same pinned source.
 Reuse their upstream files rather than authoring replacements; audit hooks separately.
 Zen rewrites profile CSS/user.js, VS Code targets extension paths, and fzf offers
-shell-specific output that needs a Nushell compatibility review. None are enabled yet.
+shell-specific output that needs a Nushell compatibility review. These four are not enabled yet.
 
 | Target | Proposed integration / caution |
 |---|---|

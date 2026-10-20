@@ -17,7 +17,7 @@ class VicinaeThemeTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
-        self.source = Path(os.environ["VICINAE_TEMPLATE_SOURCE"]) / "vicinae"
+        self.source = Path(os.environ["COMMUNITY_TEMPLATE_SOURCE"]) / "vicinae"
         self.output = self.root / "data/vicinae/themes/noctalia.toml"
         self.output.parent.mkdir(parents=True)
         self.icon = self.output.with_suffix(".svg")
