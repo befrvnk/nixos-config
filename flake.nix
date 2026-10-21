@@ -277,6 +277,26 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                EMACS_CLI = "${pkgs.emacs-pgtk}/bin/emacs";
+                EMACS_MANAGED_INIT = pkgs.writeText "emacs-test-managed-init.el" home.programs.emacs.extraConfig;
+                EMACS_ROUTES = pkgs.writeText "emacs-test-routes.json" (
+                  builtins.toJSON (
+                    map
+                      (package: {
+                        inherit (package) name;
+                        path = "${package}/bin/${package.name}";
+                      })
+                      (
+                        builtins.filter (
+                          package:
+                          pkgs.lib.elem package.name [
+                            "doom-emacs"
+                            "spacemacs"
+                          ]
+                        ) home.home.packages
+                      )
+                  )
+                );
                 BTOP_CLI = "${pkgs.btop}/bin/btop";
                 BTOP_CONFIG = home.xdg.configFile."btop/btop.conf".source;
                 BRIGHTNESS_CONTROL_SCRIPT = ./home-manager/nixos/niri/brightness-ctl.sh;
@@ -691,6 +711,22 @@
                 && !(managedConfig h "btop/themes/noctalia.theme")
               ) variants
             ) "btop must retain declarative settings/key behavior with only native runtime colors";
+            assert pkgs.lib.assertMsg
+              (
+                same (map (h: toString h.programs.emacs.finalPackage) variants)
+                && same (map (h: h.programs.emacs.extraConfig) variants)
+                && builtins.all (
+                  h:
+                  h.programs.emacs.enable
+                  && !h.stylix.targets.emacs.enable
+                  && h.programs.noctalia.settings.theme.templates.user ? emacs
+                  && !(h.programs.noctalia.settings.theme.templates.user.emacs ? post_hook)
+                  && pkgs.lib.hasInfix "(load-theme 'noctalia t)" h.programs.emacs.extraConfig
+                  && !(pkgs.lib.hasInfix "base16-stylix" h.programs.emacs.extraConfig)
+                  && !h.services.emacs.enable
+                ) variants
+              )
+              "Managed plain Emacs must load native theme data without changing personal profiles or requiring a daemon";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

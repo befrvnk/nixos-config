@@ -14,6 +14,7 @@ in
   imports = [
     inputs.noctalia.homeModules.default
     ./btop.nix
+    ./emacs.nix
     ./fzf.nix
     ./ghostty.nix
     ./gtk.nix

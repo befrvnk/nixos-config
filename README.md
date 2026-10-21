@@ -538,6 +538,8 @@ This configuration separates concerns between system-level and user-level settin
   base into a separate runtime config, preserving the existing prompt layout
 - **btop (NixOS)** selects Noctalia's shipped runtime theme with native reload,
   retaining its declarative settings and one-second refresh rate
+- **Plain Emacs (NixOS)** loads Noctalia's shipped theme from generated runtime data
+  at startup; personal Doom/Spacemacs theme configurations remain separate
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

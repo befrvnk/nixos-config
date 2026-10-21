@@ -171,6 +171,16 @@ Theme switching without full rebuilds:
   Native SIGUSR2 reload is used by upstream. Unit hook tests mock pgrep/pkill; real
   reload tests may signal only their own sandbox child, never live user btop processes.
 
+- `noctalia/emacs.nix` affects only Home Manager's plain-Emacs final package.
+  Doom/Spacemacs wrappers bypass it and keep personal init/themes. Don't rewrite
+  those profiles or assume an emacsclient daemon exists. Use the shipped theme
+  at XDG state with startup loading, no global client hook.
+- Preserve Emacs font/opacity source expressions. Batch tests prove Lisp/colors,
+  not GUI font resolution. The upstream theme includes Org preferences; don't
+  claim a color-only change or silently fork its settings.
+- Swaylock's custom fingerprint/lid-aware PAM and idle/pre-sleep/manual routes
+  remain independent of cosmetic theme work. No lock/suspend probes as the agent.
+
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:

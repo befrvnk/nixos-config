@@ -290,6 +290,7 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 7 Niri template tests (full KDL validation, colors and backdrop-only placement), 6 Nushell tests
 (real Nu rendering/reader/hook checks), 6 Starship tests (real CLI/prompt RGB),
 8 native OSD/control tests (all hardware mocked), 6 btop tests (including isolated native reload),
+6 plain-Emacs tests (real batch theme/init loading),
 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
@@ -887,6 +888,43 @@ Confirm the main config remains a managed symlink and the old Stylix theme is go
 The user explicitly requested committing without live testing. Deployment and live
 palette/reload/GUI behavior remain unverified despite the passing automated tests.
 Lock screen/authentication and other remaining consumers are outside this checkpoint.
+
+## Plain Emacs native theme (commit approved; live test deferred)
+
+The routing audit distinguished Home Manager's plain `emacs` final package from
+personal Doom/Spacemacs wrappers, which launch raw emacs-pgtk with separate init
+directories and personal doom-one/spacemacs-dark themes. No default daemon is
+configured. `noctalia/emacs.nix` changes only the managed plain route; it neither
+edits those profile files nor signals their clients.
+
+The unmodified shipped Lisp template renders to
+`$XDG_STATE_HOME/noctalia/emacs/noctalia-theme.el`. The managed init preserves its
+previous font/opacity expressions, adds the runtime directory to theme lookup and
+loads Noctalia at startup if readable. A valid empty theme covers initial startup
+until rendering, and the shared preparer safely handles protected output.
+The fixed Base16 dependency disappears; the plain final package is identical across
+specialisations. Shared/Darwin settings remain unchanged.
+
+The built-in output-discovery/client hooks are not used: discovery picks Doom's
+personal root first, and emacsclient assumes a default server. Startup loading is
+explicitly not live switching; restart the plain app or reload the theme manually
+for new colors. Upstream also sets Org hide-leading-stars/startup-indent preferences
+and styles generic fixed/variable-pitch faces. Those theme behaviors are retained,
+not hidden by a fork.
+
+Six tests load the actual rendered theme in real batch Emacs for two palettes/both
+modes, validate face colors/opacity/bootstrap and unchanged personal routes/files.
+Batch TTY font resolution is not GUI font validation; source checks preserve the
+original font-spec. Native config/cache/invariants/lint/full build pass. After a
+user rebuild, test **plain emacs**, not doom-emacs/spacemacs; choose a Noctalia palette
+and restart/reload the plain theme. The user explicitly requested committing without
+live testing; deployment, GUI appearance and GUI font resolution remain unverified.
+Passing automated batch tests are not live acceptance.
+
+Swaylock remains unchanged, including manual/idle/pre-sleep routes and custom
+fingerprint/lid-aware PAM. xterm is installed, so Xresources needs a real plan;
+other generated dormant-app assets need confirmation before removal. Do not retire
+the compatibility bridge merely because some generated files look unused.
 
 ## Consolidation plan
 

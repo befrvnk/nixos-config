@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop commit approved without live testing; deferred GTK/remaining targets and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain-Emacs commit approved without live testing after route audit, with deferred GTK/remaining targets and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -929,6 +929,37 @@ btop built-in template commit approved (live test deferred):
   without live testing. Deployment, live palette/native reload appearance and GUI
   behavior remain unverified; automated sandbox tests are not live acceptance.
   No lock/authentication or other remaining target is changed.
+
+Residual routing audit and plain-Emacs commit approved (live test deferred):
+- Plain `emacs` resolves to Home Manager's final package with Base16 init; its package
+  differed between modes. Doom/Spacemacs wrappers instead use raw emacs-pgtk with
+  separate init directories, currently selecting personal doom-one/spacemacs-dark.
+  No default Emacs daemon is configured. Do not treat all three routes as one client.
+- Swaylock is a real mode-dependent config consumer, used by manual Niri and swayidle
+  lock/before-sleep/timeout paths, with custom fingerprint/lid-aware PAM. No lock,
+  PAM, timeout, suspend, keyring or authentication behavior is changed by this step.
+- gdu/Blender/Forge/gedit/Vencord assets are emitted despite no corresponding active
+  app setup found in package/config audit; this is not proof of never-use. bat/helix/
+  yazi are plain packages, not enabled HM modules. xterm is installed, so Xresources
+  cannot simply be deleted as unused. GTKSourceView styles may serve other apps.
+- `noctalia/emacs.nix` migrates only the managed plain route: disable Base16, preserve
+  the declared font/opacity expressions, add a runtime theme load path and load native
+  Noctalia at startup if readable. Compose no custom theme; render the shipped Lisp
+  unchanged to XDG state. A valid empty theme seeds bootstrap/protected output handling.
+- Omit the built-in discovery/emacsclient hooks: discovery selects Doom first and
+  client reload assumes an unconfigured daemon. No existing session is contacted.
+  Running apps need restart/manual theme reload; personal profiles retain their themes.
+  Upstream's theme includes Org hide-leading-stars/startup-indent preferences and
+  generic fixed/variable-pitch face choices, documented rather than silently forked.
+- Six tests render two palettes/both modes and load the actual theme/managed init
+  in real batch Emacs, checking color faces, opacity/bootstrap, protected output and
+  unchanged personal routes/files. Batch TTY font resolution reports default; source
+  checks preserve the original font-spec, but GUI font behavior is not claimed.
+- Total Noctalia tests: 119, plus 11 safe-suspend. Full build/native config/cache/
+  invariants/lint pass. User explicitly requested committing without live testing.
+  Deployment, plain-Emacs GUI appearance and GUI font resolution remain unverified;
+  automated batch tests are not live acceptance. Do not test this by changing personal
+  Doom/Spacemacs configs or locking the session.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility
