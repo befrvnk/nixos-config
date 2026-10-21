@@ -277,6 +277,21 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                GTKSOURCE_TEMPLATE = home.programs.noctalia.settings.theme.templates.user.gtksourceview.input_path;
+                GTKSOURCE_ORIGINAL_TEMPLATE = "${inputs.stylix}/modules/gtksourceview/template.xml.mustache";
+                GTKSOURCE_PROBE = ./home-manager/nixos/noctalia/probe-gtksourceview.py;
+                GTKSOURCE4_LIB = "${pkgs.lib.getLib pkgs.gtksourceview4}/lib/libgtksourceview-4.so.0";
+                GTKSOURCE5_LIB = "${pkgs.lib.getLib pkgs.gtksourceview5}/lib/libgtksourceview-5.so.0";
+                GTKSOURCE_LINKS = pkgs.writeText "gtksourceview-test-links.json" (
+                  builtins.toJSON (
+                    map (version: toString home.xdg.dataFile."gtksourceview-${version}/styles/stylix.xml".source) [
+                      "2.0"
+                      "3.0"
+                      "4"
+                      "5"
+                    ]
+                  )
+                );
                 MANAGED_HOME = home.home.homeDirectory;
                 XRDB_CLI = "${pkgs.xrdb}/bin/xrdb";
                 XVFB_CLI = "${pkgs.xorg-server}/bin/Xvfb";
@@ -754,7 +769,7 @@
                 && !(h.xdg.dataFile ? "gedit/styles/stylix.xml")
                 && !(pkgs.lib.hasInfix "stylix-kde-config" (h.home.sessionVariables.XDG_CONFIG_DIRS or ""))
                 && h.programs.noctalia.settings.theme.templates.user ? xresources
-                && h.stylix.targets.gtksourceview.enable
+                && h.programs.noctalia.settings.theme.templates.user ? gtksourceview
                 && h.programs.swaylock.enable
               ) variants)
               "Dormant theme generators/KDE overlay must be retired without dropping xterm, shared editor styles or the lock screen";
@@ -773,6 +788,20 @@
                 && pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/Xresources" h.xresources.extraConfig
               ) variants
             ) "Xresources must keep fonts/cursor declarative and load only native runtime color data";
+            assert pkgs.lib.assertMsg
+              (builtins.all (
+                h:
+                !h.stylix.targets.gtksourceview.enable
+                && h.programs.noctalia.settings.theme.templates.user ? gtksourceview
+                && !(h.programs.noctalia.settings.theme.templates.user.gtksourceview ? post_hook)
+                && builtins.all (version: h.xdg.dataFile ? "gtksourceview-${version}/styles/stylix.xml") [
+                  "2.0"
+                  "3.0"
+                  "4"
+                  "5"
+                ]
+              ) variants)
+              "GTKSourceView must preserve legacy scheme lookup with native runtime colors, not app preference rewrites";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

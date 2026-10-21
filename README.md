@@ -544,6 +544,8 @@ This configuration separates concerns between system-level and user-level settin
   the Niri setup; native fonts, cursor, icons and configured app styling remain separate
 - **Xresources/xterm (NixOS)** uses native Noctalia-rendered color data and xrdb,
   retaining Nix-managed fonts/cursor; new X11 app instances pick up the current palette
+- **GTKSourceView (NixOS)** preserves legacy style selections and maintained syntax
+  definitions while Noctalia renders the colors; apps may need a scheme reload/reopen
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

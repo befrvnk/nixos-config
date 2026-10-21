@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources commit approved without live testing; GTKSourceView/swaylock, deferred GTK and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView commit approved without live testing; swaylock/deferred GTK/bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -1005,6 +1005,28 @@ Xresources native-renderer commit approved (live test deferred):
   testing. Deployment/new-xterm GUI appearance remain unverified; isolated X-server
   tests are not live acceptance.
   This checkpoint does not change swaylock/PAM or remove the compatibility bridge.
+
+GTKSourceView native-renderer commit approved (live test deferred):
+- Neither pinned catalog has an entry. A saved legacy Gedit scheme setting is
+  still 'stylix', even though Gedit isn't installed. Do not delete the available
+  style or silently rewrite app preferences based only on package inventory.
+- Reuse the pinned Stylix XML syntax/style definitions, adapting only the 16 color
+  placeholders to Noctalia roles at build time and changing the visible label to
+  Noctalia. Preserve the legacy scheme ID/lookup filenames so saved selections
+  remain valid. No copied/forked syntax style body or standalone color generator.
+- Noctalia renders one writable state XML. The four versioned lookup paths use
+  out-of-store links; the fixed target is disabled. The common preparer seeds a
+  valid empty scheme and handles protected output. No preference writer or reload
+  hook; applications may need reopening or scheme rescan to load new colors.
+- Six tests compare maintained style definitions, render two palettes/both modes,
+  verify lookup links/untouched preferences/bootstrap and load colors with actual
+  GTKSourceView 4 and 5 native style managers in separate headless child processes.
+  Legacy 2/3 directories remain but those parsers/GUI behavior aren't tested.
+- Total Noctalia tests: 131, plus 11 safe-suspend. Native config/cache/invariants/
+  lint/full Framework build pass. Only three mode-dependent managed files remain:
+  swaylock config and the diagnostic palette JSON/HTML. No lock/auth changes made;
+  user explicitly requested committing without live testing. Deployment/live editor
+  appearance remain unverified; native manager tests are not GUI acceptance.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

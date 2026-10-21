@@ -18,6 +18,7 @@ in
     ./fzf.nix
     ./ghostty.nix
     ./gtk.nix
+    ./gtksourceview.nix
     ./lazygit.nix
     ./niri.nix
     ./nushell.nix

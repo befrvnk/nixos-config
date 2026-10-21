@@ -189,8 +189,12 @@ Theme switching without full rebuilds:
   The xrdb merge hook is display-guarded; tests use only their own headless X server.
   Existing X11 windows may retain startup colors. Don't merge into a user display
   during preparation or call this existing-window hot reload.
-- GTKSourceView may serve shared viewers. Don't delete its styles or swaylock as
-  an unused-file cleanup without review.
+- GTKSourceView retains the legacy stylix scheme ID (saved Gedit selection exists),
+  but native Noctalia renders colors using the pinned upstream XML definitions.
+  Keep syntax style definitions/lookup compatibility; don't rewrite app preferences.
+  Out-of-store links expose one mutable XML; native v4/v5 manager tests are headless,
+  not proof of GUI or v2/v3 behavior. Other selected schemes remain unchanged.
+- Don't delete swaylock as an unused-file cleanup without review.
   Removing a declared env value doesn't rewrite old processes' inherited environment.
 
 ### Native wallpaper/backdrop

@@ -291,6 +291,7 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 (real Nu rendering/reader/hook checks), 6 Starship tests (real CLI/prompt RGB),
 8 native OSD/control tests (all hardware mocked), 6 btop tests (including isolated native reload),
 6 plain-Emacs tests (real batch theme/init loading), 6 Xresources tests (real isolated Xvfb/xrdb),
+6 GTKSourceView tests (real headless version 4/5 style-manager loading),
 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
@@ -979,6 +980,35 @@ After rebuilding, change the Noctalia palette, open a new xterm and check colors
 fonts/cursor. Test light/dark separately; don't expect an already-open window to
 recolor. `xrdb -query` is a read-only way to inspect the published values. Swaylock,
 PAM and personal Emacs profiles remain untouched; bridge removal is still separate.
+
+## GTKSourceView native colors (commit approved; live test deferred)
+
+A saved Gedit scheme setting still names 'stylix'. Although Gedit isn't installed,
+removing that available scheme could break a future/current shared consumer. No
+Noctalia entry exists in the pinned catalogs. `noctalia/gtksourceview.nix` reuses the
+pinned upstream XML syntax/style definitions and translates only color placeholders
+to Noctalia tokens at build time. The visible label is Noctalia; legacy ID and lookup
+filenames stay stylix, preserving saved selections without changing app preferences.
+
+Noctalia writes one state XML; versioned GTKSourceView 2.0/3.0/4/5 style directories
+link to it through out-of-store symlinks. The old fixed target is disabled. The common
+preparer seeds a valid empty scheme and safely handles protected output. No app code,
+preference writer, hook, GUI launch or new service is added. Existing style-manager
+instances can cache data; reopening apps or rescan may be required. Apps selecting
+other schemes keep them—this integration does not force every preview/editor to use it.
+
+Six tests preserve the upstream style definitions, render two palettes/both modes,
+check lookup/legacy/preference behavior and load the current colors through real
+GTKSourceView 4 and 5 managers in separate headless processes. Version 2/3 parser and
+GUI appearance are not tested. Native config/cache/invariants/lint/full build pass.
+The user explicitly requested committing without live testing; deployment and GUI
+appearance remain unverified. Native style-manager tests are not GUI acceptance. After rebuilding, an app selecting the
+legacy stylix ID should show Noctalia colors on its next scheme load. No extra app
+was installed just to test this.
+
+Only swaylock and the diagnostic palette JSON/HTML remain mode-dependent managed
+files. Lock/PAM are unchanged, and the compatibility bridge remains until its final
+real consumer has a separately reviewed migration.
 
 ## Consolidation plan
 
