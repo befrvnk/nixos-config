@@ -162,8 +162,9 @@ Theme switching without full rebuilds:
 - Preserve prompt format/modules and integration. Session and Nu env pointers must
   agree; open a fresh Nu session after migration. Keep runtime palette names out of
   the declarative base's palettes table to avoid duplicate TOML definitions.
-- SwayOSD isn't just a style target: its client changes volume. Don't remove/replace
-  it as a cosmetic cleanup or modify Framework audio init/brightness DDC incidentally.
+- SwayOSD replacement is functional, not cosmetic: `noctalia/osd.nix` now selects
+  native volume/brightness OSD and caps output at 100%. Don't alter Framework audio
+  init/brightness DDC as incidental cleanup.
 
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
@@ -183,8 +184,19 @@ Theme switching without full rebuilds:
 
 ### Shell Volume Module
 - Noctalia V5 uses its native audio service for the widget/control center.
-- Keyboard controls still use `niri/volume-ctl.sh` and SwayOSD; keep Framework sink init.
-- The old volume cache is not read by Noctalia. Noctalia volume/brightness OSD is disabled.
+- OSD belongs at bottom_center (horizontal and vertical) to avoid the topbar.
+  Plain F1–F12 must reach apps; Framework Fn+Esc hardware Fn Lock selects media
+  actions behind Fn. Don't emulate Fn in Niri/keyd or apply hid_apple fnmode to
+  this AT keyboard. Existing external NuPhy mappings remain separate.
+- Volume keys call native Noctalia IPC with 5% steps/mute. SwayOSD and the old
+  volume cache producer/startup are removed; keep Framework pw-loopback init intact.
+- Brightness still uses brightnessctl + async DDC. Only display calls native
+  brightness-osd <actual%>; no second hardware adjustment. OSD failure must not
+  block DDC, and internal control failure must not propagate stale values.
+- Per-user brightness runtime state replaces shared /tmp paths. Tests mock all
+  hardware; never test actual volume/brightness changes as the agent.
+- The compatibility bridge must not restart retired SwayOSD/other native clients;
+  remaining prebuilt consumers still need audit before bridge removal.
 
 ### Framework pw-loopback
 - **Must start at session startup** for volume controls to work

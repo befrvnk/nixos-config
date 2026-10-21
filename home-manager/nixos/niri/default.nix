@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   lib,
   ...
@@ -39,18 +40,19 @@
       ${builtins.readFile ./toggle-abm.sh}
     '')
 
-    # Event-driven volume control (calls swayosd + updates cache for the bar)
-    # This eliminates dbus polling overhead - wpctl only runs when volume changes
-    (pkgs.writeShellScriptBin "volume-ctl" ''
-      export PATH="${pkgs.swayosd}/bin:${pkgs.wireplumber}/bin:${pkgs.gawk}/bin:${pkgs.gnugrep}/bin:$PATH"
-      ${builtins.readFile ./volume-ctl.sh}
-    '')
-
     # Unified brightness control for internal + external monitors
-    # Internal: brightnessctl (synchronous) + swayosd OSD
+    # Internal: brightnessctl (synchronous) + native display-only Noctalia OSD
     # External: syncs to internal brightness, catching up at its own pace
     (pkgs.writeShellScriptBin "brightness-ctl" ''
-      export PATH="${pkgs.swayosd}/bin:${pkgs.ddcutil}/bin:${pkgs.brightnessctl}/bin:${pkgs.gawk}/bin:$PATH"
+      export PATH="${
+        lib.makeBinPath [
+          pkgs.brightnessctl
+          pkgs.coreutils
+          pkgs.ddcutil
+          pkgs.gawk
+          config.programs.noctalia.package
+        ]
+      }"
       ${builtins.readFile ./brightness-ctl.sh}
     '')
   ];
@@ -83,7 +85,7 @@
       (import ./inputs.nix { })
       (import ./layout.nix { })
       (import ./rules.nix { })
-      (import ./binds.nix { })
+      (import ./binds.nix { inherit config; })
       (import ./startup.nix { inherit pkgs; })
     ];
   };

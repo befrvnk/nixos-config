@@ -103,12 +103,12 @@ class ThemeBridgeTests(unittest.TestCase):
         self.assertFalse(any(args[0] in ("dconf", "gsettings") for args in commands))
         self.assertFalse(any("theme-mode-set" in args for args in commands))
 
-    def test_vicinae_is_not_restarted_by_compatibility_refresh(self):
+    def test_native_clients_are_not_restarted_by_compatibility_refresh(self):
         bridge.request(self.runtime)
         self.process()
         self.assertFalse(any("vicinae.service" in args for args, _ in self.calls))
-        self.assertTrue(any(args == ["systemctl", "--user", "try-restart", "swayosd.service"]
-                            for args, _ in self.calls))
+        self.assertFalse(any("try-restart" in args or "swayosd.service" in args
+                             for args, _ in self.calls))
 
     def test_native_nushell_output_is_not_written_or_required_from_config(self):
         before = self.nu_theme.stat().st_mtime_ns

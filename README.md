@@ -121,7 +121,7 @@ overview, with transparent background, neutral text and individual Catppuccin pi
   notifications, WiFi next to Bluetooth, volume, brightness and battery.
 - **Control center** — interactive network, Bluetooth, audio and display controls.
 - **Plugins** — Pinned Udiskie Manager adds storage controls; the Lid Guard trial provides a separate manual lid-close inhibitor. Native Caffeine handles idle inhibition. Existing automount and lock services remain active.
-- **Existing tools preserved** — Vicinae, awww, SwayOSD, swaylock, Gammastep and tuned.
+- **Existing tools preserved** — Vicinae, swaylock, Gammastep and tuned; native Noctalia now supplies wallpaper and volume/brightness OSD.
 
 Noctalia replaces dunst for notifications. The previous custom shell is retained
 for rollback; domain-specific widgets (OpenRouter, aurora and firewall)
@@ -192,7 +192,12 @@ are not ported automatically. See [setup and migration notes](./docs/noctalia-ni
 | `Mod+Shift+B` | Toggle auto-brightness and ABM (for photo editing) |
 | `XF86AudioPlay/Prev/Next` | Media controls |
 
-Volume and brightness keys show an on-screen display (OSD) overlay via SwayOSD.
+Volume keys use native Noctalia controls in 5% steps (100% cap). Brightness keeps
+brightnessctl plus asynchronous external-monitor DDC synchronization, with native
+Noctalia bottom-center OSD for the actual value, clear of the topbar. Framework
+audio initialization is preserved. On the Framework keyboard, press **Fn+Esc** to
+toggle Fn Lock for normal F1–F12 and media actions with Fn (e.g. **Fn+F3** volume-up).
+This is a hardware setting; Niri does not remap plain F-keys.
 
 ### Screenshots
 
@@ -433,7 +438,7 @@ Installed via Home Manager in the platform-specific package sets:
 - **Noctalia V5** - Native overview-only shell and control center
 - **vicinae** - Application launcher
 - **Noctalia notifications** - Notification toasts and history
-- **swayosd** - On-screen display for volume/brightness
+- **Noctalia OSD** - Native output-volume/brightness display with palette integration
 - **swaylock** - Screen locker
 - **awww** - Wallpaper daemon with fade transitions
 - **brightnessctl** - Brightness control

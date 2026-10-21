@@ -277,6 +277,21 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                BRIGHTNESS_CONTROL_SCRIPT = ./home-manager/nixos/niri/brightness-ctl.sh;
+                OSD_INTEGRATION = pkgs.writeText "native-osd-integration.json" (
+                  builtins.toJSON {
+                    osd = home.programs.noctalia.settings.osd;
+                    audio = home.programs.noctalia.settings.audio;
+                    binds = builtins.intersectAttrs {
+                      XF86AudioRaiseVolume = null;
+                      XF86AudioLowerVolume = null;
+                      XF86AudioMute = null;
+                      XF86MonBrightnessUp = null;
+                      XF86MonBrightnessDown = null;
+                    } home.programs.niri.settings.binds;
+                    startup = home.programs.niri.settings.spawn-at-startup;
+                  }
+                );
                 NIRI_VALIDATOR = "${pkgs.niri}/bin/niri";
                 NIRI_CONFIG = pkgs.writeText "niri-test-config.kdl" home.programs.niri.finalConfig;
                 NIRI_NODES = pkgs.writeText "niri-test-nodes.json" (builtins.toJSON home.programs.niri.config);
@@ -638,6 +653,28 @@
                 ) variants
               )
               "Starship must render native palette data without rewriting its declarative base or prompt integrations";
+            assert pkgs.lib.assertMsg (builtins.all
+              (
+                h:
+                !h.services.swayosd.enable
+                && !(h.systemd.user.services ? swayosd)
+                && h.programs.noctalia.settings.osd.enabled
+                && h.programs.noctalia.settings.osd.position == "bottom_center"
+                && h.programs.noctalia.settings.osd.position_vertical == "bottom_center"
+                && builtins.all (n: !(builtins.hasAttr "F${toString n}" h.programs.niri.settings.binds)) (
+                  pkgs.lib.range 1 12
+                )
+                && h.programs.noctalia.settings.osd.kinds.volume
+                && h.programs.noctalia.settings.osd.kinds.volume_output
+                && !h.programs.noctalia.settings.osd.kinds.volume_input
+                && h.programs.noctalia.settings.osd.kinds.brightness
+                && !h.programs.noctalia.settings.audio.enable_overdrive
+                && !(pkgs.lib.hasInfix "swayosd-client" h.programs.niri.finalConfig)
+                && !(pkgs.lib.hasInfix "volume-ctl" h.programs.niri.finalConfig)
+                && pkgs.lib.hasInfix "pw-loopback" h.programs.niri.finalConfig
+              )
+              variants
+            ) "Native Noctalia must own output/brightness OSD while preserving Framework audio initialization";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

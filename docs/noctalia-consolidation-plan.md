@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; SwayOSD/control migration, deferred GTK/remaining targets and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; deferred GTK/remaining targets and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -873,6 +873,40 @@ Remaining-consumer audit and Starship implementation accepted:
   native palette without Base16, installed Nu pointer and actual RGB prompt output.
   Shell/overview remain active; detailed user integrations were not independently
   instrumented beyond the automated tests.
+
+Native OSD/control migration accepted:
+- `noctalia/osd.nix` enables native output-volume and brightness OSD, disables input
+  volume OSD and overdrive, and disables the SwayOSD service. Existing lock-key OSD
+  preference remains off; other native feedback/sound settings are not changed.
+- User requested bottom-edge OSD placement; both native position fields are
+  bottom_center, avoiding the overview topbar. Plain F1–F12 remain unbound by Niri.
+  Framework Fn+Esc toggles hardware Fn Lock to make F-keys primary and Fn+F3 volume-up;
+  no firmware write/remap was performed. Persistence is reported upstream, not locally
+  reboot-tested. User confirmed bottom placement and desired Fn behavior work.
+- Niri volume keys call the native volume-up/down IPC with explicit 5% steps and
+  native mute toggle. Native audio service updates bar/OSD from one device state,
+  capped at 100%. Remove volume-ctl/cache producer and its startup initialization;
+  leave any old user cache data alone. Media keys remain playerctl.
+- Keep brightnessctl 5% internal steps and existing asynchronous DDC target/catch-up
+  algorithm. Replace only its display call with native brightness-osd <actual%>,
+  never brightness-set. OSD failure doesn't stop DDC; failed internal control exits
+  before displaying/syncing stale values. Runtime target/lock paths move from shared
+  /tmp names into the user's runtime/cache directory.
+- Preserve the Framework pw-loopback startup command unchanged. Remove SwayOSD
+  restart from the bridge; no legacy UI services are explicitly restarted now.
+  The bridge still applies remaining specialisations/native templates/wallpaper pair.
+- Eight tests mock all brightness/DDC/OSD operations, verify native key wiring/limits,
+  preserved audio init, 5% changes/actual-value display, OSD/control failure paths,
+  external catch-up, existing lock and invalid actions. No hardware call or user
+  control was executed. Total Noctalia tests: 107, plus 11 safe-suspend.
+- GUI override inspection found no masking OSD/overdrive settings. Native config,
+  cache checks, invariants, shellcheck/statix and full Framework build pass. User
+  rebuilt and confirmed it works, including bottom placement/Fn preference. Live
+  inspection verified bottom-center output/brightness OSD, disabled overdrive, retired
+  SwayOSD, native 5%/mute binds, display-only brightness call, preserved pw-loopback,
+  valid Niri config and active native services. External-monitor hardware behavior
+  was not separately instrumented by the agent. Noctalia availability gates keyboard volume IPC; brightness mutation
+  remains independent of its display-only OSD. Native sound settings still apply.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

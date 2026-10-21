@@ -47,6 +47,4 @@
     };
   };
 
-  # Enable SwayOSD for volume/brightness on-screen display
-  services.swayosd.enable = true;
 }

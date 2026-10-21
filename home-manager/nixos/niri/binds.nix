@@ -1,4 +1,8 @@
-_: {
+{ config, ... }:
+let
+  noctalia = "${config.programs.noctalia.package}/bin/noctalia";
+in
+{
   binds = {
     "Mod+Shift+Slash".action.show-hotkey-overlay = { };
 
@@ -172,15 +176,17 @@ _: {
     # Toggle ABM (for photo editing with accurate colors)
     "Mod+Shift+B".action.spawn = [ "toggle-abm" ];
 
-    # Function keys (volume uses volume-ctl for event-driven updates to the bar)
-    # volume-ctl calls swayosd-client AND updates the cache file for the bar
+    # Native audio service updates the bar and OSD from the same device state.
     "XF86AudioLowerVolume".action.spawn = [
-      "volume-ctl"
-      "lower"
+      noctalia
+      "msg"
+      "volume-down"
+      "5%"
     ];
     "XF86AudioMute".action.spawn = [
-      "volume-ctl"
-      "mute-toggle"
+      noctalia
+      "msg"
+      "volume-mute"
     ];
     "XF86AudioNext".action.spawn = [
       "playerctl"
@@ -195,14 +201,16 @@ _: {
       "previous"
     ];
     "XF86AudioRaiseVolume".action.spawn = [
-      "volume-ctl"
-      "raise"
+      noctalia
+      "msg"
+      "volume-up"
+      "5%"
     ];
     "XF86AudioStop".action.spawn = [
       "playerctl"
       "stop"
     ];
-    # Unified brightness: internal (swayosd) + external (ddcutil in background)
+    # Preserve internal brightnessctl + asynchronous DDC sync; native display-only OSD.
     "XF86MonBrightnessDown".action.spawn = [
       "brightness-ctl"
       "lower"

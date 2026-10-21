@@ -25,13 +25,15 @@ standard freedesktop interface continue to work.
 Existing managers remain responsible for:
 
 - Vicinae launcher and its keybinding.
-- SwayOSD and the existing audio/brightness keys, including Framework sink init.
+- Existing brightnessctl/DDC synchronization and Framework audio sink initialization.
+  Noctalia now owns the prepared output-volume/brightness OSD and volume-key IPC.
 - swaylock, idle/audio-inhibit services and the existing polkit agent.
 - Gammastep and tuned Framework profiles.
 - udiskie removable-drive mounting.
 
 Noctalia's dock, clipboard history, screen lock, idle actions,
-nightlight, polkit agent and volume/brightness OSD are disabled.
+nightlight and polkit agent are disabled. Native output-volume/brightness OSD are
+enabled in the current migration; microphone/lock-key OSD remain off.
 Do not enable competing owners in Settings without disabling their existing service.
 
 ## Overview watcher lifecycle
@@ -238,7 +240,7 @@ Per-app templates will replace that dependency one application at a time.
 Noctalia's mode hook submits an atomic request. `noctalia-theme.path` starts a
 serialized oneshot `noctalia-theme.service` to apply it. The worker queries the
 resolved mode, waits for ordinary HM activation, uses a shared linking lock and
-suppresses its own activation hooks. It then refreshes SwayOSD and requests the
+suppresses its own activation hooks. It then requests the
 current light/dark wallpaper pair through native Noctalia IPC.
 Nushell's runtime data is now written only by Noctalia's native template renderer. Duplicate events skip activation; newer events and
 failed work remain pending. It never runs a Nix build, changes Noctalia's mode,
@@ -287,6 +289,7 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 (including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
 7 Niri template tests (full KDL validation, colors and backdrop-only placement), 6 Nushell tests
 (real Nu rendering/reader/hook checks), 6 Starship tests (real CLI/prompt RGB),
+8 native OSD/control tests (all hardware mocked),
 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
@@ -810,6 +813,57 @@ Live inspection verified the immutable base, writable runtime config, selected
 native palette without Base16, installed Nu pointer and real ANSI RGB prompt output.
 Shell/overview services remain active. Detailed integrations were not independently
 instrumented beyond automated tests.
+
+## Native output-volume and brightness OSD (accepted)
+
+`noctalia/osd.nix` enables native output-volume and brightness OSD, with overdrive
+and input-volume OSD disabled. SwayOSD is disabled and removed from active controls.
+The Niri volume keys call Noctalia's native 5% up/down and mute commands; the same
+audio service supplies bar and OSD state. The cap is 100%. Horizontal/vertical OSD positions are bottom_center, as requested,
+so popups don't cover the topbar. Noctalia availability is
+now required for these keyboard volume commands; no second backend is added.
+
+The old volume cache helper/startup entry is removed. Existing cache data is not
+deleted, inactive rollback files are untouched, and media keys remain playerctl.
+Framework pw-loopback startup initialization is preserved exactly.
+
+Brightness still uses brightnessctl in synchronous 5% steps and the existing
+asynchronous DDC target/catch-up worker. Only display switches to native
+brightness-osd <actual%>; it never asks Noctalia to change brightness again.
+An OSD failure still allows external synchronization; failed internal adjustment
+exits before stale values propagate. Target/lock files now live in per-user runtime
+state rather than shared /tmp paths. DDC locking/catch-up behavior is otherwise
+unchanged. No agent hardware changes are used for testing.
+
+The compatibility bridge no longer restarts SwayOSD or any other UI client. It
+still applies remaining prebuilt theme consumers and native templates/wallpaper pair.
+Do not remove it solely because its explicit client restart list is now empty.
+
+### Framework function-row preference
+
+Use hardware Fn Lock (Fn+Esc) for normal F1–F12 with media actions behind Fn.
+On this Framework 13 Ryzen AI 300, Fn+F3 then sends volume-up while F3 reaches apps.
+Niri continues binding XF86 media events, not bare function keys; keyd's existing
+external NuPhy device configuration is untouched. No firmware command or simulated
+key press is run by the agent. [Framework guidance](https://community.frame.work/t/setting-f-keys-as-default-instead-of-fn-keys/69667/2)
+reports persistence across reboots; firmware resets/updates may require retoggling.
+The user confirmed the desired function-row behavior, but reboot persistence was
+not independently tested by the agent.
+
+Eight tests use fake brightnessctl/DDC/Noctalia programs, validate native volume key
+wiring without executing it, check limits/audio initialization, catch-up, lock/error
+paths and invalid actions. Existing Niri/config validation still covers all binds.
+Full build/cache/invariants/statix/shellcheck pass. The user rebuilt and confirmed
+the native controls, bottom-center position and Fn preference work. Live inspection
+verified the retired SwayOSD service, native 5%/mute binds, output/brightness flags,
+100% limit, display-only brightness call and preserved pw-loopback initialization.
+Niri validation and shell/overview services are healthy. No hardware settings were
+changed by the agent; external-monitor behavior was not separately instrumented.
+
+After rebuilding, test volume down/up/mute, then internal brightness down/up and
+external sync if connected. Expect a single native OSD, matching bar/device values,
+with current Noctalia palette colors. Native sound preferences remain in effect;
+report unwanted feedback separately. Authentication/idle/power behavior is unchanged.
 
 ## Consolidation plan
 

@@ -1,21 +1,23 @@
 # shellcheck shell=bash
-action="$1"
-target_file="/tmp/brightness-ctl-target"
-lock_file="/tmp/brightness-ctl-ddc.lock"
+action="${1:-}"
+runtime_dir="${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/brightness-ctl"
+mkdir -p "$runtime_dir"
+target_file="$runtime_dir/target"
+lock_file="$runtime_dir/ddc.lock"
 
 # Internal display: use brightnessctl (synchronous, no race condition)
 case "$action" in
-  raise) brightnessctl -q set 5%+ ;;
-  lower) brightnessctl -q set 5%- ;;
+  raise) brightnessctl -q set 5%+ || exit $? ;;
+  lower) brightnessctl -q set 5%- || exit $? ;;
   *) echo "Usage: brightness-ctl <raise|lower>"; exit 1 ;;
 esac
 
 # Read current brightness percentage
 target=$(brightnessctl -m | awk -F, '{gsub(/%/,""); print $4}')
 
-# Show OSD with actual brightness value (0.0 to 1.0 scale)
-progress=$(awk "BEGIN {printf \"%.2f\", $target/100}")
-swayosd-client --custom-icon=display-brightness-symbolic --custom-progress="$progress"
+# Display only; hardware changes remain with brightnessctl/DDC. A missing shell
+# must not prevent the external monitor from receiving its brightness update.
+noctalia msg brightness-osd "${target}%" || true
 
 # Write target for external monitor
 echo "$target" > "$target_file"

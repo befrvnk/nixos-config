@@ -19,6 +19,7 @@ in
     ./lazygit.nix
     ./niri.nix
     ./nushell.nix
+    ./osd.nix
     ./plugins.nix
     ./qt.nix
     ./starship.nix
@@ -152,8 +153,6 @@ in
       };
       nightlight.enabled = false;
       osd.kinds = {
-        volume = false;
-        brightness = false;
         lock_keys = false;
       };
       # The hook runs after IPC becomes ready, including on shell restart.
