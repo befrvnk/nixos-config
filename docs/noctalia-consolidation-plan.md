@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain-Emacs commit approved without live testing after route audit, with deferred GTK/remaining targets and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup approved for commit without activation verification; deferred GTK/remaining targets and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -960,6 +960,29 @@ Residual routing audit and plain-Emacs commit approved (live test deferred):
   Deployment, plain-Emacs GUI appearance and GUI font resolution remain unverified;
   automated batch tests are not live acceptance. Do not test this by changing personal
   Doom/Spacemacs configs or locking the session.
+
+Dormant target/KDE overlay cleanup approved for commit:
+- Rechecked declarative home/system package inventory, executable/config routes and
+  local Flatpak application list. No configured Blender/Forge/gdu/gedit/Vencord or
+  KDE/Plasma installation was found; observed config roots contain generated assets.
+  This is configuration evidence, not proof of never-use in transient environments.
+- Disable those six Stylix targets only. Keep GTKSourceView styles because shared
+  viewers may use them, and Xresources because xterm is installed. Preserve swaylock,
+  authentication, Emacs profiles, fonts, cursor, icons and native Qt config.
+- The mode-specific XDG_CONFIG_DIRS value came solely from stylix-kde-config. Removing
+  that target also stabilizes environment/fontconfig/autostart outputs across modes.
+  Only eight mode-dependent managed files remain: Xresources, palette HTML/JSON,
+  swaylock config and four GTKSourceView versions.
+- New invariants reject the dormant assets/KDE overlay and retain protected consumers.
+  All 119 Noctalia/11 safe-suspend tests, cache checks, invariants, lint and full
+  Framework build pass. No installed app package or user file was deleted by the
+  agent. Activation will remove only HM-owned orphan links; non-HM copies are not
+  forcibly deleted. Inherited environment values in old processes can persist until
+  a later login; this isn't a live env rewrite.
+- User explicitly approved committing and continuing. Activation/desktop-font-icon
+  regression checks remain unverified; this is not live acceptance. This does
+  not retire the bridge; swaylock/Xresources/GTKSourceView and artifact-integrity
+  review/deferred GTK checks still require their own decisions/checkpoints.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

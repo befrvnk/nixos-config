@@ -727,6 +727,31 @@
                 ) variants
               )
               "Managed plain Emacs must load native theme data without changing personal profiles or requiring a daemon";
+            assert pkgs.lib.assertMsg
+              (builtins.all (
+                h:
+                builtins.all (target: !h.stylix.targets.${target}.enable) [
+                  "blender"
+                  "forge"
+                  "gdu"
+                  "gedit"
+                  "kde"
+                  "vencord"
+                ]
+                && !(builtins.any (
+                  name:
+                  pkgs.lib.hasPrefix "blender/" name
+                  || pkgs.lib.hasPrefix "forge/" name
+                  || pkgs.lib.hasPrefix "gdu/" name
+                  || pkgs.lib.hasPrefix "Vencord/" name
+                ) (builtins.attrNames h.xdg.configFile))
+                && !(h.xdg.dataFile ? "gedit/styles/stylix.xml")
+                && !(pkgs.lib.hasInfix "stylix-kde-config" (h.home.sessionVariables.XDG_CONFIG_DIRS or ""))
+                && h.stylix.targets.xresources.enable
+                && h.stylix.targets.gtksourceview.enable
+                && h.programs.swaylock.enable
+              ) variants)
+              "Dormant theme generators/KDE overlay must be retired without dropping xterm, shared editor styles or the lock screen";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

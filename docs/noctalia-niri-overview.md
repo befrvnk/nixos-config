@@ -926,6 +926,31 @@ fingerprint/lid-aware PAM. xterm is installed, so Xresources needs a real plan;
 other generated dormant-app assets need confirmation before removal. Do not retire
 the compatibility bridge merely because some generated files look unused.
 
+## Dormant target/KDE overlay cleanup (commit approved; activation unverified)
+
+The post-Emacs audit found no configured Blender/Forge/gdu/gedit/Vencord or KDE/
+Plasma app installation in the declared home/system inventory or local Flatpak app
+list. These targets emitted files despite the absent app setup. `stylix.nix` now
+disables only those six generators; this is not a claim about never-used transient apps.
+No application is uninstalled. Native fonts/cursor/Papirus/Qt configs are retained.
+
+The KDE target was the sole mode-varying XDG_CONFIG_DIRS injection. Retiring it
+also stabilizes environment/fontconfig/autostart generated outputs. Eight files
+still differ between prebuilt modes: Xresources, Stylix palette HTML/JSON, swaylock
+and four GTKSourceView style versions. xterm is installed, so Xresources stays;
+shared viewers can use GTKSourceView, so those files stay too. Authentication and
+personal Emacs profiles remain untouched.
+
+Invariants reject dormant assets/the old KDE environment overlay while retaining
+protected consumers. Full Framework build, all 119 Noctalia/11 suspend tests, cache
+checks and lint pass. After the user's rebuild, inspect owned orphan links and check
+ordinary fonts/icons/cursor/Qt appearance. Home Manager should not delete non-owned
+copies; do not force-remove user files. Old processes can retain inherited KDE config
+values until a future login—no live session environment rewrite is performed here.
+The user explicitly approved committing and continuing without activation verification.
+Live cleanup/desktop regression acceptance remains unverified; bridge removal is a
+subsequent checkpoint.
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):

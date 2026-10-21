@@ -181,6 +181,13 @@ Theme switching without full rebuilds:
 - Swaylock's custom fingerprint/lid-aware PAM and idle/pre-sleep/manual routes
   remain independent of cosmetic theme work. No lock/suspend probes as the agent.
 
+- Dormant Blender/Forge/gdu/gedit/Vencord/KDE generators are disabled in stylix.nix
+  after package/config audit. Don't re-enable a global KDE palette/env overlay in
+  this Niri/qtct setup by default. Keep native fonts/cursor/icons/Qt settings.
+- Xresources is retained for installed xterm; GTKSourceView may serve shared viewers.
+  Don't delete their styles or swaylock as an unused-file cleanup without review.
+  Removing a declared env value doesn't rewrite old processes' inherited environment.
+
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:

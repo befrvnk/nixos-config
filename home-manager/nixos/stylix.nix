@@ -48,7 +48,15 @@ in
     # autoEnable handles most apps; explicitly disable only what's needed
     targets = {
       anki.enable = false;
-      # Disable Stylix auto-generation for Zen Browser - we manage manually with media queries
+      # No configured consumers: don't create dormant mode-specific assets or
+      # inject a KDE look-and-feel directory into this Niri/qtct session.
+      blender.enable = false;
+      forge.enable = false;
+      gdu.enable = false;
+      gedit.enable = false;
+      kde.enable = false;
+      vencord.enable = false;
+      # Native Noctalia renders Zen's pinned community CSS.
       zen-browser.enable = false;
     };
   };
