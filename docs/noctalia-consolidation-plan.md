@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; deferred GTK/remaining targets and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop commit approved without live testing; deferred GTK/remaining targets and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -907,6 +907,28 @@ Native OSD/control migration accepted:
   valid Niri config and active native services. External-monitor hardware behavior
   was not separately instrumented by the agent. Noctalia availability gates keyboard volume IPC; brightness mutation
   remains independent of its display-only OSD. Native sound settings still apply.
+
+btop built-in template commit approved (live test deferred):
+- Audit confirmed btop is an active Home Manager app with fixed Stylix colors,
+  one-second refresh and default (non-vim) keys. Other installed plain packages
+  (bat/helix/yazi) have their program modules disabled, so audit actual config/use
+  rather than treating every injected Stylix option as an active consumer.
+- `noctalia/btop.nix` disables fixed colors, declaratively selects `noctalia`, and
+  enables the shipped built-in btop template unchanged. Preserve update_ms=1000,
+  vim_keys=false, shared integration and Darwin behavior (only a shared comment changes).
+- Runtime theme remains separate/writable at btop/themes/noctalia.theme. The common
+  preparer seeds a comment and handles protected old output. Upstream apply.sh sees
+  the literal selector, skips main-file edits, then requests btop's native SIGUSR2
+  reload. No custom mapper, watcher, merge process or prompt changes.
+- Six tests render two palettes/modes, exercise the stock hook with fake process
+  tools, preserve the read-only main-config link, and test real btop in an isolated
+  PTY. The reload test signals only its own sandbox child and observes the new RGB
+  palette without replacing the config. No live user btop process was signalled.
+- Total Noctalia tests: 113, plus 11 safe-suspend. Full Framework build, native config,
+  cache checks, invariants and lint pass. User explicitly requested committing
+  without live testing. Deployment, live palette/native reload appearance and GUI
+  behavior remain unverified; automated sandbox tests are not live acceptance.
+  No lock/authentication or other remaining target is changed.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

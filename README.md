@@ -536,6 +536,8 @@ This configuration separates concerns between system-level and user-level settin
   shell integrations and retaining previous colors if a theme write is incomplete
 - **Starship (NixOS)** renders the shipped Noctalia palette alongside its declarative
   base into a separate runtime config, preserving the existing prompt layout
+- **btop (NixOS)** selects Noctalia's shipped runtime theme with native reload,
+  retaining its declarative settings and one-second refresh rate
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

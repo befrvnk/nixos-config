@@ -289,7 +289,7 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 (including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
 7 Niri template tests (full KDL validation, colors and backdrop-only placement), 6 Nushell tests
 (real Nu rendering/reader/hook checks), 6 Starship tests (real CLI/prompt RGB),
-8 native OSD/control tests (all hardware mocked),
+8 native OSD/control tests (all hardware mocked), 6 btop tests (including isolated native reload),
 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
@@ -864,6 +864,29 @@ After rebuilding, test volume down/up/mute, then internal brightness down/up and
 external sync if connected. Expect a single native OSD, matching bar/device values,
 with current Noctalia palette colors. Native sound preferences remain in effect;
 report unwanted feedback separately. Authentication/idle/power behavior is unchanged.
+
+## btop built-in template (commit approved; live test deferred)
+
+`noctalia/btop.nix` enables the unmodified shipped btop template and disables its
+fixed Stylix theme. The main config declaratively selects `color_theme = "noctalia"`,
+retaining `update_ms = 1000` and `vim_keys = False`. Shared/Darwin behavior is unchanged.
+Only `~/.config/btop/themes/noctalia.theme` is writable runtime output, prepared with
+a valid comment/protected-output backup handling before linkGeneration.
+
+The pinned apply hook recognizes that fixed selector and skips writes through the
+Home Manager symlink. It then uses SIGUSR2 for native btop reload. Six tests validate
+two palettes/both modes and run the hook with fake process tools. A real btop 1.4.7
+sandbox child starts in a PTY, reads the first RGB theme, receives SIGUSR2 only on
+that exact child PID, and displays a second palette without config changes. No live
+user process is signalled by tests; no custom reload watcher/controller is added.
+
+Full build/native config/cache/invariants/lint pass. After rebuilding, open btop,
+select a different Noctalia palette and test light/dark separately. Expect colors to
+change in the running instance while refresh interval/keybindings stay unchanged.
+Confirm the main config remains a managed symlink and the old Stylix theme is gone.
+The user explicitly requested committing without live testing. Deployment and live
+palette/reload/GUI behavior remain unverified despite the passing automated tests.
+Lock screen/authentication and other remaining consumers are outside this checkpoint.
 
 ## Consolidation plan
 

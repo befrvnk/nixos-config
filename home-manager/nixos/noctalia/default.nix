@@ -13,6 +13,7 @@ in
 {
   imports = [
     inputs.noctalia.homeModules.default
+    ./btop.nix
     ./fzf.nix
     ./ghostty.nix
     ./gtk.nix

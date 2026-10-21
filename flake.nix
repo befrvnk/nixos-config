@@ -277,6 +277,8 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                BTOP_CLI = "${pkgs.btop}/bin/btop";
+                BTOP_CONFIG = home.xdg.configFile."btop/btop.conf".source;
                 BRIGHTNESS_CONTROL_SCRIPT = ./home-manager/nixos/niri/brightness-ctl.sh;
                 OSD_INTEGRATION = pkgs.writeText "native-osd-integration.json" (
                   builtins.toJSON {
@@ -675,6 +677,20 @@
               )
               variants
             ) "Native Noctalia must own output/brightness OSD while preserving Framework audio initialization";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.programs.btop.settings) variants)
+              && builtins.all (
+                h:
+                h.programs.btop.enable
+                && !h.stylix.targets.btop.enable
+                && h.programs.btop.settings.color_theme == "noctalia"
+                && h.programs.btop.settings.update_ms == 1000
+                && !h.programs.btop.settings.vim_keys
+                && !(h.programs.btop.themes ? stylix)
+                && pkgs.lib.elem "btop" h.programs.noctalia.settings.theme.templates.builtin_ids
+                && !(managedConfig h "btop/themes/noctalia.theme")
+              ) variants
+            ) "btop must retain declarative settings/key behavior with only native runtime colors";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

@@ -166,6 +166,11 @@ Theme switching without full rebuilds:
   native volume/brightness OSD and caps output at 100%. Don't alter Framework audio
   init/brightness DDC as incidental cleanup.
 
+- `noctalia/btop.nix` uses the shipped btop template and fixed `noctalia` selector.
+  Only the separate theme is writable; preserve the 1000ms update rate/default keys.
+  Native SIGUSR2 reload is used by upstream. Unit hook tests mock pgrep/pkill; real
+  reload tests may signal only their own sandbox child, never live user btop processes.
+
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:
