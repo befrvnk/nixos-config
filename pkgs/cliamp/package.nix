@@ -19,7 +19,7 @@ buildGoModule {
   pname = "cliamp";
   inherit src version;
 
-  vendorHash = "sha256-cKMGAVLRs6FwX9Gqq6wj11OPwK1TsTuVMR7uwI6Mwfg=";
+  vendorHash = "sha256-4IobrZ8UBXehfWH1WvzaICcuZlk9zZaVHW7c7h1Wex0=";
 
   nativeBuildInputs = [
     makeWrapper
@@ -35,7 +35,7 @@ buildGoModule {
   ++ lib.optionals stdenv.hostPlatform.isLinux [ alsa-lib ];
 
   postPatch = ''
-    substituteInPlace go.mod --replace-fail 'go 1.26.6' 'go 1.26.5'
+    substituteInPlace go.mod --replace-fail 'go 1.26.9' 'go 1.26.5'
   '';
 
   ldflags = [
