@@ -30,6 +30,7 @@ in
     ./vicinae.nix
     ./vscode.nix
     ./wallpaper.nix
+    ./xresources.nix
     ./zed.nix
     ./zen-browser.nix
   ];

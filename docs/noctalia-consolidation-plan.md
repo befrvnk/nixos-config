@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup approved for commit without activation verification; deferred GTK/remaining targets and bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources commit approved without live testing; GTKSourceView/swaylock, deferred GTK and bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -983,6 +983,28 @@ Dormant target/KDE overlay cleanup approved for commit:
   regression checks remain unverified; this is not live acceptance. This does
   not retire the bridge; swaylock/Xresources/GTKSourceView and artifact-integrity
   review/deferred GTK checks still require their own decisions/checkpoints.
+
+Xresources native-renderer commit approved (live test deferred):
+- xterm is installed and the live Xwayland database still had Base16 resources.
+  Neither pinned catalog has an Xresources entry. Use a small local data template
+  in Noctalia's native renderer, not a separate color generator/controller.
+- Keep ~/.Xresources managed, including a writable state color fragment through
+  native preprocessor include. Preserve declared fonts/cursor and Sxiv font; move
+  Xresource/Sxiv colors off their static targets into the shared native fragment.
+  No personal app config is scanned or edited.
+- A display-guarded native xrdb -merge hook updates the resource database without
+  writing the managed main file. No DISPLAY means skip safely. Existing xterm
+  windows generally retain their startup colors; new instances read current data.
+  No live Xwayland database merge or app launch was performed by the agent.
+- Six tests run real xrdb preprocessing/merge on test-owned headless Xvfb servers,
+  with TCP disabled and isolated HOME/DISPLAY. Two palettes/both modes reach the
+  database; fonts/cursor/unrelated resources remain. Test no-display behavior,
+  immutable main file, idempotence and bootstrap/protected output.
+- Total Noctalia tests: 125, plus 11 safe-suspend. Cache/invariants/lint/native config
+  and full Framework build pass. User explicitly requested committing without live
+  testing. Deployment/new-xterm GUI appearance remain unverified; isolated X-server
+  tests are not live acceptance.
+  This checkpoint does not change swaylock/PAM or remove the compatibility bridge.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

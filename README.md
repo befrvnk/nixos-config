@@ -542,6 +542,8 @@ This configuration separates concerns between system-level and user-level settin
   at startup; personal Doom/Spacemacs theme configurations remain separate
 - **Unused theme generators** and the global KDE palette overlay are disabled in
   the Niri setup; native fonts, cursor, icons and configured app styling remain separate
+- **Xresources/xterm (NixOS)** uses native Noctalia-rendered color data and xrdb,
+  retaining Nix-managed fonts/cursor; new X11 app instances pick up the current palette
 - Application theme templates will be migrated individually; arbitrary shell palettes
   do not yet recolor every app during this compatibility phase
 - Fonts: JetBrainsMono Nerd Font, Noto Sans/Serif

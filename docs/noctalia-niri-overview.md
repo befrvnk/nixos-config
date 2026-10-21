@@ -290,7 +290,7 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 7 Niri template tests (full KDL validation, colors and backdrop-only placement), 6 Nushell tests
 (real Nu rendering/reader/hook checks), 6 Starship tests (real CLI/prompt RGB),
 8 native OSD/control tests (all hardware mocked), 6 btop tests (including isolated native reload),
-6 plain-Emacs tests (real batch theme/init loading),
+6 plain-Emacs tests (real batch theme/init loading), 6 Xresources tests (real isolated Xvfb/xrdb),
 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
@@ -950,6 +950,35 @@ values until a future login—no live session environment rewrite is performed h
 The user explicitly approved committing and continuing without activation verification.
 Live cleanup/desktop regression acceptance remains unverified; bridge removal is a
 subsequent checkpoint.
+
+## Xresources native colors (commit approved; live test deferred)
+
+xterm is installed and reads the Xwayland resource database. Neither pinned template
+catalog provides Xresources, so `noctalia/xresources.nix` uses a small local color-data
+template in the native renderer. It emits `$XDG_STATE_HOME/noctalia/Xresources`.
+The Nix-managed ~/.Xresources includes that file through native preprocessing,
+keeping font/cursor properties declarative. The previous Xresources/Sxiv static
+color targets are disabled; Sxiv font/colors remain available if that app is used.
+
+A guarded native xrdb -merge hook loads the complete managed resource file only
+when DISPLAY exists. It doesn't modify the main file or choose theme mode/palette.
+The preparer ensures a valid Xresources comment before import links are installed
+and safely handles protected legacy output. No new daemon/controller/app wrapper
+is introduced. Existing xterm windows may keep startup colors; new instances read
+the current database. The agent has not merged into the user display or launched apps.
+
+Six tests run the actual xrdb preprocessor and merge in isolated headless Xvfb
+servers with TCP disabled. They verify two palettes/both modes, unchanged fonts/
+cursor/unrelated resources, idempotence, protected main files and bootstrap/no-display
+behavior. They are not GUI/font-resolution or existing-xterm hot-reload tests.
+Native config/cache/invariants/lint/full Framework build pass. The user explicitly
+requested committing without live testing. Deployment and new-xterm GUI appearance
+remain unverified; isolated-server tests are not live acceptance.
+
+After rebuilding, change the Noctalia palette, open a new xterm and check colors/
+fonts/cursor. Test light/dark separately; don't expect an already-open window to
+recolor. `xrdb -query` is a read-only way to inspect the published values. Swaylock,
+PAM and personal Emacs profiles remain untouched; bridge removal is still separate.
 
 ## Consolidation plan
 

@@ -277,6 +277,12 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                MANAGED_HOME = home.home.homeDirectory;
+                XRDB_CLI = "${pkgs.xrdb}/bin/xrdb";
+                XVFB_CLI = "${pkgs.xorg-server}/bin/Xvfb";
+                XRESOURCES_MAIN = home.home.file.${home.xresources.path}.source;
+                XRESOURCES_TEMPLATE = ./home-manager/nixos/noctalia/xresources.template;
+                XRESOURCES_HOOK = home.programs.noctalia.settings.theme.templates.user.xresources.post_hook;
                 EMACS_CLI = "${pkgs.emacs-pgtk}/bin/emacs";
                 EMACS_MANAGED_INIT = pkgs.writeText "emacs-test-managed-init.el" home.programs.emacs.extraConfig;
                 EMACS_ROUTES = pkgs.writeText "emacs-test-routes.json" (
@@ -747,11 +753,26 @@
                 ) (builtins.attrNames h.xdg.configFile))
                 && !(h.xdg.dataFile ? "gedit/styles/stylix.xml")
                 && !(pkgs.lib.hasInfix "stylix-kde-config" (h.home.sessionVariables.XDG_CONFIG_DIRS or ""))
-                && h.stylix.targets.xresources.enable
+                && h.programs.noctalia.settings.theme.templates.user ? xresources
                 && h.stylix.targets.gtksourceview.enable
                 && h.programs.swaylock.enable
               ) variants)
               "Dormant theme generators/KDE overlay must be retired without dropping xterm, shared editor styles or the lock screen";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.xresources.properties) variants)
+              && builtins.all (
+                h:
+                !h.stylix.targets.xresources.enable
+                && !h.stylix.targets.sxiv.enable
+                && h.xresources.properties."*.faceName" == h.stylix.fonts.monospace.name
+                && h.xresources.properties."*.faceSize" == toString h.stylix.fonts.sizes.terminal
+                && h.xresources.properties."Xcursor.theme" == h.stylix.cursor.name
+                && h.xresources.properties."Xcursor.size" == h.stylix.cursor.size
+                && !(h.xresources.properties ? "*background")
+                && !(h.xresources.properties ? "*foreground")
+                && pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/Xresources" h.xresources.extraConfig
+              ) variants
+            ) "Xresources must keep fonts/cursor declarative and load only native runtime color data";
             pkgs.runCommand "noctalia-theme-invariants" { } ''
               touch $out
             '';

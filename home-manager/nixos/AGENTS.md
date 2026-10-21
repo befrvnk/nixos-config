@@ -184,8 +184,13 @@ Theme switching without full rebuilds:
 - Dormant Blender/Forge/gdu/gedit/Vencord/KDE generators are disabled in stylix.nix
   after package/config audit. Don't re-enable a global KDE palette/env overlay in
   this Niri/qtct setup by default. Keep native fonts/cursor/icons/Qt settings.
-- Xresources is retained for installed xterm; GTKSourceView may serve shared viewers.
-  Don't delete their styles or swaylock as an unused-file cleanup without review.
+- Xresources is retained for installed xterm; `noctalia/xresources.nix` renders
+  native color data, with static fonts/cursor and an include in the managed main.
+  The xrdb merge hook is display-guarded; tests use only their own headless X server.
+  Existing X11 windows may retain startup colors. Don't merge into a user display
+  during preparation or call this existing-window hot reload.
+- GTKSourceView may serve shared viewers. Don't delete its styles or swaylock as
+  an unused-file cleanup without review.
   Removing a declared env value doesn't rewrite old processes' inherited environment.
 
 ### Native wallpaper/backdrop
