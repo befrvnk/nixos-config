@@ -85,6 +85,9 @@ Theme switching without full rebuilds:
   Native GTK is covered; sandboxed-app integration remains separate.
 - Keep built-in template enablement declarative; upstream GTK undo hooks try to edit
   managed gtk.css. Roll back through Nix, not GUI template undo.
+- Newer Stylix gates cursor projection with each target. Native GTK/Xresources
+  modules disable those color targets, so keep cursor settings explicit there via
+  config.stylix.cursor. The theme invariants must continue checking cursor retention.
 
 - `noctalia/qt.nix` owns Qt5ct/Qt6ct main configs; keep them declarative and select
   custom_palette with the separate writable Noctalia color path. Fusion honors
@@ -356,6 +359,8 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
   it as home.file/xdg.dataFile or regenerate static Stylix colors.
 - Native community apply.sh owns reload. The compatibility bridge must not restart
   Vicinae; settings and service units remain identical across specialisations.
+- The real theme parser probe for Vicinae 0.29 needs src/lib/common/include as well
+  as the server include paths. Keep the upstream parser test when source layout moves.
 - Zed, Zen Browser, VS Code, lazygit and fzf also have community templates in the pin;
   audit and reuse those individually rather than writing custom replacements.
 - GTK/Papirus stays in `stylix.nix`; generic Qt palettes/main configs live in `noctalia/qt.nix`.

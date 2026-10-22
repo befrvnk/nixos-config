@@ -27,6 +27,8 @@ in
       "*.faceSize" = toString fonts.sizes.terminal;
       "*.renderFont" = true;
       "Sxiv.font" = "${fonts.sansSerif.name}-${toString fonts.sizes.applications}";
+      "Xcursor.size" = config.stylix.cursor.size;
+      "Xcursor.theme" = config.stylix.cursor.name;
     };
   };
 

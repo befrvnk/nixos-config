@@ -19,6 +19,9 @@ in
   home.packages = [ pkgs.adw-gtk3 ];
   gtk = {
     enable = true;
+    cursorTheme = {
+      inherit (config.stylix.cursor) name package size;
+    };
     font = {
       inherit (fonts.sansSerif) name package;
       size = fonts.sizes.applications;

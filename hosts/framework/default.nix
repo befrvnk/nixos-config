@@ -1,4 +1,5 @@
 {
+  config,
   inputs,
   lib,
   pkgs,
@@ -13,6 +14,30 @@
     ../../modules/profiles/framework.nix
     inputs.nixos-hardware.nixosModules.framework-amd-ai-300-series
     inputs.lanzaboote.nixosModules.lanzaboote
+  ];
+
+  # Keep module aggregation coherent with the pinned kernel builder. Main nixpkgs
+  # now expects kmodigest certificates that this provider does not emit. Revisit
+  # this override when changing the kernel provider or its pinned nixpkgs.
+  nixpkgs.overlays = [
+    (
+      final: prev:
+      let
+        provider =
+          inputs.nix-cachyos-kernel.inputs.nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system};
+      in
+      {
+        aggregateModules =
+          modules:
+          let
+            kernel = config.boot.kernelPackages.kernel;
+          in
+          if kernel ? cachyosConfigFile && kernel.stdenv.outPath == provider.stdenv.outPath then
+            provider.aggregateModules modules
+          else
+            prev.aggregateModules modules;
+      }
+    )
   ];
 
   # Use CachyOS LTS kernel: the 7.1.x (cachyos-latest) series has an unfixed

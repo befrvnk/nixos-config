@@ -5,6 +5,7 @@
   fetchurl,
   makeBinaryWrapper,
   autoPatchelfHook,
+  libxcb,
   ripgrep,
 }:
 
@@ -50,6 +51,7 @@ stdenvNoCC.mkDerivation {
   ];
 
   buildInputs = lib.optionals stdenvNoCC.hostPlatform.isLinux [
+    libxcb
     stdenv.cc.cc.lib
   ];
 

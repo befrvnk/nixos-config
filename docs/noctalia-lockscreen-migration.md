@@ -4,6 +4,10 @@ This is a security-sensitive, staged migration from swaylock. Native Noctalia is
 pinned at V5.3.0. The agent must not lock/suspend, enter/test passwords, use the
 fingerprint reader, restart a locked session, or activate the system configuration.
 
+The subsequent [origin rebase validation](noctalia-origin-rebase.md) covers the newer
+dependency pins and replayed checkpoint hashes. Live observations below predate
+activation of that updated stack; do not treat them as fresh runtime acceptance.
+
 ## Stage 1: password authentication preflight (accepted)
 
 During stage 1, **swaylock and all existing routes remained active and native

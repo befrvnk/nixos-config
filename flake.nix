@@ -223,6 +223,27 @@
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          kernel-provider-compat =
+            let
+              framework = inputs.self.nixosConfigurations.framework;
+              provider = inputs.nix-cachyos-kernel.inputs.nixpkgs.legacyPackages.${system};
+              standard = framework.extendModules {
+                modules = [
+                  ({ lib, pkgs, ... }: { boot.kernelPackages = lib.mkForce pkgs.linuxPackages; })
+                ];
+              };
+              aggregator = packages: (packages.aggregateModules [ ]).drvPath;
+            in
+            assert pkgs.lib.assertMsg (
+              aggregator framework.pkgs == aggregator provider
+            ) "Pinned CachyOS modules must use their provider's matching aggregation format";
+            assert pkgs.lib.assertMsg (
+              aggregator standard.pkgs == aggregator pkgs
+            ) "Standard kernels must retain main nixpkgs' certificate-aware aggregation";
+            pkgs.runCommand "kernel-provider-compat-check" { } ''
+              touch $out
+            '';
+
           noctalia-lock-auth =
             let
               cfg = inputs.self.nixosConfigurations.framework.config;
@@ -328,6 +349,7 @@
                     ln -s ${pkgs.tomlplusplus}/include/toml++ include/tomlplusplus
                     $CXX -std=c++23 -include bits/stdc++.h -ffunction-sections -fdata-sections \
                       -Wl,--gc-sections -Iinclude -I$source -I$source/utils \
+                      -I${inputs.vicinae}/src/lib/common/include \
                       ${./home-manager/nixos/noctalia/test_vicinae_theme.cpp} \
                       $source/theme/theme-parser.cpp $source/theme/theme-file.cpp \
                       $(pkg-config --cflags --libs Qt6Gui) -o $out/bin/probe

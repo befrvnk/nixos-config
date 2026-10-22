@@ -1257,6 +1257,31 @@ resolution. Current native automatic sleep/key-wake and basic inhibitor cycles h
 live evidence. Update recovery guidance for the now-active native PAM dependency;
 never remove it or restart a locked shell as an unlock procedure.
 
+Origin rebase performed onto a44373c with all 31 local commits replayed/signed:
+- Keep every origin lock node/root reference, adding only local-only input graphs;
+  retain Noctalia/community pins. Other lock files match origin. No blanket update
+  or shared-input downgrade. Backup retains the original tip and checkpoint history.
+- Preserve origin's GTK/Papirus move, newer Vicinae and shared/Darwin additions;
+  retain native Qt config ownership rather than restoring static Kvantum files.
+- Compatibility fixes: explicit GTK/Xresources cursor retention for new Stylix,
+  new Vicinae common-header include path in the real parser probe, and libxcb for
+  origin's Pi 1.3.0 Linux native addon. No versions/hashes were rolled back.
+- Both native patches apply with --fuzz=0 against the resolved pinned V5.3 source.
+  All 17 Linux checks pass, including 139 Noctalia and 19 suspend tests and a new
+  lightweight pinned-provider/standard-kernel aggregation dispatch regression. Hermi and
+  macbook derivation evaluation passes; this is not ARM/Darwin runtime acceptance.
+- Full Framework build passes, including the newly compiled CachyOS 6.18.52, initrd
+  and Home Manager generations. Main nixpkgs' certificate-aware aggregator was
+  incompatible with the pinned provider's module format; Framework now uses the
+  matching provider helper for that kernel/stdenv, while standard kernels retain
+  main's new helper. Both dispatch cases evaluated. No fabricated certificates,
+  kernel/signing-policy changes or dropped Keychron module. Existing provider
+  MODULE_SIG-disabled policy is preserved, not upgraded to signature enforcement.
+- No activation/live hardware actions performed. Prior GUI acceptance remains for
+  the pre-rebase stack, not these updated dependencies.
+- See [origin rebase validation](noctalia-origin-rebase.md) for lock policy, compatibility
+  fixes, checkpoint hash mapping and final validation status.
+
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility
 bridge and the separate compromised-cache follow-up are not marked complete.

@@ -278,7 +278,7 @@ The shared activation lock and recursion flag are deliberate; do not bypass them
 A pre-handover GUI-settings backup is at
 `~/.local/state/noctalia/settings.pre-theme-controller.toml`. No GUI keys were deleted
 for this change. Do not restore the whole file blindly or lose newer plugin/UI choices.
-Before this handover, checkpoint `3f51f68` retained the old Darkman controller;
+Before this handover, checkpoint `77d6c20` (originally `3f51f68`) retained the old Darkman controller;
 rolling back also requires reconciling any subsequently saved `theme.mode` override.
 
 Build validation includes 18 mocked bridge tests, 4 overview tests, 10 Ghostty
@@ -433,7 +433,8 @@ not a mutable community catalog download or custom replacement. No theme file is
 
 Both declarative Vicinae mode selectors are `noctalia`, preserving Papirus. The
 existing Home Manager wrapper keeps settings in high-priority VICINAE_OVERRIDES.
-The upstream hook calls `vicinae theme set noctalia`; v0.23.0 rescans and reloads the
+The upstream hook calls `vicinae theme set noctalia`; reviewed v0.29.2 retains the
+v0.23.0 behavior: it rescans and reloads the
 current theme without writing settings when the selector already matches. Its
 normal config-writing branch is intentionally avoided. Other launcher settings,
 extensions and keybindings are unchanged. The old custom Stylix theme is removed.
@@ -1167,7 +1168,8 @@ history, tray actions, WiFi/Bluetooth, audio and theme transitions. Do not run
 
 ## Rollback
 
-Checkpoint `3f51f68` is the accepted Noctalia palette configuration before the
+Checkpoint `77d6c20` (originally `3f51f68`, before the origin rebase) is the
+accepted Noctalia palette configuration before the
 runtime-controller handover. To roll back that handover, restore the controller's
 system/HM imports, remove its path/worker/hooks, and reconcile only relevant saved
 `theme.mode` overrides. Keep newer plugin/UI choices rather than overwriting all state.
