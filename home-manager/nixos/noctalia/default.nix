@@ -5,7 +5,11 @@
   ...
 }:
 let
-  noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
+    # Pinned V5 hardcodes login; isolate locker password PAM from TTY/fprint policy.
+    patches = (old.patches or [ ]) ++ [ ./lockscreen-pam-service.patch ];
+    patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
+  });
   overviewWatcher = pkgs.writeShellScript "noctalia-overview" ''
     exec ${pkgs.python3}/bin/python3 ${./overview.py} ${lib.getExe noctalia}
   '';

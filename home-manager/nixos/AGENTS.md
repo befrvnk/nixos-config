@@ -197,6 +197,15 @@ Theme switching without full rebuilds:
 - Don't delete swaylock as an unused-file cleanup without review.
   Removing a declared env value doesn't rewrite old processes' inherited environment.
 
+- Native lock-screen migration is explicitly requested but staged. Stage one only
+  patches the pinned locker password PAM service to noctalia and adds its stack;
+  native locking stays disabled and swaylock routes remain active. Do not enable
+  native lock/idle/suspend routes until private manual PAM preflight is confirmed.
+- The upstream comment claiming fprint PAM filtering is stale; don't rely on it.
+  Patch exact context (--fuzz=0); fingerprints are separately native D-Bus. Preserve
+  TTY/login/sudo/polkit stacks and review account/fingerprint semantics before cutover.
+  Never run real authentication, lock, fingerprint or suspend tests as the agent.
+
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:

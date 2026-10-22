@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView commit approved without live testing; swaylock/deferred GTK/bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted while swaylock remains active; native screen cutover and deferred GTK/bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -1027,6 +1027,32 @@ GTKSourceView native-renderer commit approved (live test deferred):
   swaylock config and the diagnostic palette JSON/HTML. No lock/auth changes made;
   user explicitly requested committing without live testing. Deployment/live editor
   appearance remain unverified; native manager tests are not GUI acceptance.
+
+Native lock-screen migration requested; authentication preflight accepted:
+- User explicitly chose Noctalia's native lock screen. Stage the migration instead
+  of enabling unverified automatic locking. Stage one keeps the native screen off,
+  all swaylock/swayidle/manual/before-sleep routes unchanged, and no agent lock,
+  suspend, fingerprint or actual password attempt.
+- Pinned V5.3.0 hardcodes service login; the current login stack includes fprint/lid
+  rules while Noctalia fingerprints use D-Bus. An old source comment claims filtering,
+  but no filter was found in its reviewed pam_start implementation. Do not rewrite
+  TTY/login policy to accommodate the locker.
+- Add an exact-context, --fuzz=0 package patch selecting dedicated service noctalia
+  for locker password auth only. Add a password-only PAM service requiring pam_unix
+  for authentication/account checks, with no nullok/permit/fprint/include. Other
+  PAM files (login/swaylock/sudo/greetd/polkit-1) compare unchanged to the live system.
+- Build/test the patched native binary; existing 131 Noctalia/11 suspend tests plus
+  the new auth-stage policy check pass. This validates compilation/configuration,
+  not actual authentication. A manual pamtester preflight must pass before stage 2.
+- Stage 2 will review native fingerprint/account semantics, secure grace/empty-password
+  defaults, compositor recovery and native lock-before-sleep/DPMS coordination,
+  then reroute manual/idle locking in a separate checkpoint. Do not claim PAM/fingerprint
+  parity or safe lock/unlock merely from unit tests.
+- User activated stage one and manually confirmed a valid password succeeds and an
+  invalid password fails. Dedicated PAM is deployed; Noctalia/working locker routes
+  remain active as configured. This accepts only the password-stack preflight, not
+  fingerprint/native-screen/unlock/rendering/suspend behavior. Full instructions:
+  docs/noctalia-lockscreen-migration.md. The agent never requests secrets.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

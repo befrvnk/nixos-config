@@ -223,6 +223,34 @@
             ;
         }
         // inputs.nixpkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          noctalia-lock-auth =
+            let
+              cfg = inputs.self.nixosConfigurations.framework.config;
+              home = cfg.home-manager.users.frank;
+              lines = builtins.filter (line: line != "") (
+                pkgs.lib.splitString "\n" cfg.security.pam.services.noctalia.text
+              );
+              expected = [
+                "auth required ${pkgs.pam}/lib/security/pam_unix.so"
+                "account required ${pkgs.pam}/lib/security/pam_unix.so"
+              ];
+            in
+            assert pkgs.lib.assertMsg (lines == expected)
+              "Native locker password PAM must require pam_unix without fingerprint, nullok or permissive modules";
+            assert pkgs.lib.assertMsg
+              (
+                !home.programs.noctalia.settings.lockscreen.enabled
+                && home.programs.swaylock.enable
+                && home.services.swayidle.enable
+                && pkgs.lib.hasInfix "/bin/swaylock -f" home.services.swayidle.events.before-sleep
+                && pkgs.lib.elem "timeout=10" cfg.security.pam.services.login.rules.auth.fprintd.args
+                && pkgs.lib.elem "max-tries=3" cfg.security.pam.services.login.rules.auth.fprintd.args
+              )
+              "Stage one must leave existing locker/idle/login fingerprint routes active until manual PAM preflight";
+            pkgs.runCommand "noctalia-lock-auth-check" { } ''
+              touch $out
+            '';
+
           noctalia-overview =
             let
               home = inputs.self.nixosConfigurations.framework.config.home-manager.users.frank;
@@ -268,7 +296,7 @@
             in
             pkgs.runCommand "noctalia-overview-tests"
               {
-                NOCTALIA_BIN = "${inputs.noctalia.packages.${system}.default}/bin/noctalia";
+                NOCTALIA_BIN = "${home.programs.noctalia.package}/bin/noctalia";
                 NOCTALIA_SOURCE = inputs.noctalia.outPath;
                 QT5_PROBE = "${probe "5" qt5}/bin/probe";
                 QT6_PROBE = "${probe "6" qt6}/bin/probe";

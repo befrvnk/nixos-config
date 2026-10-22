@@ -5,6 +5,7 @@
     ../services/bluetooth.nix
     ../services/keyd.nix
     ../services/nextdns.nix
+    ../services/noctalia-auth.nix
     ../services/oomd.nix
     ../services/pipewire.nix
     ../services/scx.nix

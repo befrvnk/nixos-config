@@ -1010,6 +1010,30 @@ Only swaylock and the diagnostic palette JSON/HTML remain mode-dependent managed
 files. Lock/PAM are unchanged, and the compatibility bridge remains until its final
 real consumer has a separately reviewed migration.
 
+## Native lock screen: stage-one PAM preflight (accepted)
+
+The user chose native Noctalia locking. This is staged: the native screen stays
+disabled and all existing swaylock/idle/manual/sleep routes remain unchanged until
+authentication is checked manually. No lock or password test is run by the agent.
+
+V5.3.0 hardcodes password PAM service login; this host's login has fingerprint/lid
+rules, while native Noctalia handles its reader over D-Bus. A small exact-context
+package patch selects a dedicated noctalia password stack instead of changing TTY/
+login services. Its old comment claimed PAM filtering, but the reviewed implementation
+uses pam_start directly. Patch fuzz is disabled so upstream drift fails the build.
+
+The new desktop PAM service requires pam_unix authentication/account checks without
+nullok, permit, fingerprint or login includes. Generated login/swaylock/sudo/greetd/
+polkit-1 files were compared unchanged against the deployed files. The patched binary
+is used by existing regression tests; compilation and the new auth-stage invariant
+pass, but neither is proof of valid/invalid password handling or native fingerprint.
+
+The user rebuilt and confirmed private pamtester checks: correct password succeeds,
+incorrect password fails. That accepts only password PAM; a separate cutover still
+needs native screen/route validation. Fingerprint/account
+policy, suspend delay, DPMS and compositor recovery also need review. Keep swaylock
+as the working current path for now. See the [staged migration guide](noctalia-lockscreen-migration.md).
+
 ## Consolidation plan
 
 The next steps are documented in [Noctalia consolidation research and plan](./noctalia-consolidation-plan.md):
