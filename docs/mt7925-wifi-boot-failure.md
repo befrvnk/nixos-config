@@ -1,8 +1,8 @@
 # MediaTek MT7925 WiFi Boot Failure
 
-> **Also covers (same fix):** runtime dramatic-throughput throttling after
-> suspend/resume and the **7.1.x kernel mt76 regression** (see dedicated
-> sections below).
+> **Three separate issues:** boot-time "driver own failed", runtime throughput
+> throttling after suspend/resume, and the **7.1+ mt76 MLO traffic-stall regression**.
+> The ASPM workaround addresses the first two; it is not a fix for the MLO regression.
 
 ## Summary
 
@@ -62,9 +62,15 @@ driver/ASPM state — the `performance` policy prevents it from recurring.
 
 ## 7.1.x Kernel mt76 Regression (WiFi dies while "connected")
 
-**Status:** Unfixed upstream as of 7.2-rc7, tracked in
-[Bugzilla 221884](https://bugzilla.kernel.org/show_bug.cgi?id=221884).
-Workaround: use the CachyOS LTS kernel.
+**Checked 2026-10-22:** a candidate fix was posted and successfully tested, but is
+absent from the inspected Linux **7.3**, Linux **7.2.12** and CachyOS **7.3.0-2**
+sources. Do not treat those release numbers as proof that this regression is fixed.
+Keep CachyOS LTS as the default; see the dated findings and upgrade guidance below.
+
+[Bugzilla 221884](https://bugzilla.kernel.org/show_bug.cgi?id=221884) still shows NEW
+with its last update on August 18. The later investigation and patch testing moved
+to the mailing list, so the stale Bugzilla status alone is not the basis for this
+recommendation.
 
 ### Symptom
 
@@ -74,8 +80,9 @@ Workaround: use the CachyOS LTS kernel.
 - **Reloading `mt7925e` restores connectivity** (until the next occurrence)
 - Affects kernel 7.1.x (confirmed on 7.1.1 through 7.1.8, incl. CachyOS)
 - **Also reproduced on 7.2.0-rc7** (twice, same signature — not fixed in 7.2 rc7)
-- **Not affected: LTS kernel 6.18.38+ works perfectly** (community-confirmed;
-  6.18.42 confirmed clean 3+ h with MLO active)
+- **Known-good reports:** LTS 6.18.38/6.18.40; 6.18.42 confirmed clean for 3+ h
+  with MLO active. This is evidence for those tested setups, not a guarantee for
+  every later LTS point release or firmware/AP combination.
 
 ### Root cause (from Bugzilla 221884)
 
@@ -87,15 +94,78 @@ Workaround: use the CachyOS LTS kernel.
 - The driver keeps reporting a healthy link (0 tx retries, 0 tx failed, good
   RSSI), so nothing is logged to dmesg at the time of the stall.
 
-### Tracking
+### October 2026 investigation and candidate fix
 
-- **Bugzilla 221884** — "[REGRESSION] mt7925: MLO connectivity silently stalls
-  (TX queue never drains) when 6GHz link is active". Filed 2026-08-14 by johow;
-  status NEW as of 2026-08-18. Reproduced twice on 7.1.8-1 and twice on
-  7.2.0-rc7-1; 6.18.42-1-cachyos-lts confirmed clean 3+ h with MLO active.
-- **Re-test trigger:** a fix merged in 7.2-rc8/stable (or 6.18.y) that
-  references this bug. Do NOT switch back to `linuxPackages-cachyos-latest`
-  based on the AP-switch fix below.
+The reporter bisected the first bad commit to
+[`ff643b81bc38`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ff643b81bc38eaff6c0ab783a62e4ba9e10d2476),
+"wifi: mt76: mt7925: pass mlink and mconf to sta_mld_tlv()". Vanilla 7.0 was a
+clean baseline in that investigation; the regression appeared in 7.1.
+
+On **October 4**, Andrei Rusu de Castro submitted
+[PATCH v2: keep MLD membership consistent during link add](https://lore.kernel.org/linux-wireless/20261004-mt7925-mld-v2-248bb5e6404f@empyreal.works/).
+It carries an explicit pending secondary link through both station updates so
+firmware receives a consistent link description before the new link is published.
+
+The original reporter manually applied v2 **on top of 7.3-rc5** and reported
+46 minutes without a stall on MT7925 PCIe, firmware `20260813113118`, FritzBox
+5690 Pro and active 5+6 GHz MLO. Both links stayed active during about 4.2 GB RX
+and 340 MB TX. Another tester reported improvements on MT7925U USB hardware.
+See the [testing replies](https://lore.kernel.org/linux-wireless/20261004-mt7925-mld-v2-248bb5e6404f@empyreal.works/T/#t).
+
+**"7.3-rc5 + v2" means a custom-patched test build. It does not mean the patch
+was included in the official RC.** Submission, Tested-by replies, maintainer merge
+and inclusion in a released tag are separate events. Linux 7.3 was released on
+October 18, but its source still lacks this candidate change.
+
+The October 22 source review compared `mt7925_mcu_sta_mld_tlv()` in:
+
+| Released source | Finding |
+|---|---|
+| Linux 7.3 | Old secondary-only encoding; no pending-link argument |
+| Linux 7.2.12 | Same function implementation as Linux 7.3 |
+| CachyOS 7.3.0-2 (`c46eff6c5747`) | Same function implementation as Linux 7.3 |
+
+This verifies absence of the candidate in the inspected code, not a new hardware
+reproduction on every release. No WiFi reset, network reconfiguration, kernel
+switch or hardware test was performed during this research.
+
+A third tester's October 5 report also cautions against blindly applying v2 to
+an older base: **7.2.8 + v2 alone failed MLO handshakes** on their setup; v2 plus
+seven additional mt76 fixes passed a single 15-minute run. Their setup also included
+a wpa_supplicant 2.11 MLO group-key backport (`b048a294a`). They did not isolate which
+accompanying driver fixes were required or whether v2 caused the handshake failure.
+A custom backport needs dependency review and its own hardware validation, not just
+successful patch application.
+
+### Version inventory at the October 22 check
+
+| Scope | Version | Meaning |
+|---|---|---|
+| Running Framework kernel | 6.18.42-cachyos | Still booted at inspection |
+| Repository-selected CachyOS LTS | 6.18.52 | Full Framework build passed after the origin rebase; not boot/WiFi acceptance |
+| Pinned provider's `cachyos-latest` | 7.2.8 | Not a candidate for an unpatched default switch |
+| Pinned provider's `cachyos-rc` | 7.3-rc4 | Older than the custom RC5 test; the release number does not include v2 |
+| Latest upstream mainline release | 7.3 | Candidate absent in inspected source |
+| Latest upstream 7.2 stable | 7.2.12 | Candidate absent in inspected source |
+| Latest upstream 6.18 LTS | 6.18.58 | Announced upstream; not supplied by the currently inspected CachyOS provider |
+
+The provider's public `release` version manifest still advertised 7.2.8/6.18.52/
+7.3-rc4 at this check. Updating a flake input is not proof that a newer or fixed
+kernel becomes available. Distinguish provider availability, a successful build,
+the currently booted kernel and actual WiFi test results.
+
+### Re-test and promotion criteria
+
+- Prefer a conservative update within **6.18 LTS**; the configured 6.18.52 is
+  already built. Activation/reboot and validation remain user-operated steps.
+- Do not promote an unpatched 7.x release just because it is newer or an unrelated
+  MT7925 fix landed. Verify inclusion of this candidate or a reviewed equivalent
+  in the exact upstream/CachyOS source being built.
+- For an experimental patched 7.3 trial, review dependent fixes and firmware/AP
+  assumptions, retain a known-good LTS boot entry and recovery networking, and let
+  the user validate sustained 5+6 GHz MLO traffic, scanning and suspend/resume.
+- Preserve the independent ASPM workaround. Neither a patch post nor another
+  machine's Tested-by report establishes this Framework's runtime acceptance.
 
 ### Not the same bug: AP-switch download collapse (FIXED in 7.2-rc1)
 
@@ -115,17 +185,29 @@ this one — it is NOT the freeze tracked in this repo.
   symptom: downlink collapses to 6–72 Mbit/s until a manual reconnect
 - [openwrt/mt76 #1108](https://github.com/openwrt/mt76/issues/1108): contention-
   triggered latency collapse on 5 GHz (kernel 7.1.3, same firmware, NixOS)
+- [October 4 candidate v2 and testing thread](https://lore.kernel.org/linux-wireless/20261004-mt7925-mld-v2-248bb5e6404f@empyreal.works/T/#t)
+- [Released Linux 7.3 driver source](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/drivers/net/wireless/mediatek/mt76/mt7925/mcu.c?h=v7.3)
+- [Released Linux 7.2.12 driver source](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/plain/drivers/net/wireless/mediatek/mt76/mt7925/mcu.c?h=v7.2.12)
+- [CachyOS 7.3.0-2 driver source at its release commit](https://github.com/CachyOS/linux/blob/c46eff6c57477ecbe6a55cea2641d07f58543630/drivers/net/wireless/mediatek/mt76/mt7925/mcu.c)
+- [Upstream release inventory](https://www.kernel.org/)
+- [CachyOS Nix provider version manifest](https://github.com/xddxdd/nix-cachyos-kernel/blob/release/kernel-cachyos/version.json)
 
 ### Fix applied in this repo
 
-`hosts/framework/default.nix`: `boot.kernelPackages` switched from
-`linuxPackages-cachyos-latest` (7.1.x, affected) to
-`linuxPackages-cachyos-lts` (6.18.x, confirmed working).
+`hosts/framework/default.nix` retains this selection rather than automatically
+selecting `cachyos-latest`:
 
-Revisit only once a 7.2 release (rc8+ or stable) ships an mt7925/mt76 fix
-referencing Bugzilla 221884, then return to `linuxPackages-cachyos-latest`.
-The `linuxPackages-cachyos-rc` package (7.2-rc7, still broken) is available in
-the flake input for reversible testing when a candidate fix lands.
+```nix
+boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
+```
+
+The origin rebase advanced the configured LTS to 6.18.52 and its full system build
+passed; the running kernel was still 6.18.42 during this check.
+
+The October research changed neither kernel selection nor lock files. Revisit a
+7.x default only after verifying the relevant fix in the exact selected source and
+passing user-operated WiFi tests. The available `cachyos-rc` package is not by itself
+evidence of a fix; a custom candidate must remain a separate reversible trial.
 
 ## The Problem
 
