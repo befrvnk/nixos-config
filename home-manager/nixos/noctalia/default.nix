@@ -24,6 +24,7 @@ in
     ./gtk.nix
     ./gtksourceview.nix
     ./lazygit.nix
+    ./lockscreen.nix
     ./niri.nix
     ./nushell.nix
     ./osd.nix
@@ -154,7 +155,6 @@ in
       # Keep the existing managers; do not start competing surfaces/services.
       dock.enabled = false;
       desktop_widgets.enabled = false;
-      lockscreen.enabled = false;
       idle.behavior = {
         lock.enabled = false;
         screen-off.enabled = false;

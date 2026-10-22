@@ -292,6 +292,7 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 8 native OSD/control tests (all hardware mocked), 6 btop tests (including isolated native reload),
 6 plain-Emacs tests (real batch theme/init loading), 6 Xresources tests (real isolated Xvfb/xrdb),
 6 GTKSourceView tests (real headless version 4/5 style-manager loading),
+4 native lock trial policy tests (no authentication/session actions),
 11 safe-suspend tests and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
@@ -1033,6 +1034,35 @@ incorrect password fails. That accepts only password PAM; a separate cutover sti
 needs native screen/route validation. Fingerprint/account
 policy, suspend delay, DPMS and compositor recovery also need review. Keep swaylock
 as the working current path for now. See the [staged migration guide](noctalia-lockscreen-migration.md).
+
+## Native lock screen: manual trial (password/fingerprint accepted)
+
+Stage-one password preflight is accepted/committed. `noctalia/lockscreen.nix` enables
+the native manual screen and Mod+Shift+X route with grace/empty-password/desktop
+capture/transitions disabled and all outputs covered. Native fingerprint is enabled,
+but not yet manually tested. The duplicate swayidle logind Lock listener is removed.
+
+Automatic idle lock (300s) and before-sleep still use swaylock; monitor power (305s)
+and safe-suspend (310s) stay as before. Native lock_before_suspend is false and
+native idle behaviors are disabled for this trial. No automatic cutover or sleep/
+DPMS/fingerprint actions are performed by the agent. Those routes are a later stage.
+
+Native fingerprints claim fprintd for the current D-Bus user, release on stop and
+pause around sleep. Password submission stops the reader before dedicated PAM.
+Native fingerprint success directly unlocks without PAM account checks, so restricted/
+expired-account semantics aren't identical to the old PAM path. Existing root lid/
+fprintd configuration is unchanged; do not claim account-policy parity.
+
+Four static policy tests and full build/config/auth/cache/invariants/lint pass.
+They do not prove GUI/session-lock/fingerprint behavior. Save work and establish a
+TTY/password recovery route before applying; apply only while unlocked. Manually
+test password (avoid the sensor first), wrong-password rejection, fingerprint and
+all outputs. Do not stop/restart Noctalia while locked expecting to unlock: an
+abandoned lock can stay secure. See the [migration/recovery guide](noctalia-lockscreen-migration.md).
+The user activated this stage and confirmed password and fingerprint unlock work.
+Live inspection verified native secure defaults/manual binding, retained automatic
+swaylock paths and active native services. Wrong-password UI, multi-output coverage
+and sleep recovery remain separate checks. Automatic routes still use swaylock.
 
 ## Consolidation plan
 

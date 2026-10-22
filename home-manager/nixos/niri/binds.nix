@@ -24,8 +24,10 @@ in
 
     "Mod+Shift+S".action.spawn = [ "safe-suspend" ];
     "Mod+Shift+X".action.spawn = [
-      "swaylock"
-      "-f"
+      noctalia
+      "msg"
+      "session"
+      "lock"
     ];
 
     # Navigation

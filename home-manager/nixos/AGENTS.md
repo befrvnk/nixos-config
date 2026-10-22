@@ -197,10 +197,11 @@ Theme switching without full rebuilds:
 - Don't delete swaylock as an unused-file cleanup without review.
   Removing a declared env value doesn't rewrite old processes' inherited environment.
 
-- Native lock-screen migration is explicitly requested but staged. Stage one only
-  patches the pinned locker password PAM service to noctalia and adds its stack;
-  native locking stays disabled and swaylock routes remain active. Do not enable
-  native lock/idle/suspend routes until private manual PAM preflight is confirmed.
+- Native lock migration is staged. Password PAM preflight passed (stage one). The
+  prepared manual trial enables native screen/Mod+Shift+X/logind Lock, removes the
+  duplicate swayidle lock event, but keeps swaylock at idle/before-sleep and old DPMS/
+  safe-suspend timing. Native lock_before_suspend stays false until manual GUI unlock
+  acceptance. Never skip stages based only on config/unit tests.
 - The upstream comment claiming fprint PAM filtering is stale; don't rely on it.
   Patch exact context (--fuzz=0); fingerprints are separately native D-Bus. Preserve
   TTY/login/sudo/polkit stacks and review account/fingerprint semantics before cutover.

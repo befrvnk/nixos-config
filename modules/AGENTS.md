@@ -67,8 +67,9 @@ In `modules/system/security.nix`:
 - `services/noctalia-auth.nix` adds a dedicated password-only pam_unix stack.
 - Pinned V5 hardcodes login; the exact-context home-manager package patch selects
   noctalia instead. Don't change login/TTY/sudo/polkit/swaylock PAM to fit the client.
-- Fingerprints are native fprintd D-Bus, not this password stack. Native screen stays
-  disabled during stage-one manual PAM preflight; do not bypass that security gate.
+- Fingerprints are native fprintd D-Bus, not this password stack. Stage-one password
+  preflight passed. The prepared manual screen trial keeps swaylock idle/pre-sleep;
+  don't enable automatic native sleep/idle cutover before GUI acceptance.
 - Agents never authenticate, scan fingerprints, lock or suspend the real session.
   See `docs/noctalia-lockscreen-migration.md` for manual validation/recovery boundaries.
 

@@ -22,8 +22,8 @@
     events = {
       # Lock the screen before suspend/sleep
       before-sleep = "${pkgs.swaylock}/bin/swaylock -f";
-      # Lock the screen when lid is closed (if not already suspending)
-      lock = "${pkgs.swaylock}/bin/swaylock -f";
+      # Native Noctalia now handles logind Lock for the manual trial. Keep only
+      # this pre-sleep swaylock fallback; do not race two logind Lock listeners.
     };
     timeouts = [
       # Lock screen after 5 minutes of inactivity

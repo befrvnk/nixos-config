@@ -6,8 +6,9 @@ fingerprint reader, restart a locked session, or activate the system configurati
 
 ## Stage 1: password authentication preflight (accepted)
 
-**Swaylock and all existing lock/idle/suspend routes remain active. Noctalia's native
-lock screen remains disabled.** There is no automatic native-lock cutover here.
+During stage 1, **swaylock and all existing routes remained active and native
+locking stayed disabled**. Stage 2 below is now activated, with password/fingerprint
+unlock confirmed by the user; automatic-route cutover is still a later stage.
 
 The pinned native code hardcodes the PAM service `login`. This machine's login
 stack contains fingerprint and lid-check rules, whereas Noctalia operates fprintd
@@ -63,25 +64,67 @@ If the service is missing, a valid password fails, or an invalid one succeeds,
 stop here. Keep the native screen disabled and investigate before any cutover.
 This command tests password PAM, not the native screen, fingerprint or rendering.
 
-## Stage 2: native screen and route cutover (not implemented)
+## Stage 2: manual native-screen trial (password/fingerprint accepted)
 
-Only after preflight passes:
+The password preflight passed. The user then activated this stage and confirmed
+both native password and fingerprint unlock work. Live settings/manual bindings
+and retained automatic swaylock routes were inspected; native services remain active.
+Wrong-password UI rejection, multi-output coverage and sleep recovery are not yet
+separately confirmed.
 
-1. Review native fingerprint user identity/claim/release, account-policy differences,
-   lid-reader disable behavior, password fallback and suspend-delay handling.
-2. Enable secure defaults: no passwordless grace, no empty-password submission, no
-   desktop capture; start with lock transitions disabled to simplify suspend timing.
-3. Retain a documented swaylock rollback and an independently working TTY/password
-   recovery route. Save work before manual lock tests. Do not assume stopping the
-   native client unlocks the compositor: abandoned session locks may remain secure.
-4. Switch manual and idle routes, avoiding two competing lockers/logind listeners.
-   Keep idle timings, audio inhibition and safe-suspend policy. Let native Noctalia
-   own lock-before-sleep delay; coordinate monitor power through its own IPC.
-5. User manually tests password, rejection, fingerprint, unavailable-reader fallback,
-   multiple outputs, idle lock, screen-off/resume and suspend/lid scenarios one at
-   a time. The agent never performs those hardware/session actions.
-6. Remove the old default lock path only after acceptance; don't retire the remaining
-   theme bridge just because a new native screen can render.
+`noctalia/lockscreen.nix` enables the native screen
+with no grace, no empty-password submission, no desktop capture, no transitions and
+all outputs protected. The manual Mod+Shift+X shortcut and native logind Lock handling
+use Noctalia. The duplicate swayidle logind `lock` event is removed.
+
+**Idle locking at 300 seconds and pre-sleep locking still use swaylock.** Native
+lock_before_suspend is false for this trial, so swayidle retains that responsibility.
+The existing 305-second screen power and 310-second safe-suspend behavior are unchanged;
+native idle behaviors remain disabled. This is not yet the automatic-route cutover.
+If idle lock fires during an already-active native lock, a second locker may fail to
+acquire the protocol; the first lock remains secure. Test promptly and don't test
+sleep/lid behavior in this checkpoint.
+
+### Fingerprint review boundary
+
+Native fingerprint uses the fprintd D-Bus service, claims with an empty username
+(current caller per the [fprintd API](https://fprint.freedesktop.org/fprintd-dev/Device.html)),
+and verifies against that user's enrolled fingers. The reviewed code releases the
+claim when stopped, pauses verification across sleep and stops the reader before
+password PAM. Missing/failed reader operation leaves password authentication available.
+
+A native fingerprint match directly unlocks; it does not run password PAM/account
+checks. This is not identical to the previous PAM-based fingerprint path, especially
+for expired/restricted accounts. The existing root lid/fprintd management and other
+PAM services are unchanged. No fingerprint or account-policy parity is claimed by
+configuration tests; don't broaden deployment without reviewing those requirements.
+
+### Before applying/testing
+
+1. Save work and establish a working TTY/password login recovery route first.
+2. Read the recovery boundary below. Do not rely on swaylock to unlock an already
+   active native session lock, or on killing/restarting Noctalia as a recovery method.
+3. Apply with `rebuild switch` only while the session is unlocked.
+4. Use Mod+Shift+X (or `noctalia msg session lock`) yourself. First avoid touching the
+   reader and verify password unlock, including one wrong-password rejection. Then
+   lock again and test fingerprint. Confirm keyboard input/layout and every output
+   is covered; the agent must not perform these actions.
+5. If fingerprint is unavailable, test password fallback rather than stopping services.
+   Report nonsensitive status/log messages only, never passwords or fingerprint data.
+
+If recovery is needed, switch to the prevalidated TTY and investigate. Last-resort
+termination of the graphical session/reboot loses unsaved work and is the user's
+choice; identify the correct graphical session (not the recovery TTY). Restore the
+stage-one configuration if necessary before starting another graphical session.
+
+## Stage 3: automatic-route cutover (not implemented)
+
+After native manual password/fingerprint/rendering acceptance, enable native
+lock-before-sleep delay handling, switch idle lock and coordinated DPMS to native
+commands, and remove obsolete swayidle lock/sleep listeners without racing lockers.
+Keep idle timings, audio inhibition and safe-suspend policy. User tests idle,
+screen-off/resume, output reconnect and suspend/lid scenarios separately. Only then
+retire the old default lock style/path and remaining theme compatibility consumers.
 
 ## Recovery boundary
 

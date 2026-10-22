@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted while swaylock remains active; native screen cutover and deferred GTK/bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted; manual native-lock password/fingerprint trial accepted with automatic swaylock retained; automatic cutover/deferred GTK/bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -1053,6 +1053,31 @@ Native lock-screen migration requested; authentication preflight accepted:
   remain active as configured. This accepts only the password-stack preflight, not
   fingerprint/native-screen/unlock/rendering/suspend behavior. Full instructions:
   docs/noctalia-lockscreen-migration.md. The agent never requests secrets.
+
+Native lock stage-two manual trial accepted:
+- Stage-one auth foundation committed as 4f39d5d after the user confirmed correct/
+  wrong-password behavior. Dedicated PAM/global login/swaylock stacks remain unchanged.
+- Enable native lock with grace=0, allow_empty_password=false, no desktop capture,
+  no transitions and all outputs. Mod+Shift+X now requests native lock. Native logind
+  Lock is the only listener; remove the duplicate swayidle lock event.
+- Keep swaylock at idle 300s and before-sleep, old monitor power 305s and safe-suspend
+  310s. Native lock_before_suspend=false and native idle remains disabled during this
+  manual trial; automatic cutover is a later stage, not silently enabled here.
+- Fingerprint review: native fprintd Claim("") is current D-Bus user, claim is released
+  on stop, paused during sleep, and password submission stops the reader. A successful
+  native match bypasses PAM account checks; not identical to old account-policy paths.
+  Existing fprintd/lid root policy is untouched. Password fallback remains independent.
+- Four policy tests assert defaults/manual route, no competing logind listener,
+  retained automatic fallback and strict password stack, without any auth/session
+  action. Total Noctalia tests: 135, plus 11 suspend. Full build/config/cache/auth/
+  invariants/lint pass; no actual lock/fingerprint/DPMS/suspend test was performed.
+- User must save work and validate TTY/password recovery, apply while unlocked and
+  manually test native password/rejection/fingerprint/all-output coverage. User
+  activated and confirmed password and fingerprint unlock work. Live inspection
+  verified native secure defaults/manual route, retained swaylock idle/pre-sleep,
+  and active shell/overview. Wrong-password UI behavior, all-output coverage and
+  sleep/idle recovery were not separately confirmed. Never kill/restart a locked
+  client as an unlock strategy; see the migration guide.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

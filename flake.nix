@@ -239,14 +239,31 @@
               "Native locker password PAM must require pam_unix without fingerprint, nullok or permissive modules";
             assert pkgs.lib.assertMsg
               (
-                !home.programs.noctalia.settings.lockscreen.enabled
+                home.programs.noctalia.settings.lockscreen.enabled
+                && !home.programs.noctalia.settings.lockscreen.lock_before_suspend
+                && home.programs.noctalia.settings.lockscreen.grace_period_seconds == 0
+                && !home.programs.noctalia.settings.lockscreen.allow_empty_password
+                && !home.programs.noctalia.settings.lockscreen.blurred_desktop
+                && home.programs.noctalia.settings.lockscreen.transition == [ ]
+                && home.programs.noctalia.settings.lockscreen.monitors == [ ]
                 && home.programs.swaylock.enable
                 && home.services.swayidle.enable
                 && pkgs.lib.hasInfix "/bin/swaylock -f" home.services.swayidle.events.before-sleep
+                && home.services.swayidle.events.lock == null
+                && builtins.any (
+                  timeout: timeout.timeout == 300 && pkgs.lib.hasInfix "/bin/swaylock -f" timeout.command
+                ) home.services.swayidle.timeouts
+                &&
+                  home.programs.niri.settings.binds."Mod+Shift+X".action.spawn == [
+                    "${home.programs.noctalia.package}/bin/noctalia"
+                    "msg"
+                    "session"
+                    "lock"
+                  ]
                 && pkgs.lib.elem "timeout=10" cfg.security.pam.services.login.rules.auth.fprintd.args
                 && pkgs.lib.elem "max-tries=3" cfg.security.pam.services.login.rules.auth.fprintd.args
               )
-              "Stage one must leave existing locker/idle/login fingerprint routes active until manual PAM preflight";
+              "Manual native-lock trial must retain secure defaults and existing idle/pre-sleep swaylock until acceptance";
             pkgs.runCommand "noctalia-lock-auth-check" { } ''
               touch $out
             '';
@@ -305,6 +322,17 @@
                 QT5_CONFIG_SOURCE = home.xdg.configFile."qt5ct/qt5ct.conf".source;
                 QT6_CONFIG_SOURCE = home.xdg.configFile."qt6ct/qt6ct.conf".source;
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
+                NATIVE_LOCK_POLICY = pkgs.writeText "native-lock-trial.json" (
+                  builtins.toJSON {
+                    screen = home.programs.noctalia.settings.lockscreen;
+                    idle = home.programs.noctalia.settings.idle;
+                    manual = home.programs.niri.settings.binds."Mod+Shift+X".action.spawn;
+                    events = home.services.swayidle.events;
+                    timeouts = home.services.swayidle.timeouts;
+                    fallback = home.programs.swaylock.enable;
+                    passwordPam = inputs.self.nixosConfigurations.framework.config.security.pam.services.noctalia.text;
+                  }
+                );
                 GTKSOURCE_TEMPLATE = home.programs.noctalia.settings.theme.templates.user.gtksourceview.input_path;
                 GTKSOURCE_ORIGINAL_TEMPLATE = "${inputs.stylix}/modules/gtksourceview/template.xml.mustache";
                 GTKSOURCE_PROBE = ./home-manager/nixos/noctalia/probe-gtksourceview.py;
