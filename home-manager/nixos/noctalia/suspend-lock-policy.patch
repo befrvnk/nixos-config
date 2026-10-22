@@ -1,0 +1,14 @@
+diff --git a/src/app/application_services.cpp b/src/app/application_services.cpp
+--- a/src/app/application_services.cpp
++++ b/src/app/application_services.cpp
+@@ -1115,8 +1115,8 @@
+             // Screen time must not accumulate across suspend even when lock-before-suspend is off.
+             m_screenTimeService.setSuspendPaused(true);
+             // The readiness hook releases the delay inhibit after the revealed lock frames are acknowledged.
+-            if (m_skipLockOnNextSleep) {
+-              // Noctalia-initiated suspend: skip lock-before-sleep (plain Suspend or already locked).
++            if (m_skipLockOnNextSleep && !m_configService.shouldLockBeforeSuspend()) {
++              // An explicit skip must not override configured lock-before-sleep protection.
+               m_skipLockOnNextSleep = false;
+               m_releaseSleepDelayWhenLocked = false;
+               if (m_logindService != nullptr) {

@@ -18,6 +18,12 @@ with open(os.environ["CALLS"], "a") as output:
 if name == "busctl":
     print(os.environ["INHIBITORS"])
     sys.exit(int(os.environ.get("BUSCTL_EXIT", "0")))
+if name == "loginctl":
+    if sys.argv[1] == "show-user":
+        print(os.environ.get("DISPLAY_SESSION", "c1"))
+    else:
+        print(os.environ.get("LOCKED_HINT", "yes"))
+    sys.exit(int(os.environ.get("LOGINCTL_EXIT", "0")))
 if name == "systemctl":
     sys.exit(int(os.environ.get("SUSPEND_EXIT", "0")))
 sys.exit(int(os.environ.get("NOTIFY_EXIT", "0")))
@@ -29,7 +35,7 @@ def row(what, who="Example Blocker", mode="block"):
 
 
 class SafeSuspendTests(unittest.TestCase):
-    def run_helper(self, rows=(), *, raw=None, **variables):
+    def run_helper(self, rows=(), *, raw=None, args=(), **variables):
         bash = shutil.which("bash")
         jq = shutil.which("jq")
         self.assertIsNotNone(bash)
@@ -38,7 +44,7 @@ class SafeSuspendTests(unittest.TestCase):
             directory = Path(directory)
             tools = directory / "bin"
             tools.mkdir()
-            for name in ("busctl", "notify-send", "systemctl"):
+            for name in ("busctl", "notify-send", "systemctl", "loginctl"):
                 command = tools / name
                 command.write_text(STUB.format(python=sys.executable))
                 command.chmod(0o755)
@@ -46,14 +52,16 @@ class SafeSuspendTests(unittest.TestCase):
             # Only jq is real on this PATH. It contains no real systemctl/busctl,
             # so an accidental missing test stub cannot call the host's services.
             (tools / "jq").symlink_to(jq)
-            environment = dict(os.environ, **variables)
+            environment = dict(os.environ)
+            environment.pop("XDG_SESSION_ID", None)
+            environment.update(variables)
             environment.update(
                 PATH=str(tools),
                 CALLS=str(calls),
                 INHIBITORS=raw if raw is not None else json.dumps({"type": "a(ssssuu)", "data": [list(rows)]}),
             )
             result = subprocess.run(
-                [bash, str(Path(__file__).with_name("safe-suspend.sh"))],
+                [bash, str(Path(__file__).with_name("safe-suspend.sh")), *args],
                 env=environment, capture_output=True, text=True, timeout=10,
             )
             recorded = [json.loads(line) for line in calls.read_text().splitlines()]
@@ -109,6 +117,41 @@ class SafeSuspendTests(unittest.TestCase):
 
     def test_notification_failure_does_not_request_sleep(self):
         self.assert_blocked(*self.run_helper([row("sleep")], NOTIFY_EXIT="1"))
+
+    def test_idle_locked_session_can_suspend(self):
+        result, calls = self.run_helper(args=["--require-lock"], XDG_SESSION_ID="c2")
+        self.assert_suspended(result, calls)
+        self.assertIn(["loginctl", "show-session", "c2", "-p", "LockedHint", "--value"], calls)
+        self.assertFalse(any(call[:2] == ["loginctl", "show-user"] for call in calls))
+
+    def test_idle_unlocked_session_is_blocked(self):
+        self.assert_blocked(*self.run_helper(args=["--require-lock"], LOCKED_HINT="no"))
+
+    def test_idle_without_session_env_resolves_user_display(self):
+        result, calls = self.run_helper(args=["--require-lock"], DISPLAY_SESSION="c3")
+        self.assert_suspended(result, calls)
+        self.assertTrue(any(call[:2] == ["loginctl", "show-user"] for call in calls))
+        self.assertIn(["loginctl", "show-session", "c3", "-p", "LockedHint", "--value"], calls)
+
+    def test_idle_session_query_failure_is_blocked(self):
+        self.assert_blocked(*self.run_helper(args=["--require-lock"], LOGINCTL_EXIT="1"))
+
+    def test_idle_missing_or_invalid_session_is_blocked(self):
+        for session in ("", "bad session", "--all"):
+            self.assert_blocked(*self.run_helper(args=["--require-lock"], DISPLAY_SESSION=session))
+
+    def test_idle_unknown_lock_hint_is_blocked(self):
+        for hint in ("", "true", "unknown"):
+            self.assert_blocked(*self.run_helper(args=["--require-lock"], LOCKED_HINT=hint))
+
+    def test_idle_still_respects_sleep_blockers_first(self):
+        result, calls = self.run_helper([row("sleep")], args=["--require-lock"])
+        self.assert_blocked(result, calls)
+        self.assertFalse(any(call[0] == "loginctl" for call in calls))
+
+    def test_unknown_or_extra_arguments_are_blocked(self):
+        for args in (["--unknown"], ["--require-lock", "extra"]):
+            self.assert_blocked(*self.run_helper(args=args))
 
     def test_suspend_error_propagates(self):
         result, calls = self.run_helper(SUSPEND_EXIT="5")

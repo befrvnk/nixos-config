@@ -6,8 +6,11 @@
 }:
 let
   noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-    # Pinned V5 hardcodes login; isolate locker password PAM from TTY/fprint policy.
-    patches = (old.patches or [ ]) ++ [ ./lockscreen-pam-service.patch ];
+    # Isolate password PAM and make configured pre-sleep protection authoritative.
+    patches = (old.patches or [ ]) ++ [
+      ./lockscreen-pam-service.patch
+      ./suspend-lock-policy.patch
+    ];
     patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
   });
   overviewWatcher = pkgs.writeShellScript "noctalia-overview" ''
@@ -23,6 +26,7 @@ in
     ./ghostty.nix
     ./gtk.nix
     ./gtksourceview.nix
+    ./idle.nix
     ./lazygit.nix
     ./lockscreen.nix
     ./niri.nix
@@ -155,10 +159,6 @@ in
       # Keep the existing managers; do not start competing surfaces/services.
       dock.enabled = false;
       desktop_widgets.enabled = false;
-      idle.behavior = {
-        lock.enabled = false;
-        screen-off.enabled = false;
-      };
       nightlight.enabled = false;
       osd.kinds = {
         lock_keys = false;

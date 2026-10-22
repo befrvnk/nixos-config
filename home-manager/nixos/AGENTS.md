@@ -178,8 +178,9 @@ Theme switching without full rebuilds:
 - Preserve Emacs font/opacity source expressions. Batch tests prove Lisp/colors,
   not GUI font resolution. The upstream theme includes Org preferences; don't
   claim a color-only change or silently fork its settings.
-- Swaylock's custom fingerprint/lid-aware PAM and idle/pre-sleep/manual routes
-  remain independent of cosmetic theme work. No lock/suspend probes as the agent.
+- Lock/authentication policy remains independent of cosmetic theme work. Swaylock's
+  fingerprint/lid-aware PAM is rollback-only; active routes are native. No real
+  lock/suspend/authentication probes as the agent.
 
 - Dormant Blender/Forge/gdu/gedit/Vencord/KDE generators are disabled in stylix.nix
   after package/config audit. Don't re-enable a global KDE palette/env overlay in
@@ -197,11 +198,27 @@ Theme switching without full rebuilds:
 - Don't delete swaylock as an unused-file cleanup without review.
   Removing a declared env value doesn't rewrite old processes' inherited environment.
 
-- Native lock migration is staged. Password PAM preflight passed (stage one). The
-  prepared manual trial enables native screen/Mod+Shift+X/logind Lock, removes the
-  duplicate swayidle lock event, but keeps swaylock at idle/before-sleep and old DPMS/
-  safe-suspend timing. Native lock_before_suspend stays false until manual GUI unlock
-  acceptance. Never skip stages based only on config/unit tests.
+- Native password PAM and manual password/fingerprint passed; keyboard suspend and
+  lid sleep/wake passed. Native-idle deployment and automatic sleep/key-wake are
+  accepted. Live Caffeine/audio acquisition, native recognition and release passed;
+  extended inhibited-idle, reader-unavailable recovery, external outputs and separate
+  power-button interaction remain open. Do not silently claim full security acceptance.
+  Native idle owns 300s lock, 305s screen_off/restore and 310s lock_and_suspend, with
+  fade=0 and locked_timeout=0 to preserve elapsed timings. Keep swayidle disabled;
+  do not introduce dummy hooks, a second scheduler or its old package patch.
+- Native ScreenSaverService tracks logind BlockInhibited for the audio watcher;
+  IdleManager also respects screensaver/Wayland inhibition and Caffeine. Preserve
+  audio watcher, root fingerprint/lid management, tuned and lid holdoff. Source
+  review does not replace live audio/Caffeine tests.
+- Share niri/safe-suspend-package.nix across keyboard/native power callers and use
+  its absolute store executable, not a bare profile command: restricted service
+  PATH caused a real 310s command-not-found failure. Native lock-and-suspend uses
+  the absolute --require-lock backend, which fails closed without a positive lock
+  hint. Manual calls retain blocker/logind behavior. Never bypass inhibitors or
+  mutate lock/power/fingerprint state as an agent.
+- A strict-context native policy patch prevents plain-suspend's stale skip-lock flag
+  from bypassing configured protection. Panel/native power uses lock-and-suspend/
+  guarded helper. Keep swaylock/PAM installed only as rollback until acceptance.
 - The upstream comment claiming fprint PAM filtering is stale; don't rely on it.
   Patch exact context (--fuzz=0); fingerprints are separately native D-Bus. Preserve
   TTY/login/sudo/polkit stacks and review account/fingerprint semantics before cutover.

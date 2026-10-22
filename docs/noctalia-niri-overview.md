@@ -292,8 +292,8 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 8 native OSD/control tests (all hardware mocked), 6 btop tests (including isolated native reload),
 6 plain-Emacs tests (real batch theme/init loading), 6 Xresources tests (real isolated Xvfb/xrdb),
 6 GTKSourceView tests (real headless version 4/5 style-manager loading),
-4 native lock trial policy tests (no authentication/session actions),
-11 safe-suspend tests and
+8 native lock/idle policy and native-parser probes (no authentication/session actions),
+19 safe-suspend tests (all system commands mocked) and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops.
 The deployed handover is accepted: Darkman is inactive/not found, the preference
@@ -1063,6 +1063,56 @@ The user activated this stage and confirmed password and fingerprint unlock work
 Live inspection verified native secure defaults/manual binding, retained automatic
 swaylock paths and active native services. Wrong-password UI, multi-output coverage
 and sleep recovery remain separate checks. Automatic routes still use swaylock.
+
+## Native automatic lock/sleep route cutover (activated; basic integration verified)
+
+Native password/fingerprint unlock, wrong-password UI rejection, keyboard suspend
+and lid sleep/wake have passed their reported checks. The automatic swayidle trial
+found two integration issues: timer-only logind initialization and then a Bash-only
+service PATH, which caused `safe-suspend: command not found` at 310s. That full idle
+trial did not suspend. The user approved replacing swayidle with native idle.
+
+Configured `noctalia/idle.nix` enables native lock at 300s, screen_off at 305s and
+lock_and_suspend at 310s. Native screen_off restores monitors on activity. Explicit
+order, zero pre-action fade and locked_timeout=0 preserve elapsed timing rather than
+adding the default fade or restarting a waiting timeout on lock. No idle shell
+commands or custom resume controller are introduced. Swayidle is disabled, no user
+unit is generated and its temporary package patch is removed.
+
+Native lock-and-suspend waits for the native lock, then uses the configured absolute
+safe-suspend --require-lock power backend. The shared explicit-PATH package also
+supplies the keyboard shortcut and profile command. Existing blocker checks and
+positive logind LockedHint guard are preserved; that hint isn't independent
+compositor attestation. Native lock_before_suspend and the strict policy patch keep
+external sleep protection authoritative. The five-second logind delay bound remains
+unchanged; upstream bounded delay is not an infallibility guarantee.
+
+Reviewed ScreenSaverService subscribes to logind BlockInhibited and supplies idle
+blocks to IdleManager, supporting the existing audio idle:sleep watcher. Native idle
+also respects screensaver/Wayland inhibition and Caffeine. Keep the audio watcher,
+root fingerprint/lid policy, tuned, Lid Guard and 30s post-resume lid holdoff unchanged.
+Live inhibitor tests remain necessary. The GUI audit found no idle/session overrides;
+no user settings were discarded.
+
+Swaylock/PAM/style remain recovery-only until automatic acceptance. No bridge or
+specialisation cleanup is bundled. Eight policy/native-parser probes and 19 mocked
+suspend-helper tests pass (139 total Noctalia tests), along with full Framework build,
+config/auth/cache/theme checks and lint. No real session/hardware action by agent.
+
+Activate only while unlocked with saved work and recovery ready. First inspect
+Noctalia/overview health, native behavior registration and sleep-delay inhibition,
+and confirm swayidle stopped. Then the user can leave input untouched for six minutes
+and wake with a regular key; kernel logs must establish sustained sleep, not merely
+a black monitor. User activated the cutover: swayidle is absent, native behaviors
+are registered, idle monitoring/sleep-delay are active and the absolute backend is
+deployed without GUI overrides. The user completed a native automatic trial and
+confirmed their key press caused resume; logs verify lock/screen-off/suspend at
+five-second intervals, actual kernel sleep and healthy resume. Basic Caffeine/audio
+acquisition, native recognition and release are verified independently. Extended
+inhibited-idle intervals, reader-unavailable fallback and external outputs remain
+open; don't treat them as accepted or remove fallback/theme consumers yet. Power-button immediate
+wake remains separate and unresolved; it is not attributed to fingerprint without
+proof. See the [stage history and recovery guide](noctalia-lockscreen-migration.md).
 
 ## Consolidation plan
 

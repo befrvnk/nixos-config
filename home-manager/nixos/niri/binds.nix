@@ -1,6 +1,7 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 let
   noctalia = "${config.programs.noctalia.package}/bin/noctalia";
+  safeSuspend = import ./safe-suspend-package.nix { inherit pkgs; };
 in
 {
   binds = {
@@ -22,7 +23,7 @@ in
 
     "Mod+A".action.spawn = [ "pavucontrol" ];
 
-    "Mod+Shift+S".action.spawn = [ "safe-suspend" ];
+    "Mod+Shift+S".action.spawn = [ "${safeSuspend}/bin/safe-suspend" ];
     "Mod+Shift+X".action.spawn = [
       noctalia
       "msg"

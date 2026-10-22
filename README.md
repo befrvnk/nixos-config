@@ -575,9 +575,12 @@ Noctalia restarts may briefly remove its wallpaper; it is no longer independentl
 - **Secure Boot** with Lanzaboote
 - **TPM2 auto-unlock** for LUKS encrypted disk
 - **Fingerprint authentication** for sudo, login, and the fallback swaylock screen
-- **Native lock-screen migration** passed password-PAM preflight and manual native
-  password/fingerprint unlock tests. Automatic idle/pre-sleep locking still uses
-  swaylock until its separate cutover ([guide](docs/noctalia-lockscreen-migration.md))
+- **Native lock-screen migration** passed password-PAM and manual password/fingerprint
+  unlock tests; keyboard and lid sleep paths are verified. Native idle scheduling
+  (300s lock / 305s monitors off / 310s suspend) is deployed with guarded sleep;
+  automatic sleep/key-wake and basic Caffeine/audio inhibitor cycles are verified,
+  with extended checks still open.
+  Swayidle is disabled and swaylock remains rollback ([guide](docs/noctalia-lockscreen-migration.md))
 - **1Password** integration with polkit
 - **Binary-cache trust checks** keep flake/runtime policy synchronized and exclude
   the compromised Lantian endpoint/key; see [cache incident guidance](docs/security-hardening.md#binary-cache-trust-lantian-incident)

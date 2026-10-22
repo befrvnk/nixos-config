@@ -237,33 +237,67 @@
             in
             assert pkgs.lib.assertMsg (lines == expected)
               "Native locker password PAM must require pam_unix without fingerprint, nullok or permissive modules";
-            assert pkgs.lib.assertMsg
-              (
-                home.programs.noctalia.settings.lockscreen.enabled
-                && !home.programs.noctalia.settings.lockscreen.lock_before_suspend
-                && home.programs.noctalia.settings.lockscreen.grace_period_seconds == 0
-                && !home.programs.noctalia.settings.lockscreen.allow_empty_password
-                && !home.programs.noctalia.settings.lockscreen.blurred_desktop
-                && home.programs.noctalia.settings.lockscreen.transition == [ ]
-                && home.programs.noctalia.settings.lockscreen.monitors == [ ]
-                && home.programs.swaylock.enable
-                && home.services.swayidle.enable
-                && pkgs.lib.hasInfix "/bin/swaylock -f" home.services.swayidle.events.before-sleep
-                && home.services.swayidle.events.lock == null
-                && builtins.any (
-                  timeout: timeout.timeout == 300 && pkgs.lib.hasInfix "/bin/swaylock -f" timeout.command
-                ) home.services.swayidle.timeouts
-                &&
-                  home.programs.niri.settings.binds."Mod+Shift+X".action.spawn == [
-                    "${home.programs.noctalia.package}/bin/noctalia"
-                    "msg"
-                    "session"
-                    "lock"
-                  ]
-                && pkgs.lib.elem "timeout=10" cfg.security.pam.services.login.rules.auth.fprintd.args
-                && pkgs.lib.elem "max-tries=3" cfg.security.pam.services.login.rules.auth.fprintd.args
+            assert pkgs.lib.assertMsg (
+              home.programs.noctalia.settings.lockscreen.enabled
+              && home.programs.noctalia.settings.lockscreen.lock_before_suspend
+              && home.programs.noctalia.settings.lockscreen.grace_period_seconds == 0
+              && !home.programs.noctalia.settings.lockscreen.allow_empty_password
+              && !home.programs.noctalia.settings.lockscreen.blurred_desktop
+              && home.programs.noctalia.settings.lockscreen.transition == [ ]
+              && home.programs.noctalia.settings.lockscreen.monitors == [ ]
+              && home.programs.swaylock.enable
+              && !home.services.swayidle.enable
+              && !(builtins.hasAttr "swayidle" home.systemd.user.services)
+              && home.programs.noctalia.settings.idle.pre_action_fade_seconds == 0
+              &&
+                home.programs.noctalia.settings.idle.behavior_order == [
+                  "lock"
+                  "screen-off"
+                  "suspend"
+                ]
+              &&
+                home.programs.noctalia.settings.idle.behavior.lock == {
+                  action = "lock";
+                  enabled = true;
+                  locked_timeout = 0;
+                  timeout = 300;
+                }
+              &&
+                home.programs.noctalia.settings.idle.behavior.screen-off == {
+                  action = "screen_off";
+                  enabled = true;
+                  locked_timeout = 0;
+                  timeout = 305;
+                }
+              &&
+                home.programs.noctalia.settings.idle.behavior.suspend == {
+                  action = "lock_and_suspend";
+                  enabled = true;
+                  locked_timeout = 0;
+                  timeout = 310;
+                }
+              && builtins.any (patch: pkgs.lib.hasSuffix "suspend-lock-policy.patch" (toString patch)) (
+                home.programs.noctalia.package.patches or [ ]
               )
-              "Manual native-lock trial must retain secure defaults and existing idle/pre-sleep swaylock until acceptance";
+              && pkgs.lib.hasPrefix "/nix/store/" (
+                builtins.head home.programs.niri.settings.binds."Mod+Shift+S".action.spawn
+              )
+              &&
+                home.programs.noctalia.settings.shell.session.power.suspend
+                == "${builtins.head home.programs.niri.settings.binds."Mod+Shift+S".action.spawn} --require-lock"
+              && builtins.all (
+                action: action.action != "suspend"
+              ) home.programs.noctalia.settings.shell.session.actions
+              &&
+                home.programs.niri.settings.binds."Mod+Shift+X".action.spawn == [
+                  "${home.programs.noctalia.package}/bin/noctalia"
+                  "msg"
+                  "session"
+                  "lock"
+                ]
+              && pkgs.lib.elem "timeout=10" cfg.security.pam.services.login.rules.auth.fprintd.args
+              && pkgs.lib.elem "max-tries=3" cfg.security.pam.services.login.rules.auth.fprintd.args
+            ) "Native automatic locking must retain secure defaults, timing and one pre-sleep/logind owner";
             pkgs.runCommand "noctalia-lock-auth-check" { } ''
               touch $out
             '';
@@ -324,11 +358,14 @@
                 MANAGED_CONFIG_HOME = home.xdg.configHome;
                 NATIVE_LOCK_POLICY = pkgs.writeText "native-lock-trial.json" (
                   builtins.toJSON {
+                    configSource = "${home.xdg.configFile."noctalia/config.toml".source}";
                     screen = home.programs.noctalia.settings.lockscreen;
+                    session = home.programs.noctalia.settings.shell.session;
+                    manualSuspend = home.programs.niri.settings.binds."Mod+Shift+S".action.spawn;
+                    swayidleEnabled = home.services.swayidle.enable;
+                    userUnits = builtins.attrNames home.systemd.user.services;
                     idle = home.programs.noctalia.settings.idle;
                     manual = home.programs.niri.settings.binds."Mod+Shift+X".action.spawn;
-                    events = home.services.swayidle.events;
-                    timeouts = home.services.swayidle.timeouts;
                     fallback = home.programs.swaylock.enable;
                     passwordPam = inputs.self.nixosConfigurations.framework.config.security.pam.services.noctalia.text;
                   }

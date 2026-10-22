@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted; manual native-lock password/fingerprint trial accepted with automatic swaylock retained; automatic cutover/deferred GTK/bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted; manual native-lock password/fingerprint trial accepted; keyboard/lid sleep verified; native-idle replacement activated after automatic suspend launcher failure; automatic sleep/key-wake and Caffeine/audio acquisition-recognition-release verified, extended validation pending, with deferred GTK/bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -1078,6 +1078,184 @@ Native lock stage-two manual trial accepted:
   and active shell/overview. Wrong-password UI behavior, all-output coverage and
   sleep/idle recovery were not separately confirmed. Never kill/restart a locked
   client as an unlock strategy; see the migration guide.
+
+Native lock stage-three automatic cutover prepared:
+- Native lock_before_suspend=true; remove the last swayidle pre-sleep hook. Native
+  logind Lock/sleep-delay is the sole listener/locker. Keep swayidle as inactivity
+  timing source and all audio/Caffeine/lid/power policy unchanged.
+- Preserve 300/305/310s: native lock, coordinated native dpms-off/on, then safe-suspend
+  --require-lock. The idle-only guard resolves graphical session identity, requires
+  LockedHint=yes and blocks on missing/error/unknown state. Manual safe-suspend
+  remains unchanged. Existing sleep-blocker checks run first and never bypass logind.
+- Pinned native plain Suspend sets a skip-lock flag before detached power execution;
+  a failed command can leave it stale. A small strict-context policy patch respects
+  configured lock-before-suspend instead. No auth/protocol implementation is replaced.
+  Session panel uses Lock and Suspend and native power override uses the same guarded
+  helper. Plain native suspend while unlocked fails closed, intentionally.
+- Retain installed swaylock/PAM as rollback only; its old style consumer still exists
+  until native automatic acceptance. Do not treat static policy or the locked hint as
+  proof of every compositor/render/sleep condition. No real session action by agent.
+- Six native-lock policy tests plus 19 mocked safe-suspend tests cover routes,
+  timings, native power policy, session lookup/locked-hint failures and blocker
+  precedence. Total Noctalia tests: 137. Patched binary/full Framework build/native
+  config/cache/auth/invariants/lint pass. Live idle/DPMS/suspend/resume/lid/output
+  checks are pending and must be performed one at a time by the user after saving
+  work and preparing recovery. Current logind delay bound was read as five seconds.
+
+Stage-three first activation inspected; timer-only swayidle correction prepared:
+- Noctalia/swayidle/overview active; expected native timer routes deployed; native
+  sleep-delay inhibitor acquired. No real lock/power/sleep action triggered by agent.
+- Found swayidle 1.9 `BlockInhibited` parse warning: removing all non-timer events
+  leaves its bus uninitialized, breaking logind idle-inhibitor monitoring. The
+  guarded suspend helper still checks sleep blockers, but idle lock/DPMS inhibition
+  must not be assumed reliable in this first activation.
+- A strict one-line package patch includes timers in need_logind, restoring bus/
+  property monitoring without dummy hooks or another sleep-delay listener. Remove
+  duplicate unpatched swayidle package entry; HM installs the configured package.
+- Regression verifies patch/no dummy events; 137 native tests, 19 mocked suspend
+  tests, auth/cache/theme checks, lint and full Framework build pass. User activated
+  the correction; the running executable matches the patched package, its system-bus
+  connection exists and the startup warning is gone. All three services remain active
+  and native sleep-delay inhibition remains held. Live inhibitor/idle/sleep tests are
+  pending; no automatic behavior is yet accepted or committed.
+
+Stage-three manual recheck accepted: user confirmed native UI wrong-password
+rejection and correct-password unlock after activation of the swayidle correction.
+No agent authentication/session action was performed. Idle/DPMS, sleep/lid,
+reader-unavailable fallback and multi-output coverage remain unconfirmed; this
+manual recheck does not accept automatic locking or authorize fallback removal.
+
+Stage-three idle observation accepted as reported: display went black; a key press
+restored the native lock screen, not an unlocked desktop. Services remain active,
+native lock-confirmed/unlock-requested events are present and native sleep-delay
+inhibition remains held. Exact idle timings, all-output coverage, actual suspend/
+resume, lid, reader-unavailable recovery and audio/Caffeine inhibition are not proven
+by this observation and remain separate checks. No agent session action was performed.
+
+Stage-three suspend trial blocked by immediate resume:
+- User reports manual suspend does not stay asleep. Three user-operated attempts
+  entered kernel s2idle and returned within 2–4s including preparation. Noctalia's
+  locked confirmation preceded delay release, and the delay was reacquired on resume.
+- Read-only diagnostics: CanSuspend=yes, no high-level sleep blocker at inspection,
+  last wake IRQ 9 (generic ACPI SCI), only s2idle available, no RTC alarm. Goodix USB
+  wake was already disabled. Nearby fprintd cleanup/claim warnings are not proof of
+  cause. No wake flags, auth settings, kernel or hardware state were changed.
+- Same boot/kernel previously stayed suspended overnight, before this cutover, so
+  retain migration-interaction hypotheses. Need hands-off/lid-still confirmation and
+  controlled user trials before attribution. Sustained sleep/resume acceptance,
+  fallback retirement and the security checkpoint commit remain on hold.
+
+Suspend clarification: first two attempts used the combined power button/sensor;
+logind attributes them to Niri, and the third request to systemctl. Lid closes at
+5/12s after resume fell within live logind HoldoffTimeoutUSec=30000000 and no new
+lid suspend was requested. Preserve that hotplug/dock safety delay; do not classify
+those short lid tests as proof of broken lid policy. Next user-only test is a
+keyboard-initiated, lid-open, fully hands-off suspend trial to separate spontaneous
+wake from power-button/sensor/lid interaction. No policy/device changes made.
+
+Stage-three keyboard suspend accepted: user confirms Mod+Shift+S works. Read-only
+logs show kernel s2idle entry 12:26:53 and exit 12:29:23, native lock confirmed before
+delay release, delay reacquired on resume, then an unlock request. All three services
+remain active. No auth/wake policy was changed. This accepts the sustained keyboard
+safe-suspend path, not power-button behavior, exact low-power residency, all-output
+coverage, a particular unlock method, lid handling or the automatic 310s route.
+Next user trial is lid closure outside the 30s post-resume holdoff.
+
+Lid-trial logs verified after user reported completion: lid-close 12:36:34 requested
+suspend, kernel entry 12:36:35 and resume on lid-open 12:36:56. Native lock confirmation
+preceded delay release; native inhibitor reacquired and unlock requested after resume.
+All three services remain active. User then explicitly confirmed native lock-screen
+presentation after lid-open. Accept that observation and the logged lid sleep/wake
+path; normal unlock on this trial, particular auth method, no-flash behavior and
+all-output coverage were not separately confirmed. Power-button interaction and
+full automatic 310s suspend/inhibitor validation remain open.
+
+Native-idle replacement approved and prepared (not activated):
+- Full automatic trial: lock 12:49:46, monitor off 12:49:51, no kernel sleep. Full
+  journal exposed `safe-suspend: command not found` at 12:49:56; swayidle's PATH is
+  Bash-only. Do not describe this trial as suspend success or another wake failure.
+- Extract one explicit-PATH niri/safe-suspend-package.nix and use its absolute
+  executable from the keyboard and native power backend. Retain profile command,
+  blocker parsing, locked-hint guard and manual behavior. No auth algorithm change.
+- Native idle.nix uses built-in lock=300s, screen_off=305s (native monitor restoration)
+  and lock_and_suspend=310s; behavior_order fixed, fade=0 and locked_timeout=0 preserve
+  elapsed timing across lock. Native lock-and-suspend delegates to the absolute guarded
+  power backend. No custom timer/resume controller and no competing swayidle unit.
+- Disable swayidle/remove its temporary patch. Keep fallback swaylock/PAM/style and
+  native sleep-delay patch. Do not bundle bridge/specialisation cleanup.
+- Reviewed native ScreenSaverService's BlockInhibited subscription and IdleManager
+  inhibitor gating: existing audio idle:sleep watcher and Caffeine are supported;
+  retain all hardware/lid/tuned policy. GUI idle/session override audit found none;
+  state file left untouched. Live inhibition behavior remains to be validated.
+- Eight policy/probes cover native scheduling/actions, elapsed timeout choices,
+  secure defaults, rollback, sole scheduler, empty-PATH backend resolution and actual
+  configured-binary parsing. 139 Noctalia + 19 mocked suspend tests, full Framework
+  build, auth/cache/theme checks and format/lint pass. No agent session/power action.
+- Next user rebuild while unlocked; inspect no running swayidle, native registered
+  behaviors and native sleep-delay before another six-minute idle trial. Live native
+  idle acceptance and power-button interaction remain open; do not commit as accepted.
+
+Native-idle deployment verified after user rebuild:
+- Noctalia/overview active; swayidle not-found/inactive with no remaining process.
+- Current invocation registers native lock=300s, screen-off=305s and suspend=310s
+  with locked_timeout=0. Native sleep-delay acquired and logind idle monitor active.
+- Live config has zero fade, native action/order settings and the absolute guarded
+  power backend. GUI idle/session overrides are empty. No agent session action.
+- Deployment is verified, not automatic-suspend/inhibitor acceptance. Next user-only
+  six-minute hands-off trial followed by normal-key wake and kernel-log validation.
+
+First native-idle trial reaches suspend:
+- Native lock 13:14:05, screen-off 13:14:10, suspend 13:14:15; lock confirmed before
+  native delay release. Absolute override launches and logind accepts systemctl.
+- Kernel entry 13:14:16, exit 13:14:29; delay reacquired and all behavior resume
+  callbacks run, followed by unlock request. No helper errors; native services
+  healthy and swayidle absent. Native scheduling/backend are verified in logs.
+- About 13s entry-to-exit is not enough to assume intended wake timing. Ask whether
+  the user pressed the key at resume versus spontaneous wake; acceptance of staying
+  asleep until return and live audio/Caffeine inhibition remains pending. No agent
+  session or hardware action performed.
+
+Native automatic sleep/key-wake accepted: user explicitly confirms their key press
+caused the 13:14:29 resume. Combined with registered timings, native action logs,
+lock-before-delay-release, actual kernel sleep and successful backend invocation,
+this accepts the observed native automatic route. No claim of long-duration low-power
+residency, all-output coverage or power-button fix. Next live regressions are Caffeine
+and existing audio inhibition; rollback/theme consumers and uncommitted checkpoint
+remain pending those checks or explicit user disposition.
+
+Native Caffeine integration probe verified after user enabled it: idle/block
+inhibitor labelled Caffeine held by Noctalia, aggregate BlockInhibited includes idle,
+and native logs acknowledge logind inhibitor acquisition and systemd idle inhibit
+active at 13:25:06. Services healthy. This accepts acquisition/detection, not a full
+inhibited-idle interval. Next user disables Caffeine and starts audio playback to
+isolate audio's idle:sleep blocker/native recognition; no agent state change.
+
+Audio acquisition/native recognition verified with Caffeine off: user started
+playback; Audio Playback holds sleep:idle/block and aggregate BlockInhibited includes
+sleep/idle. Native logs confirm Caffeine release at 13:28:15 and new idle inhibition
+at 13:28:33. Audio watcher/native shell/overview active, swayidle absent. This accepts
+independent acquisition/recognition plus Caffeine release, not an unperformed timed
+idle-suppression or suspend-block challenge. Next user pauses playback to verify
+blocker/native-state release. No agent playback/power state change.
+
+Audio release integration verified after user paused playback: native release log
+13:29:43, no Audio Playback/Caffeine idle:sleep blocks remaining, only Niri's normal
+handle-power-key block in aggregate state. Native shell/overview/audio watcher healthy
+and swayidle absent. Basic inhibitor acquisition/recognition/release cycle passes;
+full-duration inhibited idle and actual suspend-block challenges were not run.
+Core native idle/sleep route now has live evidence; power-button interaction,
+reader-unavailable password fallback, external outputs and extended inhibition stay
+explicitly open. Retain fallback/theme consumers/bridge and request user checkpoint
+commit or further validation disposition rather than claiming all gates accepted.
+
+User authorized checkpoint commit with follow-ups explicitly documented, not
+reclassified as passed. Track combined power-button wake investigation, full-duration
+Caffeine/audio suppression/suspend-block challenges, reader-unavailable password
+recovery and external-output/hotplug coverage. Keep swaylock/PAM/style and theme
+bridge/specialisations; retirement requires a separate review and wallpaper policy
+resolution. Current native automatic sleep/key-wake and basic inhibitor cycles have
+live evidence. Update recovery guidance for the now-active native PAM dependency;
+never remove it or restart a locked shell as an unlock procedure.
 
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility

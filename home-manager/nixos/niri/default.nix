@@ -4,6 +4,9 @@
   lib,
   ...
 }:
+let
+  safeSuspend = import ./safe-suspend-package.nix { inherit pkgs; };
+in
 {
   home.packages = [
     pkgs.playerctl
@@ -22,16 +25,7 @@
     '')
 
     # Query structured logind data; idle/lid-only locks do not veto manual sleep.
-    (pkgs.writeShellScriptBin "safe-suspend" ''
-      export PATH="${
-        lib.makeBinPath [
-          pkgs.systemd
-          pkgs.libnotify
-          pkgs.jq
-        ]
-      }"
-      ${builtins.readFile ./safe-suspend.sh}
-    '')
+    safeSuspend
 
     # Toggle ABM (Adaptive Backlight Management) for photo editing mode
     # ABM trades color accuracy for power savings
@@ -85,7 +79,7 @@
       (import ./inputs.nix { })
       (import ./layout.nix { })
       (import ./rules.nix { })
-      (import ./binds.nix { inherit config; })
+      (import ./binds.nix { inherit config pkgs; })
       (import ./startup.nix { inherit pkgs; })
     ];
   };
