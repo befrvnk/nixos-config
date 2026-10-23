@@ -1,7 +1,7 @@
 # Android Studio Canary version info
 # Updated automatically by: ./scripts/update-android-studio-canary.sh
 {
-  version = "2026.2.2.5";
-  hash = "sha256-IVioQRI+4uRwJwFmeseoqsHXj5WAj5CpdjvpyFNYQDY=";
-  url = "https://dl.google.com/dl/android/studio/ide-zips/2026.2.2.5/android-studio-rabbit2-canary5-linux.tar.gz";
+  version = "2026.2.3.1";
+  hash = "sha256-LeY44sJFrgmp3aOL0j8E7aMQLETXmJr+flb02gcF9og=";
+  url = "https://dl.google.com/dl/android/studio/ide-zips/2026.2.3.1/android-studio-rabbit3-canary1-linux.tar.gz";
 }

@@ -23,6 +23,7 @@ _:
 {
   programs.nushell = {
     enable = true;
+    loadSessionVariables = true;
 
     extraConfig = ''
       $env.config = {

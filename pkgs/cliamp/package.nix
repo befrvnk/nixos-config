@@ -3,6 +3,7 @@
   buildGoModule,
   ffmpeg,
   flac,
+  go,
   lib,
   libogg,
   libvorbis,
@@ -35,7 +36,7 @@ buildGoModule {
   ++ lib.optionals stdenv.hostPlatform.isLinux [ alsa-lib ];
 
   postPatch = ''
-    substituteInPlace go.mod --replace-fail 'go 1.26.9' 'go 1.26.5'
+    sed -i -E 's|^go [0-9]+\.[0-9]+(\.[0-9]+)?$|go ${go.version}|' go.mod
   '';
 
   ldflags = [
