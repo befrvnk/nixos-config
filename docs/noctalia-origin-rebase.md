@@ -101,6 +101,34 @@ live observations as tests of the updated system stack. After user activation wh
 unlocked, recheck native lock/password, idle registration/suspend, inhibitor handling
 and cursor/theme integration before further cleanup.
 
+### First user boot follow-up (2026-10-23)
+
+The user booted the new kernel; read-only inspection confirmed 6.18.52-cachyos.
+Home Manager's system activation, however, failed before login in our old runtime-
+lock hook: /run/user/1000 did not yet exist and the unprivileged service could not
+create it. Old home files remained, explaining the Nu duplicate-name warning from
+Atuin 18.19.0 despite the system profile containing 18.23.0. This was a missed runtime
+activation context, not a failed build or evidence that the current Nu generator
+emits the same warning.
+
+A [pre-session activation fix](noctalia-niri-overview.md#pre-session-home-manager-activation-and-stale-nu-bindings)
+uses persistent shared locking, runtime/bus deferral and explicit cache
+invalidation. The first live retry linked files but exposed a second interaction:
+sd-switch awaited the oneshot bridge startup while that worker awaited system HM.
+The system unit timed out after the frontend was killed; Noctalia itself stayed up.
+A follow-up uses finite Type=exec readiness and asynchronously restores the path
+watcher. It passes 158 Noctalia tests and the full build, including readiness-contract
+checks. The subsequent user retry completed system HM activation and the finite
+bridge normally; the user confirmed warning-free `echo test` and copy/paste in a
+fresh terminal. A further user reboot confirmed the pre-session fix live: system HM
+completed before runtime availability at 11:32:10, deferred the request, and session
+startup applied/refreshed light mode by 11:32:19. The finite worker exited with zero
+restarts, path watcher waiting and no failed units remaining. This closes that
+activation/new-terminal regression, not unrelated hardware/security follow-ups. The existing Atuin wrapper is
+redundant with upstream's newer unique names and currently doubles the Up suffix,
+but its current output is unique. Wrapper retirement is separate; do not mask the
+boot failure by editing generated files or live bindings.
+
 The follow-ups in [the lock migration guide](noctalia-lockscreen-migration.md) remain
 open, including the power-button wake interaction, extended inhibited-idle tests,
 reader-unavailable password fallback and external-output coverage. Fallback

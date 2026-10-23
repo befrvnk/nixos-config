@@ -371,6 +371,15 @@
               {
                 NOCTALIA_BIN = "${home.programs.noctalia.package}/bin/noctalia";
                 NOCTALIA_SOURCE = inputs.noctalia.outPath;
+                ACTIVATION_COREUTILS = "${pkgs.coreutils}";
+                ACTIVATION_SYSTEMCTL = "${pkgs.systemd}/bin/systemctl";
+                ACTIVATION_UTIL_LINUX = "${pkgs.util-linux}";
+                NOCTALIA_OVERVIEW_ENSURE = pkgs.writeText "noctalia-overview-ensure.sh" home.home.activation.noctaliaOverviewEnsure.data;
+                NOCTALIA_THEME_REQUEST = pkgs.writeText "noctalia-theme-request-hook.sh" home.home.activation.noctaliaThemeRequest.data;
+                ACTIVATION_THEME_REQUEST = home.programs.noctalia.settings.hooks.theme_mode_changed;
+                NOCTALIA_THEME_SERVICE = pkgs.writeText "noctalia-theme-service.json" (
+                  builtins.toJSON home.systemd.user.services.noctalia-theme
+                );
                 QT5_PROBE = "${probe "5" qt5}/bin/probe";
                 QT6_PROBE = "${probe "6" qt6}/bin/probe";
                 QT5_PLUGIN_PATH = "${pkgs.libsForQt5.qt5ct}/${qt5.qtPluginPrefix}:${qt5}/${qt5.qtPluginPrefix}";
@@ -459,6 +468,7 @@
                   }
                 }/bin/fzf";
                 NUSHELL_CLI = "${pkgs.nushell}/bin/nu";
+                NU_MANAGED_CONFIG = home.home.file."${home.xdg.configHome}/nushell/config.nu".source;
                 NUSHELL_THEME_TEMPLATE = ./home-manager/nixos/noctalia/nushell.nuon;
                 NUSHELL_THEME_READER = ./home-manager/nixos/noctalia/nushell-theme.nu;
                 FZF_REGISTRATION = pkgs.writeText "fzf-test-template.json" (
@@ -548,9 +558,15 @@
             assert pkgs.lib.assertMsg (same (
               map (h: builtins.toJSON h.systemd.user.services.noctalia) variants
             )) "App-theme switches must not restart Noctalia";
-            assert pkgs.lib.assertMsg (same (
-              map (h: builtins.toJSON h.systemd.user.services.noctalia-theme) variants
-            )) "The theme bridge must not restart itself during app-theme activation";
+            assert pkgs.lib.assertMsg (
+              same (map (h: builtins.toJSON h.systemd.user.services.noctalia-theme) variants)
+              && builtins.all (h: h.systemd.user.services.noctalia-theme.Service.Type == "exec") variants
+            ) "Bridge units must stay constant and report startup before waiting for Home Manager";
+            assert pkgs.lib.assertMsg (builtins.all (
+              h:
+              pkgs.lib.elem "NOCTALIA_ACTIVATION_LOCK=${h.xdg.stateHome}/noctalia/theme-activation.lock" h.systemd.user.services.noctalia-theme.Service.Environment
+              && pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/theme-activation.lock" h.home.activation.noctaliaThemeLock.data
+            ) variants) "Boot activation and the bridge must share a persistent pre-session-safe lock path";
             assert pkgs.lib.assertMsg (
               same (map (h: builtins.toJSON h.systemd.user.services.noctalia-overview) variants)
               && builtins.all (

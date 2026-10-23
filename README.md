@@ -570,6 +570,9 @@ backdrop-only placement and light/dark fades are user-tested; monitor reconnect
 and shell-restart checks remain separate. See [handover/testing](docs/noctalia-niri-overview.md#existing-session-handover).
 Noctalia restarts may briefly remove its wallpaper; it is no longer independently rendered.
 
+If a new boot supplies updated packages but leaves old home files (for example an
+Atuin duplicate-binding warning), check [pre-session Home Manager activation](docs/noctalia-niri-overview.md#pre-session-home-manager-activation-and-stale-nu-bindings).
+
 ### Security
 
 - **Secure Boot** with Lanzaboote

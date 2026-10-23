@@ -1282,6 +1282,70 @@ Origin rebase performed onto a44373c with all 31 local commits replayed/signed:
 - See [origin rebase validation](noctalia-origin-rebase.md) for lock policy, compatibility
   fixes, checkpoint hash mapping and final validation status.
 
+First rebased boot: kernel 6.18.52-cachyos confirmed; Home Manager activation failed:
+- System HM unit ran before login and the old noctaliaThemeLock tried creating
+  /run/user/1000 without permission. Home files remained from an older generation;
+  the Nu warning referenced raw Atuin 18.19.0, while the system profile supplied the
+  18.23.0 wrapper. Bridge waits failed-closed on that failed system activation.
+- Fix prepared: canonical persistent state-home lock shared by HM/worker, with
+  legacy runtime lock retained in the same acquisition order for upgrade/rollback.
+  Never manufacture /run/user dirs. Export an existing owned runtime for native
+  user-service integration; query/stop legacy Darkman only with a bus, before locks.
+- Defer requests without runtime; guard overview ensure on session-bus availability.
+  Normal forced HM requests invalidate only the applied-generation cache, so later
+  session startup reasserts the selected specialisation even for the same cached
+  generation/mode. Explicit state-home/lock paths agree; GUI settings untouched.
+- 154 tests include real private hook/flock fixtures, fake systemctl, mocked generation
+  activations and real current Nu integration/warning probes. Full Framework build,
+  invariants and lint pass. Current Atuin wrapper produces unique names; shared/Darwin
+  config and key behavior aren't modified. Redundant wrapper retirement stays separate.
+- User should rebuild switch while unlocked, then open a fresh terminal. Verify HM
+  success/current config and bridge before checkpoint commit. Cold-boot validation
+  remains pending a later user reboot; no agent activation/service/auth/power action.
+
+Live activation retry exposed a readiness cycle after lock/link stages succeeded:
+- Home Manager waited in sd-switch for noctalia-theme.service's oneshot startup;
+  the worker waited for the system HM activation. Killing nh did not stop that unit;
+  the system activation later timed out/failed. Native Noctalia remained running.
+- Fix prepared: finite worker Type=exec marks startup before awaiting HM. Keep the
+  HM wait before locks/activation, pending-event semantics, identical variant units
+  and on-failure retry. Normal activation ensures the path watcher asynchronously.
+- New service snapshot/invariant checks reject oneshot readiness; private hook
+  fixtures verify pre-session deferral, post-session path restoration and dry-run/
+  nested skips. Total 158 Noctalia tests and full Framework build pass. This is not
+  a successful live sd-switch/cold-boot test; both remain pending user validation.
+- User recovery stops only noctalia-theme.path/service (not native shell/locker),
+  then applies the completed fix while unlocked. Do not retry an old oneshot unit
+  blindly or activate/restart services as an agent. No checkpoint commit yet.
+
+Readiness-fix live retry verified: HM finished successfully 11:11:02–11:11:06;
+finite Type=exec worker refreshed light mode and exited at 11:11:09, path watcher
+waiting. Current Nu config sources unique-name 18.23.0 integration, not reported
+old 18.19.0 script. User still sees the old store path when pasting; two pre-rebuild
+Nu processes remain. Need a fresh terminal/paste check and distinguish emitted
+warnings from editable clipboard text; no clipboard read or new workaround applied.
+Activation cycle now has live evidence; cold-boot/new-terminal acceptance pending.
+
+Activation-readiness recovery and fresh terminal accepted: user confirms `echo test`
+works normally and copy/paste no longer presents the old warning. HM success,
+Type=exec finite worker completion, path restoration and current unique-name Nu
+integration were verified read-only. No clipboard contents inspected; no Nu/paste
+binding workaround applied. Full cold-boot validation remains open pending a later
+user reboot; do not equate warm recovery with pre-login acceptance. Await checkpoint
+commit/cold-boot disposition; source changes remain uncommitted.
+
+Pre-session activation fix verified after the user's further reboot:
+- User confirms the fresh-terminal/paste fix persists. Kernel remains 6.18.52-cachyos.
+- System HM completed successfully 11:32:07–11:32:10, before user runtime/daemon
+  availability, skipped reload and explicitly deferred the theme request.
+- Session startup worker Type=exec began 11:32:14, applied/refreshed light mode by
+  11:32:19, then exited normally; watcher waiting, zero worker restarts, native
+  shell/overview active. No failed system/user units remained at inspection. A
+  transient degraded-session notice listed no failed services and completion passed.
+- Accept the observed warm/readiness, fresh Nu/paste and reboot/pre-login path;
+  retain unrelated hardware/auth/output follow-ups and fallback/theme consumers.
+  Finalize the signed checkpoint after checks; no agent activation/service restart.
+
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility
 bridge and the separate compromised-cache follow-up are not marked complete.

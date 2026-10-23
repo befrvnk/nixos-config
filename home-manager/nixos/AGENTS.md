@@ -56,13 +56,26 @@ Theme switching without full rebuilds:
 
 ### Theme Switching (Noctalia)
 - `theme_mode_changed` and startup hooks submit atomic requests; `noctalia-theme.path`
-  drives a oneshot worker. Do not change these to restart a worker mid-activation.
+  drives a finite `Type=exec` worker. `Type=oneshot` deadlocks HM unit switching:
+  sd-switch waits for worker completion while the worker waits for HM. Exec startup
+  readiness must precede that wait. Normal activation asynchronously ensures the
+  path watcher is started after reload; do not restart a worker mid-activation.
 - Worker reads `theme-mode-get`; it never writes a mode or portal preference back.
   It requests native `templates-apply` after HM activation so Noctalia owns preference sync.
 - Stylix's GNOME target is disabled: it writes `default` for light mode and would fight
   Noctalia. Static app fonts are preserved explicitly; do not reintroduce an HM-managed
   `org/gnome/desktop/interface.color-scheme` key.
-- Normal HM activation and the worker share `$XDG_RUNTIME_DIR/noctalia-theme/activation.lock`.
+- Normal HM activation and the worker share the canonical persistent
+  `${config.xdg.stateHome}/noctalia/theme-activation.lock`; the worker gets its path
+  explicitly. Both also hold the old runtime lock, when available, to serialize
+  with older generations during upgrade/rollback. Always take state before runtime.
+- HM's system unit can run before login: never create `/run/user/$UID`. Defer theme
+  requests when runtime is missing, and guard overview/user-bus calls until a bus
+  exists. Normal activation invalidates only the applied-generation cache; startup
+  must reapply the mode even when the previous cache had the same generation/mode.
+  Never erase GUI settings to recover activation. Warm activation, fresh Nu/paste
+  and pre-session activation after a user reboot passed on 2026-10-23; keep the
+  readiness and pre-session regression probes when changing this temporary bridge.
 - `NOCTALIA_THEME_BRIDGE_ACTIVE` suppresses recursive hooks/locking in the worker's child activation.
 - Noctalia config and shell/bridge units must be identical across dark/light generations
   (`checks.x86_64-linux.noctalia-theme-invariants` enforces this).

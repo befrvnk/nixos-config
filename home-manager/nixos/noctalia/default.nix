@@ -174,7 +174,9 @@ in
   # Noctalia's own restart. Its started hook then never runs. Recover the watcher
   # after unit reconciliation too, without restarting either running service.
   home.activation.noctaliaOverviewEnsure = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
-    $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user --no-block start noctalia-overview.service
+    if [ -n "''${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/bus" ]; then
+      $DRY_RUN_CMD ${pkgs.systemd}/bin/systemctl --user --no-block start noctalia-overview.service
+    fi
   '';
 
   systemd.user.services.noctalia.Unit.ConditionEnvironment = "WAYLAND_DISPLAY";

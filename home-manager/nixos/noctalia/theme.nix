@@ -8,7 +8,9 @@ let
   wallpapers = import ../wallpapers;
   fonts = config.stylix.fonts;
   noctalia = config.programs.noctalia.package;
+  activationLock = "${config.xdg.stateHome}/noctalia/theme-activation.lock";
   request = pkgs.writeShellScript "noctalia-theme-request" ''
+    export XDG_STATE_HOME=${lib.escapeShellArg config.xdg.stateHome}
     exec ${pkgs.python3}/bin/python3 ${./theme_bridge.py} request "$@"
   '';
   worker = pkgs.writeShellScript "noctalia-theme-worker" ''
@@ -43,19 +45,20 @@ in
   home.activation = {
     noctaliaThemeLock = lib.hm.dag.entryBefore [ "writeBoundary" ] (
       lib.replaceStrings
-        [ "@coreutils@" "@systemd@" "@util_linux@" ]
-        [ "${pkgs.coreutils}" "${pkgs.systemd}" "${pkgs.util-linux}" ]
+        [ "@activation_lock@" "@coreutils@" "@systemd@" "@util_linux@" ]
+        [ (lib.escapeShellArg activationLock) "${pkgs.coreutils}" "${pkgs.systemd}" "${pkgs.util-linux}" ]
         (builtins.readFile ./activation-lock.sh)
     );
     # Request asynchronously, never run a nested activation while holding the
     # normal activation lock. The bridge's own specialisation skips this hook.
     noctaliaThemeRequest =
       lib.hm.dag.entryAfter [ "reloadSystemd" "stylixLookAndFeel" "zedSettingsActivation" ]
-        ''
-          if [ -z "''${DRY_RUN_CMD:-}" ] && [ -z "''${NOCTALIA_THEME_BRIDGE_ACTIVE:-}" ]; then
-            ${request} --force --refresh
-          fi
-        '';
+        (
+          lib.replaceStrings
+            [ "@systemd@" "@theme_request@" ]
+            [ "${pkgs.systemd}" (lib.escapeShellArg "${request}") ]
+            (builtins.readFile ./activation-request.sh)
+        );
   };
 
   systemd.user = {
@@ -84,16 +87,18 @@ in
           StartLimitIntervalSec = 0;
         };
         Service = {
-          Type = "oneshot";
+          # sd-switch must not await a worker that is itself waiting for HM.
+          Type = "exec";
           ExecStart = worker;
           Restart = "on-failure";
           RestartSec = "5s";
-          TimeoutStartSec = "infinity";
           Environment = [
+            "NOCTALIA_ACTIVATION_LOCK=${activationLock}"
             "NOCTALIA_COMMAND=${lib.getExe noctalia}"
             "NOCTALIA_WALLPAPER_LIGHT=${wallpapers.light}"
             "NOCTALIA_WALLPAPER_DARK=${wallpapers.dark}"
             "NOCTALIA_HM_UNIT=home-manager-${config.home.username}.service"
+            "XDG_STATE_HOME=${config.xdg.stateHome}"
             "PATH=${
               lib.makeBinPath [
                 pkgs.nix

@@ -1,7 +1,10 @@
 """Theme-controller tests: all service, IPC and activation commands are mocked."""
 
+import fcntl
+import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -222,6 +225,97 @@ class ThemeBridgeTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 self.process()
         self.assertEqual(self.activations(), [])
+
+    def test_worker_holds_persistent_and_legacy_locks_through_activation(self):
+        shared = self.state.parent / "theme-activation.lock"
+        legacy = self.runtime / "activation.lock"
+        def probe_locks():
+            for path in (shared, legacy):
+                with path.open("a") as lock:
+                    with self.assertRaises(BlockingIOError):
+                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        self.activation_callback = probe_locks
+        bridge.request(self.runtime)
+        self.process()
+        self.assertTrue(shared.exists())
+        with shared.open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    def test_request_before_runtime_exists_is_deferred_without_creating_it(self):
+        missing = self.root / "missing-runtime"
+        with patch.dict(os.environ, {"XDG_RUNTIME_DIR": str(missing), "HOME": str(self.home),
+                                    "XDG_STATE_HOME": str(self.root / "state")}, clear=True), \
+                patch.object(sys, "argv", ["bridge", "request", "--force", "--refresh"]):
+            bridge.main()
+        self.assertFalse(missing.exists())
+        self.assertEqual(self.calls, [])
+
+    def test_unset_and_empty_runtime_request_do_not_create_run_user(self):
+        for environment in ({}, {"XDG_RUNTIME_DIR": ""}):
+            with self.subTest(environment=environment), \
+                    patch.dict(os.environ, dict(environment, HOME=str(self.home),
+                                                XDG_STATE_HOME=str(self.root / "state")), clear=True), \
+                    patch("theme_bridge.os.getuid", return_value=2147483647), \
+                    patch.object(sys, "argv", ["bridge", "request"]):
+                bridge.main()
+        self.assertEqual(self.calls, [])
+
+    def test_session_start_request_is_retained_when_runtime_exists(self):
+        self.runtime.mkdir()
+        with patch.dict(os.environ, {"XDG_RUNTIME_DIR": str(self.runtime), "HOME": str(self.home),
+                                    "XDG_STATE_HOME": str(self.root / "state")}, clear=True), \
+                patch.object(sys, "argv", ["bridge", "request", "--force", "--refresh"]):
+            bridge.main()
+        pending = bridge.read_json(self.runtime / "noctalia-theme/request.json")
+        self.assertTrue(pending["force"])
+        self.assertTrue(pending["refresh"])
+
+    def test_prelogin_force_invalidates_only_the_bridge_cache(self):
+        state = self.root / "state/noctalia"
+        state.mkdir(parents=True)
+        cache = state / "theme-bridge.json"
+        cache.write_text('{"generation": "old", "mode": "light"}')
+        settings = state / "settings.toml"
+        preferences = '[theme]\nmode = "auto"\n'
+        settings.write_text(preferences)
+        missing = self.root / "missing-runtime"
+        environment = {"HOME": str(self.home), "XDG_STATE_HOME": str(state.parent),
+                       "XDG_RUNTIME_DIR": str(missing)}
+        with patch.dict(os.environ, environment, clear=True), \
+                patch.object(sys, "argv", ["bridge", "request", "--force"]):
+            bridge.main()
+        self.assertFalse(cache.exists())
+        self.assertEqual(settings.read_text(), preferences)
+        self.assertFalse(missing.exists())
+
+    def test_startup_refresh_reapplies_after_prelogin_base_activation(self):
+        self.state = self.root / "state/noctalia/theme-bridge.json"
+        bridge.request(self.runtime)
+        self.process()
+        self.assertEqual(len(self.activations()), 1)
+        environment = {"HOME": str(self.home), "XDG_STATE_HOME": str(self.state.parent.parent),
+                       "XDG_RUNTIME_DIR": str(self.root / "missing-runtime")}
+        with patch.dict(os.environ, environment, clear=True), \
+                patch.object(sys, "argv", ["bridge", "request", "--force", "--refresh"]):
+            bridge.main()
+        self.assertFalse(self.state.exists())
+        bridge.request(self.runtime, refresh=True)
+        self.process()
+        self.assertEqual(len(self.activations()), 2)
+
+    def test_main_worker_uses_the_explicit_shared_activation_lock(self):
+        shared = self.root / "canonical-state/theme-activation.lock"
+        environment = {
+            "HOME": str(self.home), "XDG_RUNTIME_DIR": str(self.runtime),
+            "NOCTALIA_ACTIVATION_LOCK": str(shared), "NOCTALIA_COMMAND": "noctalia",
+            "NOCTALIA_WALLPAPER_LIGHT": "light.jpg", "NOCTALIA_WALLPAPER_DARK": "dark.jpg",
+            "NOCTALIA_HM_UNIT": "home-manager-test.service",
+        }
+        with patch.dict(os.environ, environment, clear=True), \
+                patch.object(sys, "argv", ["bridge", "run"]), \
+                patch("theme_bridge.process_requests") as process:
+            bridge.main()
+        self.assertEqual(process.call_args.kwargs["activation_lock"], shared)
 
     def test_busy_hm_unit_defers_activation(self):
         with patch("theme_bridge.run", return_value=subprocess.CompletedProcess(

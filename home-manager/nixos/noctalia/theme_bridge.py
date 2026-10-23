@@ -1,7 +1,9 @@
 """Temporary one-way Noctalia -> prebuilt Home Manager theme adapter.
 
-Requests are atomic files consumed by a systemd PathExists/oneshot pair. No
-persistent poller, Nix rebuild, Noctalia restart, or reverse mode write is used.
+Requests are atomic files consumed by a systemd PathExists/finite-worker pair.
+Exec readiness lets Home Manager unit switching finish before this worker waits
+for HM activation. No persistent poller, Nix rebuild, Noctalia restart, or reverse
+mode write is used.
 """
 
 import argparse
@@ -94,12 +96,15 @@ def refresh_wallpaper(mode, noctalia, wallpapers):
         raise RuntimeError(f"Native wallpaper selection failed: {reply}")
 
 
-def process_requests(runtime, state_path, noctalia, wallpapers, hm_unit):
+def process_requests(runtime, state_path, noctalia, wallpapers, hm_unit, *, activation_lock=None):
+    activation_lock = activation_lock or state_path.parent / "theme-activation.lock"
     while read_json(runtime / "request.json"):
         wait_for_activation(hm_unit)
         # The same lock is held by ordinary HM activation hooks, so even a
         # rebuild beginning after our initial wait cannot race linkGeneration.
-        with locked(runtime / "activation.lock"):
+        # Retain the old runtime lock too while older generations may coexist.
+        # Both new callers take the persistent lock first, avoiding lock inversion.
+        with locked(activation_lock), locked(runtime / "activation.lock"):
             pending = read_json(runtime / "request.json")
             if not pending:
                 return
@@ -144,19 +149,29 @@ def main():
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--refresh", action="store_true")
     args = parser.parse_args()
-    runtime_root = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
+    runtime_root = Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}")
     runtime = runtime_root / "noctalia-theme"
+    state_root = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state")
+    state_path = state_root / "noctalia" / "theme-bridge.json"
     if args.action == "request":
+        # Ordinary HM activation may have replaced themed files with the base.
+        # Invalidate only our applied-generation cache, even before login, so the
+        # session-start request reapplies the mode instead of trusting stale state.
+        if args.force:
+            state_path.unlink(missing_ok=True)
+        if not runtime_root.is_dir():
+            print("User runtime directory unavailable; deferring theme request until session startup")
+            return
         request(runtime, force=args.force, refresh=args.refresh)
         return
-    home = Path.home()
-    state_root = Path(os.environ.get("XDG_STATE_HOME", home / ".local" / "state"))
     process_requests(
-        runtime, state_root / "noctalia" / "theme-bridge.json",
+        runtime, state_path,
         os.environ["NOCTALIA_COMMAND"],
         {"light": Path(os.environ["NOCTALIA_WALLPAPER_LIGHT"]),
          "dark": Path(os.environ["NOCTALIA_WALLPAPER_DARK"])},
         os.environ["NOCTALIA_HM_UNIT"],
+        activation_lock=Path(os.environ.get("NOCTALIA_ACTIVATION_LOCK")
+                             or str(state_root / "noctalia" / "theme-activation.lock")),
     )
 
 

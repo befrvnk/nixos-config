@@ -238,7 +238,8 @@ the temporary config generator. Arbitrary shell palettes do not yet recolor ever
 Per-app templates will replace that dependency one application at a time.
 
 Noctalia's mode hook submits an atomic request. `noctalia-theme.path` starts a
-serialized oneshot `noctalia-theme.service` to apply it. The worker queries the
+serialized finite `noctalia-theme.service` to apply it. It uses `Type=exec` so
+startup readiness does not wait for the worker's activation work to finish. The worker queries the
 resolved mode, waits for ordinary HM activation, uses a shared linking lock and
 suppresses its own activation hooks. It then requests the
 current light/dark wallpaper pair through native Noctalia IPC.
@@ -274,6 +275,10 @@ not continuously running. Darkman should be inactive/not found. On failure, the
 request remains under `$XDG_RUNTIME_DIR/noctalia-theme/` and the service retries.
 Applied compatibility state is under `~/.local/state/noctalia/theme-bridge.json`.
 The shared activation lock and recursion flag are deliberate; do not bypass them.
+The canonical lock is now under the configured state home at
+`noctalia/theme-activation.lock`, so it is available before login. With a runtime
+directory available, both callers additionally retain the old runtime activation
+lock for compatibility with older generations; state is always locked first.
 
 A pre-handover GUI-settings backup is at
 `~/.local/state/noctalia/settings.pre-theme-controller.toml`. No GUI keys were deleted
@@ -281,7 +286,9 @@ for this change. Do not restore the whole file blindly or lose newer plugin/UI c
 Before this handover, checkpoint `77d6c20` (originally `3f51f68`) retained the old Darkman controller;
 rolling back also requires reconciling any subsequently saved `theme.mode` override.
 
-Build validation includes 18 mocked bridge tests, 4 overview tests, 10 Ghostty
+Build validation includes 25 mocked bridge tests, 10 isolated activation/overview/
+request-hook and service-readiness contract tests, 2 real isolated Atuin/Nu integration-warning probes,
+4 overview tests, 10 Ghostty
 integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt6 probes),
 6 Vicinae tests (with its actual pinned theme parser), 6 Zed tests (including the actual
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
@@ -1114,6 +1121,84 @@ inhibited-idle intervals, reader-unavailable fallback and external outputs remai
 open; don't treat them as accepted or remove fallback/theme consumers yet. Power-button immediate
 wake remains separate and unresolved; it is not attributed to fingerprint without
 proof. See the [stage history and recovery guide](noctalia-lockscreen-migration.md).
+
+## Pre-session Home Manager activation and stale Nu bindings
+
+After booting the rebased generation on 2026-10-23, the kernel was 6.18.52-cachyos,
+but home-manager-frank.service failed in noctaliaThemeLock before linking files.
+The old hook attempted to create /run/user/1000 before login; permissions correctly
+prevented this. The bridge then deferred against the failed system unit. Old home
+files remained while /etc/profiles/per-user/frank already supplied newer packages.
+The reported Nu warning came from an Atuin 18.19.0 generated script, not the current
+18.23.0 wrapper. The current generated integration passes the real Nu uniqueness
+probe with Ctrl-R/Up and modes retained. No warning-suppression/keybinding rewrite
+is needed for this symptom; the shared Atuin/Darwin configuration is not changed.
+
+The fix uses a private persistent shared lock and leaves runtime-dir
+creation to systemd/logind. When an owned runtime already exists, activation exports
+it for later user-service integration and retains legacy lock serialization. Darkman
+is queried/stopped only with a bus and before locking. The overview ensure hook
+skips pre-session bus access; its normal graphical-session startup still owns boot.
+
+Pre-login theme requests are deferred until native shell startup. A forced request
+from ordinary HM activation invalidates only theme-bridge.json, the applied-generation
+cache: otherwise an identical cached mode could hide the fact that base activation
+just replaced specialised files. settings.toml/preferences remain untouched. Both
+request and worker use the configured state home and the explicit shared lock path.
+
+All 158 Noctalia tests and the full Framework build pass; real hook fragments run
+only against private fixtures/fake systemctl, and all generation activations are
+mocked. Request deferral, cache invalidation/startup reapply, cross-caller locks,
+dry-run/child skips, overview startup and Nu warning detection are covered. No
+agent activation or service/power/authentication action was performed.
+
+The first live recovery passed the lock/file-link stages, but blocked in reloadSystemd.
+sd-switch started the then-oneshot theme worker and waited for it; that worker was
+waiting for the system HM unit that was itself awaiting sd-switch. Killing the nh
+frontend did not stop the system activation. It eventually timed out and failed.
+The native Noctalia shell remained running. This readiness interaction was not
+covered by the earlier hook-only fixtures; do not call that attempt successful.
+
+The follow-up changes the finite worker to Type=exec, marking startup after exec
+rather than after its work completes. It still waits for HM before acquiring locks
+or activating a specialisation. Unit definitions stay identical across variants,
+and the invariant/probe rejects oneshot readiness. Normal HM requests asynchronously
+ensure the path watcher is started, including after manual recovery. No persistent
+poller or new mode controller is introduced. The subsequent retry and boot below
+provide live evidence; contract/parser/fixture checks alone are not that evidence.
+
+Before retrying while unlocked, the user can stop only the retrying adapter with
+`systemctl --user stop noctalia-theme.path noctalia-theme.service` (not noctalia.service),
+then run rebuild switch with the completed fix and open a fresh terminal. Inspect
+system HM success, current config link, Type=exec bridge readiness and restored path
+watcher. No reboot is needed for that immediate check. A separate user reboot is
+required to establish the pre-login path; fixture/build success alone is not a
+completed boot test. Both steps were subsequently completed as recorded below.
+
+The subsequent user retry completed: system HM activation ran 11:11:02–11:11:06
+with Result=success; the Type=exec worker then applied/refreshed the light mode and
+finished at 11:11:09, leaving its path watcher waiting. The live Nu config now sources
+the current Atuin integration with unique names. Two pre-rebuild Nu sessions were
+still resident; existing processes retain their loaded definitions/config even when
+home files change. A later paste-related report still named the old 18.19.0 store
+file. The user then confirmed a fresh terminal runs `echo test` normally and
+copy/paste works without that warning. Accept the live activation/readiness and
+reported fresh-terminal behavior. Clipboard contents were not inspected and no
+paste/keybinding workaround was applied.
+
+The user then rebooted and confirmed it still works. On the 11:32 boot,
+home-manager-frank.service completed successfully at 11:32:10 before the user daemon
+or runtime directory existed. Standard reload was skipped and the theme request
+explicitly deferred. Session startup ran the Type=exec worker at 11:32:14, applied
+the prebuilt light specialisation and refreshed at 11:32:19. It exited normally with
+zero restarts, its path watcher waiting, and native shell/overview active. No failed
+system/user units remained at inspection. A transient degraded-session notice had
+no listed failed services and did not prevent completion.
+
+Accept the observed warm activation, fresh-terminal/paste behavior and reboot/
+pre-session activation path. This does not close unrelated lock/output/reader or
+power-button follow-ups. Do not clear the whole settings file, restart a locked
+shell or activate a generation as an agent.
 
 ## Consolidation plan
 
