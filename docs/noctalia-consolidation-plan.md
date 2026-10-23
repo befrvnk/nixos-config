@@ -1497,8 +1497,9 @@ Greeter checkpoint (signed 41e453f). The [Umbriel trial](umbriel-trial.md) is no
 prepared/built as an additional selectable session with Niri still default: all 19
 Linux checks pass. User entry/basic smoke is positive; passive checks found healthy
 Umbriel/native/overview services. Missing Alt+Tab was an omitted binding, now added
-via native Noctalia hold switcher (11 Umbriel probes); live cycle/release acceptance
-is pending. No session/focus action was performed by the agent. The owner now chose
+via native Noctalia hold switcher (11 Umbriel probes), then installed/user-confirmed
+working. Read-only checks found valid reload and original service start times/zero
+restarts. No session/focus action was performed by the agent. The owner now chose
 to keep both installed/selectable, Niri still default, and experiment with differences
 when convenient. Performance comparison is user-led backlog NOC-04, not an immediate
 migration gate; no session removal or forced benchmark. Shared topbar UI can be the

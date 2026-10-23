@@ -1,8 +1,8 @@
 # Umbriel alongside Niri — retained dual-session setup
 
 Status: **owner chose to keep both for ongoing experiments** (2026-10-23).
-Umbriel session startup/basic smoke is positive. Alt+Tab activation/live acceptance,
-comparative performance and broader runtime coverage are not certified.
+Umbriel session startup/basic smoke and native Alt+Tab are user-confirmed.
+Comparative performance and broader runtime coverage are not certified.
 Niri remains the Greeter default and a selectable recovery session. No compositor,
 portal, hardware control, lock or authentication action was performed by the agent.
 
@@ -156,11 +156,13 @@ hardware, inhibitor or fallback-session acceptance.
 
 The missing Alt+Tab binding is now added using Noctalia's documented native
 window-switcher hold integration, verified against pinned 5.3 source. All 19 checks
-and 11 Umbriel probes pass; live switcher/focus/release behavior is pending. While
-unlocked the user can run rebuild switch, let valid config reload, then try with
-at least two windows: hold Alt, press Tab/repeat Tab, release Alt to select, and
-optionally Escape to cancel. The agent never opens the switcher, changes focus,
-restarts the compositor or forces a reload. Niri bindings/default stay unchanged.
+and 11 Umbriel probes pass. The user applied the binding and confirmed Alt+Tab works.
+Read-only inspection found the installed native window-switcher hold binding with
+repeat=false, valid config reloads at 18:58:43/51, and Umbriel/Noctalia/overview still
+active with their original 17:02 start times and zero restarts. Accept the reported
+normal shortcut behavior, not unreported individual reverse/cancel/output cases or
+unrelated runtime gates. The agent never opens the switcher, changes focus, restarts
+the compositor or forces a reload. Niri bindings/default stay unchanged.
 
 ### Fan/GPU observation — diagnosis, not a tuning change
 
@@ -234,9 +236,9 @@ Shared topbar UI work may be discussed next without choosing a winner, preservin
 both overview adapters and current behavior unless the owner requests a change.
 
 Track optional comparison in [backlog NOC-04](noctalia-backlog.md). Do not repeatedly
-ask for an A/B run as a migration gate. Alt+Tab is present in the candidate, but the
-installed config inspection still lacked it; a later user rebuild switch while
-unlocked installs it. Its cycle/release behavior is unconfirmed, not a passed test.
+ask for an A/B run as a migration gate. Alt+Tab was subsequently installed by the
+user and confirmed working; passive config/service checks corroborate installation
+without a compositor restart. This does not close unrelated runtime/performance gates.
 No rebuild is required merely to continue using the two already installed sessions.
 
 ## User-only first trial / later session selection

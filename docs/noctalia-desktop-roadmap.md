@@ -138,7 +138,8 @@ Full Framework build and all 19 Linux checks pass: 177 Noctalia, 11 Umbriel, 8 G
 and 19 mocked suspend tests. User entry/basic smoke passed and passive checks found
 healthy Umbriel/native/overview services, but detailed visual/input/lock/portal/power/
 session-return coverage remains unverified. Missing Alt+Tab was a binding omission;
-its native Noctalia hold-switcher follow-up is built and awaits user acceptance. Native package/session lifecycle is retained;
+its native Noctalia hold-switcher follow-up is installed and user-confirmed working,
+with valid reload and no compositor/native-service restart. Native session lifecycle is retained;
 Home Manager/Nushell environment and custom XKB readiness are handled by the scoped
 launcher, and the existing overview adapter supports the active compositor.
 
@@ -147,9 +148,8 @@ full Niri parity or retirement authorization. The reader/output/power backlog st
 deferred. The owner chose to keep both sessions and experiment with performance/
 behavior differences when convenient. Niri stays the configured default; do not
 remove either, select a winner automatically or require another comparison now.
-Optional A/B work is tracked in backlog NOC-04. Alt+Tab is built but not yet installed/
-live-confirmed; a later unlocked rebuild switch can install it without making that
-check a condition of coexistence.
+Optional A/B work is tracked in backlog NOC-04. Alt+Tab's normal live behavior is
+accepted; do not extend that to broader performance/security or unreported cases.
 
 ## 3. Topbar — next separately requested UI step, supporting both
 

@@ -134,7 +134,7 @@ Other authentication routes remain unchanged. See the [desktop roadmap and safe 
 
 **Niri and Umbriel are both retained** as selectable sessions for ongoing experiments;
 Niri remains the default and recovery option. Umbriel's initial user-session smoke
-passed. An Alt+Tab follow-up is built but not live-confirmed; performance comparison
+passed, and native Noctalia Alt+Tab switching is user-confirmed. Performance comparison
 is user-led, not a required migration gate.
 Read the [trial guide and explicit binding differences](./docs/umbriel-trial.md) before entry.
 

@@ -255,7 +255,8 @@ Theme switching without full rebuilds:
   Niri stays the Greeter default; no automatic winner, uninstall or mandatory
   performance comparison. See docs/umbriel-trial.md and backlog NOC-04.
 - Initial Umbriel session/basic smoke passed, not full lock/input/portal/power or
-  return-session coverage. Alt+Tab is implemented/built but not live-confirmed.
+  return-session coverage. Native Alt+Tab is installed/user-confirmed working;
+  passive checks found valid config reload with original service start times.
 - Shared topbar UI can be discussed next; keep both overview protocols and existing
   behavior unless the owner requests a change. No UI redesign follows implicitly.
 

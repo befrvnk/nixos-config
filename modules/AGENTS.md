@@ -90,8 +90,9 @@ See: `modules/hardware/fprintd/default.nix`
   that without matching readiness support. Live portal/session behavior is pending.
 - Owner chose to retain both Niri and Umbriel (2026-10-23), with Niri default.
   Performance comparisons are user-led backlog NOC-04, not mandatory next tests.
-  Do not uninstall either or change the default without a new request. Alt+Tab is
-  built but not live-confirmed; don't turn that into full runtime acceptance.
+  Do not uninstall either or change the default without a new request. Native
+  Alt+Tab is installed/user-confirmed with valid reload and no compositor restart;
+  don't turn that into full runtime/performance or unreported-case acceptance.
 - See docs/umbriel-trial.md for differences and user-only trial/recovery. No Niri,
   fallback/auth removal or topbar redesign is authorized by installing a second WM.
 
