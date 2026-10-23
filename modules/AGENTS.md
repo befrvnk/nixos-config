@@ -127,12 +127,17 @@ In `modules/system/security.nix`:
 ### tuned + tuned-ppd
 In `modules/hardware/power-management.nix`:
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility
-- `powerprofilesctl` still works (talks to tuned-ppd D-Bus API)
+- PPD clients use the tuned-ppd D-Bus API; `powerprofilesctl` is not installed by default
 - **Auto-switching:** tuned handles AC/battery via upower events (not udev)
-- Custom profiles: `framework-battery` and `framework-ac`
+- Custom profiles: `framework-battery`, `framework-ac`, `framework-powersave`, `framework-performance`
 
-**Battery mode:** low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3
-**AC mode:** balanced profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled
+**Power Saver:** low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 4
+**Battery/Balanced:** low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3
+**AC/Balanced:** balanced profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled
+**Performance:** performance profile, EPP=performance, boost ON, WiFi power save OFF, ABM disabled
+
+`framework-powersave` and `framework-performance` run sysfs scripts because tuned's
+`[cpu] boost` setting does not work on this host.
 
 ### Platform Profile Permissions
 `platform-profile-permissions` service makes sysfs writable for user control:
@@ -154,6 +159,7 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 ```
 - Level 0: Disabled (accurate colors)
 - Level 3: Aggressive (battery)
+- Level 4: Maximum (explicit Power Saver)
 - Toggle: `Mod+Shift+B` runs `toggle-abm`
 
 ## Audio Configuration

@@ -113,15 +113,17 @@ tuned provides event-based AC/battery switching via upower, eliminating the CPU 
 
 ### Automatic AC/Battery Switching
 tuned-ppd handles automatic profile switching via upower events (not udev):
-- **On battery**: Switches to `framework-battery` profile (low-power platform profile, EPP=power, boost OFF, WiFi power save ON, ABM level 3)
-- **On AC**: Switches to `framework-ac` profile (balanced platform profile, EPP=balance_performance, boost ON, WiFi power save OFF, ABM disabled)
+- **On battery / Balanced**: Switches to `framework-battery` (low-power, EPP=power, boost OFF, WiFi power save ON, ABM 3)
+- **On AC / Balanced**: Switches to `framework-ac` (balanced, EPP=balance_performance, boost ON, WiFi power save OFF, ABM off)
+- **Power Saver**: `framework-powersave` (low-power, EPP=power, boost OFF, WiFi power save ON, ABM 4)
+- **Performance**: `framework-performance` (performance, EPP=performance, boost ON, WiFi power save OFF, ABM off)
 
 This approach has minimal CPU overhead (event-based via upower, not polling or per-second udev events).
 
 Additional udev rules:
 - **USB autosuspend**: Enabled for all devices except HID (keyboard/mouse)
 
-Use the Ironbar battery popup to manually switch to "performance" when needed.
+Use Noctalia’s power-profile control to switch manually; it drives tuned-ppd over D-Bus.
 
 ## Verification
 
@@ -146,7 +148,7 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │              tuned + tuned-ppd                               │
-│         Custom profiles: framework-battery / framework-ac    │
+│         Custom: framework-battery / ac / powersave / perf    │
 │         PPD API: power-saver / balanced / performance        │
 │         Controls: platform profile + EPP + WiFi + ABM        │
 └─────────────────────────────────────────────────────────────┘
@@ -235,35 +237,36 @@ If scx_flash doesn't work well for your use case:
 
 ## Unified Power Profiles
 
-This system uses **unified power profiles** via tuned that control multiple power settings with a single toggle. Custom tuned profiles (`framework-battery`, `framework-ac`) provide Framework-specific optimizations.
+This system uses **unified power profiles** via tuned that control multiple power settings with a single toggle. Custom tuned profiles (`framework-battery`, `framework-ac`, `framework-powersave`, `framework-performance`) provide Framework-specific optimizations.
 
 ### Available Profiles
 
-| Profile | Platform Profile | EPP | CPU Boost | Use Case |
-|---------|------------------|-----|-----------|----------|
-| 🔋 **Power Saver** | `low-power` | `power` | Off | Max battery life |
-| ⚡ **Balanced** | `balanced` | `balance_performance` | On | Battery + dev work |
-| 🚀 **Performance** | `performance` | `performance` | On | Full power on AC |
+| PPD Profile | tuned Profile | Platform | EPP | Boost | ABM |
+|-------------|---------------|----------|-----|-------|-----|
+| 🔋 **Power Saver** | `framework-powersave` | `low-power` | `power` | Off | 4 |
+| ⚡ **Balanced (battery)** | `framework-battery` | `low-power` | `power` | Off | 3 |
+| ⚡ **Balanced (AC)** | `framework-ac` | `balanced` | `balance_performance` | On | 0 |
+| 🚀 **Performance** | `framework-performance` | `performance` | `performance` | On | 0 |
+
+`framework-powersave` and `framework-performance` use sysfs scripts because tuned’s
+`[cpu] boost` setting does not work on this host.
 
 ### How to Switch Profiles
 
-**Via Battery Popup (Recommended):**
-1. Click the battery icon in Ironbar
-2. Select desired profile: low-power, balanced, or performance
+**Via Noctalia (Recommended):**
+1. Open the control center or power-profile shortcut
+2. Select Power Saver, Balanced, or Performance
 
 **Via Command Line:**
 ```bash
-# List available profiles (PPD API via tuned-ppd)
-powerprofilesctl list
-
-# Get current profile
-powerprofilesctl get
-
-# Set profile (no sudo needed)
-powerprofilesctl set balanced
-
-# Check active tuned profile
+# Check the active tuned profile
 tuned-adm active
+
+# List tuned profiles
+tuned-adm list
+
+# Switch directly (Noctalia/tuned-ppd normally handles this)
+tuned-adm profile framework-performance
 ```
 
 **What tuned Controls:**
@@ -278,10 +281,12 @@ tuned-ppd automatically switches profiles based on battery status via upower:
 
 | Power State | tuned Profile | PPD Profile | Why |
 |-------------|---------------|-------------|-----|
-| **AC (Charging)** | framework-ac | balanced | Good performance with efficiency |
-| **Battery (Discharging)** | framework-battery | balanced→power-saver | Maximize battery life |
+| **AC / Balanced** | framework-ac | balanced | Good performance with efficiency |
+| **Battery / Balanced** | framework-battery | balanced | Maximize battery life |
+| **Power Saver** | framework-powersave | power-saver | Explicit maximum savings |
+| **Performance** | framework-performance | performance | Full boost and throughput |
 
-To use **Performance** mode (for compilation, heavy work), manually switch via the battery popup or `powerprofilesctl set performance`.
+To use **Performance** mode (for compilation, heavy work), manually select it in Noctalia.
 
 ### Implementation Details
 
@@ -291,15 +296,15 @@ To use **Performance** mode (for compilation, heavy work), manually switch via t
 - `home-manager/nixos/ironbar/modules/battery/` - Legacy profile helpers (not active)
 
 **Power settings managed:**
-| Setting | Battery | AC | Method |
-|---------|---------|-----|--------|
-| Platform profile | low-power | balanced | tuned `[acpi]` section |
-| EPP | power | balance_performance | tuned `[cpu]` section |
-| CPU boost | Off | On | tuned `[cpu]` section |
-| WiFi power save | On | Off | tuned `[script]` plugin |
-| ABM (panel power savings) | Level 3 | Disabled | tuned `[script]` plugin |
-| USB autosuspend | Auto (except HID) | Auto (except HID) | udev rules |
-| Audio power save | Disabled | Disabled | modprobe config |
+| Setting | Power Saver | Balanced (battery) | Balanced (AC) | Performance | Method |
+|---------|-------------|-------------------|---------------|-------------|--------|
+| Platform profile | low-power | low-power | balanced | performance | tuned `[acpi]` |
+| EPP | power | power | balance_performance | performance | tuned `[cpu]` |
+| CPU boost | Off | Off | On | On | tuned `[script]` |
+| WiFi power save | On | On | Off | Off | tuned `[script]` |
+| ABM (panel power savings) | 4 | 3 | 0 | 0 | tuned `[script]` |
+| USB autosuspend | Auto (except HID) | Auto (except HID) | Auto (except HID) | Auto (except HID) | udev rules |
+| Audio power save | Disabled | Disabled | Disabled | Disabled | modprobe config |
 
 **Why audio power save is disabled:**
 Enabling `snd_hda_intel power_save=1` causes pipewire/wireplumber to repeatedly handle codec wake/sleep cycles, generating excessive DBUS traffic (~300 msg/sec vs ~70 msg/sec) and CPU overhead. The ~0.1-0.3W savings is offset by increased CPU usage.
@@ -404,7 +409,8 @@ tuned manages power settings via custom profiles:
 - Energy Performance Preference (EPP) via `[cpu]` section
 - WiFi power save and ABM via `[script]` plugin
 
-tuned-ppd provides PPD API compatibility so `powerprofilesctl` commands work.
+tuned-ppd provides PPD API compatibility for clients such as Noctalia. Install
+`power-profiles-daemon` if you also want the `powerprofilesctl` CLI.
 
 ### Noctalia V5 Integration
 
@@ -422,14 +428,13 @@ but are not used by the active Noctalia configuration.
 ### Manual Switching
 
 ```bash
-# Via PPD API (tuned-ppd)
-powerprofilesctl get
-powerprofilesctl list
-powerprofilesctl set balanced
-
-# Via tuned directly
+# Check active profile
 tuned-adm active
+
+# List profiles
 tuned-adm list
+
+# Switch directly (Noctalia/tuned-ppd normally handles this)
 tuned-adm profile framework-ac
 ```
 
@@ -454,7 +459,7 @@ tuned coordinates these settings via custom profiles, with tuned-ppd providing t
 ## Related Files
 
 - `modules/hardware/power-management.nix` - Main power management configuration:
-  - tuned enablement with custom profiles (framework-battery, framework-ac)
+  - tuned enablement with custom profiles (framework-battery, framework-ac, framework-powersave, framework-performance)
   - tuned-ppd for PPD API compatibility
   - Audio power save config (disabled)
   - Kernel parameters (nmi_watchdog, ASPM, amd_pstate)
@@ -464,5 +469,5 @@ tuned coordinates these settings via custom profiles, with tuned-ppd providing t
 
 ---
 
-**Last Updated**: 2026-01-01
-**Applies To**: Framework Laptop 13 (AMD Ryzen AI 300 Series), NixOS 25.05
+**Last Updated**: 2026-10-23
+**Applies To**: Framework Laptop 13 (AMD Ryzen AI 300 Series), NixOS 26.11

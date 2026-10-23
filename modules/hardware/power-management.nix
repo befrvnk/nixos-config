@@ -34,14 +34,23 @@ let
     ${setAbm 3}
   '';
 
-  # Script for AC profile extras (boost, WiFi power save off, ABM off)
-  acScript = pkgs.writeShellScript "tuned-ac-extras" ''
-    # Enable CPU boost on AC for better performance
+  # Script for full-power profiles (AC and explicit Performance): boost on,
+  # WiFi power save off, ABM off for accurate colors and maximum throughput
+  fullPowerScript = pkgs.writeShellScript "tuned-full-power-extras" ''
+    # Enable CPU boost for better performance
     echo 1 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
-    # Disable WiFi power save on AC for better performance
+    # Disable WiFi power save for better performance
     ${wifiPowerSave "off"}
-    # Disable ABM on AC for accurate color reproduction
+    # Disable ABM for accurate color reproduction
     ${setAbm 0}
+  '';
+
+  # Script for the explicit Power Saver profile: maximum panel power savings
+  # while retaining the same CPU/network savings as the battery profile
+  powersaveScript = pkgs.writeShellScript "tuned-powersave-extras" ''
+    echo 0 > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true
+    ${wifiPowerSave "on"}
+    ${setAbm 4}
   '';
 in
 {
@@ -68,10 +77,9 @@ in
           battery_detection = true; # Auto-switch on AC/battery via upower
         };
         profiles = {
-          # Use built-in powersave for explicit power-saver requests
-          power-saver = "powersave";
+          power-saver = "framework-powersave";
           balanced = "framework-ac";
-          performance = "throughput-performance";
+          performance = "framework-performance";
         };
         battery = {
           # When on battery with "balanced" PPD profile, use our custom battery profile
@@ -126,6 +134,48 @@ in
             script = "script.sh";
           };
         };
+
+        # Explicit Power Saver: same compute/network tuning as battery plus
+        # maximum ABM, making it distinguishable from Balanced on battery
+        framework-powersave = {
+          main = {
+            summary = "Framework laptop extra power-saving profile";
+            include = "powersave";
+          };
+          acpi = {
+            platform_profile = "low-power";
+          };
+          cpu = {
+            energy_performance_preference = "power";
+          };
+          audio = {
+            timeout = "0";
+          };
+          script = {
+            script = "script.sh";
+          };
+        };
+
+        # Explicit Performance: throughput profile plus sysfs extras because
+        # tuned's [cpu] boost setting does not work on this host
+        framework-performance = {
+          main = {
+            summary = "Framework laptop performance profile";
+            include = "throughput-performance";
+          };
+          acpi = {
+            platform_profile = "performance";
+          };
+          cpu = {
+            energy_performance_preference = "performance";
+          };
+          audio = {
+            timeout = "0";
+          };
+          script = {
+            script = "script.sh";
+          };
+        };
       };
     };
 
@@ -155,7 +205,15 @@ in
       mode = "0755";
     };
     "tuned/profiles/framework-ac/script.sh" = {
-      source = acScript;
+      source = fullPowerScript;
+      mode = "0755";
+    };
+    "tuned/profiles/framework-powersave/script.sh" = {
+      source = powersaveScript;
+      mode = "0755";
+    };
+    "tuned/profiles/framework-performance/script.sh" = {
+      source = fullPowerScript;
       mode = "0755";
     };
   };

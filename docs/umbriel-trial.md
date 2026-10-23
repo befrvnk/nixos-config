@@ -225,6 +225,23 @@ load. It does not establish whether active rendering is efficient under Umbriel 
 rule out fractional-scale/frame-pacing costs. A matched Niri comparison has not
 been done; do not tune clocks, fan policy, acceleration or refresh rate blindly.
 
+### Pending upstream idle-redraw fix
+
+The pinned Umbriel `0-unstable-2026-10-16` (`5cea311`) predates upstream fixes
+`5b66788` (avoid redraws for unchanged surface commits) and `e65cc65` (suspend
+hidden windows and stop their frame callbacks). Upstream issue #473 documents idle
+CPU/GPU work scaling with output refresh rate; the fix reduced one reported idle
+case to roughly 1%. With the current pin, Umbriel can keep redrawing the
+2880×1920/120 Hz internal panel while static, keeping the AMD GPU active and
+raising battery draw versus Niri.
+
+This is a compositor issue, not a tuned or power-profile failure. The panel itself
+supports VRR from 30–120 Hz, and Umbriel already reports adaptive sync enabled.
+Do not disable VRR or tune clocks to compensate. Re-evaluate after the next nixpkgs
+Umbriel bump includes `5b66788`; then update this pin record, rebuild, and verify
+idle GPU/battery behavior before treating the trial's power behavior as resolved.
+Until then Niri remains the lower-power session option.
+
 ## Owner disposition: keep both
 
 The owner chose to retain both Niri and Umbriel and experiment with performance/
