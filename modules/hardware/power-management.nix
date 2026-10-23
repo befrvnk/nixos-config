@@ -1,4 +1,5 @@
 {
+  config,
   hostConfig,
   pkgs,
   lib,
@@ -221,6 +222,13 @@ in
   systemd.services = {
     # Reduce tuned stop timeout to avoid long shutdown delays
     tuned.serviceConfig.TimeoutStopSec = 10;
+
+    # tuned-ppd caches ppd.conf at startup and does not watch it. Restart it
+    # when the PPD profile mapping changes so Noctalia picks up new mappings
+    # without requiring a reboot.
+    tuned-ppd.restartTriggers = lib.mkIf config.services.tuned.ppdSupport [
+      config.environment.etc."tuned/ppd.conf".source
+    ];
 
     # Make ABM sysfs writable by users (for toggle-abm and the bar brightness popup)
     abm-permissions = lib.mkIf (abmPath != null) {
