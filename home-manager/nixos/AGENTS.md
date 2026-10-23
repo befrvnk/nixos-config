@@ -224,8 +224,11 @@ Theme switching without full rebuilds:
   guarded-suspend attempt produced Suspend Blocked while audio held sleep:block,
   without observed lock/sleep; user pause/release then passed at 14:56:45. This is
   the helper veto, not raw logind/all-panel enforcement. Reader-unavailable recovery,
-  external outputs and separate power-button interaction remain open. Do not
-  silently claim full security acceptance.
+  external outputs and separate power-button interaction are owner-deferred to
+  [the backlog](../../docs/noctalia-backlog.md) (2026-10-23). Revisit on a relevant
+  issue/request; do not repeatedly schedule them as mandatory next steps for ordinary
+  cleanup. Deferred is not passed or full security acceptance; fallback/auth/policy
+  retirement still needs separate explicit review.
   Native idle owns 300s lock, 305s screen_off/restore and 310s lock_and_suspend, with
   fade=0 and locked_timeout=0 to preserve elapsed timings. Keep swayidle disabled;
   do not introduce dummy hooks, a second scheduler or its old package patch.

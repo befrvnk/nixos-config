@@ -1410,6 +1410,13 @@ Guarded suspend veto and updated-stack audio release accepted (2026-10-23):
   Reader-unavailable recovery, output/reconnect coverage, power-button interaction
   and remaining-consumer retirement stay open. Do not delete recovery as cleanup.
 
+Owner backlog decision (2026-10-23): reader-unavailable recovery, external-output/
+reconnect/resume coverage and combined power-button/sensor wake investigation are
+low priority. Moved current tracking to [Noctalia backlog](noctalia-backlog.md),
+NOC-01–03; revisit when encountered or requested, not as immediate mandatory tests.
+This defers work without marking tests passed or authorizing fallback/auth removal.
+Ordinary non-auth consolidation/cleanup can continue while preserving recovery.
+
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility
 bridge and the separate compromised-cache follow-up are not marked complete.
@@ -1482,17 +1489,20 @@ The independent **native wallpaper-pair policy** has passed user-operated startu
 and mode-switch checks and read-only verification. Keep the bridge for its remaining
 consumers; do not remove security recovery merely because wallpaper is decoupled.
 
-Next close remaining lock/inhibitor/reader/output gates, one user-operated test at a
-time, and audit remaining mode-dependent consumers before retiring fallback styling,
-the temporary bridge and HM specialisations. Full-duration Caffeine suppression
-passed on the updated stack, as has independent full-duration audio suppression.
-Updated-stack audio release and the user-operated guarded manual suspend veto
-also passed. Reader-unavailable password fallback, external outputs and the separate
-power-button interaction remain open; no raw-logind/all-panel-action guarantee
-or blanket security acceptance is claimed. Independent Atuin-wrapper and inactive-code cleanups should
-stay separate. Phases A–D and the native renderer migration are already done; do not
-repeat the old Phase A recommendation. A fresh OS boot and external/reconnect checks
-of this new wallpaper policy remain deferred, not implicitly passed by shell startup.
+Full-duration independent Caffeine/audio suppression, their releases and the guarded
+manual suspend veto passed. The owner deferred the remaining reader/output/power-
+button checks to [the backlog](noctalia-backlog.md). Do not keep requesting them as
+immediate steps; revisit on a relevant issue or explicit request. Deferred is not
+passed and does not establish raw-logind/all-panel or blanket security guarantees.
+
+Ordinary next work can audit remaining mode-dependent theme consumers and propose
+non-auth cleanup. Keep obsolete Atuin-wrapper and inactive-code cleanups as separate
+logical checkpoints. The bridge still serves remaining consumers; fallback/PAM/style
+or bridge/specialisation retirement needs its own review, not automatic permission
+from backlog deferral. Preserve recovery and existing lock/inhibitor/wake policy.
+Phases A–D and the native renderer migration are already done; do not repeat Phase A.
+Fresh OS boot and external/reconnect visual coverage of the wallpaper policy remain
+deferred, not implicitly passed by shell startup.
 
 ## Sources
 

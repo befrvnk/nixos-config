@@ -583,8 +583,9 @@ Atuin duplicate-binding warning), check [pre-session Home Manager activation](do
 - **Native lock-screen migration** passed password-PAM and manual password/fingerprint
   unlock tests; keyboard and lid sleep paths are verified. Native idle scheduling
   (300s lock / 305s monitors off / 310s suspend) is deployed with guarded sleep;
-  automatic sleep/key-wake and basic Caffeine/audio inhibitor cycles are verified,
-  with extended checks still open.
+  automatic sleep/key-wake, independent timed Caffeine/audio inhibition and the
+  guarded suspend-block check are verified. Reader/output/power-button follow-ups
+  are owner-deferred in the [backlog](docs/noctalia-backlog.md), to revisit when needed.
   Swayidle is disabled and swaylock remains rollback ([guide](docs/noctalia-lockscreen-migration.md))
 - **1Password** integration with polkit
 - **Binary-cache trust checks** keep flake/runtime policy synchronized and exclude

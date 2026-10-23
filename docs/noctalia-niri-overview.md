@@ -1184,9 +1184,12 @@ sleep:idle/block, a user Mod+Shift+S attempt produced Suspend Blocked, with no
 observed lock/sleep. This verifies the guarded manual helper veto, not raw logind
 or every panel action; Lock and Suspend may lock before its backend veto.
 
-Reader-unavailable fallback and external outputs remain open; don't treat them as
-accepted or remove fallback/theme consumers yet. Power-button immediate wake remains
-separate and unresolved; it is not attributed to fingerprint without proof. See the [stage history and recovery guide](noctalia-lockscreen-migration.md).
+The owner deferred reader-unavailable fallback, external-output/reconnect coverage
+and the unresolved power-button interaction to the [backlog](noctalia-backlog.md).
+Revisit when encountered/requested, not as immediate mandatory tests. They are not
+accepted, and fingerprint causality is not established. Ordinary cleanup can continue
+without changing recovery; fallback/auth retirement still requires separate review.
+See the [stage history and recovery guide](noctalia-lockscreen-migration.md).
 
 ## Pre-session Home Manager activation and stale Nu bindings
 

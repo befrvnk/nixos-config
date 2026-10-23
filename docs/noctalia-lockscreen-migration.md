@@ -8,7 +8,9 @@ The subsequent [origin rebase validation](noctalia-origin-rebase.md) covers the 
 dependency pins and replayed checkpoint hashes. Historical stage observations
 predate activation of that updated stack; do not treat them as fresh runtime
 acceptance. The dated extended-inhibition validation below separately records
-observations on the deployed updated stack.
+observations on the deployed updated stack. On 2026-10-23 the owner deferred the
+remaining reader/output/power-button checks to the [backlog](noctalia-backlog.md);
+they are not immediate next actions or accepted tests.
 
 ## Stage 1: password authentication preflight (accepted)
 
@@ -423,9 +425,6 @@ no agent playback, inhibitor, authentication, hardware or power action occurred.
 
 ### Checkpoint follow-ups
 
-- [ ] Isolate the combined power-button/fingerprint-sensor wake interaction. Keyboard
-  and lid sleep work; do not disable devices or change firmware/kernel policy on
-  the strength of the generic ACPI wake IRQ alone.
 - [x] Test a full idle interval with native Caffeine alone: user-reported six-minute
   hands-off screen-on/unlocked check, all three native actions explicitly suppressed,
   then user release verified on 2026-10-23. Not a manual/lid sleep-block guarantee.
@@ -435,19 +434,18 @@ no agent playback, inhibitor, authentication, hardware or power action occurred.
 - [x] User-perform a guarded suspend-block challenge independently: Mod+Shift+S
   produced Suspend Blocked with the audio sleep/block holder still present and
   no observed lock/sleep. Not raw logind or all panel-action enforcement.
-- [ ] User-test password recovery when the fingerprint reader is genuinely unavailable,
-  retaining the prevalidated TTY/password recovery path. Normal password tests are
-  not this failure-mode test; agents must not stop/claim/scan the reader.
-- [ ] Test coverage of all connected outputs and reconnect/hotplug, including lock
-  rendering across resume. Current observations do not certify every output or
-  no-desktop-flash behavior.
-- [ ] Review fallback retirement separately after remaining security checks. Keep
-  swaylock/PAM/style installed; they cannot unlock a native compositor session lock.
+- **Owner-deferred backlog:** reader-unavailable password recovery (NOC-01), external
+  outputs/reconnect/resume coverage (NOC-02), and the combined power-button/sensor
+  interaction (NOC-03). Track them in [the backlog](noctalia-backlog.md), revisit on
+  a relevant issue/request, and do not require them as routine next tests.
+- [ ] Review fallback retirement separately, explicitly accounting for deferred
+  recovery/output coverage. Keep swaylock/PAM/style installed until that review;
+  they cannot unlock a native compositor session lock.
 - [x] Decouple native wallpaper-pair policy from the theme bridge (c388657,
   startup/mode accepted); fresh OS boot/external/reconnect checks remain deferred.
 - [ ] Separately review remaining palette consumers and bridge/specialisation
-  retirement after the recovery/output gates. No cleanup is authorized by the
-  inhibitor-validation checkpoint alone.
+  retirement while preserving recovery and accounting for deferred coverage.
+  Backlog deferral does not itself authorize fallback/auth or policy removal.
 
 ### User-only validation
 
