@@ -262,16 +262,21 @@ Theme switching without full rebuilds:
 
 ### Continuous floating bar
 - Owner requested one shared background instead of individual widget islands while
-  keeping one floating gap. Prepared config has capsule=false, opacity=1, top/side
+  keeping one floating gap. Current config has capsule=false, opacity=1, top/side
   margins=16 and main-axis padding=12. Preserve widgets/fonts/clock/neutral text.
 - bar-ipc-edge-slide.patch folds positive edge gaps into the native layer surface
   for IPC slides too. Keep reservation/panel math and visual/input geometry coherent;
   do not enable pointer/smart auto-hide to obtain this geometry or add a hot strip.
+- User-accepted visual polish uses native border=outline, border_width=1, radius=16 and
+  widget_spacing=12. Sysmon label_min_width is 48 for CPU/RAM and 56 for temperature:
+  minima only, no clipping/hidden units/polling change. Widgets/font/clock/gaps and
+  blur/shadow off stay. No additional patch; appearance accepted in the reported
+  Umbriel session on 2026-10-23, not exhaustive values/fonts/scales/output coverage.
 - Motion-first follow-up changes only explicit manual IPC exit to 100ms ease-out;
   entrance stays 200ms. User accepted the bar/motion on 2026-10-23; tray context-menu
   anchoring remains a distinct reported issue. Native call/easing expressions are
   probed, but no asynchronous tweak is a strict compositor synchronization guarantee.
-  Outline/radius/spacing/label refinements are later; don't bundle them into motion.
+  Visual polish was kept out of motion and requested separately afterward.
 - Placement follow-up moves notifications after clock in center, retaining clock
   anchor/order of other widgets/toast policy. tray-menu-click-anchor.patch passes
   parent-surface-local click coordinates through the native DBusmenu callback;

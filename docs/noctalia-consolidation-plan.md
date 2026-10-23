@@ -1522,7 +1522,13 @@ pass. The user applied/confirmed bell and menu placement; passive checks found t
 new center group/clock anchor, healthy native/watcher services, original compositor
 start time and no recent tray/popup errors. This adds observed session acceptance,
 not blanket app/drawer/submenu/output or Niri runtime proof.
-Outline/radius/spacing/label refinements remain later.
+The owner then requested the deferred visual refinements. Configuration-only
+1px outline/16px corners/12px spacing and native CPU/RAM/temperature value minima
+are built, preserving groups/fonts/clock/gap/motion and no blur/shadow. All 21 checks
+and 181 native tests pass. The user applied/accepted the look; installed values and
+healthy services were verified read-only without a compositor restart. This is the
+reported session's appearance acceptance, not exhaustive value/font/output or
+performance/security approval. Sign the configuration-only polish checkpoint.
 This takes precedence over ordinary cleanup below; reader/output/power and optional
 performance-comparison backlog stays deferred.
 

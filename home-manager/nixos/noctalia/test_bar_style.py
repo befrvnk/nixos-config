@@ -30,9 +30,10 @@ class BarStyleTests(unittest.TestCase):
     def test_widgets_type_and_neutral_text_are_preserved(self):
         self.assertEqual(self.policy["font"], "JetBrainsMono Nerd Font")
         self.assertEqual(self.bar["font_scale"], 1.14)
-        self.assertEqual(self.bar["widget_spacing"], 16)
-        self.assertNotIn("border_width", self.bar)  # Proposed outline/radius refinement is later.
-        self.assertNotIn("radius", self.bar)
+        self.assertEqual(self.bar["widget_spacing"], 12)
+        self.assertEqual(self.bar["border"], "outline")
+        self.assertEqual(self.bar["border_width"], 1.0)
+        self.assertEqual(self.bar["radius"], 16)
         self.assertEqual(self.bar["padding"], 12)  # Main-axis inset replaces outer capsule padding.
         self.assertEqual(self.bar["color"], "on_surface")
         self.assertEqual(self.bar["start"], ["cpu", "ram", "temperature"])
@@ -44,6 +45,15 @@ class BarStyleTests(unittest.TestCase):
         for name in ("cpu", "ram", "temperature"):
             self.assertEqual(self.policy["widget"][name]["highlight_color"], "on_surface")
             self.assertEqual(self.policy["widget"][name]["visualization"], "none")
+
+    def test_native_numeric_min_widths_reduce_jitter_without_removing_values(self):
+        for name, width in (("cpu", 48), ("ram", 48), ("temperature", 56)):
+            widget = self.policy["widget"][name]
+            self.assertEqual(widget["label_min_width"], width)
+            self.assertTrue(widget.get("show_value", True))
+            self.assertTrue(widget.get("label_show_units", True))
+        self.assertTrue(self.policy["widget"]["network"]["show_label"])
+        self.assertTrue(self.policy["widget"]["bluetooth"]["show_label"])
 
 
 if __name__ == "__main__":

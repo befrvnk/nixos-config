@@ -81,6 +81,8 @@ int main() {
   cfg.position = "top";
   cfg.marginEdge = 16;
   cfg.marginEnds = 16;
+  cfg.radiusTopLeft = cfg.radiusTopRight = cfg.radiusBottomLeft = cfg.radiusBottomRight = 16;
+  cfg.borderWidth = 1.0F;
   cfg.thickness = 34;
   cfg.shadow = false;
   cfg.reserveSpace = false;

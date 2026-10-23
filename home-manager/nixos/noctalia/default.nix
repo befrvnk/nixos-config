@@ -75,12 +75,15 @@ in
         position = "top";
         thickness = 34;
         background_opacity = 1.0;
+        border = "outline";
+        border_width = 1.0;
+        radius = 16;
         compositor_blur = false;
         shadow = false;
         margin_ends = 16;
         margin_edge = 16;
         padding = 12;
-        widget_spacing = 16;
+        widget_spacing = 12;
         font_scale = 1.14;
         auto_hide = false;
         smart_auto_hide = false;
@@ -119,18 +122,21 @@ in
         cpu = {
           type = "sysmon";
           stat = "cpu_usage";
+          label_min_width = 48;
           visualization = "none";
           highlight_color = "on_surface";
         };
         ram = {
           type = "sysmon";
           stat = "ram_pct";
+          label_min_width = 48;
           visualization = "none";
           highlight_color = "on_surface";
         };
         temperature = {
           type = "sysmon";
           stat = "cpu_temp";
+          label_min_width = 56;
           visualization = "none";
           highlight_color = "on_surface";
         };

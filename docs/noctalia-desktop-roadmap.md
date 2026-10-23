@@ -178,8 +178,14 @@ confirmed menu/bell placement works; passive config/service/log checks corrobora
 installation and healthy services without compositor restart. Accept the observed
 session behavior, not all apps/drawers/submenus/outputs or broader Niri coverage.
 Legacy application-owned menu and compositor parent/grab behavior stay unchanged.
-Outline/corner-radius/
-spacing/label refinements remain later, not implicit in these placement requests.
+The owner subsequently requested the deferred visual polish: a single 1px outline,
+16px corners and 12px widget spacing, plus native sysmon value minima (CPU/RAM 48px,
+temperature 56px). Configuration-only, no new patch or blur/shadow; widgets, clock,
+floating gaps and motion stay. All 21 checks/181 native tests pass. The user applied
+it and confirmed it looks good; passive inspection found the installed values,
+healthy native/overview services and the compositor's original start time. Accept
+that reported appearance, not all values/fonts/scales/outputs or unrelated runtime
+gates. Finalize the signed configuration-only checkpoint; no agent activation.
 
 ## References reviewed
 

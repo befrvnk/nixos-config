@@ -1,8 +1,8 @@
 # Noctalia continuous floating topbar
 
-Status: **continuous floating bar and fast exit user-accepted** (2026-10-23),
-signed as 783f890. Center notifications and native tray click-anchor placement are
-also user-accepted in the running Umbriel session; scope limits are recorded below.
+Status: **continuous bar/motion and placement accepted** (783f890, 5665d8d).
+The configuration-only visual polish below is also user-accepted (2026-10-23),
+corroborated by installed settings and healthy services; scope limits remain below.
 
 The owner requested one continuous bar rather than individual widget islands and
 an animation originating at the display edge, while keeping one floating gap.
@@ -13,9 +13,9 @@ an animation originating at the display edge, while keeping one floating gap.
 - Keep top and side margins at **16 logical pixels** and bar thickness at 34.
 - Horizontal content padding is 12px, replacing the outer padding supplied by the
   former capsules. This is main-axis padding, not another vertical/top gap.
-- Apart from the separately requested notification relocation below, widget order,
-  16px spacing, neutral text, fonts/font scale and clock format remain. No widget,
-  keybinding, wallpaper or OSD functionality is removed.
+- Widget order, neutral text, fonts/font scale and clock format remain. Notifications
+  stay after clock in center. Widget spacing is now 12px (previously 16px).
+  No widget, keybinding, wallpaper or OSD functionality is removed.
 - Strict overview-only watcher remains active for Niri and Umbriel; pointer/smart
   auto-hide, workspace peek and reserved space remain disabled.
 - No blur/shadow, extra effect, timer or continuous animation cadence change is
@@ -48,8 +48,8 @@ no offsets against the pinned source; the PAM and suspend-policy patches remain.
 
 ## Checks
 
-- Rebuilt the actual patched Noctalia package, full Framework system and all 20
-  Linux checks. Native config validation and all 180 Noctalia tests pass, alongside
+- Rebuilt the actual patched Noctalia package, full Framework system and all 21
+  Linux checks. Native config validation and all 181 Noctalia tests pass, alongside
   existing 11 Umbriel, 8 Greeter and 19 mocked suspend probes.
 - New offline C++ probe extracts the exact original/patched native geometry functions
   and input value type, linking native shadow calculations; no reimplemented geometry
@@ -65,7 +65,7 @@ no offsets against the pinned source; the PAM and suspend-policy patches remain.
   ease-out; exit is 100ms EaseOutCubic instead of 200ms EaseInQuad. For the requested
   geometry native bar ink is offscreen by 60ms **after its own exit starts**, versus
   still visible with the old curve. This is not a compositor/IPC latency guarantee.
-- Three style probes preserve widgets/typography/order and enforce the continuous
+- Four style probes preserve widgets/typography/order and enforce the continuous
   background, one margin, no pointer reveal/strut and inclusion of the strict patch.
 - Formatting/lint pass. Build/test success is not observed animation, hit-testing,
   panel placement, fractional-scale or visual acceptance on either compositor.
@@ -142,12 +142,40 @@ For future placement changes, rebuild switch only while unlocked (package change
 and user-check the bell/menu anchor. Report any app that still misplaces its own
 menu; don't clear settings or restart locked services.
 
-## Later visual refinements — not applied in the motion step
+## Visual polish — configuration-only; user appearance accepted
 
-After motion acceptance, revisit the proposed quiet single outline, 16px corner
-radius, 12px widget spacing and stable dynamic labels where native options permit.
-Widget spacing currently stays 16px and no outline/radius override is introduced;
-style tests guard those boundaries. No widget removal or typography change is implied.
+After motion and tray/bell placement passed, the owner requested the deferred
+refinements. Native settings now select one outline-role 1px inside border, uniform
+16px corners and 12px widget spacing. The radius key seeds all four corners; no
+per-corner GUI override was found. The single 16px floating/side gaps, 12px inner
+padding, 34px height, full Surface background and strict overview-only policy stay.
+
+Pinned sysmon provides label_min_width, so CPU and RAM values reserve at least 48px
+and temperature at least 56px. These accommodate ordinary percentage/temperature
+text at the retained mono font scale without setting a maximum or clipping values.
+This reduces routine value-width jitter, not every possible width change. Icons,
+units, sampling cadence, neutral highlighting and tooltips remain; network/Bluetooth
+labels are not shortened or hidden and the centered clock retains its anchor.
+
+No new native patch, dependency, animation, blur/shadow, poller, hardware or permission
+change is needed. All four existing patches, 200/100ms motion and tray click-anchor
+fix stay. Build/offline checks pass: all 21 Linux checks, 181 Noctalia tests, 432
+native geometry cases (including the requested 16px-corner case), native exit timing,
+tray anchor repro and existing Umbriel/Greeter/suspend checks. Four style probes now
+guard outline/radius/spacing/numeric minima along with all preserved behavior.
+None of these checks proves actual appearance, text widths or popup usability.
+
+The user applied it and confirmed it looks good. Passive inspection found the 1px
+outline, radius=16, spacing=12, value minima=48/48/56, unchanged 16px top/side gaps,
+center notification group and no auto-hide/strut. Native/overview were active with
+zero restarts from 21:24:35/36; Umbriel retained its original 17:02:37 start time.
+Accept the reported appearance in this session, not extreme values, every font/
+scale/output or unrelated performance/security coverage. No bar/focus/session or
+hardware action was performed by the agent.
+
+For future changes, rebuild switch only while unlocked and inspect appearance/
+popup behavior. Further refinements need separate owner direction; do not trade
+off visibility/recovery/performance policy.
 
 ## User-only trial
 
