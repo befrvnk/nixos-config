@@ -1485,6 +1485,18 @@ service ownership or power policy were changed as part of this research.
 
 ## 5. Recommended immediate next action
 
+**New owner priorities (2026-10-23):** Noctalia Greeter first, then an Umbriel trial
+retaining Niri, then topbar UI work. See the [desktop roadmap](noctalia-desktop-roadmap.md)
+for scope and preparation status. The first Greeter boot launched Niri but inherited
+fingerprint PAM skipped the typed password, leaving a second GNOME Keyring prompt.
+The scoped greetd-auth password/keyring fix passed 8 Greeter probes and all 18 Linux
+checks, preserving other PAM/routes. The user rebooted and confirmed single-password
+login; at 16:07:25 PAM cached the password, opened the Niri session and unlocked the
+keyring without a fingerprint request or second keyring dialog. Record/sign this
+Greeter checkpoint, then plan Umbriel separately while retaining Niri. This takes
+precedence over ordinary cleanup below; backlogged reader/output/power-button checks
+stay deferred.
+
 The independent **native wallpaper-pair policy** has passed user-operated startup
 and mode-switch checks and read-only verification. Keep the bridge for its remaining
 consumers; do not remove security recovery merely because wallpaper is decoupled.

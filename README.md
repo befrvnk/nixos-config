@@ -127,6 +127,11 @@ Noctalia replaces dunst for notifications. The previous custom shell is retained
 for rollback; domain-specific widgets (OpenRouter, aurora and firewall)
 are not ported automatically. See [setup and migration notes](./docs/noctalia-niri-overview.md).
 
+Desktop sequence: **Noctalia Greeter → Umbriel trial → topbar UI**. Greeter 1.7.0 now
+replaces tuigreet while retaining greetd and Niri. Password-only greetd authentication
+reuses the login password to unlock GNOME Keyring; that boot/login flow is user-verified.
+Other authentication routes remain unchanged. See the [desktop roadmap and safe cutover](./docs/noctalia-desktop-roadmap.md).
+
 ## Keyboard Shortcuts
 
 ### Essential

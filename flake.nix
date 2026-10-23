@@ -244,6 +244,11 @@
               touch $out
             '';
 
+          noctalia-greeter = import ./modules/desktop/noctalia-greeter-check.nix {
+            configuration = inputs.self.nixosConfigurations.framework;
+            inherit pkgs;
+          };
+
           noctalia-lock-auth =
             let
               cfg = inputs.self.nixosConfigurations.framework.config;

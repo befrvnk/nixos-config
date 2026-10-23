@@ -48,6 +48,33 @@ See: `modules/hardware/fprintd/default.nix`
 - **Do NOT enable** `services.gnome-keyring.enable` in home-manager
 - Use `lib.mkForce false` to override defaults
 
+### Noctalia Greeter
+- `desktop/greetd.nix` enables the pinned nixpkgs Noctalia Greeter module, replacing
+  tuigreet only; greetd remains the daemon and Niri remains the selected session.
+- Password-entry default is explicit (allow_empty_password=false). Frontend gating
+  alone didn't consume the password: the initial inherited fingerprint login left
+  the keyring locked. While Noctalia Greeter is enabled, only greetd auth is forced
+  to required pam_unix (no nullok/permit) then optional pam_gnome_keyring. Drop both
+  inherited login auth and direct greetd fingerprint rules; keep account/password/
+  session includes and all other PAM/fprintd/lid routes unchanged. Never cache
+  credentials in files or disable keyring encryption to avoid a prompt.
+- Its short environment wrapper scopes NixOS session-data/PATH and patched custom
+  XKB root/model to the greeter. Do not set a global greeter-only environment or
+  assume /run/current-system/sw/share/wayland-sessions contains Niri.
+- Greeter.toml is store-backed; sync.toml remains mutable. Passwordless sync users
+  stay empty; do not add a broad Polkit bypass or run the privileged helper as agent.
+- `checks.x86_64-linux.noctalia-greeter` tests private wrapper fixtures, real session
+  listing, device-free XKB probe, exact greetd password/keyring auth and all other
+  PAM invariance (8 probes). Never run the real greeter/compositor or authenticate.
+  UI/Niri and corrected single-password/keyring startup passed after user reboot
+  on 2026-10-23: required password auth, cached token, keyring unlocked in session.
+  Don't mistake the earlier missing-control-file/stash log for a failure when
+  followed by successful session unlock. Appearance sync/negative-password UI and
+  multi-output coverage are not implied by that successful login.
+- Stage this trial via user boot/reboot, not service restart; native greetd's
+  restartIfChanged=false remains. Keep previous generation and TTY/password recovery.
+  See docs/noctalia-desktop-roadmap.md; Umbriel/topbar are separate later steps.
+
 ### Firewall
 Configured in `modules/system/security.nix`:
 - **Incoming:** Blocked by default
