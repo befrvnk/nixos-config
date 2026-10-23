@@ -15,8 +15,9 @@ The layout uses built-in widgets plus one reviewed storage plugin, not a new hom
 - Center: weather, date/time (the alignment anchor).
 - End: app tray, storage (when a device is present), notifications, network next to
   Bluetooth, volume, brightness, Caffeine, Lid Guard, battery and control center.
-- Transparent bar with individual bordered capsules, neutral foregrounds,
-  JetBrainsMono Nerd Font and Noctalia's built-in Catppuccin Mocha/Latte palette.
+- Prepared shared continuous floating bar: one Surface-role background, 16px top/
+  side gap, neutral foregrounds, JetBrainsMono Nerd Font and Catppuccin Mocha/Latte.
+  This replaces individual widget islands; [visual/edge-slide acceptance is pending](noctalia-topbar.md).
 
 Noctalia owns notifications; the dunst module is no longer imported. Historical
 dunst history is not imported into Noctalia. Notifications sent through the

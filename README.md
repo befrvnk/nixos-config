@@ -114,8 +114,11 @@ access and the former Asyar theme-toggle extension are not included. See the
 ### Noctalia V5 (Desktop Shell)
 
 [Noctalia 5.3.0](https://github.com/noctalia-dev/noctalia/tree/v5.3.0) is the native
-C++ shell, not the older Quickshell-based release. Its bar appears only during Niri
-overview, with transparent background, neutral text and individual Catppuccin pills.
+C++ shell, not the older Quickshell-based release. Its bar appears only during Niri/
+Umbriel overview. A continuous floating background with neutral text is prepared to
+replace widget islands, keeping one gap and animating from the display edge.
+The continuous bar and faster exit are [user-accepted](./docs/noctalia-topbar.md);
+tray context-menu positioning remains a separate follow-up.
 
 - **Built-in widgets** — CPU/RAM/temperature, weather, centered date/time, app tray,
   notifications, WiFi next to Bluetooth, volume, brightness and battery.

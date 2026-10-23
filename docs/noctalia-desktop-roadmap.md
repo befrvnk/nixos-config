@@ -151,12 +151,27 @@ remove either, select a winner automatically or require another comparison now.
 Optional A/B work is tracked in backlog NOC-04. Alt+Tab's normal live behavior is
 accepted; do not extend that to broader performance/security or unreported cases.
 
-## 3. Topbar — next separately requested UI step, supporting both
+## 3. Topbar — continuous bar/fast exit accepted; next placement follow-ups
 
-The dual-session decision is sufficient to discuss topbar UI without choosing one
-compositor permanently. Collect the desired changes from the owner first; no UI
-redesign is authorized by the keep-both request alone. Preserve both overview-only
-adapters, existing widgets/bindings/layout and Niri recovery unless explicitly changed.
+The owner requested one continuous bar instead of widget islands and a slide from
+the physical display edge, retaining one floating top gap. The [topbar implementation
+and trial guide](noctalia-topbar.md) keeps 16px top/side insets, existing widgets,
+neutral typography/clock and strict overview-only behavior on both compositors.
+A native geometry patch fixes the IPC animation clip origin without enabling pointer
+or smart auto-hide; three style tests and a 432-case native geometry probe cover it.
+Full Framework build and all 20 Linux checks pass (180 Noctalia tests). The patched
+continuous bar was applied by the user, who reported a slow exit overlapping
+returning overview windows. Per the owner's motion-first request, only manual IPC
+exit now uses 100ms EaseOutCubic, retaining the 200ms entrance and current gap/style.
+A native-expression/easing probe verifies the timing. The user applied it and
+confirmed the timing/current enhancements work. Passive checks confirmed style and
+healthy services, with no compositor restart; the agent did not show/hide bars,
+activate or restart anything. Sign the accepted bar/motion checkpoint separately.
+
+Next user requests: move notifications into the center section after the clock,
+and correct tray right-click menu placement below the clicked icon. The reported
+tray anchor issue is not certified by bar/motion acceptance. Outline/corner-radius/
+spacing/label refinements remain later, not implicit in these placement requests.
 
 ## References reviewed
 

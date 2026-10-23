@@ -1503,9 +1503,22 @@ restarts. No session/focus action was performed by the agent. The owner now chos
 to keep both installed/selectable, Niri still default, and experiment with differences
 when convenient. Performance comparison is user-led backlog NOC-04, not an immediate
 migration gate; no session removal or forced benchmark. Shared topbar UI can be the
-next separately requested step without choosing a permanent compositor. This takes
-precedence over ordinary cleanup below; backlogged reader/output/power-button checks
-stay deferred.
+next separately requested step without choosing a permanent compositor.
+
+The owner now requested a continuous bar and edge-origin slide while keeping one
+floating gap. That [topbar change](noctalia-topbar.md) is prepared: 16px top/side gap,
+one native Surface background, unchanged widgets/typography and strict overview-only
+behavior. Native IPC geometry patch keeps resting/panel/input positions coherent
+without enabling auto-hide. Full build/all 20 checks, 180 Noctalia tests and a native
+432-case geometry probe pass. The user applied it and reported exit lingering over
+returning windows. Motion-first follow-up now uses 100ms fast-start ease-out exit,
+unchanged 200ms entrance and existing gap/style, with native call/easing verification.
+The user applied/accepted the timing and current enhancements; passive checks found
+healthy services with the compositor's original start time. Sign this checkpoint;
+next investigate the separate tray context-menu placement issue and move notifications
+into center after clock. Outline/radius/spacing/label refinements remain later.
+This takes precedence over ordinary cleanup below; reader/output/power and optional
+performance-comparison backlog stays deferred.
 
 The independent **native wallpaper-pair policy** has passed user-operated startup
 and mode-switch checks and read-only verification. Keep the bridge for its remaining

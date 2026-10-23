@@ -260,6 +260,23 @@ Theme switching without full rebuilds:
 - Shared topbar UI can be discussed next; keep both overview protocols and existing
   behavior unless the owner requests a change. No UI redesign follows implicitly.
 
+### Continuous floating bar
+- Owner requested one shared background instead of individual widget islands while
+  keeping one floating gap. Prepared config has capsule=false, opacity=1, top/side
+  margins=16 and main-axis padding=12. Preserve widgets/fonts/clock/neutral text.
+- bar-ipc-edge-slide.patch folds positive edge gaps into the native layer surface
+  for IPC slides too. Keep reservation/panel math and visual/input geometry coherent;
+  do not enable pointer/smart auto-hide to obtain this geometry or add a hot strip.
+- Motion-first follow-up changes only explicit manual IPC exit to 100ms ease-out;
+  entrance stays 200ms. User accepted the bar/motion on 2026-10-23; tray context-menu
+  anchoring remains a distinct reported issue. Native call/easing expressions are
+  probed, but no asynchronous tweak is a strict compositor synchronization guarantee.
+  Outline/radius/spacing/label refinements are later; don't bundle them into motion.
+- Both overview adapters and no-reserved-space policy stay. Strict patch application,
+  432-case actual native before/after geometry and style probes cover configuration,
+  not visual acceptance. Native package rebuild may restart Noctalia during user
+  activation: never apply/restart while locked. See docs/noctalia-topbar.md.
+
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:

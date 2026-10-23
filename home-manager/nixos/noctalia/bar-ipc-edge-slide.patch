@@ -1,0 +1,94 @@
+--- a/src/shell/bar/bar.cpp
++++ b/src/shell/bar/bar.cpp
+@@ -121,8 +121,8 @@
+     return !activeWorkspaceHasWindows(platform, output);
+   }
+
+-  [[nodiscard]] int barAutoHideEdgeGutter(const BarConfig& cfg) noexcept {
+-    if (!barConfigUsesSlideSurface(cfg) || cfg.marginEdge <= 0) {
++  [[nodiscard]] int barSurfaceEdgeGutter(const BarConfig& cfg) noexcept {
++    if (cfg.marginEdge <= 0) {
+       return 0;
+     }
+     return cfg.marginEdge;
+@@ -666,7 +666,7 @@
+     const std::int32_t mEnds = barConfig.marginEnds;
+     const std::int32_t mEdge = barConfig.marginEdge;
+     const auto sb = shell::surface_shadow::bleed(barConfig.shadow, shadowConfig);
+-    const int edgeGutter = barAutoHideEdgeGutter(barConfig);
++    const int edgeGutter = barSurfaceEdgeGutter(barConfig);
+     const auto concave = barConcaveShape(barConfig);
+     const int insetL = static_cast<int>(std::ceil(std::max(0.0F, concave.logicalInset.left)));
+     const int insetT = static_cast<int>(std::ceil(std::max(0.0F, concave.logicalInset.top)));
+@@ -813,7 +813,7 @@
+     const auto bleedDown = static_cast<float>(sbi.down);
+     // For bottom/right bars the inner edge is the origin side, so the concave spike
+     // pushes the body inward by its bulge. Top/left bars grow away from the origin
+-    // and need no body shift. Gutter (auto-hide) placements derive from the surface
++    // and need no body shift. Gutter placements derive from the surface
+     // size, which already includes the bulge, so they shift automatically.
+     const float concaveBulge = concave.innerBulge;
+
+@@ -821,7 +821,7 @@
+       // Vertical bar: edge gap is left/right, ends inset is top/bottom.
+       const float y = std::min(marginEnds, bleedUp) + insetT;
+       float x = isRight ? (bleedLeft + concaveBulge) : std::min(marginEdge, bleedLeft);
+-      if (const int gutter = barAutoHideEdgeGutter(cfg); gutter > 0) {
++      if (const int gutter = barSurfaceEdgeGutter(cfg); gutter > 0) {
+         // The gutter equals marginEdge and sits between the screen edge and the bar.
+         // Position the bar exactly marginEdge from the edge so it matches the
+         // non-auto-hide placement; the edge-side shadow bleeds into the gutter.
+@@ -844,7 +844,7 @@
+     // Horizontal bar: edge gap is top/bottom, ends inset is left/right.
+     const float x = std::min(marginEnds, bleedLeft) + insetL;
+     float y = isBottom ? (bleedUp + concaveBulge) : std::min(marginEdge, bleedUp);
+-    if (const int gutter = barAutoHideEdgeGutter(cfg); gutter > 0) {
++    if (const int gutter = barSurfaceEdgeGutter(cfg); gutter > 0) {
+       if (isBottom) {
+         y = surfaceHeight - static_cast<float>(gutter) - barThickness;
+       } else {
+@@ -1938,7 +1938,7 @@
+   const float current = instance.hideOpacity;
+   const float target = visible ? 1.0F : 0.0F;
+   instance.animations.animate(
+-      current, target, Style::animNormal, visible ? Easing::EaseOutCubic : Easing::EaseInQuad,
++      current, target, visible ? Style::animNormal : Style::animFast, Easing::EaseOutCubic,
+       [inst = &instance, this](float v) {
+         inst->hideOpacity = v;
+         syncBarSlideLayerTransform(*inst);
+--- a/src/shell/bar/bar_reserved_zone.h
++++ b/src/shell/bar/bar_reserved_zone.h
+@@ -12,11 +12,11 @@
+ reservedBarExclusiveZone(const BarConfig& barConfig, const ShellConfig::ShadowConfig& shadowConfig) {
+   const std::int32_t mEdge = barConfig.marginEdge;
+   const std::int32_t mOpposite = std::max<std::int32_t>(0, barConfig.marginOppositeEdge);
+-  // Auto-hide folds the edge margin into the surface as a gutter and sets the
+-  // layer margin to 0, so the compositor adds no margin to the exclusive zone.
++  // Sliding bars, including explicit IPC visibility, fold the edge gap into a gutter.
++  // The layer margin is 0, so it adds no margin to the exclusive zone.
+   // The zone must then cover the full edge gap itself (thickness + edge margin);
+   // the edge-side shadow is allowed to bleed beyond, matching the layer-margin path.
+-  if ((barConfig.autoHide || barConfig.smartAutoHide) && mEdge > 0) {
++  if (mEdge > 0) {
+     return barConfig.thickness + mEdge + mOpposite;
+   }
+   const auto sb = shell::surface_shadow::bleed(barConfig.shadow, shadowConfig);
+@@ -35,14 +35,13 @@
+   return barConfig.thickness + mOpposite;
+ }
+
+-/// Layer-shell margin the bar applies on its anchored screen edge. The edge gap
+-/// (marginEdge) is split: the part covered by the surface's own edge-side shadow
+-/// bleed lives inside the surface, and the remainder becomes the layer margin.
+-/// Auto-hide folds the whole gap into the surface as a gutter, so the margin is 0.
++/// Floating bars keep the whole edge gap inside the layer surface so explicit
++/// IPC visibility and auto-hide both slide from the physical display edge.
++/// The resting visual position is unchanged; the anchored layer margin is zero.
+ [[nodiscard]] inline std::int32_t
+ barEdgeLayerMargin(const BarConfig& barConfig, const ShellConfig::ShadowConfig& shadowConfig) {
+   const std::int32_t mEdge = std::max<std::int32_t>(0, barConfig.marginEdge);
+-  if ((barConfig.autoHide || barConfig.smartAutoHide) && mEdge > 0) {
++  if (mEdge > 0) {
+     return 0;
+   }
+   const auto sb = shell::surface_shadow::bleed(barConfig.shadow, shadowConfig);

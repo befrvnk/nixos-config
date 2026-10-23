@@ -333,6 +333,13 @@
               touch $out
             '';
 
+          noctalia-bar-geometry = import ./home-manager/nixos/noctalia/bar-geometry-check.nix {
+            inherit pkgs;
+            source = inputs.noctalia.outPath;
+            patches =
+              inputs.self.nixosConfigurations.framework.config.home-manager.users.frank.programs.noctalia.package.patches;
+          };
+
           noctalia-overview =
             let
               home = inputs.self.nixosConfigurations.framework.config.home-manager.users.frank;
@@ -381,6 +388,14 @@
               {
                 NOCTALIA_BIN = "${home.programs.noctalia.package}/bin/noctalia";
                 NOCTALIA_SOURCE = inputs.noctalia.outPath;
+                NATIVE_BAR_STYLE = pkgs.writeText "noctalia-bar-style.json" (
+                  builtins.toJSON {
+                    bar = home.programs.noctalia.settings.bar.main;
+                    widget = home.programs.noctalia.settings.widget;
+                    font = home.programs.noctalia.settings.shell.font_family;
+                    patches = map builtins.baseNameOf home.programs.noctalia.package.patches;
+                  }
+                );
                 ACTIVATION_COREUTILS = "${pkgs.coreutils}";
                 ACTIVATION_SYSTEMCTL = "${pkgs.systemd}/bin/systemctl";
                 ACTIVATION_UTIL_LINUX = "${pkgs.util-linux}";

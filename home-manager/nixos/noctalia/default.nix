@@ -6,8 +6,9 @@
 }:
 let
   noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-    # Isolate password PAM and make configured pre-sleep protection authoritative.
+    # Keep PAM/sleep policy patches and floating-bar IPC edge geometry exact.
     patches = (old.patches or [ ]) ++ [
+      ./bar-ipc-edge-slide.patch
       ./lockscreen-pam-service.patch
       ./suspend-lock-policy.patch
     ];
@@ -72,19 +73,19 @@ in
       bar.main = {
         position = "top";
         thickness = 34;
-        background_opacity = 0.0;
+        background_opacity = 1.0;
         compositor_blur = false;
         shadow = false;
         margin_ends = 16;
         margin_edge = 16;
-        padding = 0;
+        padding = 12;
         widget_spacing = 16;
         font_scale = 1.14;
         auto_hide = false;
         smart_auto_hide = false;
         show_on_workspace_switch = false;
         reserve_space = false;
-        capsule = true;
+        capsule = false;
         capsule_padding = 12;
         capsule_fill = "surface";
         capsule_border = "outline";
