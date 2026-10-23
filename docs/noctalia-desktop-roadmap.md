@@ -166,11 +166,19 @@ exit now uses 100ms EaseOutCubic, retaining the 200ms entrance and current gap/s
 A native-expression/easing probe verifies the timing. The user applied it and
 confirmed the timing/current enhancements work. Passive checks confirmed style and
 healthy services, with no compositor restart; the agent did not show/hide bars,
-activate or restart anything. Sign the accepted bar/motion checkpoint separately.
+activate or restart anything. The accepted bar/motion checkpoint is signed 783f890.
 
 Next user requests: move notifications into the center section after the clock,
 and correct tray right-click menu placement below the clicked icon. The reported
-tray anchor issue is not certified by bar/motion acceptance. Outline/corner-radius/
+tray anchor issue is not certified by bar/motion acceptance. The placement follow-up
+is now built: bell moves after clock, and captured parent-surface-local click coords
+replace late pointer-state lookup for native DBusmenu anchors. All 21 checks pass,
+including an offline original-zero-anchor reproduction. The user applied it and
+confirmed menu/bell placement works; passive config/service/log checks corroborate
+installation and healthy services without compositor restart. Accept the observed
+session behavior, not all apps/drawers/submenus/outputs or broader Niri coverage.
+Legacy application-owned menu and compositor parent/grab behavior stay unchanged.
+Outline/corner-radius/
 spacing/label refinements remain later, not implicit in these placement requests.
 
 ## References reviewed

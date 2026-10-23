@@ -333,6 +333,13 @@
               touch $out
             '';
 
+          noctalia-tray-anchor = import ./home-manager/nixos/noctalia/tray-anchor-check.nix {
+            inherit pkgs;
+            source = inputs.noctalia.outPath;
+            patches =
+              inputs.self.nixosConfigurations.framework.config.home-manager.users.frank.programs.noctalia.package.patches;
+          };
+
           noctalia-bar-geometry = import ./home-manager/nixos/noctalia/bar-geometry-check.nix {
             inherit pkgs;
             source = inputs.noctalia.outPath;

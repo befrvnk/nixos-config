@@ -1514,9 +1514,15 @@ without enabling auto-hide. Full build/all 20 checks, 180 Noctalia tests and a n
 returning windows. Motion-first follow-up now uses 100ms fast-start ease-out exit,
 unchanged 200ms entrance and existing gap/style, with native call/easing verification.
 The user applied/accepted the timing and current enhancements; passive checks found
-healthy services with the compositor's original start time. Sign this checkpoint;
-next investigate the separate tray context-menu placement issue and move notifications
-into center after clock. Outline/radius/spacing/label refinements remain later.
+healthy services with the compositor's original start time; signed 783f890.
+The next placement follow-up is built: notifications move after clock in center,
+and tray menu receives the captured scene-local click point rather than late global
+pointer lookup (old zero-anchor path reproduced offline). Full build/all 21 checks
+pass. The user applied/confirmed bell and menu placement; passive checks found the
+new center group/clock anchor, healthy native/watcher services, original compositor
+start time and no recent tray/popup errors. This adds observed session acceptance,
+not blanket app/drawer/submenu/output or Niri runtime proof.
+Outline/radius/spacing/label refinements remain later.
 This takes precedence over ordinary cleanup below; reader/output/power and optional
 performance-comparison backlog stays deferred.
 

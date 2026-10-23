@@ -1,0 +1,153 @@
+--- a/src/dbus/tray/tray_service.h
++++ b/src/dbus/tray/tray_service.h
+@@ -3,6 +3,7 @@
+ #include <cstdint>
+ #include <functional>
+ #include <memory>
++#include <optional>
+ #include <sdbus-c++/sdbus-c++.h>
+ #include <string>
+ #include <unordered_map>
+@@ -10,6 +11,12 @@
+ #include <vector>
+
+ class SessionBus;
++
++// Coordinates captured from the click in its parent wl_surface's scene.
++struct TrayMenuAnchor {
++  float x = 0.0F;
++  float y = 0.0F;
++};
+
+ struct TrayItemInfo {
+   std::string id;
+@@ -59,7 +66,7 @@
+ class TrayService {
+ public:
+   using ChangeCallback = std::function<void()>;
+-  using MenuToggleCallback = std::function<void(const std::string&, float)>;
++  using MenuToggleCallback = std::function<void(const std::string&, float, std::optional<TrayMenuAnchor>)>;
+
+   explicit TrayService(SessionBus& bus);
+   ~TrayService();
+@@ -69,7 +76,9 @@
+   void start();
+   void setChangeCallback(ChangeCallback callback);
+   void setMenuToggleCallback(MenuToggleCallback callback);
+-  void requestMenuToggle(const std::string& itemId, float contentScale = 1.0F) const;
++  void requestMenuToggle(
++      const std::string& itemId, float contentScale = 1.0F, std::optional<TrayMenuAnchor> anchor = std::nullopt
++  ) const;
+   [[nodiscard]] std::size_t itemCount() const noexcept;
+   [[nodiscard]] std::vector<TrayItemInfo> items() const;
+   [[nodiscard]] bool itemUsesDBusMenu(const std::string& itemId) const;
+--- a/src/dbus/tray/tray_service.cpp
++++ b/src/dbus/tray/tray_service.cpp
+@@ -810,9 +810,11 @@
+
+ void TrayService::setMenuToggleCallback(MenuToggleCallback callback) { m_menuToggleCallback = std::move(callback); }
+
+-void TrayService::requestMenuToggle(const std::string& itemId, float contentScale) const {
++void TrayService::requestMenuToggle(
++    const std::string& itemId, float contentScale, std::optional<TrayMenuAnchor> anchor
++) const {
+   if (m_menuToggleCallback) {
+-    m_menuToggleCallback(itemId, contentScale);
++    m_menuToggleCallback(itemId, contentScale, anchor);
+   }
+ }
+
+--- a/src/app/application_services.cpp
++++ b/src/app/application_services.cpp
+@@ -1553,9 +1553,11 @@
+         *m_trayService, m_configService.config(), m_configService.config().osd.kinds.keyboardLayout
+     );
+   });
+-  m_trayService->setMenuToggleCallback([this](const std::string& itemId, float contentScale) {
+-    m_trayMenu.toggleForItem(itemId, contentScale);
+-  });
++  m_trayService->setMenuToggleCallback(
++      [this](const std::string& itemId, float contentScale, std::optional<TrayMenuAnchor> anchor) {
++        m_trayMenu.toggleForItem(itemId, contentScale, anchor);
++      }
++  );
+   startTrayService();
+ }
+
+--- a/src/shell/bar/widgets/tray_widget.cpp
++++ b/src/shell/bar/widgets/tray_widget.cpp
+@@ -788,7 +788,9 @@
+         }
+       } else if (data.button == BTN_RIGHT) {
+         if (m_tray->itemUsesDBusMenu(itemId)) {
+-          m_tray->requestMenuToggle(itemId, m_contentScale);
++          m_tray->requestMenuToggle(
++              itemId, m_contentScale, TrayMenuAnchor{.x = data.sceneX, .y = data.sceneY}
++          );
+         } else {
+           (void)m_tray->openContextMenu(itemId, x, y);
+         }
+--- a/src/shell/tray/tray_menu.h
++++ b/src/shell/tray/tray_menu.h
+@@ -32,7 +32,9 @@
+   void initialize(WaylandConnection& wayland, ConfigService* config, TrayService* tray, RenderContext* renderContext);
+   void onTrayChanged();
+
+-  void toggleForItem(const std::string& itemId, float contentScale = 1.0F);
++  void toggleForItem(
++      const std::string& itemId, float contentScale = 1.0F, std::optional<TrayMenuAnchor> anchor = std::nullopt
++  );
+   void close();
+   void onFontChanged();
+   void onThemeChanged();
+@@ -87,6 +89,7 @@
+   RenderContext* m_renderContext = nullptr;
+
+   std::string m_activeItemId;
++  std::optional<TrayMenuAnchor> m_anchor;
+   std::vector<TrayMenuEntry> m_entries;
+   std::unique_ptr<MenuInstance> m_instance;
+
+--- a/src/shell/tray/tray_menu.cpp
++++ b/src/shell/tray/tray_menu.cpp
+@@ -259,7 +259,9 @@
+   }
+ }
+
+-void TrayMenu::toggleForItem(const std::string& itemId, float contentScale) {
++void TrayMenu::toggleForItem(
++    const std::string& itemId, float contentScale, std::optional<TrayMenuAnchor> anchor
++) {
+   if (itemId.empty()) {
+     close();
+     return;
+@@ -283,6 +285,7 @@
+
+   m_activeItemId = itemId;
+   m_contentScale = std::max(0.1F, contentScale);
++  m_anchor = anchor;
+
+   // Some dbusmenu servers only materialize menu rows after receiving "opened".
+   // Emit this before the first fetch so we don't render a persistent empty menu.
+@@ -319,6 +322,7 @@
+     m_tray->notifyMenuClosed(m_activeItemId);
+   }
+   destroySurface();
++  m_anchor.reset();
+   if (m_closedCallback) {
+     m_closedCallback();
+   }
+@@ -678,7 +682,12 @@
+
+   int anchorX = 0;
+   int anchorY = 0;
+-  if (m_wayland->hasPointerPosition()) {
++  // Pointer leave can be queued after the click in the same Wayland frame.
++  // Keep the dispatched click's surface-local position, not later global state.
++  if (m_anchor.has_value()) {
++    anchorX = static_cast<int>(std::lround(m_anchor->x));
++    anchorY = static_cast<int>(std::lround(m_anchor->y));
++  } else if (m_wayland->hasPointerPosition()) {
+     anchorX = static_cast<int>(m_wayland->lastPointerX());
+     anchorY = static_cast<int>(m_wayland->lastPointerY());
+   }

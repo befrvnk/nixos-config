@@ -36,10 +36,11 @@ class BarStyleTests(unittest.TestCase):
         self.assertEqual(self.bar["padding"], 12)  # Main-axis inset replaces outer capsule padding.
         self.assertEqual(self.bar["color"], "on_surface")
         self.assertEqual(self.bar["start"], ["cpu", "ram", "temperature"])
-        self.assertEqual(self.bar["center"], ["weather", "clock"])
-        self.assertEqual(self.bar["end"], ["tray", "storage", "notifications", "network", "bluetooth",
+        self.assertEqual(self.bar["center"], ["weather", "clock", "notifications"])
+        self.assertEqual(self.bar["end"], ["tray", "storage", "network", "bluetooth",
                                           "volume", "brightness", "caffeine", "lid-guard", "battery", "control-center"])
         self.assertEqual(self.policy["widget"]["clock"]["format"], "{:%a %d %b  %H:%M}")
+        self.assertTrue(self.policy["widget"]["clock"]["anchor"])
         for name in ("cpu", "ram", "temperature"):
             self.assertEqual(self.policy["widget"][name]["highlight_color"], "on_surface")
             self.assertEqual(self.policy["widget"][name]["visualization"], "none")

@@ -1,7 +1,8 @@
 # Noctalia continuous floating topbar
 
-Status: **continuous floating bar and fast exit user-accepted** (2026-10-23).
-Tray context-menu anchoring is a reported follow-up, not included in that acceptance.
+Status: **continuous floating bar and fast exit user-accepted** (2026-10-23),
+signed as 783f890. Center notifications and native tray click-anchor placement are
+also user-accepted in the running Umbriel session; scope limits are recorded below.
 
 The owner requested one continuous bar rather than individual widget islands and
 an animation originating at the display edge, while keeping one floating gap.
@@ -12,8 +13,9 @@ an animation originating at the display edge, while keeping one floating gap.
 - Keep top and side margins at **16 logical pixels** and bar thickness at 34.
 - Horizontal content padding is 12px, replacing the outer padding supplied by the
   former capsules. This is main-axis padding, not another vertical/top gap.
-- Widget order, 16px widget spacing, neutral text, fonts/font scale and clock format
-  remain. No widget, keybinding, wallpaper or OSD functionality is removed.
+- Apart from the separately requested notification relocation below, widget order,
+  16px spacing, neutral text, fonts/font scale and clock format remain. No widget,
+  keybinding, wallpaper or OSD functionality is removed.
 - Strict overview-only watcher remains active for Niri and Umbriel; pointer/smart
   auto-hide, workspace peek and reserved space remain disabled.
 - No blur/shadow, extra effect, timer or continuous animation cadence change is
@@ -89,6 +91,56 @@ anchor: the user then reported tray menus appearing at the bar's left/bottom rat
 than below the clicked icon, to investigate separately. A shorter asynchronous slide
 is not a strict no-overlap synchronization guarantee. Do not enable reserved space,
 move the bar behind windows, or slow the compositor to disguise the symptom.
+
+## Center notifications and tray click-anchor follow-up — accepted
+
+The accepted continuous-bar/motion checkpoint is signed as 783f890. The owner then
+requested notifications in the center and tray right-click menus below their icon.
+
+Notifications move from end to center: weather, clock, notifications. The clock
+retains anchor=true; other widget order, popup/toast policy and typography remain.
+
+Pinned TrayMenu re-reads global pointer coordinates when creating the DBusmenu
+popup. WaylandSeat queues pointer events, but a later leave in the same frame can
+clear hasPointerPosition while leaving the parent surface known. Dispatching the
+click then reaches a `(0,0)` fallback, consistent with a left-edge menu.
+tray-menu-click-anchor.patch passes PointerData.sceneX/sceneY (already logical,
+parent-surface-local) through the service callback into the menu. The immutable
+click point is captured before menu-open/layout bus calls and preferred over later
+pointer state. It is rounded once to the positioner's integer coordinate; no output
+origin, bar margin or DPI scale is added again. Closing clears the captured point.
+Legacy calls without an explicit point retain the previous pointer fallback; the
+application-owned ContextMenu path, parent/serial/grab handling, native constraint
+adjustments, menu actions and bus/Polkit permissions are unchanged.
+
+A new offline native-code probe reproduces the old zero anchor after pointer leave
+and verifies preservation after leave/later motion, valid zero clicks, fractional
+rounding and legacy fallbacks. It compiles the actual original/patched selection
+blocks with fake pointer state and guards the captured-event callback wiring. The
+full package build checks public call-site types. No menu, Wayland/bus connection,
+focus change or input injection is performed by the agent. Static reproduction is
+not proof that this is the only cause of the user's observed placement: live
+parent/compositor positioning still needs user confirmation, including any app
+that supplies its own menu.
+
+Full Framework build and all 21 Linux checks pass, including 180 Noctalia tests,
+the native tray-anchor repro/captured-click probe, 432 geometry/timing cases and
+existing Umbriel/Greeter/suspend probes. All four native patches apply strictly;
+no dependency/lock/cache, PAM, compositor, animation-speed or visibility-policy
+change is bundled into placement. Static checks are not live popup placement proof.
+
+The user applied the follow-up and confirmed it works. Passive inspection found
+center=[weather,clock,notifications], the bell removed from end and clock anchor
+still true. Native/overview were active with zero restarts from 21:06:06/07;
+Umbriel retained its original 17:02:37 start time. No tray/popup errors appeared in
+the focused recent native log window. The agent never opened a menu or moved focus.
+Accept the user-observed bell/menu placement in this session, not all apps, drawer/
+submenu/output cases or Niri-specific runtime coverage. Application-owned menus and
+other unperformed cases are not certified by this success.
+
+For future placement changes, rebuild switch only while unlocked (package changed)
+and user-check the bell/menu anchor. Report any app that still misplaces its own
+menu; don't clear settings or restart locked services.
 
 ## Later visual refinements — not applied in the motion step
 

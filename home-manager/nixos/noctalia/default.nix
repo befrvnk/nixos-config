@@ -11,6 +11,7 @@ let
       ./bar-ipc-edge-slide.patch
       ./lockscreen-pam-service.patch
       ./suspend-lock-policy.patch
+      ./tray-menu-click-anchor.patch
     ];
     patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
   });
@@ -99,11 +100,11 @@ in
         center = [
           "weather"
           "clock"
+          "notifications"
         ];
         end = [
           "tray"
           "storage"
-          "notifications"
           "network"
           "bluetooth"
           "volume"

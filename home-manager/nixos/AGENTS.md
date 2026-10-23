@@ -272,6 +272,14 @@ Theme switching without full rebuilds:
   anchoring remains a distinct reported issue. Native call/easing expressions are
   probed, but no asynchronous tweak is a strict compositor synchronization guarantee.
   Outline/radius/spacing/label refinements are later; don't bundle them into motion.
+- Placement follow-up moves notifications after clock in center, retaining clock
+  anchor/order of other widgets/toast policy. tray-menu-click-anchor.patch passes
+  parent-surface-local click coordinates through the native DBusmenu callback;
+  don't add output offsets, floating margins or DPI scaling again. Late pointer
+  leave can otherwise force a zero anchor. Legacy app-owned ContextMenu/grab/parent
+  behavior stays unchanged. User confirmed bell/menu placement in Umbriel on
+  2026-10-23, corroborated by config/healthy services; don't infer every app, drawer,
+  submenu, output or Niri case from that. Native repro/probes alone aren't live proof.
 - Both overview adapters and no-reserved-space policy stay. Strict patch application,
   432-case actual native before/after geometry and style probes cover configuration,
   not visual acceptance. Native package rebuild may restart Noctalia during user

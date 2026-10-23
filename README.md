@@ -118,7 +118,8 @@ C++ shell, not the older Quickshell-based release. Its bar appears only during N
 Umbriel overview. A continuous floating background with neutral text is prepared to
 replace widget islands, keeping one gap and animating from the display edge.
 The continuous bar and faster exit are [user-accepted](./docs/noctalia-topbar.md);
-tray context-menu positioning remains a separate follow-up.
+notifications now sit beside the centered clock, and tray context menus use the
+captured icon-click position. That placement is user-confirmed in Umbriel.
 
 - **Built-in widgets** — CPU/RAM/temperature, weather, centered date/time, app tray,
   notifications, WiFi next to Bluetooth, volume, brightness and battery.
