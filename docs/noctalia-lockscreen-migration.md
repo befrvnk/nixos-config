@@ -5,8 +5,10 @@ pinned at V5.3.0. The agent must not lock/suspend, enter/test passwords, use the
 fingerprint reader, restart a locked session, or activate the system configuration.
 
 The subsequent [origin rebase validation](noctalia-origin-rebase.md) covers the newer
-dependency pins and replayed checkpoint hashes. Live observations below predate
-activation of that updated stack; do not treat them as fresh runtime acceptance.
+dependency pins and replayed checkpoint hashes. Historical stage observations
+predate activation of that updated stack; do not treat them as fresh runtime
+acceptance. The dated extended-inhibition validation below separately records
+observations on the deployed updated stack.
 
 ## Stage 1: password authentication preflight (accepted)
 
@@ -370,15 +372,69 @@ them or silently label the whole security migration accepted. The user explicitl
 authorized committing this checkpoint with the following follow-ups documented;
 authorization does not turn unperformed tests into acceptance.
 
+### Updated-stack extended inhibition validation (2026-10-23)
+
+The user enabled native Caffeine with audio idle. At 14:15:44 the running native
+shell acquired an idle/block inhibitor labelled Caffeine and recognized systemd
+idle inhibition. Baseline/read-only inspections found no Audio Playback inhibitor.
+The user performed a hands-off interval of at least six minutes, leaving the lid
+open, and confirmed the screen stayed on/unlocked before further input.
+
+Native logs explicitly suppressed lock at 14:20:59, screen-off at 14:21:04 and
+suspend at 14:21:09, covering the configured 300/305/310-second actions. Later
+suppression cycles were also logged; do not infer that the entire elapsed journal
+window was an uninterrupted hands-off interval. At inspection the session was
+unlocked, Caffeine still held, Noctalia unchanged/running with zero restarts, and
+no system sleep/logind events were recorded in the test window.
+
+The user disabled Caffeine; native logs show idle inhibitor disabled and systemd
+idle inhibit released at 14:37:57. At 14:38:09 no Caffeine or Audio Playback block
+remained and the session was unlocked. Accept independent full-duration Caffeine
+idle-action suppression and release on the updated stack. This does not establish
+manual/lid sleep blocking, audio suppression, reader recovery or output coverage.
+No agent inhibitor, playback, hardware, authentication or power-state action occurred.
+
+For the independent audio trial the user started sustained playback with Caffeine
+off. At 14:40:32 native logs recognized systemd idle inhibition. Inspection at
+14:40:47 found Audio Playback holding sleep:idle/block, no Caffeine, and an unlocked
+session. After the requested hands-off interval the user reported the screen stayed
+on without locking. Logs explicitly suppressed lock at 14:45:38, screen-off at
+14:45:43 and suspend at 14:45:48. At 14:51:40 the same audio blocker was still held,
+Caffeine absent, session unlocked, native shell/watcher active without restart and
+no system sleep/logind events recorded in the test window. Accept independent
+full-duration audio idle suppression. The distinct guarded attempt and release
+were subsequently checked below.
+
+With playback still active the user invoked the existing Mod+Shift+S safe-suspend
+shortcut once and reported the expected Suspend Blocked notification. At 14:55:20
+read-only inspection still found Audio Playback as the only high-level sleep/block
+holder, session unlocked, native/watcher unchanged, and no system sleep/logind or
+native lock/suspend event in the challenge window. A brief native idle-inhibitor
+acquire/release at 14:54:43–44 was also logged; an idle-only blocker cannot satisfy
+the helper's sleep/block filter. Accept the guarded manual shortcut's blocker veto,
+not raw logind enforcement or every native panel action (Lock and Suspend can lock
+before its backend veto). Never bypass the inhibitor to extend this test.
+
+The user then paused playback. Native systemd idle inhibit release was logged at
+14:56:45; at 14:56:52 neither Audio Playback nor Caffeine held idle/sleep blocks,
+the session was unlocked and both services retained their start times/zero restarts.
+Accept updated-stack audio release too. This checkpoint changes documentation only;
+no agent playback, inhibitor, authentication, hardware or power action occurred.
+
 ### Checkpoint follow-ups
 
 - [ ] Isolate the combined power-button/fingerprint-sensor wake interaction. Keyboard
   and lid sleep work; do not disable devices or change firmware/kernel policy on
   the strength of the generic ACPI wake IRQ alone.
-- [ ] Test full idle intervals while Caffeine and audio inhibitors are held,
-  independently. Acquisition, native detection and release passed; extended action
-  suppression and a real suspend-block challenge were not performed. Never bypass
-  inhibitors to test them.
+- [x] Test a full idle interval with native Caffeine alone: user-reported six-minute
+  hands-off screen-on/unlocked check, all three native actions explicitly suppressed,
+  then user release verified on 2026-10-23. Not a manual/lid sleep-block guarantee.
+- [x] Test a full idle interval with Audio Playback alone: user reports screen
+  stayed on/unlocked, all three native actions explicitly suppressed, Caffeine
+  absent on 2026-10-23. User pause/release verified at 14:56:45–52.
+- [x] User-perform a guarded suspend-block challenge independently: Mod+Shift+S
+  produced Suspend Blocked with the audio sleep/block holder still present and
+  no observed lock/sleep. Not raw logind or all panel-action enforcement.
 - [ ] User-test password recovery when the fingerprint reader is genuinely unavailable,
   retaining the prevalidated TTY/password recovery path. Normal password tests are
   not this failure-mode test; agents must not stop/claim/scan the reader.
@@ -387,9 +443,11 @@ authorization does not turn unperformed tests into acceptance.
   no-desktop-flash behavior.
 - [ ] Review fallback retirement separately after remaining security checks. Keep
   swaylock/PAM/style installed; they cannot unlock a native compositor session lock.
-- [ ] Resolve native wallpaper-pair policy before separately retiring the theme
-  bridge/specialisations and remaining palette exports. No cleanup is authorized
-  by this checkpoint alone.
+- [x] Decouple native wallpaper-pair policy from the theme bridge (c388657,
+  startup/mode accepted); fresh OS boot/external/reconnect checks remain deferred.
+- [ ] Separately review remaining palette consumers and bridge/specialisation
+  retirement after the recovery/output gates. No cleanup is authorized by the
+  inhibitor-validation checkpoint alone.
 
 ### User-only validation
 

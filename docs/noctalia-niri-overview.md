@@ -1175,11 +1175,18 @@ are registered, idle monitoring/sleep-delay are active and the absolute backend 
 deployed without GUI overrides. The user completed a native automatic trial and
 confirmed their key press caused resume; logs verify lock/screen-off/suspend at
 five-second intervals, actual kernel sleep and healthy resume. Basic Caffeine/audio
-acquisition, native recognition and release are verified independently. Extended
-inhibited-idle intervals, reader-unavailable fallback and external outputs remain
-open; don't treat them as accepted or remove fallback/theme consumers yet. Power-button immediate
-wake remains separate and unresolved; it is not attributed to fingerprint without
-proof. See the [stage history and recovery guide](noctalia-lockscreen-migration.md).
+acquisition, native recognition and release were verified independently. On the
+updated stack (2026-10-23) the user separately completed full idle intervals with
+Caffeine alone and Audio Playback alone: all three native callbacks were explicitly
+suppressed and the screen stayed on/unlocked. User Caffeine release at 14:37:57 and
+audio release after pause at 14:56:45 were verified. With audio still holding
+sleep:idle/block, a user Mod+Shift+S attempt produced Suspend Blocked, with no
+observed lock/sleep. This verifies the guarded manual helper veto, not raw logind
+or every panel action; Lock and Suspend may lock before its backend veto.
+
+Reader-unavailable fallback and external outputs remain open; don't treat them as
+accepted or remove fallback/theme consumers yet. Power-button immediate wake remains
+separate and unresolved; it is not attributed to fingerprint without proof. See the [stage history and recovery guide](noctalia-lockscreen-migration.md).
 
 ## Pre-session Home Manager activation and stale Nu bindings
 

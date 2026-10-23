@@ -217,8 +217,15 @@ Theme switching without full rebuilds:
 - Native password PAM and manual password/fingerprint passed; keyboard suspend and
   lid sleep/wake passed. Native-idle deployment and automatic sleep/key-wake are
   accepted. Live Caffeine/audio acquisition, native recognition and release passed;
-  extended inhibited-idle, reader-unavailable recovery, external outputs and separate
-  power-button interaction remain open. Do not silently claim full security acceptance.
+  Caffeine-only six-minute idle suppression and release passed on the updated stack
+  on 2026-10-23 (all three native actions suppressed, user confirms screen stayed on/
+  unlocked). Independent full-duration audio suppression also passed that day,
+  with no Caffeine and all three callbacks suppressed. The user's Mod+Shift+S
+  guarded-suspend attempt produced Suspend Blocked while audio held sleep:block,
+  without observed lock/sleep; user pause/release then passed at 14:56:45. This is
+  the helper veto, not raw logind/all-panel enforcement. Reader-unavailable recovery,
+  external outputs and separate power-button interaction remain open. Do not
+  silently claim full security acceptance.
   Native idle owns 300s lock, 305s screen_off/restore and 310s lock_and_suspend, with
   fade=0 and locked_timeout=0 to preserve elapsed timings. Keep swayidle disabled;
   do not introduce dummy hooks, a second scheduler or its old package patch.

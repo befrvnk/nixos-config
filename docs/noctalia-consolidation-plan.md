@@ -1,6 +1,6 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted; manual native-lock password/fingerprint trial accepted; keyboard/lid sleep verified; native-idle replacement activated after automatic suspend launcher failure; automatic sleep/key-wake and Caffeine/audio acquisition-recognition-release verified, extended validation pending, with deferred GTK/bridge cleanup pending.**
+Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted; manual native-lock password/fingerprint trial accepted; keyboard/lid sleep verified; native-idle replacement activated after automatic suspend launcher failure; automatic sleep/key-wake and Caffeine/audio acquisition-recognition-release verified; updated-stack independent full-duration Caffeine/audio suppression, guarded manual suspend veto and release verified; reader/output/power-button and deferred GTK/bridge cleanup pending.**
 
 Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
 Research targets the pinned **Noctalia 5.3.0**, source commit
@@ -1370,6 +1370,46 @@ Native wallpaper-pair checkpoint accepted: image selection independent of HM bri
   Finalize signed checkpoint. External/reconnect/restart visual coverage, fresh
   OS boot of this policy and fallback/security retirement gates remain.
 
+Updated-stack full-duration Caffeine test accepted (2026-10-23):
+- User enabled Caffeine; native idle/block acquisition/recognition at 14:15:44,
+  no Audio Playback inhibitor. User reports at least six minutes without input,
+  lid open, screen remained on/unlocked before returning.
+- Logs explicitly suppressed lock 14:20:59, screen-off 14:21:04, suspend 14:21:09.
+  Session unlocked, service unchanged with zero restarts, no sleep/logind events
+  in the inspected window. Do not infer uninterrupted idle from the entire elapsed
+  journal window; only the user-reported interval and observed callbacks count.
+- User turned Caffeine off; native release 14:37:57 and no Caffeine/Audio Playback
+  block at 14:38:09. Accept Caffeine-only extended idle suppression/release, not
+  manual/lid sleep blocking or unperformed audio/suspend-block/output/auth tests.
+- Next isolate sustained Audio Playback with Caffeine off, verify acquisition,
+  then a separate six-minute hands-off interval. All state changes user-operated.
+
+Independent full-duration Audio Playback suppression accepted (2026-10-23):
+- User started sustained playback with Caffeine off. Native recognition 14:40:32;
+  at 14:40:47 Audio Playback alone held sleep:idle/block, session unlocked.
+- User reports screen stayed on/unlocked after the requested interval. Native
+  lock/screen-off/suspend callbacks suppressed 14:45:38 / 14:45:43 / 14:45:48.
+  At 14:51:40 same blocker held, no Caffeine, native/watcher unchanged and no sleep/
+  logind events in the inspected window. Agent only read logs/state.
+- Audio release and the distinct guarded-suspend blocker challenge on this stack
+  remain pending. A suppressed idle callback never exercised safe-suspend itself.
+  Next user can invoke existing Mod+Shift+S once with playback still active and
+  Caffeine off; expect Suspend Blocked naming Audio Playback, not sleep/lock.
+
+Guarded suspend veto and updated-stack audio release accepted (2026-10-23):
+- With playback active the user invoked Mod+Shift+S once and reported Suspend Blocked.
+  At 14:55:20 Audio Playback was still the sole high-level sleep/block holder,
+  session unlocked, services unchanged, and no lock/sleep events in the inspected
+  challenge window. A brief native idle-only inhibit transition at 14:54:43–44
+  cannot mask the helper's sleep/block check. No raw logind/all-panel parity claim.
+- User paused playback; native release 14:56:45, neither audio nor Caffeine idle/
+  sleep blocks at 14:56:52. Session unlocked, native/watcher unchanged/zero restarts.
+- This closes independent timed idle suppression, guarded manual suspend veto and
+  release on the updated stack. Documentation-only checkpoint; no configuration,
+  power/auth/inhibitor/playback/hardware action by the agent and no rebuild needed.
+  Reader-unavailable recovery, output/reconnect coverage, power-button interaction
+  and remaining-consumer retirement stay open. Do not delete recovery as cleanup.
+
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility
 bridge and the separate compromised-cache follow-up are not marked complete.
@@ -1444,9 +1484,12 @@ consumers; do not remove security recovery merely because wallpaper is decoupled
 
 Next close remaining lock/inhibitor/reader/output gates, one user-operated test at a
 time, and audit remaining mode-dependent consumers before retiring fallback styling,
-the temporary bridge and HM specialisations. Full-duration Caffeine/audio suppression,
-reader-unavailable password fallback, external outputs and the separate power-button
-interaction remain open. Independent Atuin-wrapper and inactive-code cleanups should
+the temporary bridge and HM specialisations. Full-duration Caffeine suppression
+passed on the updated stack, as has independent full-duration audio suppression.
+Updated-stack audio release and the user-operated guarded manual suspend veto
+also passed. Reader-unavailable password fallback, external outputs and the separate
+power-button interaction remain open; no raw-logind/all-panel-action guarantee
+or blanket security acceptance is claimed. Independent Atuin-wrapper and inactive-code cleanups should
 stay separate. Phases A–D and the native renderer migration are already done; do not
 repeat the old Phase A recommendation. A fresh OS boot and external/reconnect checks
 of this new wallpaper policy remain deferred, not implicitly passed by shell startup.
