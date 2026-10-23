@@ -1,9 +1,30 @@
-_:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   wallpapers = import ../wallpapers;
+  selectMode = pkgs.writeShellScript "noctalia-wallpaper-mode" (
+    lib.replaceStrings
+      [ "@coreutils@" "@dark@" "@light@" "@noctalia@" "@util_linux@" ]
+      [
+        "${pkgs.coreutils}"
+        (lib.escapeShellArg "${wallpapers.dark}")
+        (lib.escapeShellArg "${wallpapers.light}")
+        (lib.escapeShellArg (lib.getExe config.programs.noctalia.package))
+        "${pkgs.util-linux}"
+      ]
+      (builtins.readFile ./wallpaper-mode.sh)
+  );
 in
 {
   programs.noctalia.settings = {
+    hooks = {
+      started = lib.mkBefore [ "${selectMode}" ];
+      theme_mode_changed = lib.mkBefore [ "${selectMode}" ];
+    };
     wallpaper = {
       enabled = true;
       fill_mode = "crop";

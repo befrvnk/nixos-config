@@ -176,4 +176,4 @@ renderer, since neither pinned catalog supplies one.
 ```nix
 { light = ./mountain.jpg; dark = ./mountain_dark.jpg; }
 ```
-**Imported by:** `nixos/stylix.nix`, `nixos/noctalia/theme.nix`
+**Imported by:** `nixos/stylix.nix`, `nixos/noctalia/wallpaper.nix`

@@ -26,7 +26,7 @@ class ThemeBridgeTests(unittest.TestCase):
         self.activation_callback = None
         self.fail_activation = False
         self.fail_refresh = False
-        self.wallpaper_error = False
+        self.refresh_error = False
         self.nu_theme = self.home / ".local/state/nushell/theme.nuon"
         self.nu_theme.parent.mkdir(parents=True)
         self.nu_theme.write_text("native-palette")
@@ -57,15 +57,14 @@ class ThemeBridgeTests(unittest.TestCase):
             if self.activation_callback:
                 callback, self.activation_callback = self.activation_callback, None
                 callback()
-        elif command[:3] == ["noctalia", "msg", "wallpaper-set"]:
+        elif command == ["noctalia", "msg", "templates-apply"]:
             if self.fail_refresh:
                 raise subprocess.CalledProcessError(1, command)
-            stdout = "error: wallpaper unavailable\n" if self.wallpaper_error else "ok\n"
+            stdout = "error: palette unavailable\n" if self.refresh_error else "ok\n"
         return subprocess.CompletedProcess(command, 0, stdout=stdout)
 
     def process(self):
         bridge.process_requests(self.runtime, self.state, "noctalia",
-                                {"dark": Path("dark.jpg"), "light": Path("light.jpg")},
                                 "home-manager-test.service")
 
     def activations(self):
@@ -124,20 +123,19 @@ class ThemeBridgeTests(unittest.TestCase):
         self.assertEqual(self.nu_theme.read_text(), "native-palette")
         self.assertEqual(self.nu_theme.stat().st_mtime_ns, before)
 
-    def test_wallpaper_uses_native_ipc_without_reverse_mode_or_palette_writes(self):
+    def test_bridge_never_selects_wallpaper_or_writes_mode_or_palette(self):
         bridge.request(self.runtime)
         self.process()
         self.mode = "dark"
         bridge.request(self.runtime)
         self.process()
         commands = [args for args, _ in self.calls]
-        self.assertIn(["noctalia", "msg", "wallpaper-set", "light.jpg"], commands)
-        self.assertIn(["noctalia", "msg", "wallpaper-set", "dark.jpg"], commands)
+        self.assertFalse(any("wallpaper-set" in args for args in commands))
         self.assertFalse(any(args[0] == "awww" or "theme-mode-set" in args
                              or "color-scheme-set" in args for args in commands))
 
-    def test_native_wallpaper_error_response_leaves_request_for_retry(self):
-        self.wallpaper_error = True
+    def test_native_template_error_response_leaves_request_for_retry(self):
+        self.refresh_error = True
         bridge.request(self.runtime)
         with self.assertRaises(RuntimeError):
             self.process()
@@ -179,7 +177,7 @@ class ThemeBridgeTests(unittest.TestCase):
         self.assertEqual(self.nu_theme.read_text(), "native-palette")
         self.assertFalse((self.runtime / "request.json").exists())
 
-    def test_explicit_wallpaper_refresh_does_not_reactivate_or_restart_clients(self):
+    def test_explicit_template_refresh_does_not_reactivate_or_restart_clients(self):
         bridge.request(self.runtime)
         self.process()
         count = len(self.calls)
@@ -187,7 +185,8 @@ class ThemeBridgeTests(unittest.TestCase):
         self.process()
         extra = [args for args, _ in self.calls[count:]]
         self.assertEqual(len(self.activations()), 1)
-        self.assertTrue(any(args[:3] == ["noctalia", "msg", "wallpaper-set"] for args in extra))
+        self.assertIn(["noctalia", "msg", "templates-apply"], extra)
+        self.assertFalse(any("wallpaper-set" in args for args in extra))
         self.assertFalse(any("try-restart" in args for args in extra))
 
     def test_activation_failure_leaves_request_for_retry(self):
@@ -308,7 +307,6 @@ class ThemeBridgeTests(unittest.TestCase):
         environment = {
             "HOME": str(self.home), "XDG_RUNTIME_DIR": str(self.runtime),
             "NOCTALIA_ACTIVATION_LOCK": str(shared), "NOCTALIA_COMMAND": "noctalia",
-            "NOCTALIA_WALLPAPER_LIGHT": "light.jpg", "NOCTALIA_WALLPAPER_DARK": "dark.jpg",
             "NOCTALIA_HM_UNIT": "home-manager-test.service",
         }
         with patch.dict(os.environ, environment, clear=True), \

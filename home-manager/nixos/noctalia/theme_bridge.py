@@ -87,16 +87,7 @@ def generation_for(mode):
     return candidates[0]
 
 
-def refresh_wallpaper(mode, noctalia, wallpapers):
-    # Native Noctalia owns surfaces, transitions and monitor reconnects. This
-    # temporary adapter only retains the existing deterministic light/dark pair.
-    reply = run([noctalia, "msg", "wallpaper-set", str(wallpapers[mode])],
-                capture_output=True, text=True, timeout=30).stdout.strip()
-    if reply.startswith("error:"):
-        raise RuntimeError(f"Native wallpaper selection failed: {reply}")
-
-
-def process_requests(runtime, state_path, noctalia, wallpapers, hm_unit, *, activation_lock=None):
+def process_requests(runtime, state_path, noctalia, hm_unit, *, activation_lock=None):
     activation_lock = activation_lock or state_path.parent / "theme-activation.lock"
     while read_json(runtime / "request.json"):
         wait_for_activation(hm_unit)
@@ -125,15 +116,16 @@ def process_requests(runtime, state_path, noctalia, wallpapers, hm_unit, *, acti
                 applied = {"generation": str(base), "mode": mode, "request": pending["id"], "refresh_pending": True}
                 atomic_json(state_path, applied)
             retry_refresh = applied.get("refresh_pending", False)
-            if changed or forced or retry_refresh:
+            if changed or forced or retry_refresh or pending.get("refresh", False):
                 # Initial removal of an HM-managed dconf key resets it once.
                 # Let Noctalia reassert its own preference through its native
                 # template pipeline; this neither changes mode nor fires palette hooks.
-                run([noctalia, "msg", "templates-apply"], timeout=10)
-            if changed or forced or retry_refresh or pending.get("refresh", False):
-                refresh_wallpaper(mode, noctalia, wallpapers)
+                reply = run([noctalia, "msg", "templates-apply"], capture_output=True,
+                            text=True, timeout=10).stdout.strip()
+                if reply != "ok":
+                    raise RuntimeError(f"Native app-theme refresh failed: {reply}")
                 atomic_json(state_path, {**applied, "refresh_pending": False})
-                print(f"Refreshed {mode} wallpaper and app-theme clients", flush=True)
+                print(f"Refreshed {mode} app-theme clients", flush=True)
 
         # A newer event survives. PathExists also catches a request arriving
         # between this unlink and service exit, so no final-edge event is lost.
@@ -167,8 +159,6 @@ def main():
     process_requests(
         runtime, state_path,
         os.environ["NOCTALIA_COMMAND"],
-        {"light": Path(os.environ["NOCTALIA_WALLPAPER_LIGHT"]),
-         "dark": Path(os.environ["NOCTALIA_WALLPAPER_DARK"])},
         os.environ["NOCTALIA_HM_UNIT"],
         activation_lock=Path(os.environ.get("NOCTALIA_ACTIVATION_LOCK")
                              or str(state_root / "noctalia" / "theme-activation.lock")),

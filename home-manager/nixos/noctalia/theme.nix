@@ -5,7 +5,6 @@
   ...
 }:
 let
-  wallpapers = import ../wallpapers;
   fonts = config.stylix.fonts;
   noctalia = config.programs.noctalia.package;
   activationLock = "${config.xdg.stateHome}/noctalia/theme-activation.lock";
@@ -38,7 +37,7 @@ in
     };
     hooks = {
       started = lib.mkAfter [ "${request} --refresh" ];
-      theme_mode_changed = "${request}";
+      theme_mode_changed = [ "${request}" ];
     };
   };
 
@@ -95,8 +94,6 @@ in
           Environment = [
             "NOCTALIA_ACTIVATION_LOCK=${activationLock}"
             "NOCTALIA_COMMAND=${lib.getExe noctalia}"
-            "NOCTALIA_WALLPAPER_LIGHT=${wallpapers.light}"
-            "NOCTALIA_WALLPAPER_DARK=${wallpapers.dark}"
             "NOCTALIA_HM_UNIT=home-manager-${config.home.username}.service"
             "XDG_STATE_HOME=${config.xdg.stateHome}"
             "PATH=${

@@ -376,7 +376,16 @@
                 ACTIVATION_UTIL_LINUX = "${pkgs.util-linux}";
                 NOCTALIA_OVERVIEW_ENSURE = pkgs.writeText "noctalia-overview-ensure.sh" home.home.activation.noctaliaOverviewEnsure.data;
                 NOCTALIA_THEME_REQUEST = pkgs.writeText "noctalia-theme-request-hook.sh" home.home.activation.noctaliaThemeRequest.data;
-                ACTIVATION_THEME_REQUEST = home.programs.noctalia.settings.hooks.theme_mode_changed;
+                ACTIVATION_THEME_REQUEST = pkgs.lib.last home.programs.noctalia.settings.hooks.theme_mode_changed;
+                NOCTALIA_WALLPAPER_POLICY = pkgs.writeText "noctalia-wallpaper-policy.json" (
+                  builtins.toJSON {
+                    hooks = home.programs.noctalia.settings.hooks;
+                    script = builtins.head home.programs.noctalia.settings.hooks.theme_mode_changed;
+                    wallpapers = import ./home-manager/nixos/wallpapers;
+                    bridgeEnvironment = home.systemd.user.services.noctalia-theme.Service.Environment;
+                    userUnits = builtins.attrNames home.systemd.user.services;
+                  }
+                );
                 NOCTALIA_THEME_SERVICE = pkgs.writeText "noctalia-theme-service.json" (
                   builtins.toJSON home.systemd.user.services.noctalia-theme
                 );
@@ -797,6 +806,10 @@
                 && h.programs.noctalia.settings.wallpaper.transition == [ "fade" ]
                 && h.programs.noctalia.settings.wallpaper.transition_duration == 1000
                 && !h.programs.noctalia.settings.wallpaper.automation.enabled
+                && builtins.length h.programs.noctalia.settings.hooks.theme_mode_changed == 2
+                && builtins.elem (builtins.head h.programs.noctalia.settings.hooks.theme_mode_changed) h.programs.noctalia.settings.hooks.started
+                && !(builtins.any (pkgs.lib.hasPrefix "NOCTALIA_WALLPAPER_") h.systemd.user.services.noctalia-theme.Service.Environment)
+                && !(h.systemd.user.services ? noctalia-wallpaper)
                 && builtins.all (
                   favorite: builtins.attrNames favorite == [ "path" ]
                 ) h.programs.noctalia.settings.wallpaper.favorite
@@ -809,7 +822,7 @@
                   && builtins.any (match: (match.namespace or "") == "^noctalia-wallpaper$") rule.matches
                 ) h.programs.niri.settings.layer-rules
               ) variants)
-              "Noctalia must render a single wallpaper within Niri's backdrop, never duplicate it inside workspaces";
+              "Noctalia must render a single backdrop wallpaper and select its pair through native hooks, not the theme worker";
             assert pkgs.lib.assertMsg
               (
                 same (map (h: builtins.toJSON h.programs.starship.settings) variants)

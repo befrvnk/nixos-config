@@ -241,8 +241,8 @@ Noctalia's mode hook submits an atomic request. `noctalia-theme.path` starts a
 serialized finite `noctalia-theme.service` to apply it. It uses `Type=exec` so
 startup readiness does not wait for the worker's activation work to finish. The worker queries the
 resolved mode, waits for ordinary HM activation, uses a shared linking lock and
-suppresses its own activation hooks. It then requests the
-current light/dark wallpaper pair through native Noctalia IPC.
+suppresses its own activation hooks. It then requests native app-template refresh;
+native wallpaper hooks now own image selection independently.
 Nushell's runtime data is now written only by Noctalia's native template renderer. Duplicate events skip activation; newer events and
 failed work remain pending. It never runs a Nix build, changes Noctalia's mode,
 writes a reverse portal preference, or restarts Noctalia. After app activation it
@@ -745,10 +745,11 @@ fade preserve the basic appearance; wallpaper must not be inside workspace previ
 presets. Palette source remains independent. Native automation is disabled.
 
 V5 supports mode-aware browse directories, but doesn't directly apply this fixed
-image pair on mode change. The existing temporary bridge still chooses the resolved
-light/dark image, now using `wallpaper-set` instead of awww. That native IPC persists
-the default/current-output paths; Noctalia owns rendering, transitions, future-output
-handling. Niri determines the backdrop-only placement. Error replies preserve pending work for retry.
+image pair on mode change without rotation or an extra command. Initially the temporary
+bridge chose the resolved light/dark image through `wallpaper-set` instead of awww.
+The accepted follow-up below moves that selection to native hooks. That IPC persists
+the default/current-output paths; Noctalia owns rendering, transitions and output
+handling. Niri determines the backdrop-only placement.
 
 Niri startup no longer spawns awww; its package and active backdrop rule are removed.
 The new rule places `^noctalia-wallpaper$` within Niri's backdrop. The custom udev
@@ -777,14 +778,71 @@ mode/forced-startup refresh restores the declarative pair under the retained pol
 GUI wallpaper default overrides are reconciled by the native mode-pair IPC, not by
 rewriting the whole settings.toml. Tests mock IPC, never alter live wallpaper state.
 
-The two added bridge tests cover both image choices/no reverse palette writes and
-native-error retries. Invariants enforce no active awww package/startup or custom
+At the initial migration, two bridge tests covered image choices/no reverse palette
+writes and native-error retries. The independent-policy tests below replace them;
+the bridge now tests that it never selects wallpaper. Invariants enforce no active awww package/startup or custom
 hotplug service, a disabled extra backdrop and path-only favorites. An additional
 Niri regression checks the ordinary wallpaper's backdrop placement. Full config/Niri validation,
 lint and Framework build pass. Live inspection verified the single native wallpaper
 layer, disabled extra backdrop, absent awww process/hotplug service, correct dark image,
 valid full Niri config and active shell/overview services. Appearance/fades are accepted;
 monitor reconnect and shell-restart behavior remain untested.
+
+### Independent native wallpaper-pair policy (startup/mode accepted)
+
+Source review is against pinned V5.3.0 a33122c, not current upstream docs. Its
+wallpaper directories resolve light/dark folders but only pick images on manual
+commands or startup/interval rotation. They do not immediately apply this fixed
+pair when app mode changes. Enabling rotation or changing the user's browse folder
+is unnecessary; keep the existing default, path-only favorites and disabled automation.
+
+wallpaper.nix now registers one external wallpaper-mode.sh helper in both native
+started (IPC ready) and theme_mode_changed hooks. Its separate per-session flock
+serializes overlapping children; each reads theme-mode-get inside the lock instead
+of trusting NOCTALIA_THEME_MODE from an older queued event. It then sets only the
+corresponding existing mountain image using native wallpaper-set (all connected
+outputs/default). Calls have 10s/30s limits and lock acquisition 45s. Invalid mode,
+command failure or non-ok IPC reply fails without guessing a mode/image or reverse
+mode/palette writes. Native async hooks discard stdio, so bounded 2s logger calls
+record selection/errors under tag noctalia-wallpaper-mode; logging failure does
+not undo accepted IPC. No runtime directory creation, persistent poller, service, HM wait, Nix
+build/activation, settings rewrite or process restart is added. A subsequent native
+startup/mode event retries the policy; there is no new automatic retry daemon.
+
+The retained theme bridge no longer imports wallpaper assets, exports wallpaper
+environment or calls wallpaper-set. Its refresh flag now requests only native
+templates-apply, checking the reply and retaining failed work for retry. Existing
+pre-session lock/defer/readiness protections remain. Native hooks retain the bridge
+request alongside image selection, so remaining prebuilt consumers still update.
+No swaylock/PAM, idle, inhibitor, hardware, styling/layout or shared/Darwin change.
+
+14 new private-runtime/fake-IPC tests exercise the actual rendered helper, both
+images, auto/current-mode resolution rather than stale event payload, overlapping
+processes with actual flock, repeat startup, bounded calls, errors, path quoting,
+registration and bridge independence; logger calls also target private fixtures,
+never the real journal. All 172 Noctalia + 19 suspend tests, 17 Linux
+checks, full Framework build, formatting/lint and Nix diagnostics pass. Those checks
+alone are not real mode/startup/reconnect acceptance. Relevant GUI hook/favorite overrides
+were inspected read-only; none needed migration. settings.toml was not edited.
+
+User validation, while unlocked: rebuild switch, select Light then Dark in Noctalia
+and confirm the matching image/fade and unchanged transparent overview previews;
+restore Auto. Then inspect worker/path/native state without restarting anything.
+The user rebuilt while unlocked and accepted the requested mode/appearance check.
+Noctalia started at 14:06:03; the native hook selected light at 14:06:04, dark at
+14:06:13 and light at 14:06:17. The rebuild therefore exercised the startup hook as
+well as later mode changes. Auto was restored (no theme-mode GUI override), native
+mode-get returned light and wallpaper-get returned the configured light mountain.
+The internal display had one noctalia-wallpaper layer and no extra backdrop.
+Noctalia/overview remained active with the same start timestamps through the later
+mode changes; HM succeeded, bridge completed normally with zero restarts and its
+path watcher waiting. No failed user units remained. Agent verification was read-only;
+all activation/mode changes were user-operated.
+
+Accept the observed shell-startup/mode-pair behavior, not a fresh OS boot of this
+policy or coverage of disconnected/external outputs. Monitor reconnect and broad
+restart appearance remain separate, previously deferred checks. Keep the
+bridge/specialisations and fallback/auth until their own retirement gates pass.
 
 ## Remaining consumers and native Starship palette (accepted)
 
@@ -847,7 +905,8 @@ state rather than shared /tmp paths. DDC locking/catch-up behavior is otherwise
 unchanged. No agent hardware changes are used for testing.
 
 The compatibility bridge no longer restarts SwayOSD or any other UI client. It
-still applies remaining prebuilt theme consumers and native templates/wallpaper pair.
+still applies remaining prebuilt theme consumers and native templates. The accepted
+wallpaper-policy follow-up removes its image-selection role, not its other consumers.
 Do not remove it solely because its explicit client restart list is now empty.
 
 ### Framework function-row preference

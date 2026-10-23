@@ -1346,6 +1346,30 @@ Pre-session activation fix verified after the user's further reboot:
   retain unrelated hardware/auth/output follow-ups and fallback/theme consumers.
   Finalize the signed checkpoint after checks; no agent activation/service restart.
 
+Native wallpaper-pair checkpoint accepted: image selection independent of HM bridge.
+- Reviewed pinned V5.3 directory/rotation, startup/mode hook and IPC implementations.
+  Use native started/theme_mode_changed hooks with a small external script, not
+  rotation, another service/poller, or a change to wallpaper browsing/palette policy.
+- Separate runtime flock, current resolved mode queried under lock (not stale event
+  env), bounded native wallpaper-set for the existing pair. Since async native
+  hooks discard stdio, bounded logger calls record selection/errors explicitly.
+  No HM/build/restart, mode/palette/settings rewrite, hardware, idle/auth or
+  shared/Darwin changes.
+- Bridge retains only remaining app generation/native-template refresh work; removes
+  wallpaper paths/env/IPC. Refresh errors keep pending work. Existing boot-safe lock,
+  deferred request, Type=exec readiness and cross-variant invariants stay intact.
+- 14 new rendered-hook/private IPC tests, total 172 Noctalia + 19 suspend tests,
+  all 17 Linux checks and full Framework build pass; lint/diagnostics clean.
+- User rebuilt unlocked and accepted the requested mode/appearance check. Shell
+  startup 14:06:03 selected light via native hook at 14:06:04, then dark 14:06:13 and
+  light 14:06:17; Auto restored, native getters confirmed light/matching mountain.
+  Thus startup hook passed during the rebuild; this was not a fresh OS boot test.
+- Native/overview remained active without mode-triggered restart; one internal
+  wallpaper layer, no extra backdrop. HM success, bridge normal completion/zero
+  restarts, watcher waiting, no failed user units. Read-only agent verification.
+  Finalize signed checkpoint. External/reconnect/restart visual coverage, fresh
+  OS boot of this policy and fallback/security retirement gates remain.
+
 All user-requested community template IDs now have accepted implementations. Reuse upstream files rather than authoring replacements.
 Files/GTK3 checks and remaining E3 targets (Niri/Nushell/other apps), the compatibility
 bridge and the separate compromised-cache follow-up are not marked complete.
@@ -1414,10 +1438,18 @@ service ownership or power policy were changed as part of this research.
 
 ## 5. Recommended immediate next action
 
-Start with **Phase A**: inspect native connected-device battery reporting and add
-explicit built-in battery pills only if wanted. Then trial the **storage plugin**,
-then **Caffeine/Lid Guard**, then native battery alerts. Theme-controller migration
-is the larger follow-up and should stay separate from these smaller changes.
+The independent **native wallpaper-pair policy** has passed user-operated startup
+and mode-switch checks and read-only verification. Keep the bridge for its remaining
+consumers; do not remove security recovery merely because wallpaper is decoupled.
+
+Next close remaining lock/inhibitor/reader/output gates, one user-operated test at a
+time, and audit remaining mode-dependent consumers before retiring fallback styling,
+the temporary bridge and HM specialisations. Full-duration Caffeine/audio suppression,
+reader-unavailable password fallback, external outputs and the separate power-button
+interaction remain open. Independent Atuin-wrapper and inactive-code cleanups should
+stay separate. Phases A–D and the native renderer migration are already done; do not
+repeat the old Phase A recommendation. A fresh OS boot and external/reconnect checks
+of this new wallpaper policy remain deferred, not implicitly passed by shell startup.
 
 ## Sources
 

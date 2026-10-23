@@ -512,6 +512,8 @@ This configuration separates concerns between system-level and user-level settin
 - **Catppuccin** color scheme (Mocha dark, Latte light)
 - A temporary one-way adapter applies prebuilt **Stylix** app-theme specializations
 - Mode switches require no rebuild and must not restart Noctalia; Darkman is disabled
+- Native startup/mode hooks select the matching mountain wallpaper independently of
+  the temporary app-theme adapter; rendering and fades remain native Noctalia
 - **Ghostty** uses Noctalia's shipped template for a writable runtime theme, with its
   main configuration and keybindings still managed by Nix
 - **Native GTK3/GTK4** use shipped Noctalia color templates via declarative CSS imports;

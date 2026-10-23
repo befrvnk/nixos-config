@@ -245,9 +245,19 @@ Theme switching without full rebuilds:
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:
   exactly one surface behind overview, never inside workspace previews. Enabling
   ordinary wallpaper plus a separate backdrop duplicates the image in workspaces.
-- The existing bridge retains only deterministic light/dark image selection via
-  `wallpaper-set`; V5 directory modes don't directly apply this fixed pair. Keep
-  favorites path-only to avoid reverse palette/mode control.
+- Native `started` and `theme_mode_changed` hooks call wallpaper-mode.sh, not the
+  HM bridge. V5 directory modes do not immediately apply a fixed pair on mode change.
+  The helper locks only its own runtime file, queries current resolved app mode
+  under that lock (never trust stale event env), and uses bounded wallpaper-set IPC.
+  It never waits for HM, builds/activates, writes mode/palette or restarts a service.
+  Keep favorites path-only to avoid reverse palette/mode control. No rotation/poller.
+- Native async hooks discard stdio: log selection/errors explicitly with bounded
+  logger calls (tag noctalia-wallpaper-mode). Fail without guessing a mode/image;
+  a later native startup/mode event reasserts the pair. No persistent retry service.
+  Keep its registration/serialization/fake-IPC tests and the bridge non-ownership
+  regression. Mode/image and shell-startup hooks passed during the user's unlocked
+  rebuild on 2026-10-23; no shell restart on later mode changes. A fresh OS boot of
+  this policy and external-output/reconnect appearance were not tested.
 - Native Noctalia owns reconnects; no custom monitor-hotplug service/script or active
   awww startup/package remains. The old loose awww daemon can survive a rebuild:
   verify native surfaces before one-time official shutdown. Never kill it beforehand.
