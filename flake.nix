@@ -244,6 +244,11 @@
               touch $out
             '';
 
+          umbriel-trial = import ./modules/desktop/umbriel-check.nix {
+            configuration = inputs.self.nixosConfigurations.framework;
+            inherit pkgs;
+          };
+
           noctalia-greeter = import ./modules/desktop/noctalia-greeter-check.nix {
             configuration = inputs.self.nixosConfigurations.framework;
             inherit pkgs;

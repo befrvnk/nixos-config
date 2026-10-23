@@ -132,6 +132,12 @@ replaces tuigreet while retaining greetd and Niri. Password-only greetd authenti
 reuses the login password to unlock GNOME Keyring; that boot/login flow is user-verified.
 Other authentication routes remain unchanged. See the [desktop roadmap and safe cutover](./docs/noctalia-desktop-roadmap.md).
 
+**Niri and Umbriel are both retained** as selectable sessions for ongoing experiments;
+Niri remains the default and recovery option. Umbriel's initial user-session smoke
+passed. An Alt+Tab follow-up is built but not live-confirmed; performance comparison
+is user-led, not a required migration gate.
+Read the [trial guide and explicit binding differences](./docs/umbriel-trial.md) before entry.
+
 ## Keyboard Shortcuts
 
 ### Essential

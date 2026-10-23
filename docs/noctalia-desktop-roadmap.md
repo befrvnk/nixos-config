@@ -125,19 +125,38 @@ agent never invokes sync or grants passwordless access. Appearance remains unpin
 so authorized sync is not shadowed by a declarative wallpaper/scheme. Automatic
 sync is not enabled by this change. Topbar UI remains a later separate step.
 
-## 2. Umbriel — later, not implemented
+## 2. Niri and Umbriel — both retained for user experiments
 
-Use the official integration, initially retaining a selectable Niri session and
-existing rollback generation. Review compositor-specific bindings, overview-only
-bar/bridge behavior, layer placement, portals/screen sharing and session lifecycle
-before proposing the trial. Preserve hardware/audio initialization, brightness/DDC,
-lock/inhibitor/suspend/lid policy. Do not assume Niri config/IPC is compatible.
-No Umbriel input, cache trust, default-session switch or compositor launch yet.
+The [Umbriel trial guide](umbriel-trial.md) records the pins, preserved behavior,
+explicit mapping differences, checks and user-only entry/recovery. It uses the
+already-pinned nixpkgs module/package and matching portal; no new input, lock update,
+cache trust or kernel change. Greeter keeps Niri as default and offers Umbriel as
+an additional session. Niri's actual config and all six deployed PAM files remain
+unchanged. No compositor or hardware action was performed by the agent.
 
-## 3. Topbar — after compositor trial
+Full Framework build and all 19 Linux checks pass: 177 Noctalia, 11 Umbriel, 8 Greeter
+and 19 mocked suspend tests. User entry/basic smoke passed and passive checks found
+healthy Umbriel/native/overview services, but detailed visual/input/lock/portal/power/
+session-return coverage remains unverified. Missing Alt+Tab was a binding omission;
+its native Noctalia hold-switcher follow-up is built and awaits user acceptance. Native package/session lifecycle is retained;
+Home Manager/Nushell environment and custom XKB readiness are handled by the scoped
+launcher, and the existing overview adapter supports the active compositor.
 
-Collect the desired UI changes then. Do not redesign the bar or drop existing
-behavior as an incidental side effect of Greeter or Umbriel installation.
+Read the keybinding differences before user entry. Do not treat a valid config as
+full Niri parity or retirement authorization. The reader/output/power backlog stays
+deferred. The owner chose to keep both sessions and experiment with performance/
+behavior differences when convenient. Niri stays the configured default; do not
+remove either, select a winner automatically or require another comparison now.
+Optional A/B work is tracked in backlog NOC-04. Alt+Tab is built but not yet installed/
+live-confirmed; a later unlocked rebuild switch can install it without making that
+check a condition of coexistence.
+
+## 3. Topbar — next separately requested UI step, supporting both
+
+The dual-session decision is sufficient to discuss topbar UI without choosing one
+compositor permanently. Collect the desired changes from the owner first; no UI
+redesign is authorized by the keep-both request alone. Preserve both overview-only
+adapters, existing widgets/bindings/layout and Niri recovery unless explicitly changed.
 
 ## References reviewed
 

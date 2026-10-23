@@ -1493,7 +1493,16 @@ The scoped greetd-auth password/keyring fix passed 8 Greeter probes and all 18 L
 checks, preserving other PAM/routes. The user rebooted and confirmed single-password
 login; at 16:07:25 PAM cached the password, opened the Niri session and unlocked the
 keyring without a fingerprint request or second keyring dialog. Record/sign this
-Greeter checkpoint, then plan Umbriel separately while retaining Niri. This takes
+Greeter checkpoint (signed 41e453f). The [Umbriel trial](umbriel-trial.md) is now
+prepared/built as an additional selectable session with Niri still default: all 19
+Linux checks pass. User entry/basic smoke is positive; passive checks found healthy
+Umbriel/native/overview services. Missing Alt+Tab was an omitted binding, now added
+via native Noctalia hold switcher (11 Umbriel probes); live cycle/release acceptance
+is pending. No session/focus action was performed by the agent. The owner now chose
+to keep both installed/selectable, Niri still default, and experiment with differences
+when convenient. Performance comparison is user-led backlog NOC-04, not an immediate
+migration gate; no session removal or forced benchmark. Shared topbar UI can be the
+next separately requested step without choosing a permanent compositor. This takes
 precedence over ordinary cleanup below; backlogged reader/output/power-button checks
 stay deferred.
 

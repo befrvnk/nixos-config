@@ -182,12 +182,13 @@ in
   systemd.user.services.noctalia.Unit.ConditionEnvironment = "WAYLAND_DISPLAY";
   systemd.user.services.noctalia-overview = {
     Unit = {
-      Description = "Show Noctalia only in Niri overview";
+      Description = "Show Noctalia only in the active Niri/Umbriel overview";
       After = [ "noctalia.service" ];
       PartOf = [ "noctalia.service" ];
       ConditionEnvironment = [
         "WAYLAND_DISPLAY"
-        "NIRI_SOCKET"
+        "|NIRI_SOCKET"
+        "|UMBRIEL_SOCKET"
       ];
     };
     Service = {

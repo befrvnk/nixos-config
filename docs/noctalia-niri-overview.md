@@ -31,9 +31,9 @@ Existing managers remain responsible for:
 - Gammastep and tuned Framework profiles.
 - udiskie removable-drive mounting.
 
-Noctalia's dock, clipboard history, screen lock, idle actions,
-nightlight and polkit agent are disabled. Native output-volume/brightness OSD are
-enabled in the current migration; microphone/lock-key OSD remain off.
+Noctalia's dock, clipboard history, nightlight and polkit agent are disabled.
+Native screen locking/idle and output-volume/brightness OSD are enabled in the
+current migration; microphone/lock-key OSD remain off. Fallback auth remains installed.
 Do not enable competing owners in Settings without disabling their existing service.
 
 ## Overview watcher lifecycle
@@ -44,6 +44,12 @@ IPC is ready. Home Manager also idempotently starts the watcher after reloadSyst
 This second path is necessary: unit reconciliation can stop a PartOf dependent
 while a concurrent job cancels the shell's own restart. The shell stays alive,
 its started hook never runs, and an otherwise healthy overview-only bar stays hidden.
+
+The prepared [Umbriel trial](umbriel-trial.md) extends this same watcher to the
+active compositor's event protocol, selected by desktop identity and its own socket.
+Niri EventStream behavior remains; Umbriel subscribes to overview with an initial
+snapshot. Wayland plus either compositor socket gates the unit. This is not a bar
+redesign or live Umbriel acceptance; Niri remains the default/recovery session.
 
 The GTK-stage rebuild exposed this on 2026-10-20. Starting only the watcher restored
 its event subscription without restarting Noctalia or changing bar appearance.

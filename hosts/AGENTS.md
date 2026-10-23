@@ -122,6 +122,11 @@ See `docs/new-host.md` for detailed guide.
 - `hardware-configuration.nix` regenerates on hardware changes
 - Host overrides should use `lib.mkForce` if needed
 - Secure boot keys in host-specific location
+- Framework's additive Umbriel trial uses the already-pinned native module/package;
+  Greeter keeps Niri as default. home.nix supplies the pinned upstream Home Manager
+  module through extraSpecialArgs: deriving imports from HM config/pkgs directly
+  recurses. Keep the existing Niri config, PAM and hardware policy invariant; see
+  docs/umbriel-trial.md. Never launch compositors/lock/auth/power tests as agent.
 - Framework's pinned CachyOS builder and main nixpkgs can use different module
   certificate formats. Its host overlay selects the provider's aggregateModules
   helper only for CachyOS/provider-stdenv builds; standard kernels retain main's

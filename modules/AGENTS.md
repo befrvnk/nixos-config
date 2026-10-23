@@ -75,6 +75,26 @@ See: `modules/hardware/fprintd/default.nix`
   restartIfChanged=false remains. Keep previous generation and TTY/password recovery.
   See docs/noctalia-desktop-roadmap.md; Umbriel/topbar are separate later steps.
 
+### Umbriel trial
+- Framework explicitly imports desktop/umbriel.nix; pinned nixpkgs supplies the
+  native NixOS module, compositor and matching portal. No extra input/cache trust.
+- Niri stays installed/default. Only the entry launcher is wrapped: load the
+  declarative per-user HM environment for Nushell, set patched XKB before config
+  validation, then exec native start-umbriel. Keep the native session/unit lifecycle.
+- Standard HM profile exports tolerate unset optional variables; don't source them
+  under set -u. The fixture check exercises the actual generated profile too.
+- Candidate config/bar/PAM/idle/logind/Niri invariance and offline CLI/render/launcher
+  checks live in checks.x86_64-linux.umbriel-trial. Never launch a compositor,
+  display, portal, hardware, lock, suspend or authentication probe as an agent.
+- Native pinned unit is Type=simple, not the newer docs' Type=notify. Do not change
+  that without matching readiness support. Live portal/session behavior is pending.
+- Owner chose to retain both Niri and Umbriel (2026-10-23), with Niri default.
+  Performance comparisons are user-led backlog NOC-04, not mandatory next tests.
+  Do not uninstall either or change the default without a new request. Alt+Tab is
+  built but not live-confirmed; don't turn that into full runtime acceptance.
+- See docs/umbriel-trial.md for differences and user-only trial/recovery. No Niri,
+  fallback/auth removal or topbar redesign is authorized by installing a second WM.
+
 ### Firewall
 Configured in `modules/system/security.nix`:
 - **Incoming:** Blocked by default

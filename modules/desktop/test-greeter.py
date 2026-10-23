@@ -88,7 +88,8 @@ printf '%s\\n' "$XDG_DATA_DIRS" "$XKB_CONFIG_ROOT" "$XKB_DEFAULT_MODEL" "$PATH"
         self.assertEqual(model, self.policy["model"])
         self.assertEqual(path, self.policy["sessionBinPath"] + ":" + self.environment["PATH"])
         self.assertTrue((Path(xkb) / "symbols/us-umlauts").is_file())
-        self.assertTrue(Path(self.policy["sessionBinPath"].split(":")[0], "niri-session").is_file())
+        self.assertTrue(any(Path(directory, "niri-session").is_file()
+                            for directory in self.policy["sessionBinPath"].split(":")))
 
     def test_wrapper_preserves_existing_data_dirs_and_overrides_wrong_xkb_root(self):
         data, xkb, _, _ = self.run_environment(XDG_DATA_DIRS="/fixture/data:/fixture/share",

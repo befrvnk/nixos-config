@@ -11,6 +11,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules
+    ../../modules/desktop/umbriel.nix
     ../../modules/profiles/framework.nix
     inputs.nixos-hardware.nixosModules.framework-amd-ai-300-series
     inputs.lanzaboote.nixosModules.lanzaboote

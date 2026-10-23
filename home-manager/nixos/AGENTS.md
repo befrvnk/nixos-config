@@ -250,6 +250,15 @@ Theme switching without full rebuilds:
   TTY/login/sudo/polkit stacks and review account/fingerprint semantics before cutover.
   Never run real authentication, lock, fingerprint or suspend tests as the agent.
 
+### Retained Niri/Umbriel sessions
+- Owner chose to keep both installed/selectable for experimentation (2026-10-23).
+  Niri stays the Greeter default; no automatic winner, uninstall or mandatory
+  performance comparison. See docs/umbriel-trial.md and backlog NOC-04.
+- Initial Umbriel session/basic smoke passed, not full lock/input/portal/power or
+  return-session coverage. Alt+Tab is implemented/built but not live-confirmed.
+- Shared topbar UI can be discussed next; keep both overview protocols and existing
+  behavior unless the owner requests a change. No UI redesign follows implicitly.
+
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
   Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:
@@ -351,7 +360,11 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - `programs.noctalia.checkConfig` validates TOML during builds. That does not guarantee
   custom palette JSON is runtime-valid: V5.3.0 also requires terminal color data.
   Prefer the shipped Catppuccin palette instead of an incomplete UI-only mapping.
-- `noctalia-overview.service` bridges Niri overview events to `bar-show`/`bar-hide`.
+- `noctalia-overview.service` bridges active Niri/Umbriel overview events to
+  `bar-show`/`bar-hide`. Select by XDG_CURRENT_DESKTOP and its socket; never use a
+  stale other-compositor socket. Umbriel subscribe keeps its write side open;
+  Niri's EventStream/half-close behavior is unchanged. Unit conditions use OR
+  socket checks plus Wayland. Keep strict overview-only behavior, not smart-hide.
 - The Noctalia `started` hook restarts that watcher after IPC is ready. It is also
   wanted by graphical-session.target and idempotently started after reloadSystemd:
   reconciliation can stop PartOf dependents while the shell's restart is cancelled,

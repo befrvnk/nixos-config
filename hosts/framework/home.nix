@@ -1,6 +1,7 @@
 {
   inputs,
   hostConfig,
+  pkgs,
   ...
 }:
 
@@ -9,7 +10,12 @@
     backupFileExtension = "hm-backup";
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.${hostConfig.primaryUser} = ../../home-manager/nixos/frank.nix;
+    users.${hostConfig.primaryUser} = {
+      imports = [
+        ../../home-manager/nixos/frank.nix
+        ../../home-manager/nixos/umbriel
+      ];
+    };
     sharedModules = [
       inputs.stylix.homeModules.stylix
       inputs.vicinae.homeManagerModules.default
@@ -22,6 +28,7 @@
     ];
     extraSpecialArgs = {
       inherit inputs hostConfig;
+      umbrielHomeModule = pkgs.umbriel.src + "/nix/home-module.nix";
     };
   };
 }
