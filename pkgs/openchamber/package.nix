@@ -73,6 +73,16 @@ else
       hash = linuxHash;
     };
 
+    # The AppImage ships the freedesktop entry and icon that launchers such as
+    # Vicinae index. Extract them so the wrapped package keeps them visible.
+    appimageContents = appimageTools.extract {
+      inherit
+        pname
+        version
+        src
+        ;
+    };
+
     unwrapped = appimageTools.wrapType2 {
       inherit
         pname
@@ -80,6 +90,13 @@ else
         src
         meta
         ;
+
+      extraInstallCommands = ''
+        install -m 444 -D ${appimageContents}/openchamber.desktop $out/share/applications/openchamber.desktop
+        install -m 444 -D ${appimageContents}/openchamber.png $out/share/icons/hicolor/512x512/apps/openchamber.png
+        substituteInPlace $out/share/applications/openchamber.desktop \
+          --replace-fail 'Exec=AppRun' 'Exec=${pname}'
+      '';
     };
   in
   symlinkJoin {
@@ -89,5 +106,9 @@ else
     postBuild = ''
       wrapProgram $out/bin/${pname} \
         --set OPENCODE_DISABLE_CLAUDE_CODE true
+
+      # Without these the app is invisible to desktop launchers.
+      test -e $out/share/applications/${pname}.desktop
+      test -e $out/share/icons/hicolor/512x512/apps/${pname}.png
     '';
   }
