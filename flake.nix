@@ -54,7 +54,8 @@
     # Upstream sources for the Umbriel Home Manager module. Importing the module from
     # pkgs.umbriel.src would read a derivation output during evaluation, which
     # `nix flake check --no-build` rejects (read-only mode, IFD disabled).
-    # The revision must match nixpkgs' umbriel source; asserted by the umbriel-trial check.
+    # The revision must match nixpkgs' umbriel source: scripts/update-umbriel.sh re-pins it
+    # during `devenv flake-update`, and the umbriel-trial check asserts the two agree.
     umbriel = {
       url = "github:noctalia-dev/umbriel/5cea311e7e7d6eba3ea41f5c4ca826971340f7cc";
       flake = false;
