@@ -4,7 +4,6 @@ let
   caches = import ../../shared/caches.nix;
 in
 {
-  boot.initrd.systemd.enable = true;
   security.tpm2.enable = true;
 
   # Enable I2C device access for external monitor control (DDC/CI)
