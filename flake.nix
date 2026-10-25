@@ -51,6 +51,14 @@
       url = "github:noctalia-dev/community-templates/7aae018927ae35d007734868388c34c901870f45";
       flake = false;
     };
+    # Upstream sources for the Umbriel Home Manager module. Importing the module from
+    # pkgs.umbriel.src would read a derivation output during evaluation, which
+    # `nix flake check --no-build` rejects (read-only mode, IFD disabled).
+    # The revision must match nixpkgs' umbriel source; asserted by the umbriel-trial check.
+    umbriel = {
+      url = "github:noctalia-dev/umbriel/5cea311e7e7d6eba3ea41f5c4ca826971340f7cc";
+      flake = false;
+    };
     awww = {
       url = "git+https://codeberg.org/LGFae/awww?ref=refs/tags/v0.12.0";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -244,10 +252,18 @@
               touch $out
             '';
 
-          umbriel-trial = import ./modules/desktop/umbriel-check.nix {
-            configuration = inputs.self.nixosConfigurations.framework;
-            inherit pkgs;
-          };
+          umbriel-trial =
+            let
+              # A `flake = false` input only exposes its source path, so read the pin from the lock.
+              umbrielRev = (builtins.fromJSON (builtins.readFile ./flake.lock)).nodes.umbriel.locked.rev;
+            in
+            assert pkgs.lib.assertMsg (
+              umbrielRev == (pkgs.umbriel.src.drvAttrs.rev or "")
+            ) "umbriel flake input must match the umbriel source pinned by nixpkgs";
+            import ./modules/desktop/umbriel-check.nix {
+              configuration = inputs.self.nixosConfigurations.framework;
+              inherit pkgs;
+            };
 
           noctalia-greeter = import ./modules/desktop/noctalia-greeter-check.nix {
             configuration = inputs.self.nixosConfigurations.framework;

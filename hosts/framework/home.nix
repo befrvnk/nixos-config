@@ -28,7 +28,9 @@
     ];
     extraSpecialArgs = {
       inherit inputs hostConfig;
-      umbrielHomeModule = pkgs.umbriel.src + "/nix/home-module.nix";
+      # Upstream module fetched as a flake input; taking it from pkgs.umbriel.src
+      # would import from a derivation output, which `nix flake check --no-build` forbids.
+      umbrielHomeModule = inputs.umbriel + "/nix/home-module.nix";
     };
   };
 }

@@ -29,8 +29,11 @@ jobs:
             }
           '
 
+      # --no-build evaluates in read-only mode and disables import-from-derivation, so a
+      # check that reads a derivation output fails with `path '...drv' is not valid`.
+      # Disable IFD explicitly as well to keep the failure message readable.
       - name: Check Nix flake outputs
-        run: nix flake check --no-build --accept-flake-config
+        run: nix flake check --no-build --accept-flake-config --option allow-import-from-derivation false
 
       - name: Verify NixOS configuration (dry-run)
         run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config
