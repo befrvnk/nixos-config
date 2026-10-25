@@ -403,6 +403,14 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - Noctalia owns notifications and system-battery warnings (20%, native 5%/2% escalation).
   Dunst and `battery-notifications` are not imported; keep those inactive while native
   warnings are enabled. The old full-charge toast is not retained. Other managers remain.
+- `noctalia/battery-warning-no-spam.patch` (checked by `checks.<system>.noctalia-battery-warning`)
+  stops the two upstream repeat sources: startup no longer repeats the configured low level
+  (critical 5%/2% still notify), and charging/unknown charge states suppress without re-arming
+  `firedLevel` because the Framework EC reports `discharging`/`unknown` while AC is online.
+  The system battery additionally requires UPower's aggregate `OnBattery`. Never restore a
+  re-arm-on-charging step or `.value_or(false)` on the charge state; re-arming belongs only to
+  the charge rising past every alert point. The check mirrors the sdbus UPower header in
+  `noctalia/battery-warning-stubs/`; keep it in sync with upstream on input bumps.
 - GUI overrides in `~/.local/state/noctalia/settings.toml` take precedence over Nix config.
 - V5 plugins use Luau; review compatibility before enabling community plugins.
 - `noctalia/plugins.nix` exports only pinned Udiskie Manager and Lid Guard plugins.

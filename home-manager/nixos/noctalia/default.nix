@@ -6,9 +6,11 @@
 }:
 let
   noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-    # Keep PAM/sleep policy patches and floating-bar IPC edge geometry exact.
+    # Keep PAM/sleep policy patches, floating-bar IPC edge geometry and battery-warning
+    # deduplication exact.
     patches = (old.patches or [ ]) ++ [
       ./bar-ipc-edge-slide.patch
+      ./battery-warning-no-spam.patch
       ./lockscreen-pam-service.patch
       ./suspend-lock-policy.patch
       ./tray-menu-click-anchor.patch

@@ -347,6 +347,13 @@
               inputs.self.nixosConfigurations.framework.config.home-manager.users.frank.programs.noctalia.package.patches;
           };
 
+          noctalia-battery-warning = import ./home-manager/nixos/noctalia/battery-warning-check.nix {
+            inherit pkgs;
+            source = inputs.noctalia.outPath;
+            patches =
+              inputs.self.nixosConfigurations.framework.config.home-manager.users.frank.programs.noctalia.package.patches;
+          };
+
           noctalia-overview =
             let
               home = inputs.self.nixosConfigurations.framework.config.home-manager.users.frank;

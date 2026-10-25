@@ -65,13 +65,31 @@ alerts remain for observation during normal use. `./battery-notifications` is
 no longer imported, so the custom persistent monitor is no longer installed or running. Its source
 remains for rollback; do not enable both producers at once.
 
+Stock v5.3.0 repeated the low-battery toast in two ways: every shell restart re-fired
+whatever level the battery already sat in, and its "re-arm while charging" step meant
+any flap of the battery's own charge state (the Framework EC reports `discharging` or
+`unknown` while AC is connected) fired the warning again with the charger plugged in.
+`noctalia/battery-warning-no-spam.patch` fixes both: charging or an ambiguous charge
+state only *suppresses* warnings without re-arming the level, the system battery also
+requires UPower's aggregate `OnBattery` (the AC-online signal that does not flap), and
+the startup pass records the configured low level silently while still escalating the
+critical 5%/2% levels immediately. Re-arming happens solely when the charge rises past
+every alert point, so a real recharge/discharge cycle still warns again.
+
+`checks.<system>.noctalia-battery-warning` applies the full patch set with `--fuzz=0`
+and drives the patched monitor through those flap/restart sequences (`test_battery_warning.cpp`;
+the sdbus-backed UPower header is mirrored in `battery-warning-stubs/`). It fails against
+stock v5.3.0 and must stay green after Noctalia input bumps.
+
 The old full-charge toast is not retained by default. No replacement polling code
 or hook is introduced. The bar's neutral low-charge color setting is unchanged.
 
 After rebuilding, confirm `battery-notifications.service` is inactive/not found and
-`noctalia.service` is active. If already below the threshold, native warnings may
-appear on startup; otherwise observe them during normal battery use. Check history
-and duplicate behavior, but do not deliberately discharge to 2% for this test.
+`noctalia.service` is active. If already below the threshold *and* charging has not
+started, the critical 5%/2% levels may still notify on startup; the 20% level is
+intentionally not repeated after a restart. Otherwise observe warnings during normal
+battery use. Check history and duplicate behavior, but do not deliberately discharge
+to 2% for this test.
 
 Rollback requires both restoring the old import and disabling native warnings
 (`battery.warning_threshold = 0`).
