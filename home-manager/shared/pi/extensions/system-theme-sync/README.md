@@ -5,7 +5,7 @@ Auto-switches Pi's TUI between its `dark` and `light` themes based on the host s
 Detection strategy:
 - macOS: `osascript` checks the system dark mode preference
 - Linux: `dconf read /org/gnome/desktop/interface/color-scheme`
-- Linux fallback: `darkman get`
+- Linux fallback: `noctalia msg theme-mode-get`
 
 On Linux, dconf values containing `default` are treated as light mode so theme sync still works when Stylix temporarily resets the portal preference.
 

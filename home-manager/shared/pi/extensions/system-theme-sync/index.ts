@@ -52,7 +52,7 @@ async function getLinuxTheme(): Promise<ThemeMode | undefined> {
   }
 
   try {
-    const output = await run("darkman", ["get"]);
+    const output = await run("noctalia", ["msg", "theme-mode-get"]);
     const theme = parseLinuxTheme(output);
     if (theme) return theme;
   } catch {
