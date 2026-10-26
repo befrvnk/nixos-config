@@ -1,12 +1,15 @@
 {
   appimageTools,
+  asar,
   fetchurl,
   fetchzip,
   lib,
   makeBinaryWrapper,
+  runCommand,
   stdenv,
   stdenvNoCC,
   symlinkJoin,
+  writeShellScriptBin,
 }:
 
 let
@@ -15,7 +18,8 @@ let
   appName = "OpenChamber.app";
   executable = "OpenChamber";
   darwinHash = "sha256-p/BnHE3RIsv7Q32hsmVGr2tEoyMUtlO3NiQDHha/V9U=";
-  linuxHash = "sha256-6VgPKo5ctn5ppCRtFjuwnH8vKFhQS9cIbU+iBlVKWHg=";
+  linuxX86Hash = "sha256-6VgPKo5ctn5ppCRtFjuwnH8vKFhQS9cIbU+iBlVKWHg=";
+  linuxArm64Hash = "sha256-Dfv5VHmbcyrbNFt5UQ4PXuPqIN/2tWM6p3DyBf19huQ=";
 
   meta = {
     description = "Desktop and web interface for the OpenCode AI agent";
@@ -25,6 +29,7 @@ let
     mainProgram = pname;
     platforms = [
       "aarch64-darwin"
+      "aarch64-linux"
       "x86_64-linux"
     ];
     sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
@@ -68,8 +73,10 @@ if stdenv.hostPlatform.isDarwin then
   }
 else
   let
+    linuxArch = if stdenv.hostPlatform.isAarch64 then "arm64" else "x86_64";
+    linuxHash = if stdenv.hostPlatform.isAarch64 then linuxArm64Hash else linuxX86Hash;
     src = fetchurl {
-      url = "https://github.com/openchamber/openchamber/releases/download/v${version}/OpenChamber-${version}-linux-x86_64.AppImage";
+      url = "https://github.com/openchamber/openchamber/releases/download/v${version}/OpenChamber-${version}-linux-${linuxArch}.AppImage";
       hash = linuxHash;
     };
 
@@ -82,6 +89,25 @@ else
         src
         ;
     };
+
+    # The desktop bundle embeds @openchamber/web, including its CLI and the
+    # native modules built for the bundled Electron runtime. Extract that asar
+    # so the same binary can run the headless server via ELECTRON_RUN_AS_NODE.
+    webAsar =
+      runCommand "openchamber-web-asar-${version}"
+        {
+          nativeBuildInputs = [ asar ];
+        }
+        ''
+          mkdir -p $out
+          asar extract ${appimageContents}/resources/app.asar $out
+          cp -a ${appimageContents}/resources/app.asar.unpacked/. $out/
+        '';
+
+    webWrapper = writeShellScriptBin "openchamber-web" ''
+      export ELECTRON_RUN_AS_NODE=1
+      exec ${unwrapped}/bin/${pname} ${webAsar}/node_modules/@openchamber/web/bin/cli.js "$@"
+    '';
 
     unwrapped = appimageTools.wrapType2 {
       inherit
@@ -101,7 +127,10 @@ else
   in
   symlinkJoin {
     inherit pname version meta;
-    paths = [ unwrapped ];
+    paths = [
+      unwrapped
+      webWrapper
+    ];
     nativeBuildInputs = [ makeBinaryWrapper ];
     postBuild = ''
       wrapProgram $out/bin/${pname} \
@@ -110,5 +139,6 @@ else
       # Without these the app is invisible to desktop launchers.
       test -e $out/share/applications/${pname}.desktop
       test -e $out/share/icons/hicolor/512x512/apps/${pname}.png
+      test -x $out/bin/openchamber-web
     '';
   }
