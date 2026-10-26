@@ -67,6 +67,25 @@ absent from the inspected Linux **7.3**, Linux **7.2.12** and CachyOS **7.3.0-2*
 sources. Do not treat those release numbers as proof that this regression is fixed.
 Keep CachyOS LTS as the default; see the dated findings and upgrade guidance below.
 
+**Updated 2026-10-26:** the candidate fix is now **merged into mainline** as
+[`dd3f17ef69ed`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd3f17ef69ed6d0085cd94a15b9dec227b4ebfb1)
+("wifi: mt76: mt7925: keep MLD membership consistent during link add", committed by
+Felix Fietkau; carries `Fixes: ff643b81bc38` and both independent testers'
+`Tested-by`). regzbot now reports the regression resolved in mainline
+([tracker](https://linux-regtracking.leemhuis.info/regzbot/regression/lore/066b30cc-a9e6-4aeb-964d-71551e8ea3ef@posteo.de/)).
+
+Source verification repeated the 10-22 method against today's trees: `mt7925/mcu.c`
+in `master` contains the pending-link logic (9 matches), `v7.3` contains none — so
+the release table below still holds. The commit carries **no `Cc: stable`**, so 7.3.y
+point releases are not expected to receive it; the first released kernel with the fix
+should be **7.4** (kernel.org's latest stable was still 7.3 on 2026-10-26).
+
+Chaotic-Nyx availability on 2026-10-26: `linuxPackages_cachyos-lts` = **6.18.55**
+(the running kernel), `linuxPackages_cachyos`/`-bore`/`-lto`/`-rc` = **7.3.0** — none
+of them contain the fix. Upgrade guidance below therefore stands: stay on 6.18 LTS
+until a fixed build is packaged, then re-check `mt7925_mcu_sta_mld_tlv()` for the
+pending-link argument and run your own MLO soak before promoting.
+
 [Bugzilla 221884](https://bugzilla.kernel.org/show_bug.cgi?id=221884) still shows NEW
 with its last update on August 18. The later investigation and patch testing moved
 to the mailing list, so the stale Bugzilla status alone is not the basis for this
