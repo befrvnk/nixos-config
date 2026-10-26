@@ -50,8 +50,6 @@ jobs:
             shellcheck \
               scripts/*.sh \
               home-manager/nixos/audio-keep-alive/audio-keep-alive.sh \
-              home-manager/nixos/darkman/darkman-switch-mode.sh \
-              home-manager/nixos/darkman/monitor-hotplug.sh \
               home-manager/nixos/niri/brightness-ctl.sh \
               home-manager/nixos/niri/toggle-abm.sh \
               home-manager/nixos/spotify-suspend/handle-spotify-suspend.sh
