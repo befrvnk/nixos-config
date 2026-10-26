@@ -91,28 +91,40 @@ in
     enable = true;
   };
 
-  nix.settings = {
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
+  nix = {
+    settings = {
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
 
-    # Sign store paths for remote hermi deploys (see
-    # docs/hermi-raspberry-pi-setup.md, "Remote deploy signing"). The private
-    # key lives on this machine only, never in Git/public. Nix >= 2.18 expects
-    # plain whitespace-separated paths here (the key name is embedded in the
-    # key file itself, so no `name=path` prefix).
-    "secret-key-files" = "/etc/nix/keys/hermi-signing.key";
+      # Sign store paths for remote hermi deploys (see
+      # docs/hermi-raspberry-pi-setup.md, "Remote deploy signing"). The private
+      # key lives on this machine only, never in Git/public. Nix >= 2.18 expects
+      # plain whitespace-separated paths here (the key name is embedded in the
+      # key file itself, so no `name=path` prefix).
+      "secret-key-files" = "/etc/nix/keys/hermi-signing.key";
 
-    # Allow the user to configure binary caches (needed for devenv)
-    trusted-users = [
-      "root"
-      hostConfig.primaryUser
-    ];
+      # Allow the user to configure binary caches (needed for devenv)
+      trusted-users = [
+        "root"
+        hostConfig.primaryUser
+      ];
 
-    # Binary caches for flake inputs (avoids rebuilding from source)
-    extra-substituters = caches.substituters;
-    extra-trusted-public-keys = caches.publicKeys;
+      # Binary caches for flake inputs (avoids rebuilding from source)
+      extra-substituters = caches.substituters;
+      extra-trusted-public-keys = caches.publicKeys;
+    };
+
+    # Keep the store from growing without bound. `nh clean` remains available for
+    # manual pruning; persistent timers catch up after suspend or downtime.
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 14d";
+      persistent = true;
+    };
+    optimise.automatic = true;
   };
 
   # Configure systemd-logind for proper lid handling

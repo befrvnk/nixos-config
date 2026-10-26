@@ -58,6 +58,9 @@
     lanzaboote = {
       enable = true;
       pkiBundle = "/var/lib/sbctl";
+      # The ESP is 1 GiB and the default (null) keeps every generation, which
+      # eventually fills it. Keep enough entries for rollback without doing so.
+      configurationLimit = 10;
     };
 
     # amdgpu.dcdebugmask=0x10: Fix kworker stuck in amdgpu display code causing high I/O
