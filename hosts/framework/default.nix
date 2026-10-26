@@ -124,6 +124,19 @@
   programs._1password-gui = {
     enable = true;
     polkitPolicyOwners = [ hostConfig.primaryUser ];
+    # nixpkgs bug: 8.12.42 (newer Electron) aborts at startup with SIGTRAP because
+    # the bundled chrome_crashpad_handler has no RPATH and cannot dlopen libglib-2.0.
+    # The package only patches RPATHs for the main binary and a few helpers; the
+    # crash handler is spawned with a filtered environment, so LD_LIBRARY_PATH
+    # wrappers do not reach it. Patch the crash handlers' RPATH directly.
+    # Drop once upstream nixpkgs fixes this: https://github.com/NixOS/nixpkgs/issues/576668
+    package = pkgs._1password-gui.overrideAttrs (old: {
+      postFixup = (old.postFixup or "") + ''
+        for f in chrome_crashpad_handler 1Password-Crash-Handler; do
+          patchelf --set-rpath $out/share/1password:${pkgs.glib.out}/lib $out/share/1password/$f
+        done
+      '';
+    });
   };
 
   environment.etc = {
