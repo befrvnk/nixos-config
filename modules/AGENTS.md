@@ -188,10 +188,12 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 ## System Optimizations
 
 ### SCX Scheduler (`modules/services/scx.nix`)
-- Uses `scx_flash` BPF scheduler (EDF + dynamic latency weighting)
-- `--primary-domain auto` gates cores by platform power profile (battery → efficient/parks idle cores)
-- `--throttle-us 200` injects idle cycles for battery life
-- No `--cpufreq`: frequency is left to `amd_pstate=active` EPP (hardware autonomous)
+- Uses `scx_lavd` BPF scheduler (Latency-criticality Aware Virtual Deadline)
+- `--autopilot` picks the power mode from *system load*: performance while a build runs,
+  powersave with core compaction at idle (parking unused cores)
+- No cpufreq control: frequency is left to `amd_pstate=active` EPP (hardware autonomous)
+- `flash`'s flags (`--primary-domain`, `--throttle-us`) are *not* valid for lavd - the
+  service fails to start with `unexpected argument`
 - **CachyOS kernel** provides best integration
 
 ### CachyOS-Style Sysctls (`modules/system/core.nix`)

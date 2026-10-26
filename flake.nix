@@ -113,6 +113,9 @@
   # NOTE: nixConfig values must be literal (Nix rejects thunks here), so these
   # lists are kept in sync manually with the single source of truth in
   # ./shared/caches.nix (used by modules/system/core.nix at runtime).
+  # Keys must stay `extra-substituters` / `extra-trusted-public-keys`: Nix does not
+  # know `trusted-extra-*` and ignores those silently, so the caches would never be
+  # used (checks.cache-trust cannot catch a wrong key name, only a wrong list).
   nixConfig = {
     extra-substituters = [
       "https://nixos.snix.store"
