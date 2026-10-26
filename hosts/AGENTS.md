@@ -16,23 +16,25 @@ hosts/
 
 ## Host Builders
 
-Located in `lib/`:
+Hosts are registered in `lib/host-inventory.nix`; `flake.nix` maps that
+inventory through `lib/hosts.nix` and `lib/darwin.nix`.
 
 ### NixOS (`lib/hosts.nix`)
-```nix
-mkHost = { hostname, system ? "x86_64-linux", extraModules ? [] }:
-```
-- Imports `modules/default.nix` (all system modules)
-- Sets up home-manager integration
-- Applies overlays
+`mkHost` takes `hostname`, `primaryUser`, `homeDirectory` and the capability
+flags (`cpuVendor`, `hasFingerprint`, `hasTouchscreen`, `enableAndroid`,
+`enableKeychronM6`, `enableNuphy`, `wifiInterface`, `abmPath`,
+`platformProfilePath`).
+- Resolves `hosts/<hostname>/default.nix` and `hosts/<hostname>/home.nix`
+- Imports `host-options-module.nix` and exposes `hostConfig`
+- Applies the NixOS overlays and wires Home Manager with Stylix
 
 ### Darwin (`lib/darwin.nix`)
-```nix
-mkDarwinHost = { hostname, system ? "aarch64-darwin", extraModules ? [] }:
-```
-- All system config in host's `default.nix` (not modules/)
-- Sets up home-manager integration
-- Applies darwin-specific overlays
+`mkDarwinHost` takes `hostname`, `system`, `primaryUser` and
+`homeDirectory`.
+- All system config lives in the host's `default.nix` (not `modules/`)
+- Sets up Home Manager and applies Darwin-specific overlays
+- `hostname` selects the directory; the flake output key comes from the
+  inventory attribute name (e.g. `macbook` -> `hosts/macbook-darwin`)
 
 ## NixOS Host (Framework)
 
@@ -90,18 +92,12 @@ All-in-one configuration:
 2. Generate hardware config: `sudo nixos-generate-config --show-hardware-config > hardware-configuration.nix`
 3. Create `default.nix` with host-specific settings
 4. Create `home.nix` importing user config
-5. Add to `flake.nix`:
-   ```nix
-   nixosConfigurations.<hostname> = mkHost { hostname = "<hostname>"; };
-   ```
+5. Add an entry under `nixos` in `lib/host-inventory.nix` (see `docs/new-host.md`)
 
 ### Darwin
 1. Create `hosts/<hostname>-darwin/default.nix`
 2. Configure system defaults, Homebrew, user
-3. Add to `flake.nix`:
-   ```nix
-   darwinConfigurations.<hostname> = mkDarwinHost { hostname = "<hostname>"; };
-   ```
+3. Add an entry under `darwin` in `lib/host-inventory.nix`
 
 See `docs/new-host.md` for detailed guide.
 

@@ -10,7 +10,6 @@ home-manager/
 │   ├── frank.nix      # Main config (imports all NixOS modules)
 │   ├── niri/          # Window manager (Wayland)
 │   ├── noctalia/      # Native Noctalia V5 shell (overview-only)
-│   ├── darkman/       # Legacy theme controller (not imported)
 │   ├── stylix.nix     # Theming with specializations
 │   └── */             # Other NixOS-specific configs
 ├── darwin/            # Darwin-specific modules
@@ -143,7 +142,7 @@ let
   '';
 in { /* service definition */ }
 ```
-Used in: `nixos/noctalia/` (monitor-hotplug)
+Used in: `nixos/noctalia/` (theme bridge and wallpaper worker)
 
 ## Adding Packages
 

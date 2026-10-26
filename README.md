@@ -129,9 +129,9 @@ native minimum widths for steadier numeric labels.
 - **Plugins** — Pinned Udiskie Manager adds storage controls; the Lid Guard trial provides a separate manual lid-close inhibitor. Native Caffeine handles idle inhibition. Existing automount and lock services remain active.
 - **Existing tools preserved** — Vicinae, swaylock, Gammastep and tuned; native Noctalia now supplies wallpaper and volume/brightness OSD.
 
-Noctalia replaces dunst for notifications. The previous custom shell is retained
-for rollback; domain-specific widgets (OpenRouter, aurora and firewall)
-are not ported automatically. See [setup and migration notes](./docs/noctalia-niri-overview.md).
+Noctalia replaces dunst for notifications. The previous custom shell and its
+domain-specific widgets (OpenRouter, aurora and firewall) were retired. See
+[setup notes](./docs/noctalia-niri-overview.md).
 
 Desktop sequence: **Noctalia Greeter → Umbriel trial → topbar UI**. Greeter 1.7.0 now
 replaces tuigreet while retaining greetd and Niri. Password-only greetd authentication
@@ -457,7 +457,6 @@ Installed via Home Manager in the platform-specific package sets:
 - **Noctalia notifications** - Notification toasts and history
 - **Noctalia OSD** - Native output-volume/brightness display with palette integration
 - **swaylock** - Screen locker
-- **awww** - Wallpaper daemon with fade transitions
 - **brightnessctl** - Brightness control
 
 #### Theming
@@ -470,7 +469,7 @@ Installed via Home Manager in the platform-specific package sets:
 
 ### Android Development
 
-Optional Android development environment (`home-manager/android.nix`):
+Optional Android development environment (`home-manager/nixos/android`):
 - Android Studio Canary
 - Android SDK (build-tools, platform-tools, emulator)
 - Platform SDK for Android 34
@@ -518,7 +517,7 @@ This configuration separates concerns between system-level and user-level settin
 - Application settings (git, ssh, editors)
 - Window manager keybindings and rules
 - Desktop environment (Noctalia V5, Vicinae)
-- User services (Noctalia, swayidle, profile-sync-daemon)
+- User services (Noctalia, profile-sync-daemon)
 - Theming specializations (dark/light modes)
 
 ## Features
@@ -622,7 +621,7 @@ Atuin duplicate-binding warning), check [pre-session Home Manager activation](do
 - **Auto-brightness** via ambient light sensor with hysteresis (toggle with `Mod+Shift+B` for photo editing)
 - **Bluetooth power savings** - Off on boot (~0.5W savings), automatically turns on when AC is connected, manual control via blueman
 - **SCX scheduler (scx_lavd)** keeps interactive work responsive under heavy builds; `--autopilot` picks the power mode from system load and compacts idle cores for battery life
-- **Battery popup** in Ironbar for manual profile switching
+- **Battery and power controls** in Noctalia for manual profile switching
 - **wayland-pipewire-idle-inhibit** - Screen stays on during audio/video playback
 - Auto-suspend after 5 minutes idle (when no media playing)
 
@@ -672,7 +671,6 @@ Detailed guides for specific topics:
 - [Fingerprint Setup](./docs/fingerprint-setup.md) - Fingerprint authentication
 
 ### Theming & Desktop
-- [Stylix & Darkman](./docs/stylix-darkman-setup.md) - Historical pre-Noctalia theme architecture
 - [Noctalia V5 with Niri](./docs/noctalia-niri-overview.md) - Shell setup, plugins, overview-only behavior and rollback
 - [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior with wayland-pipewire-idle-inhibit
 - [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control
@@ -692,15 +690,16 @@ New to Nix? Here are the key concepts:
 ### Flakes
 
 This configuration uses Nix flakes for reproducible builds. The `flake.nix` file defines:
-- **inputs** - External dependencies (nixpkgs, home-manager, stylix, niri, zen-browser, awww, etc.)
-- **outputs** - What this flake produces (NixOS configurations)
+- **inputs** - External dependencies (nixpkgs, home-manager, stylix, niri, noctalia, zen-browser, etc.)
+- **outputs** - What this flake produces (NixOS/Darwin configurations and checks)
 
 **Key flake inputs:**
 - `nixpkgs` - Package repository (unstable channel)
 - `home-manager` - User environment management
 - `stylix` - System-wide theming
 - `niri` - Window manager
-- `awww` - Wallpaper daemon (from Codeberg)
+- `noctalia` - Native C++ desktop shell
+- `vicinae` - Application launcher
 
 ### Declarative Configuration
 

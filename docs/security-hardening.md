@@ -113,23 +113,13 @@ Log prefixes:
 - `refused connection:` - TCP connection attempts
 - `refused packet:` - Other blocked packets
 
-### Ironbar Status Module
+### Firewall Visibility
 
-A firewall module in the status bar shows refused connections at a glance:
-
-- **Filters local network traffic** (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-- **Hidden** when only local connections are refused (smart home devices, router)
-- **Visible** with shield icon and count when external IPs are blocked
-- **Click** to see popup with:
-  - Last external connection (time, source IP:port, destination port)
-  - External sources grouped by IP address
-  - Count breakdown: "External: X" and "Local: Y (filtered)"
-
-This filters out harmless local traffic (like Philips Hue SSDP responses) so you can spot actual threats when on untrusted networks.
-
-Legacy implementation: `home-manager/nixos/ironbar/modules/firewall/`.
-This widget is not enabled in the current Noctalia V5 layout; the firewall itself
-remains active independently of the shell. See `docs/noctalia-niri-overview.md`.
+There is no active status-bar firewall widget in the current Noctalia V5 layout;
+the old Ironbar module was removed with the retired shell. Use the journal
+commands above, or the `/firewall` Claude Code command, to summarize refused
+connections and resolve source IPs. The firewall remains active independently of
+the shell. See `docs/noctalia-niri-overview.md`.
 
 ### Currently Open Ports
 

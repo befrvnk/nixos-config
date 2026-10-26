@@ -54,8 +54,26 @@ boot.loader.systemd-boot.enable = lib.mkForce false;
 boot.lanzaboote = {
   enable = true;
   pkiBundle = "/var/lib/sbctl";
+  # Optional: cap the generations stored on the ESP (null = unlimited).
+  configurationLimit = 10;
 };
 ```
+
+#### Remove legacy systemd-boot entries
+
+The Stage 1 systemd-boot install writes `nixos-generation-*.conf` files under
+`/boot/loader/entries`. Lanzaboote does not manage or garbage-collect that
+directory, so those stale entries remain in the boot menu after the switch.
+Once the Lanzaboote generation has booted successfully, remove only the NixOS
+entries:
+
+```bash
+sudo find /boot/loader/entries -maxdepth 1 -type f -name 'nixos-generation-*.conf' -delete
+```
+
+Lanzaboote's `EFI/Linux/nixos-*.efi` entries are auto-discovered by systemd-boot,
+so the menu is not empty. Do not delete `loader.conf` or entries belonging to
+another OS.
 
 ### 3.3. Update `modules/system.nix`
 

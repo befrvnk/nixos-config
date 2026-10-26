@@ -1,10 +1,12 @@
 # Adding a New Host
 
-This repo builds hosts through the helpers in:
-- `lib/hosts.nix` for NixOS
-- `lib/darwin.nix` for nix-darwin
+Hosts are built through:
+- `lib/hosts.nix` for NixOS (`mkHost`)
+- `lib/darwin.nix` for nix-darwin (`mkDarwinHost`)
 
-Host-specific files live under `hosts/`.
+The flake does not contain a per-host literal. It maps
+`lib/host-inventory.nix` through those builders, so **registering a host means
+adding an entry to the inventory**, not editing `flake.nix`.
 
 ## NixOS Host
 
@@ -14,7 +16,7 @@ Host-specific files live under `hosts/`.
 mkdir -p hosts/<hostname>
 ```
 
-### 2. Generate hardware configuration
+### 2. Generate the hardware configuration
 
 On the target machine:
 
@@ -22,7 +24,7 @@ On the target machine:
 sudo nixos-generate-config --show-hardware-config > hardware-configuration.nix
 ```
 
-Copy that file into:
+Copy it to:
 
 ```text
 hosts/<hostname>/hardware-configuration.nix
@@ -30,7 +32,7 @@ hosts/<hostname>/hardware-configuration.nix
 
 ### 3. Create `hosts/<hostname>/default.nix`
 
-Start from the existing Framework host and keep only what the new machine needs.
+Start from `hosts/framework/default.nix` and keep only what the machine needs.
 
 Minimal shape:
 
@@ -52,88 +54,132 @@ Minimal shape:
 
 ### 4. Create `hosts/<hostname>/home.nix`
 
+`mkHost` requires this file. Copy `hosts/framework/home.nix` and adjust the
+user/import paths:
+
 ```nix
-{
-  inputs,
-  hostConfig,
-  ...
-}:
+{ inputs, hostConfig, ... }:
 {
   home-manager = {
     backupFileExtension = "hm-backup";
     useGlobalPkgs = true;
     useUserPackages = true;
-    users.${hostConfig.primaryUser} = ../../home-manager/nixos/frank.nix;
+    users.${hostConfig.primaryUser}.imports = [
+      ../../home-manager/nixos/frank.nix
+    ];
     sharedModules = [
       inputs.stylix.homeModules.stylix
       inputs.vicinae.homeManagerModules.default
       inputs.niri.homeModules.niri
+      # Keep Stylix from defining Home Manager-local overlays that are ignored
+      # with useGlobalPkgs.
+      { stylix.overlays.enable = false; }
     ];
     extraSpecialArgs = {
-      inherit inputs;
+      inherit inputs hostConfig;
     };
   };
 }
 ```
 
-### 5. Add the host to `flake.nix`
+Desktop-specific modules (Noctalia, Niri, Zen Browser, Umbriel) live in
+`home-manager/nixos/frank.nix` or the host's own `home.nix`; a headless host
+should import only what it needs.
+
+### 5. Register the host in `lib/host-inventory.nix`
+
+Add an entry under `nixos`:
 
 ```nix
-nixosConfigurations.<hostname> = hostLib.mkHost {
-  hostname = "<hostname>";
-  primaryUser = "frank";
-  homeDirectory = "/home/frank";
-  cpuVendor = "intel";      # or "amd"
-  hasFingerprint = false;
-  hasTouchscreen = false;
-  enableAndroid = false;
-  enableKeychronM6 = false;
-  enableNuphy = false;
-  wifiInterface = null;       # set if power-management scripts should manage WiFi power save
-  abmPath = null;             # set on AMD laptops with panel power savings support
+nixos = {
+  framework = { ... };
+  <hostname> = {
+    hostname = "<hostname>";
+    primaryUser = "frank";
+    homeDirectory = "/home/frank";
+    cpuVendor = "intel";        # or "amd"
+    hasFingerprint = false;
+    hasTouchscreen = false;
+    enableAndroid = false;
+    enableKeychronM6 = false;
+    enableNuphy = false;
+    wifiInterface = null;       # if power-management manages WiFi power save
+    abmPath = null;             # AMD panels with ABM support
+    platformProfilePath = "/sys/firmware/acpi/platform_profile"; # omit for this default
+  };
 };
 ```
+
+The attribute name becomes `nixosConfigurations.<hostname>`; `mkHost` derives
+`hosts/<hostname>` and `hosts/<hostname>/home.nix` from `hostname` and fails
+evaluation if either is missing.
 
 ### 6. Build and test
 
 ```bash
-nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel --dry-run --accept-flake-config
-nh os test .
+nix build .#nixosConfigurations.<hostname>.config.system.build.toplevel \
+  --dry-run --accept-flake-config
+nh os build .
 ```
+
+Switch only after the dry run and a full build succeed.
 
 ## Darwin Host
 
 ### 1. Create the host directory
 
+Use the `-darwin` suffix, matching the existing `hosts/macbook-darwin`:
+
 ```bash
-mkdir -p hosts/<hostname>-darwin
+mkdir -p hosts/<name>-darwin
 ```
 
-### 2. Create `hosts/<hostname>-darwin/default.nix`
+### 2. Create `hosts/<name>-darwin/default.nix`
 
-Start from `hosts/macbook-darwin/default.nix` and trim what you do not need.
+Start from `hosts/macbook-darwin/default.nix` and trim what is not needed.
+The Darwin builder does not require a `home.nix`; Home Manager is wired inside
+the host file.
 
-### 3. Add the host to `flake.nix`
+### 3. Register the host in `lib/host-inventory.nix`
+
+Add an entry under `darwin`:
 
 ```nix
-darwinConfigurations.<hostname> = darwinLib.mkDarwinHost {
-  hostname = "<hostname>-darwin";
-  primaryUser = "frank";
-  homeDirectory = "/Users/frank";
+darwin = {
+  macbook = {
+    hostname = "macbook-darwin";
+    primaryUser = "frank";
+    homeDirectory = "/Users/frank";
+  };
+  <name> = {
+    hostname = "<name>-darwin";
+    primaryUser = "frank";
+    homeDirectory = "/Users/frank";
+  };
 };
 ```
+
+The attribute name becomes `darwinConfigurations.<name>`; `hostname` selects the
+`hosts/<hostname>` directory. The two intentionally differ for `macbook`.
 
 ### 4. Build and test
 
 ```bash
-nix build .#darwinConfigurations.<hostname>.system --dry-run --accept-flake-config
+nix build .#darwinConfigurations.<name>.system --dry-run --accept-flake-config
 ```
+
+## Special Case: hermi
+
+`hosts/hermi` is not in the inventory. It is added directly in `flake.nix`
+because it must use `nixos-raspberrypi.lib.nixosSystem` and its own pinned
+nixpkgs. Keep that override local to the flake and follow
+`docs/hermi-raspberry-pi-setup.md` when changing it.
 
 ## Host Metadata
 
-`mkHost` and `mkDarwinHost` pass `hostConfig` into modules. Use that for host-specific values instead of hardcoding them in modules.
+`mkHost` and `mkDarwinHost` pass `hostConfig` into every module. Use it instead
+of hardcoding machine values inside reusable modules:
 
-Common fields include:
 - `hostConfig.hostname`
 - `hostConfig.system`
 - `hostConfig.primaryUser`
@@ -142,7 +188,7 @@ Common fields include:
 - `hostConfig.hasFingerprint`
 - `hostConfig.hasTouchscreen`
 
-NixOS hosts can also set capability flags like:
+NixOS hosts can also set:
 - `enableAndroid`
 - `enableKeychronM6`
 - `enableNuphy`
@@ -152,7 +198,8 @@ NixOS hosts can also set capability flags like:
 
 ## Notes
 
-- `lib/hosts.nix` validates host paths and a few required fields
-- keep host-specific quirks inside `hosts/<hostname>/`
-- avoid hardcoding usernames or home directories in reusable modules
-- for more structure guidance, see `docs/structure.md`
+- `lib/hosts.nix` validates the host path, `home.nix`, CPU vendor and absolute
+  home directory, and throws at evaluation time with a readable message.
+- Keep host-specific quirks in `hosts/<hostname>/`.
+- Avoid hardcoding usernames or home directories in reusable modules.
+- See `docs/structure.md` for the overall layout.

@@ -50,7 +50,7 @@ hermi-update
 Or rebuild from a checkout on hermi:
 
 ```bash
-sudo nixos-rebuild switch --flake .#hermi --accept-flake-config
+nh os switch --hostname hermi . --accept-flake-config
 ```
 
 See the repository's existing remote deploy signing configuration if a remote

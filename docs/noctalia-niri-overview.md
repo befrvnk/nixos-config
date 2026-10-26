@@ -19,7 +19,7 @@ The layout uses built-in widgets plus one reviewed storage plugin, not a new hom
   side gap, neutral foregrounds, JetBrainsMono Nerd Font and Catppuccin Mocha/Latte.
   This replaces individual widget islands; [visual/edge-slide acceptance is pending](noctalia-topbar.md).
 
-Noctalia owns notifications; the dunst module is no longer imported. Historical
+Noctalia owns notifications; the legacy dunst module was removed. Historical
 dunst history is not imported into Noctalia. Notifications sent through the
 standard freedesktop interface continue to work.
 
@@ -204,9 +204,9 @@ triggered by the agent.
 ### Not yet ported
 
 OpenRouter, aurora, firewall summary and custom AMD ABM/stay-on controls are not
-in the active layout. OpenRouter/firewall summary are no longer requirements. Their old source/config remains intact in
-`home-manager/nixos/quickshell/` and `ironbar/`; it does not run or consume memory.
-Prefer compatible V5 plugins for these before writing replacements. No Go rewrite
+in the active layout. OpenRouter/firewall summary are no longer requirements. The
+retired Quickshell/Ironbar implementation was removed; prefer compatible V5 plugins
+for these before writing replacements. No Go rewrite
 or QML-plugin compatibility is assumed. Noctalia's battery widget supports explicit
 UPower selectors for peripherals, configurable in Settings. Native headphone battery
 reporting has been confirmed by the user; no additional battery plugin is needed.
@@ -292,11 +292,11 @@ unchanged during these toggles. Return to auto mode if scheduled switching is wa
 ```sh
 systemctl --user status noctalia-theme.path
 journalctl --user -u noctalia-theme.service -n 80 --no-pager
-systemctl --user status darkman.service
+systemctl --user status noctalia.service
 ```
 
 The path unit should be waiting; its worker is normally **inactive after success**,
-not continuously running. Darkman should be inactive/not found. On failure, the
+not continuously running. The retired Darkman service must not exist. On failure, the
 request remains under `$XDG_RUNTIME_DIR/noctalia-theme/` and the service retries.
 Applied compatibility state is under `~/.local/state/noctalia/theme-bridge.json`.
 The shared activation lock and recursion flag are deliberate; do not bypass them.
@@ -779,7 +779,7 @@ handling. Niri determines the backdrop-only placement.
 Niri startup no longer spawns awww; its package and active backdrop rule are removed.
 The new rule places `^noctalia-wallpaper$` within Niri's backdrop. The custom udev
 monitor-hotplug service/script are removed. No replacement daemon or restart helper
-is added. Inactive Darkman rollback code and the awww flake input remain for now.
+is added. The Darkman rollback code and the awww flake input were also removed.
 
 ### Existing-session handover
 
@@ -938,8 +938,8 @@ Do not remove it solely because its explicit client restart list is now empty.
 
 Use hardware Fn Lock (Fn+Esc) for normal F1–F12 with media actions behind Fn.
 On this Framework 13 Ryzen AI 300, Fn+F3 then sends volume-up while F3 reaches apps.
-Niri continues binding XF86 media events, not bare function keys; keyd's existing
-external NuPhy device configuration is untouched. No firmware command or simulated
+Niri continues binding XF86 media events, not bare function keys; the external
+NuPhy udev/WebHID rules remain separate. No firmware command or simulated
 key press is run by the agent. [Framework guidance](https://community.frame.work/t/setting-f-keys-as-default-instead-of-fn-keys/69667/2)
 reports persistence across reboots; firmware resets/updates may require retoggling.
 The user confirmed the desired function-row behavior, but reboot persistence was
@@ -1353,10 +1353,10 @@ runtime-controller handover. To roll back that handover, restore the controller'
 system/HM imports, remove its path/worker/hooks, and reconcile only relevant saved
 `theme.mode` overrides. Keep newer plugin/UI choices rather than overwriting all state.
 
-The older custom shell and flake inputs are also retained but not imported. Restoring
-that shell requires replacing `./noctalia` with `./quickshell`, restoring `./dunst.nix`
-and deliberately choosing/restoring its theme controller (including both Darkman
-imports if using the old setup). Never run both shells/notification daemons together.
+The older custom shell, notification daemon and theme controller were removed from
+this tree as part of the Noctalia consolidation. Rolling them back now means checking
+out an earlier commit and deliberately restoring the relevant imports; never run both
+shells/notification daemons together.
 
 ## References
 

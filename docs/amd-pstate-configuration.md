@@ -294,7 +294,6 @@ To use **Performance** mode (for compilation, heavy work), manually select it in
 **Files:**
 - `modules/hardware/power-management.nix` - tuned configuration with custom profiles
 - `home-manager/nixos/noctalia/default.nix` - Current shell integration
-- `home-manager/nixos/ironbar/modules/battery/` - Legacy profile helpers (not active)
 
 **Power settings managed:**
 | Setting | Power Saver | Balanced (battery) | Balanced (AC) | Performance | Method |
@@ -429,8 +428,8 @@ The profile mappings and automatic AC/battery behavior remain configured in
 - `home-manager/nixos/noctalia/default.nix` - Shell configuration
 - `modules/hardware/power-management.nix` - tuned profiles and PPD mappings
 
-The older Ironbar/Quickshell profile helpers remain in the repository for rollback
-but are not used by the active Noctalia configuration.
+The legacy Ironbar/Quickshell profile helpers were removed; Noctalia owns the
+power-profile controls.
 
 ### Manual Switching
 

@@ -27,7 +27,7 @@ lib.mkIf (hostConfig.enableKeychronM6 or false) {
   # Battery reporting for the M6's 2.4 GHz receiver is vendor-specific and is
   # not exposed through Linux's standard HID battery paths. Load an extra HID
   # driver so the mouse battery shows up in power_supply/UPower, which in turn
-  # feeds desktop widgets such as Ironbar.
+  # feeds desktop widgets such as Noctalia.
   boot.extraModulePackages = [ keychronBattery ];
   boot.kernelModules = [ "keychron_battery" ];
 

@@ -54,8 +54,9 @@ nh os test .
 ```
 
 Verify `Mod+Space` opens Vicinae, `systemctl --user status vicinae` is healthy,
-Asyar is no longer running, and both `darkman set dark` and `darkman set light`
-update the launcher theme. Test the Nix, Wi-Fi, and Gemini extensions. Bluetooth
+Asyar is no longer running, and `noctalia msg theme-mode-set dark` /
+`noctalia msg theme-mode-set light` update the launcher theme. Test the Nix,
+Wi-Fi, and Gemini extensions. Bluetooth
 is still disabled because of its earlier Node.js/usocket build problem.
 
 Once satisfied:

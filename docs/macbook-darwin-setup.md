@@ -295,10 +295,10 @@ nixos-config/
 
 | Feature | NixOS (Framework) | Darwin (MacBook) |
 |---------|-------------------|------------------|
-| Theme switching | Stylix + darkman | System appearance |
+| Theme switching | Noctalia V5 (dark/light) | System appearance |
 | Window manager | Niri (Wayland) | Native macOS |
-| Status bar | Ironbar | Native macOS |
-| Notifications | Dunst | Native macOS |
+| Status bar | Noctalia V5 | Native macOS |
+| Notifications | Noctalia V5 | Native macOS |
 | Package manager | Nix only | Nix + Homebrew |
 
 ## Troubleshooting

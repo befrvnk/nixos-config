@@ -33,7 +33,7 @@ in
 
   nix = {
     # Trust the Framework's signing key so plain remote deploys work
-    # (nixos-rebuild --target-host). See docs/hermi-raspberry-pi-setup.md.
+    # (nh os switch --target-host). See docs/hermi-raspberry-pi-setup.md.
     settings."trusted-public-keys" = [
       "hermi-signing:Me8nPXnFEi62cG/h0k4ZjJmnWFT3kzsbWTWpW+YPoHI="
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="

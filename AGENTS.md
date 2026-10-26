@@ -122,7 +122,7 @@ Update docs when making changes:
 Detailed guides in docs/:
 - structure.md, adding-packages.md, new-host.md
 - secure-boot.md, fingerprint-setup.md (NixOS)
-- stylix-darkman-setup.md, noctalia-niri-overview.md (NixOS)
+- noctalia-niri-overview.md, screen-lock-and-suspend.md (NixOS)
 - macbook-darwin-setup.md (Darwin)
 
 ## Common Gotchas (All Platforms)

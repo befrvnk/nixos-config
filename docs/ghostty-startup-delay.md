@@ -92,7 +92,8 @@ This configuration requires:
 - D-Bus access to the portal
 - Portal to read from dconf's `org.gnome.desktop.interface/color-scheme`
 
-See: [`docs/stylix-darkman-setup.md`](./stylix-darkman-setup.md#8-ghostty-theme-switching-not-working) for full theme switching documentation.
+See: [Noctalia V5 with Niri](./noctalia-niri-overview.md) for the current theme
+switching setup.
 
 ## Planned Solution
 
@@ -190,8 +191,7 @@ We could fix the portal startup order with systemd dependencies, but:
 
 ## Related Documentation
 
-- [Stylix & Darkman Setup](./stylix-darkman-setup.md) - Complete theme switching documentation
-- [DMS Audio Issue](./dms-audio-issue.md) - DMS-related problems (to be replaced with quickshell)
+- [Noctalia V5 with Niri](./noctalia-niri-overview.md) - Current shell and theme setup
 
 ## Investigation Log
 
@@ -221,4 +221,4 @@ Nov 08 08:25:09 framework systemd[2285]: xdg-desktop-portal-gtk.service: Failed 
 
 **Date:** 2025-11-08
 **Investigated by:** Claude Code
-**Status:** Documented, awaiting quickshell migration
+**Status:** Superseded by Noctalia V5; kept as a historical investigation.

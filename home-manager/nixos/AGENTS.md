@@ -5,7 +5,7 @@ NixOS-specific user configuration including Wayland, systemd services, and Styli
 ## What Goes Here
 
 - Window manager config (niri/)
-- Desktop shell (noctalia/, native C++ V5; quickshell/ retained for rollback)
+- Desktop shell (noctalia/, native C++ V5)
 - Noctalia runtime theme control (noctalia/theme.nix) + temporary Stylix app specialisations
 - User systemd services
 - Wayland-specific apps
@@ -308,11 +308,9 @@ Theme switching without full rebuilds:
   regression. Mode/image and shell-startup hooks passed during the user's unlocked
   rebuild on 2026-10-23; no shell restart on later mode changes. A fresh OS boot of
   this policy and external-output/reconnect appearance were not tested.
-- Native Noctalia owns reconnects; no custom monitor-hotplug service/script or active
-  awww startup/package remains. The old loose awww daemon can survive a rebuild:
-  verify native surfaces before one-time official shutdown. Never kill it beforehand.
-- No automatic process-kill hook. Inactive rollback code/input remain until cleanup.
-  A Noctalia restart may briefly remove its wallpaper.
+- Native Noctalia owns reconnects and wallpaper; the awww package/input and the
+  legacy monitor-hotplug service were removed. Do not reintroduce either.
+- No automatic process-kill hook. A Noctalia restart may briefly remove its wallpaper.
 
 ## Audio Gotchas
 
@@ -320,7 +318,7 @@ Theme switching without full rebuilds:
 - Noctalia V5 uses its native audio service for the widget/control center.
 - OSD belongs at bottom_center (horizontal and vertical) to avoid the topbar.
   Plain F1–F12 must reach apps; Framework Fn+Esc hardware Fn Lock selects media
-  actions behind Fn. Don't emulate Fn in Niri/keyd or apply hid_apple fnmode to
+  actions behind Fn. Don't emulate Fn in Niri or apply hid_apple fnmode to
   this AT keyboard. Existing external NuPhy mappings remain separate.
 - Volume keys call native Noctalia IPC with 5% steps/mute. SwayOSD and the old
   volume cache producer/startup are removed; keep Framework pw-loopback init intact.
@@ -458,9 +456,7 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 |--------|---------|
 | `niri/` | Window manager (binds, layout, rules, startup, lid-switch) |
 | `noctalia/` | Native V5 shell, palettes and overview IPC bridge |
-| `quickshell/` | Previous custom shell, retained but not imported |
 | `noctalia/theme.nix` | Runtime mode hooks and temporary app-theme adapter |
-| `darkman/` | Legacy controller (not imported) |
 | `stylix.nix` | Theming with specializations |
 | `android/` | Emulator environment variables |
 | `audio-keep-alive/` | Amplifier pop prevention |
