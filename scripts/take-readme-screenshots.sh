@@ -1,10 +1,14 @@
 # shellcheck shell=bash
 set -euo pipefail
 
+# Theme switching uses Noctalia's native IPC. The binary comes from the running
+# session's PATH because the Home Manager package is patched per host.
+NOCTALIA_BIN="${NOCTALIA_BIN:-noctalia}"
+
 SCREENSHOT_DIR="$HOME/nixos-config/screenshots"
 THUMB_WIDTH=400
 GHOSTTY_PID=""
-ORIGINAL_MODE="$(darkman get 2>/dev/null || echo dark)"
+ORIGINAL_MODE="$("$NOCTALIA_BIN" msg theme-mode-get 2>/dev/null || echo dark)"
 
 cleanup() {
   local exit_code=$?
@@ -22,7 +26,7 @@ cleanup() {
 
   if [[ -n "$ORIGINAL_MODE" ]]; then
     echo "Restoring original mode: $ORIGINAL_MODE"
-    darkman set "$ORIGINAL_MODE" >/dev/null 2>&1 || true
+    "$NOCTALIA_BIN" msg theme-mode-set "$ORIGINAL_MODE" >/dev/null 2>&1 || true
   fi
 
   exit "$exit_code"
@@ -51,7 +55,7 @@ take_mode_screenshots() {
   echo ""
   echo "=== Taking $mode mode screenshots ==="
   echo "Switching to $mode mode..."
-  darkman set "$mode"
+  "$NOCTALIA_BIN" msg theme-mode-set "$mode"
 
   echo "Waiting for theme to apply..."
   sleep 4
