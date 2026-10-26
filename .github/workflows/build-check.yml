@@ -6,15 +6,22 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   linux-checks:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       # Hunk's pinned bun2nix evaluates cache-entry-creator from a flake-input
       # subdirectory. On a fresh Linux runner, that subdirectory can be referenced
@@ -32,8 +39,9 @@ jobs:
       # --no-build evaluates in read-only mode and disables import-from-derivation, so a
       # check that reads a derivation output fails with `path '...drv' is not valid`.
       # Disable IFD explicitly as well to keep the failure message readable.
+      # --all-systems also evaluates the aarch64-darwin configs/checks; nothing is built.
       - name: Check Nix flake outputs
-        run: nix flake check --no-build --accept-flake-config --option allow-import-from-derivation false
+        run: nix flake check --no-build --all-systems --accept-flake-config --option allow-import-from-derivation false
 
       - name: Verify NixOS configuration (dry-run)
         run: nix build .#nixosConfigurations.framework.config.system.build.toplevel --dry-run --accept-flake-config
@@ -44,16 +52,11 @@ jobs:
       - name: Lint Nix with statix
         run: nix shell --accept-flake-config --inputs-from . nixpkgs#statix --command statix check .
 
-      - name: Lint helper scripts with shellcheck
+      - name: Lint shell scripts with shellcheck
         run: |
-          nix shell --accept-flake-config --inputs-from . nixpkgs#shellcheck --command bash -lc '
-            shellcheck \
-              scripts/*.sh \
-              home-manager/nixos/audio-keep-alive/audio-keep-alive.sh \
-              home-manager/nixos/niri/brightness-ctl.sh \
-              home-manager/nixos/niri/toggle-abm.sh \
-              home-manager/nixos/spotify-suspend/handle-spotify-suspend.sh
-          '
+          mapfile -t files < <(git ls-files "*.sh")
+          printf "Linting %d shell scripts\n" "${#files[@]}"
+          nix shell --accept-flake-config --inputs-from . nixpkgs#shellcheck --command shellcheck "${files[@]}"
 
       - name: Run home cleanup tests
         run: nix build .#checks.x86_64-linux.home-cleanup --accept-flake-config
@@ -61,14 +64,31 @@ jobs:
       - name: Run pi extension tests
         run: nix build .#checks.x86_64-linux.pi-extension-tests --accept-flake-config
 
+      # noctalia-overview is deliberately excluded: it builds Qt probes plus the
+      # VS Code/Emacs closures and is intended as a local pre-push check.
+      - name: Build fast checks
+        run: |
+          nix build --no-link --accept-flake-config \
+            .#checks.x86_64-linux.cache-trust \
+            .#checks.x86_64-linux.kernel-provider-compat \
+            .#checks.x86_64-linux.umbriel-trial \
+            .#checks.x86_64-linux.noctalia-greeter \
+            .#checks.x86_64-linux.noctalia-lock-auth \
+            .#checks.x86_64-linux.noctalia-tray-anchor \
+            .#checks.x86_64-linux.noctalia-bar-geometry \
+            .#checks.x86_64-linux.noctalia-battery-warning \
+            .#checks.x86_64-linux.noctalia-theme-invariants \
+            .#checks.x86_64-linux.safe-suspend \
+            .#checks.x86_64-linux.pi-package-smoke
+
   darwin-dry-run:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
 
       - name: Verify Darwin configuration (dry-run)
         run: nix build .#darwinConfigurations.macbook.system --dry-run --accept-flake-config

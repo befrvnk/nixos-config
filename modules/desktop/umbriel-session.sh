@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 set -e
 # Standard HM profile expressions intentionally allow unset optional variables.
 

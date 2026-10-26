@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Sourced into HM activation so fd 9 stays locked through linkGeneration.
 if [ -z "${DRY_RUN_CMD:-}" ] && [ -z "${NOCTALIA_THEME_BRIDGE_ACTIVE:-}" ]; then
   # Boot-time system activation can precede the user manager and runtime dir.

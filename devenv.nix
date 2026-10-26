@@ -110,7 +110,7 @@ in
         8. Check `git log --oneline -5` for recent commit style
         9. Create commit with message: $ARGUMENTS (or generate appropriate message if none provided)
 
-        Note: The pre-commit hook automatically runs nixfmt on commit, so manual formatting is not needed.
+        Note: The pre-commit hook automatically runs nixfmt, shellcheck and statix on commit, so manual formatting/linting is not needed.
 
         Commit message format:
         ```
@@ -206,6 +206,7 @@ in
       enable = true;
       package = pkgs.nixfmt;
     };
+    shellcheck.enable = true;
     statix.enable = true;
   };
 

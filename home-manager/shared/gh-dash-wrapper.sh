@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 detect_mode() {
   case "$(uname)" in
     Darwin)

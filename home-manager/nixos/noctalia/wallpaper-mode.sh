@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 set -euo pipefail
 
 # Native asynchronous hooks discard stdio; keep selection/errors in the journal.
