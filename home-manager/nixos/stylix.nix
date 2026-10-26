@@ -55,6 +55,9 @@ in
       gdu.enable = false;
       gedit.enable = false;
       kde.enable = false;
+      # Rofi is unused (Vicinae replaced it). Stylix still writes the renamed
+      # programs.rofi.font option, which Home Manager now warns about.
+      rofi.enable = false;
       vencord.enable = false;
       # Native Noctalia renders Zen's pinned community CSS.
       zen-browser.enable = false;
