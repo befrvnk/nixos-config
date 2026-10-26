@@ -376,12 +376,17 @@ Together they provide:
 # Check if scx_lavd is running
 systemctl status scx
 
-# Check scheduler via sysfs
-cat /sys/kernel/sched_ext/root/type
-# Should show: lavd
+# Check the active scheduler via sysfs (no root needed)
+cat /sys/kernel/sched_ext/state      # enabled
+cat /sys/kernel/sched_ext/root/ops   # lavd_1.1.4_x86_64_unknown_linux_gnu
 
-# View scheduler statistics
-cat /sys/kernel/sched_ext/root/stats/*
+# ...or straight from the kernel log
+journalctl -k -b -g 'sched_ext: BPF scheduler' | tail -1
+# sched_ext: BPF scheduler "lavd_1.1.4_x86_64_unknown_linux_gnu" enabled
+
+# Event counters (no root) and full stats (root only)
+cat /sys/kernel/sched_ext/root/events
+sudo ls /sys/kernel/debug/sched_ext/
 ```
 
 ### Troubleshooting
