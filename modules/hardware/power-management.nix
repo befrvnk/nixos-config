@@ -196,6 +196,11 @@ in
       # Note: DEVTYPE=="disk" excludes partitions and controllers which don't have schedulers
       ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ENV{DEVTYPE}=="disk", ATTR{queue/scheduler}="none"
       ACTION=="add|change", KERNEL=="sd[a-z]", ENV{DEVTYPE}=="disk", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline"
+
+      # NVMe read-ahead defaults to 8 MiB here, which over-reads on the random access of
+      # builds and file indexing: wasted bandwidth, polluted page cache, longer stalls.
+      # 256 KiB is the desktop norm for random-heavy workloads.
+      ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ENV{DEVTYPE}=="disk", ATTR{queue/read_ahead_kb}="256"
     '';
   };
 

@@ -1,4 +1,4 @@
-{ hostConfig, ... }:
+{ hostConfig, lib, ... }:
 
 let
   caches = import ../../shared/caches.nix;
@@ -116,22 +116,34 @@ in
   };
 
   # Configure systemd-logind for proper lid handling
-  services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
-    HandleLidSwitchDocked = "ignore";
-    HandleLidSwitchExternalPower = "suspend";
-    IdleAction = "ignore";
+  services = {
+    logind.settings.Login = {
+      HandleLidSwitch = "suspend";
+      HandleLidSwitchDocked = "ignore";
+      HandleLidSwitchExternalPower = "suspend";
+      IdleAction = "ignore";
+    };
+
+    # Enable USB wake only for keyboards
+    udev.extraRules = ''
+      # First, disable wake for all USB devices by default
+      ACTION=="add", SUBSYSTEM=="usb", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
+
+      # Then enable wake only for external keyboard
+      # NuPhy Air75 V3
+      ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="19f5", ATTRS{idProduct}=="1028", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
+    '';
+
+    # Cap the journal (grew to 1.2 GB): large journals slow every journalctl scan and add
+    # background write churn on the same disks as the interactive workload.
+    journald.settings.Journal = {
+      SystemMaxUse = "512M";
+    };
   };
 
-  # Enable USB wake only for keyboards
-  services.udev.extraRules = ''
-    # First, disable wake for all USB devices by default
-    ACTION=="add", SUBSYSTEM=="usb", TEST=="power/wakeup", ATTR{power/wakeup}="disabled"
-
-    # Then enable wake only for external keyboard
-    # NuPhy Air75 V3
-    ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="19f5", ATTRS{idProduct}=="1028", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
-  '';
+  # Skip access-time updates: they only add journal writes on a read-heavy single-user
+  # desktop (builds, file indexing). Takes effect on the next mount, i.e. after a reboot.
+  fileSystems."/".options = lib.mkAfter [ "noatime" ];
 
   system.stateVersion = "25.05";
 }
