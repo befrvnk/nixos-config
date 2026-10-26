@@ -1,17 +1,54 @@
 """Bridge the active Niri/Umbriel overview event stream to Noctalia V5 bar IPC."""
 
+import glob
 import json
 import os
 import socket
 import subprocess
 import sys
 
+# Noctalia's IPC socket takes one "<cwd>\\x1e<command>" message per connection and answers
+# with a short ack. The server dispatches on EOF, so the write half must be shut down
+# right after sending; without that it waits ~100 ms for more input. Sending directly
+# costs ~0.2 ms, while spawning the 38 MB client binary per command costs ~36 ms, which
+# is what made the bar lag behind the overview transition.
+COMMAND_SEPARATOR = b"\x1e"
+
+
+def noctalia_sockets():
+    """Locate the bar sockets; the per-display dmenu socket never matches."""
+    runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if not runtime:
+        return []
+    return sorted(glob.glob(os.path.join(runtime, "noctalia-wayland-*.sock")))
+
+
+def send_via_socket(path, command, timeout=2.0):
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+        connection.settimeout(timeout)
+        connection.connect(path)
+        connection.sendall(os.getcwdb() + COMMAND_SEPARATOR + command.encode())
+        connection.shutdown(socket.SHUT_WR)
+        connection.recv(4096)
+
+
+def send(noctalia, command):
+    """Dispatch one command over the socket, falling back to the CLI if needed."""
+    for path in noctalia_sockets():
+        try:
+            send_via_socket(path, command)
+            return
+        except OSError:
+            continue  # socket vanished (Noctalia restarted); try the next one, then CLI
+    subprocess.run([noctalia, "msg", command], check=True, timeout=5)
+
 
 def apply_visibility(noctalia, is_open):
     """Hide panels too when leaving overview, so no popup remains orphaned."""
-    commands = ["bar-show"] if is_open else ["panel-close", "bar-hide"]
+    # Hide the bar first when leaving: it is the part the user watches disappear.
+    commands = ["bar-show"] if is_open else ["bar-hide", "panel-close"]
     for command in commands:
-        subprocess.run([noctalia, "msg", command], check=True, timeout=5)
+        send(noctalia, command)
 
 
 def select_backend(environment):
