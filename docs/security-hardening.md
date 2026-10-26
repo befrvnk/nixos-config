@@ -30,6 +30,36 @@ endpoint/key are absent from `/etc/nix/nix.conf` and effective `nix config show`
 and nix-daemon is active with its restart timestamp updated. Noctalia/overview
 remain active. Existing artifact/kernel integrity is still a separate question.
 
+### Origin inventory of revoked-cache artifacts (2026-10-25)
+
+Store-wide audit of `ValidPaths.sigs`: **23 paths** carry `lantian:` signatures, all
+fetched **2026-06-25 … 2026-08-23**, i.e. before the disclosure:
+
+- content-addressed, so Nix verified the pinned hash on download (tamper-evident):
+  3× `source`, `index-x86_64-linux`, `index-x86_64-linux-small`,
+  `crate-clap_complete-4.6.0.tar.gz`
+- input-addressed, so the signer was trusted completely: `linux-cachyos-latest-7.1.1`
+  and `-7.1.6`, `linux-cachyos-lts-6.18.42` (each with `-modules`/`-dev`),
+  `linux-config-6.18.42`, 4× `55-nixos-aslr-entropy.conf`, `fedoracert`
+
+None of the 23 appears in the active closure of `/run/current-system`; the running
+kernel (`6.18.52-cachyos`) was built locally on 2026-10-22 and signed by this
+machine's `hermi-signing` key. Generations 1070–1134 still reference the suspect
+kernels until pruned (`nh clean all --keep 5`). To settle the remaining question for
+a specific artifact, rebuild it from its hash-pinned source and compare against the
+downloaded bytes: `nix build --check $(nix-store -q --deriver /nix/store/<path>)`.
+
+### Replacement kernel cache (2026-10-25)
+
+The CachyOS kernel now comes from Chaotic-Nyx (`chaotic-cx/nyx`) instead of
+`nix-cachyos-kernel`: `https://nyx-cache.chaotic.cx/?priority=45` with key
+`nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk=`, added to both
+`shared/caches.nix` and the literal `flake.nix` `nixConfig` (kept in sync by
+`checks.cache-trust`). Priority 45 keeps `cache.nixos.org` (40) ahead of it, so it
+only fills gaps. This is a different operator from the Lantian incident; the review
+was: upstream-documented project, prebuilt paths verified present before adoption,
+official caches preferred by priority.
+
 For any machine not yet updated, the live configuration keeps old trust until
 activation. Use an already-built closure without cache substitution:
 

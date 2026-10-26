@@ -83,9 +83,11 @@
       url = "github:bjarneo/cliamp/main";
       flake = false;
     };
-    # Don't use inputs.nixpkgs.follows here - the pinned overlay requires
-    # the flake's own nixpkgs version to get binary cache hits
-    nix-cachyos-kernel.url = "github:xddxdd/nix-cachyos-kernel/release";
+    # CachyOS kernels with a maintained binary cache (nyx-cache.chaotic.cx), replacing
+    # nix-cachyos-kernel whose only cache died with the Lantian endpoint (see
+    # docs/security-hardening.md). No inputs.nixpkgs.follows: the kernel must be
+    # instantiated from Chaotic-Nyx's own nixpkgs pin or its prebuilt paths never match.
+    chaotic.url = "github:chaotic-cx/nyx/nyxpkgs-unstable";
     # User-local project development environment registry
     shellpin = {
       url = "github:befrvnk/shellpin";
@@ -112,7 +114,7 @@
   # lists are kept in sync manually with the single source of truth in
   # ./shared/caches.nix (used by modules/system/core.nix at runtime).
   nixConfig = {
-    trusted-extra-substituters = [
+    extra-substituters = [
       "https://nixos.snix.store"
       "https://claude-code.cachix.org"
       "https://devenv.cachix.org"
@@ -121,14 +123,16 @@
       "https://noctalia.cachix.org"
       "https://nixos-raspberrypi.cachix.org"
       "https://vicinae.cachix.org"
+      "https://nyx-cache.chaotic.cx/?priority=45"
     ];
-    trusted-extra-public-keys = [
+    extra-trusted-public-keys = [
       "claude-code.cachix.org-1:YeXf2aNu7UTX8Vwrze0za1WEDS+4DuI2kVeWEE4fsRk="
       "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
       "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+      "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
       "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
     ];
   };
@@ -199,8 +203,8 @@
                 ++ (runtime.extra-trusted-public-keys or [ ]);
             in
             assert pkgs.lib.assertMsg (
-              declared.trusted-extra-substituters == shared.substituters
-              && declared.trusted-extra-public-keys == shared.publicKeys
+              declared.extra-substituters == shared.substituters
+              && declared.extra-trusted-public-keys == shared.publicKeys
             ) "Flake cache literals must match shared cache policy";
             assert pkgs.lib.assertMsg (builtins.all safe values)
               "The compromised Lantian endpoint and signing key must not be trusted";
@@ -235,7 +239,7 @@
           kernel-provider-compat =
             let
               framework = inputs.self.nixosConfigurations.framework;
-              provider = inputs.nix-cachyos-kernel.inputs.nixpkgs.legacyPackages.${system};
+              provider = inputs.chaotic.inputs.nixpkgs.legacyPackages.${system};
               standard = framework.extendModules {
                 modules = [
                   ({ lib, pkgs, ... }: { boot.kernelPackages = lib.mkForce pkgs.linuxPackages; })
@@ -245,7 +249,7 @@
             in
             assert pkgs.lib.assertMsg (
               aggregator framework.pkgs == aggregator provider
-            ) "Pinned CachyOS modules must use their provider's matching aggregation format";
+            ) "CachyOS modules must use their provider's matching aggregation format";
             assert pkgs.lib.assertMsg (
               aggregator standard.pkgs == aggregator pkgs
             ) "Standard kernels must retain main nixpkgs' certificate-aware aggregation";

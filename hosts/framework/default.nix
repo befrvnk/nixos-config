@@ -17,15 +17,15 @@
     inputs.lanzaboote.nixosModules.lanzaboote
   ];
 
-  # Keep module aggregation coherent with the pinned kernel builder. Main nixpkgs
-  # now expects kmodigest certificates that this provider does not emit. Revisit
-  # this override when changing the kernel provider or its pinned nixpkgs.
+  # Keep module aggregation coherent with the kernel provider: the CachyOS kernel is
+  # built by Chaotic-Nyx's pinned nixpkgs, whose module trees do not emit the
+  # kmodigest certificates main nixpkgs now expects. Revisit this override when
+  # changing the kernel provider or its pinned nixpkgs.
   nixpkgs.overlays = [
     (
       final: prev:
       let
-        provider =
-          inputs.nix-cachyos-kernel.inputs.nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system};
+        provider = inputs.chaotic.inputs.nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system};
       in
       {
         aggregateModules =
@@ -33,7 +33,7 @@
           let
             kernel = config.boot.kernelPackages.kernel;
           in
-          if kernel ? cachyosConfigFile && kernel.stdenv.outPath == provider.stdenv.outPath then
+          if (kernel.stdenv or prev.stdenv).outPath == provider.stdenv.outPath then
             provider.aggregateModules modules
           else
             prev.aggregateModules modules;
@@ -49,7 +49,11 @@
   # See: docs/mt7925-wifi-boot-failure.md
   boot = {
     binfmt.emulatedSystems = [ "aarch64-linux" ];
-    kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
+    # Instantiated from Chaotic-Nyx's own nixpkgs pin, so the kernel resolves to the
+    # paths their binary cache actually holds (the `pinned`-overlay rule from the old
+    # provider, kept here by referencing legacyPackages instead of our overlay pkgs).
+    kernelPackages =
+      inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}."linuxPackages_cachyos-lts";
     loader.systemd-boot.enable = lib.mkForce false;
     lanzaboote = {
       enable = true;

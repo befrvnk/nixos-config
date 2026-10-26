@@ -27,7 +27,6 @@ let
     (import ../overlays/openchamber.nix)
     inputs.niri.overlays.niri
     (import ../overlays/niri.nix)
-    inputs.nix-cachyos-kernel.overlays.pinned
     (import ../overlays/profile-sync-daemon.nix)
   ];
 

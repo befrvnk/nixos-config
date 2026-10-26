@@ -190,7 +190,7 @@ this one — it is NOT the freeze tracked in this repo.
 - [Released Linux 7.2.12 driver source](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/plain/drivers/net/wireless/mediatek/mt76/mt7925/mcu.c?h=v7.2.12)
 - [CachyOS 7.3.0-2 driver source at its release commit](https://github.com/CachyOS/linux/blob/c46eff6c57477ecbe6a55cea2641d07f58543630/drivers/net/wireless/mediatek/mt76/mt7925/mcu.c)
 - [Upstream release inventory](https://www.kernel.org/)
-- [CachyOS Nix provider version manifest](https://github.com/xddxdd/nix-cachyos-kernel/blob/release/kernel-cachyos/version.json)
+- [Chaotic-Nyx CachyOS kernel packaging](https://github.com/chaotic-cx/nyx)
 
 ### Fix applied in this repo
 
@@ -198,8 +198,14 @@ this one — it is NOT the freeze tracked in this repo.
 selecting `cachyos-latest`:
 
 ```nix
-boot.kernelPackages = pkgs.cachyosKernels.linuxPackages-cachyos-lts;
+boot.kernelPackages =
+  inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}."linuxPackages_cachyos-lts";
 ```
+
+The kernel is packaged by Chaotic-Nyx and instantiated from *their* nixpkgs pin, so it
+resolves to the paths `nyx-cache.chaotic.cx` actually holds (`shared/caches.nix`). It
+replaces the `nix-cachyos-kernel` overlay, whose only binary cache was the Lantian
+endpoint revoked in `docs/security-hardening.md`.
 
 The origin rebase advanced the configured LTS to 6.18.52 and its full system build
 passed; the running kernel was still 6.18.42 during this check.
