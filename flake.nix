@@ -60,21 +60,6 @@
       url = "github:noctalia-dev/umbriel/5cea311e7e7d6eba3ea41f5c4ca826971340f7cc";
       flake = false;
     };
-    awww = {
-      url = "git+https://codeberg.org/LGFae/awww?ref=refs/tags/v0.12.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # Quickshell flakes are not on GitHub; follows nixpkgs to stay on one channel
-    quickshell = {
-      url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    # QML plugin wiring niri IPC into Quickshell; provides a quickshell-with-plugin build
-    qml-niri = {
-      url = "github:imiric/qml-niri/main";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.quickshell.follows = "quickshell";
-    };
     claude-code = {
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs";
