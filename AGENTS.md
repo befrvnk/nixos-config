@@ -107,8 +107,10 @@ Commit after each logical change that builds. Related changes in one commit.
 
 ## Pre-commit Hooks
 
-- `nixfmt` runs automatically on commit
-- Manual: `nix fmt`
+- `nixfmt`, `deadnix` and `statix` run automatically on commit for `.nix` files;
+  `shellcheck` runs for shell scripts
+- `deadnix` fails the commit when unused code is left behind
+- Manual: `nix fmt`, `deadnix .`, `statix check .`
 - Skip (emergency only): `git commit --no-verify`
 - If hook fails: fix file, stage, commit again
 

@@ -48,6 +48,7 @@ The shell activates automatically.
 clean [N]                 # Keep the last N generations (default: 5)
 flake-update              # Update flake inputs and package metadata
 nix fmt                   # Format Nix files
+deadnix .                 # Find unused code in Nix files
 statix check .            # Lint Nix files
 shellcheck scripts/*.sh   # Lint top-level helper scripts
 ```
@@ -75,7 +76,9 @@ test-pi-extensions
 Configured in `devenv.nix`.
 
 Current commit-time hooks:
+- `deadnix` - blocks commits that leave unused code
 - `nixfmt`
+- `shellcheck` - shell scripts only
 - `statix`
 
 Formatting does **not** run automatically after every Claude edit. It runs on commit, or when you explicitly run `nix fmt`.
