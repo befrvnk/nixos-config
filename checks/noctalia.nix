@@ -339,410 +339,479 @@
           -s ${../home-manager/nixos/noctalia} -p 'test_*.py'
         touch $out
       '';
-  noctalia-theme-invariants =
-    let
-      cfg = inputs.self.nixosConfigurations.framework.config;
-      home = cfg.home-manager.users.frank;
-      variants = [
-        home
-        home.specialisation.dark.configuration
-        home.specialisation.light.configuration
-      ];
-      same = values: builtins.length (pkgs.lib.unique values) == 1;
-      managedConfig =
-        h: path:
-        builtins.any (
-          file: file.target == ".config/${path}" || file.target == "${h.xdg.configHome}/${path}"
-        ) (builtins.attrValues h.home.file);
-      managedGhosttyTheme = h: name: managedConfig h "ghostty/themes/${name}";
-    in
-    assert pkgs.lib.assertMsg (same (
-      map (h: toString h.xdg.configFile."noctalia/config.toml".source) variants
-    )) "Noctalia config must not change across app-theme specialisations";
-    assert pkgs.lib.assertMsg (same (
-      map (h: builtins.toJSON h.systemd.user.services.noctalia) variants
-    )) "App-theme switches must not restart Noctalia";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.systemd.user.services.noctalia-theme) variants)
-      && builtins.all (h: h.systemd.user.services.noctalia-theme.Service.Type == "exec") variants
-    ) "Bridge units must stay constant and report startup before waiting for Home Manager";
-    assert pkgs.lib.assertMsg (builtins.all (
-      h:
-      pkgs.lib.elem "NOCTALIA_ACTIVATION_LOCK=${h.xdg.stateHome}/noctalia/theme-activation.lock" h.systemd.user.services.noctalia-theme.Service.Environment
-      && pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/theme-activation.lock" h.home.activation.noctaliaThemeLock.data
-    ) variants) "Boot activation and the bridge must share a persistent pre-session-safe lock path";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.systemd.user.services.noctalia-overview) variants)
-      && builtins.all (
-        h:
-        pkgs.lib.elem "graphical-session.target" h.systemd.user.services.noctalia-overview.Install.WantedBy
-        && pkgs.lib.elem "reloadSystemd" h.home.activation.noctaliaOverviewEnsure.after
-        && pkgs.lib.hasInfix "--no-block start noctalia-overview.service" h.home.activation.noctaliaOverviewEnsure.data
-      ) variants
-    ) "Overview watcher must recover after rebuilds without restarting the shell";
-    assert pkgs.lib.assertMsg (
-      !(cfg.systemd.user.services ? darkman) && !(home.home.activation ? restartDarkman)
-    ) "The legacy Darkman controller must be disabled";
-    assert pkgs.lib.assertMsg (builtins.all (
-      h: !(h.dconf.settings."org/gnome/desktop/interface" ? color-scheme)
-    ) variants) "Home Manager must not overwrite Noctalia's runtime color-scheme preference";
-    assert pkgs.lib.assertMsg (builtins.all (
-      h:
-      pkgs.lib.toList h.programs.ghostty.settings.theme == [ "noctalia" ]
-      && pkgs.lib.elem "ghostty" h.programs.noctalia.settings.theme.templates.builtin_ids
-      && !(managedGhosttyTheme h "noctalia")
-      && !(managedGhosttyTheme h "stylix-dark")
-      && !(managedGhosttyTheme h "stylix-light")
-    ) variants) "Ghostty must select the native template and leave its output runtime-writable";
-    assert pkgs.lib.assertMsg (builtins.all (
-      h:
-      !h.stylix.targets.gtk.enable
-      && h.gtk.theme == null
-      && h.gtk.gtk4.theme == null
-      && !(h.dconf.settings."org/gnome/desktop/interface" ? gtk-theme)
-      && h.gtk.font.name == h.stylix.fonts.sansSerif.name
-      && h.gtk.font.size == h.stylix.fonts.sizes.applications
-      && h.gtk.iconTheme.name == "Papirus"
-      && h.gtk.cursorTheme.name == h.stylix.cursor.name
-      &&
-        builtins.all
-          (
-            version:
-            h.xdg.configFile."gtk-${version}/gtk.css".text == ''@import url("noctalia.css");''
-            && !(managedConfig h "gtk-${version}/noctalia.css")
-          )
-          [
-            "3.0"
-            "4.0"
-          ]
-      && builtins.all (id: pkgs.lib.elem id h.programs.noctalia.settings.theme.templates.builtin_ids) [
-        "gtk3"
-        "gtk4"
-      ]
-    ) variants) "GTK must preserve assets, use native writable colors and avoid preference conflicts";
-    assert pkgs.lib.assertMsg (
-      cfg.qt.enable
-      && cfg.qt.platformTheme == "qt5ct"
-      && builtins.all (
-        h:
-        !h.stylix.targets.qt.enable
-        && pkgs.lib.elem "qt" h.programs.noctalia.settings.theme.templates.builtin_ids
-        &&
-          builtins.all
-            (
-              version:
-              let
-                path = "qt${version}ct";
-                text = h.xdg.configFile."${path}/${path}.conf".text;
-              in
-              pkgs.lib.hasInfix "custom_palette=true" text
-              && pkgs.lib.hasInfix "color_scheme_path=${h.xdg.configHome}/${path}/colors/noctalia.conf" text
-              && pkgs.lib.hasInfix "style=Fusion" text
-              && !(managedConfig h "${path}/colors/noctalia.conf")
-            )
-            [
-              "5"
-              "6"
-            ]
-      ) variants
-    ) "Qt must select the native writable palettes without changing platform integration";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.programs.vicinae.settings) variants)
-      && same (map (h: builtins.toJSON h.systemd.user.services.vicinae) variants)
-      && builtins.all (
-        h:
-        h.programs.vicinae.settings.theme.dark.name == "noctalia"
-        && h.programs.vicinae.settings.theme.light.name == "noctalia"
-        && h.programs.vicinae.settings.theme.dark.icon_theme == "Papirus"
-        && h.programs.vicinae.settings.theme.light.icon_theme == "Papirus"
-        && h.programs.noctalia.settings.theme.templates.user ? vicinae
-        && !(h.programs.vicinae.themes ? stylix)
-        && !(h.xdg.dataFile ? "vicinae/themes/noctalia.toml")
-      ) variants
-    ) "Vicinae must reload a native runtime theme without mode-specific config or unit changes";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.programs.zed-editor.userSettings) variants)
-      && builtins.all (
-        h:
-        !h.stylix.targets.zed.enable
-        && h.programs.zed-editor.mutableUserSettings
-        &&
-          h.programs.zed-editor.userSettings.theme == {
-            mode = "system";
-            dark = "Noctalia Dark";
-            light = "Noctalia Light";
-          }
-        && h.programs.zed-editor.userSettings.buffer_font_family == h.stylix.fonts.monospace.name
-        && h.programs.zed-editor.userSettings.ui_font_family == h.stylix.fonts.sansSerif.name
-        && h.programs.noctalia.settings.theme.templates.user ? zed
-        && !(h.programs.zed-editor.themes ? stylix)
-        && !(managedConfig h "zed/themes/noctalia.json")
-      ) variants
-    ) "Zed must keep constant settings/fonts and select the writable native theme family";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.programs.zen-browser.policies) variants)
-      && builtins.all (
-        h:
-        !h.stylix.targets.zen-browser.enable
-        &&
-          h.programs.zen-browser.policies.Preferences."toolkit.legacyUserProfileCustomizations.stylesheets"
-          == {
-            Value = true;
-            Status = "locked";
-          }
-        && h.xdg.desktopEntries.zen-browser.exec == "zen-launch %U"
-        &&
-          builtins.all
-            (
-              part:
-              let
-                entry = h.programs.noctalia.settings.theme.templates.user."zen_browser_${part}";
-              in
-              !(entry ? post_hook) && !(entry ? pre_hook) && !(entry ? post_action)
-            )
-            [
-              "chrome"
-              "content"
-            ]
-        &&
-          pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/zen-browser/zen-userChrome.css"
-            h.home.file.".zen/default/chrome/userChrome.css".text
-        &&
-          pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/zen-browser/zen-userContent.css"
-            h.home.file.".zen/default/chrome/userContent.css".text
-      ) variants
-    ) "Zen must keep declarative profile imports/policies and never run profile-mutating hooks";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.programs.vscode.profiles.default.userSettings) variants)
-      && builtins.all (
-        h:
-        h.programs.vscode.enable
-        && !h.stylix.targets.vscode.enable
-        && h.programs.vscode.profiles.default.userSettings."workbench.colorTheme" == "NoctaliaTheme"
-        && !h.programs.vscode.profiles.default.userSettings."window.autoDetectColorScheme"
-        && !h.programs.vscode.profiles.default.userSettings."extensions.autoUpdate"
-        && h.programs.noctalia.settings.theme.templates.user ? vscode
-        && !(h.programs.noctalia.settings.theme.templates.user.vscode ? post_hook)
-        && builtins.all (
-          ext: (ext.vscodeExtUniqueId or "") != "stylix.stylix"
-        ) h.programs.vscode.profiles.default.extensions
-      ) variants
-    ) "VS Code must keep declarative settings/extension metadata and writable native palette data";
-    assert pkgs.lib.assertMsg
-      (
-        same (map (h: toString h.programs.lazygit.package) variants)
-        && builtins.all (
-          h:
-          h.programs.lazygit.enable
-          && h.programs.lazygit.enableNushellIntegration
-          && !h.stylix.targets.lazygit.enable
-          && !(h.programs.lazygit.settings.gui ? theme)
-          && h.programs.noctalia.settings.theme.templates.user ? lazygit
-          && !(h.programs.noctalia.settings.theme.templates.user.lazygit ? post_hook)
-          && !(managedConfig h "lazygit/themes/noctalia.yml")
-        ) variants
-      )
-      "lazygit must overlay native runtime colors without rewriting its managed base or shell integration";
-    assert pkgs.lib.assertMsg
-      (
-        same (map (h: toString h.programs.fzf.package) variants)
-        && builtins.all (
-          h:
-          !h.programs.fzf.enable
-          && !h.stylix.targets.fzf.enable
-          && h.programs.fzf.colors == { }
-          && !(h.home.sessionVariables ? FZF_DEFAULT_OPTS)
-          && h.programs.noctalia.settings.theme.templates.user ? fzf
-          && !(h.programs.noctalia.settings.theme.templates.user.fzf ? post_hook)
-          && !(managedConfig h "fzf/themes/noctalia.sh")
-          && pkgs.lib.elem h.programs.fzf.package h.home.packages
-        ) variants
-      )
-      "fzf must consume native community colors per process without shell integration or global env changes";
-    assert pkgs.lib.assertMsg (
-      same (map (h: h.programs.niri.finalConfig) variants)
-      && builtins.all (
-        h:
-        h.programs.niri.settings.layout.border.enable
-        && h.programs.niri.settings.layout.border.width == 4
-        && h.programs.niri.settings.layout.border.active == null
-        && h.programs.niri.settings.layout.border.inactive == null
-        && !h.programs.niri.settings.layout.focus-ring.enable
-        && !h.programs.niri.settings.layout.shadow.enable
-        && h.programs.niri.settings.layout.background-color == "transparent"
-        && h.programs.niri.settings.layout.gaps == 12
-        && h.programs.niri.settings.overview.zoom == 0.5
-        && !h.programs.niri.settings.overview.workspace-shadow.enable
-        && pkgs.lib.elem "niri" h.programs.noctalia.settings.theme.templates.builtin_ids
-        && !(managedConfig h "niri/noctalia.kdl")
-      ) variants
-    ) "Niri must keep its layout/overview unchanged while only native colors vary at runtime";
-    assert pkgs.lib.assertMsg
-      (
-        same (map (h: h.programs.nushell.extraConfig) variants)
-        && builtins.all (
-          h:
-          !h.stylix.targets.nushell.enable
-          && h.programs.noctalia.settings.theme.templates.user ? nushell
-          && !(h.programs.noctalia.settings.theme.templates.user.nushell ? post_hook)
-          && !(managedConfig h "nushell/theme-dark.nuon")
-          && !(managedConfig h "nushell/theme-light.nuon")
-          && pkgs.lib.hasInfix "refresh-nushell-theme" h.programs.nushell.extraConfig
-        ) variants
-      )
-      "Nushell must read Noctalia's runtime data without prebuilt color files or prompt integration changes";
-    assert pkgs.lib.assertMsg
-      (builtins.all (
-        h:
-        h.programs.noctalia.settings.wallpaper.enabled
-        && !h.programs.noctalia.settings.backdrop.enabled
-        && h.programs.noctalia.settings.backdrop.blur_intensity == 0.0
-        && h.programs.noctalia.settings.backdrop.tint_intensity == 0.0
-        && h.programs.noctalia.settings.wallpaper.transition == [ "fade" ]
-        && h.programs.noctalia.settings.wallpaper.transition_duration == 1000
-        && !h.programs.noctalia.settings.wallpaper.automation.enabled
-        && builtins.length h.programs.noctalia.settings.hooks.theme_mode_changed == 2
-        && builtins.elem (builtins.head h.programs.noctalia.settings.hooks.theme_mode_changed) h.programs.noctalia.settings.hooks.started
-        && !(builtins.any (pkgs.lib.hasPrefix "NOCTALIA_WALLPAPER_") h.systemd.user.services.noctalia-theme.Service.Environment)
-        && !(h.systemd.user.services ? noctalia-wallpaper)
-        && builtins.all (
-          favorite: builtins.attrNames favorite == [ "path" ]
-        ) h.programs.noctalia.settings.wallpaper.favorite
-        && !(builtins.any (package: pkgs.lib.hasPrefix "awww-" package.name) h.home.packages)
-        && !(h.systemd.user.services ? monitor-hotplug)
-        && !(pkgs.lib.hasInfix "awww-daemon" h.programs.niri.finalConfig)
-        && builtins.any (
-          rule:
-          (rule.place-within-backdrop or false) == true
-          && builtins.any (match: (match.namespace or "") == "^noctalia-wallpaper$") rule.matches
-        ) h.programs.niri.settings.layer-rules
-      ) variants)
-      "Noctalia must render a single backdrop wallpaper and select its pair through native hooks, not the theme worker";
-    assert pkgs.lib.assertMsg
-      (
-        same (map (h: builtins.toJSON h.programs.starship.settings) variants)
-        && builtins.all (
-          h:
-          h.programs.starship.enable
-          && h.programs.starship.enableNushellIntegration
-          && !h.stylix.targets.starship.enable
-          && h.programs.starship.settings.palette == "noctalia"
-          && !((h.programs.starship.settings.palettes or { }) ? base16)
-          && h.home.sessionVariables.STARSHIP_CONFIG == "${h.xdg.stateHome}/noctalia/starship.toml"
-          &&
-            h.programs.nushell.environmentVariables.STARSHIP_CONFIG == h.home.sessionVariables.STARSHIP_CONFIG
-          && !(h.programs.noctalia.settings.theme.templates.user.starship ? post_hook)
-        ) variants
-      )
-      "Starship must render native palette data without rewriting its declarative base or prompt integrations";
-    assert pkgs.lib.assertMsg (builtins.all
-      (
-        h:
-        !h.services.swayosd.enable
-        && !(h.systemd.user.services ? swayosd)
-        && h.programs.noctalia.settings.osd.enabled
-        && h.programs.noctalia.settings.osd.position == "bottom_center"
-        && h.programs.noctalia.settings.osd.position_vertical == "bottom_center"
-        && builtins.all (n: !(builtins.hasAttr "F${toString n}" h.programs.niri.settings.binds)) (
-          pkgs.lib.range 1 12
-        )
-        && h.programs.noctalia.settings.osd.kinds.volume
-        && h.programs.noctalia.settings.osd.kinds.volume_output
-        && !h.programs.noctalia.settings.osd.kinds.volume_input
-        && h.programs.noctalia.settings.osd.kinds.brightness
-        && !h.programs.noctalia.settings.audio.enable_overdrive
-        && !(pkgs.lib.hasInfix "swayosd-client" h.programs.niri.finalConfig)
-        && !(pkgs.lib.hasInfix "volume-ctl" h.programs.niri.finalConfig)
-        && pkgs.lib.hasInfix "pw-loopback" h.programs.niri.finalConfig
-      )
-      variants
-    ) "Native Noctalia must own output/brightness OSD while preserving Framework audio initialization";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.programs.btop.settings) variants)
-      && builtins.all (
-        h:
-        h.programs.btop.enable
-        && !h.stylix.targets.btop.enable
-        && h.programs.btop.settings.color_theme == "noctalia"
-        && h.programs.btop.settings.update_ms == 1000
-        && !h.programs.btop.settings.vim_keys
-        && !(h.programs.btop.themes ? stylix)
-        && pkgs.lib.elem "btop" h.programs.noctalia.settings.theme.templates.builtin_ids
-        && !(managedConfig h "btop/themes/noctalia.theme")
-      ) variants
-    ) "btop must retain declarative settings/key behavior with only native runtime colors";
-    assert pkgs.lib.assertMsg
-      (
-        same (map (h: toString h.programs.emacs.finalPackage) variants)
-        && same (map (h: h.programs.emacs.extraConfig) variants)
-        && builtins.all (
-          h:
-          h.programs.emacs.enable
-          && !h.stylix.targets.emacs.enable
-          && h.programs.noctalia.settings.theme.templates.user ? emacs
-          && !(h.programs.noctalia.settings.theme.templates.user.emacs ? post_hook)
-          && pkgs.lib.hasInfix "(load-theme 'noctalia t)" h.programs.emacs.extraConfig
-          && !(pkgs.lib.hasInfix "base16-stylix" h.programs.emacs.extraConfig)
-          && !h.services.emacs.enable
-        ) variants
-      )
-      "Managed plain Emacs must load native theme data without changing personal profiles or requiring a daemon";
-    assert pkgs.lib.assertMsg
-      (builtins.all (
-        h:
-        builtins.all (target: !h.stylix.targets.${target}.enable) [
-          "blender"
-          "forge"
-          "gdu"
-          "gedit"
-          "kde"
-          "vencord"
-        ]
-        && !(builtins.any (
-          name:
-          pkgs.lib.hasPrefix "blender/" name
-          || pkgs.lib.hasPrefix "forge/" name
-          || pkgs.lib.hasPrefix "gdu/" name
-          || pkgs.lib.hasPrefix "Vencord/" name
-        ) (builtins.attrNames h.xdg.configFile))
-        && !(h.xdg.dataFile ? "gedit/styles/stylix.xml")
-        && !(pkgs.lib.hasInfix "stylix-kde-config" (h.home.sessionVariables.XDG_CONFIG_DIRS or ""))
-        && h.programs.noctalia.settings.theme.templates.user ? xresources
-        && h.programs.noctalia.settings.theme.templates.user ? gtksourceview
-        && h.programs.swaylock.enable
-      ) variants)
-      "Dormant theme generators/KDE overlay must be retired without dropping xterm, shared editor styles or the lock screen";
-    assert pkgs.lib.assertMsg (
-      same (map (h: builtins.toJSON h.xresources.properties) variants)
-      && builtins.all (
-        h:
-        !h.stylix.targets.xresources.enable
-        && !h.stylix.targets.sxiv.enable
-        && h.xresources.properties."*.faceName" == h.stylix.fonts.monospace.name
-        && h.xresources.properties."*.faceSize" == toString h.stylix.fonts.sizes.terminal
-        && h.xresources.properties."Xcursor.theme" == h.stylix.cursor.name
-        && h.xresources.properties."Xcursor.size" == h.stylix.cursor.size
-        && !(h.xresources.properties ? "*background")
-        && !(h.xresources.properties ? "*foreground")
-        && pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/Xresources" h.xresources.extraConfig
-      ) variants
-    ) "Xresources must keep fonts/cursor declarative and load only native runtime color data";
-    assert pkgs.lib.assertMsg
-      (builtins.all (
-        h:
-        !h.stylix.targets.gtksourceview.enable
-        && h.programs.noctalia.settings.theme.templates.user ? gtksourceview
-        && !(h.programs.noctalia.settings.theme.templates.user.gtksourceview ? post_hook)
-        && builtins.all (version: h.xdg.dataFile ? "gtksourceview-${version}/styles/stylix.xml") [
-          "2.0"
-          "3.0"
-          "4"
-          "5"
-        ]
-      ) variants)
-      "GTKSourceView must preserve legacy scheme lookup with native runtime colors, not app preference rewrites";
-    pkgs.runCommand "noctalia-theme-invariants" { } ''
-      touch $out
-    '';
-
 }
+// (
+  let
+
+    cfg = inputs.self.nixosConfigurations.framework.config;
+    home = cfg.home-manager.users.frank;
+    variants = [
+      home
+      home.specialisation.dark.configuration
+      home.specialisation.light.configuration
+    ];
+    same = values: builtins.length (pkgs.lib.unique values) == 1;
+    managedConfig =
+      h: path:
+      builtins.any (
+        file: file.target == ".config/${path}" || file.target == "${h.xdg.configHome}/${path}"
+      ) (builtins.attrValues h.home.file);
+    managedGhosttyTheme = h: name: managedConfig h "ghostty/themes/${name}";
+    mkCheck =
+      name: message: condition:
+      assert pkgs.lib.assertMsg condition message;
+      pkgs.runCommand "noctalia-theme-${name}-check" { } ''
+        mkdir -p $out
+        touch $out/pass
+      '';
+    checks = {
+      config = mkCheck "config" "Noctalia config must not change across app-theme specialisations" (
+        same (map (h: toString h.xdg.configFile."noctalia/config.toml".source) variants)
+      );
+      noctalia-unit = mkCheck "noctalia-unit" "App-theme switches must not restart Noctalia" (
+        same (map (h: builtins.toJSON h.systemd.user.services.noctalia) variants)
+      );
+      bridge =
+        mkCheck "bridge"
+          "Bridge units must stay constant and report startup before waiting for Home Manager"
+          (
+            same (map (h: builtins.toJSON h.systemd.user.services.noctalia-theme) variants)
+            && builtins.all (h: h.systemd.user.services.noctalia-theme.Service.Type == "exec") variants
+          );
+      activation-lock =
+        mkCheck "activation-lock"
+          "Boot activation and the bridge must share a persistent pre-session-safe lock path"
+          (
+            builtins.all (
+              h:
+              pkgs.lib.elem "NOCTALIA_ACTIVATION_LOCK=${h.xdg.stateHome}/noctalia/theme-activation.lock" h.systemd.user.services.noctalia-theme.Service.Environment
+              && pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/theme-activation.lock" h.home.activation.noctaliaThemeLock.data
+            ) variants
+          );
+      overview =
+        mkCheck "overview" "Overview watcher must recover after rebuilds without restarting the shell"
+          (
+            same (map (h: builtins.toJSON h.systemd.user.services.noctalia-overview) variants)
+            && builtins.all (
+              h:
+              pkgs.lib.elem "graphical-session.target" h.systemd.user.services.noctalia-overview.Install.WantedBy
+              && pkgs.lib.elem "reloadSystemd" h.home.activation.noctaliaOverviewEnsure.after
+              && pkgs.lib.hasInfix "--no-block start noctalia-overview.service" h.home.activation.noctaliaOverviewEnsure.data
+            ) variants
+          );
+      darkman = mkCheck "darkman" "The legacy Darkman controller must be disabled" (
+        !(cfg.systemd.user.services ? darkman) && !(home.home.activation ? restartDarkman)
+      );
+      dconf =
+        mkCheck "dconf" "Home Manager must not overwrite Noctalia's runtime color-scheme preference"
+          (builtins.all (h: !(h.dconf.settings."org/gnome/desktop/interface" ? color-scheme)) variants);
+      ghostty =
+        mkCheck "ghostty" "Ghostty must select the native template and leave its output runtime-writable"
+          (
+            builtins.all (
+              h:
+              pkgs.lib.toList h.programs.ghostty.settings.theme == [ "noctalia" ]
+              && pkgs.lib.elem "ghostty" h.programs.noctalia.settings.theme.templates.builtin_ids
+              && !(managedGhosttyTheme h "noctalia")
+              && !(managedGhosttyTheme h "stylix-dark")
+              && !(managedGhosttyTheme h "stylix-light")
+            ) variants
+          );
+      gtk =
+        mkCheck "gtk" "GTK must preserve assets, use native writable colors and avoid preference conflicts"
+          (
+            builtins.all (
+              h:
+              !h.stylix.targets.gtk.enable
+              && h.gtk.theme == null
+              && h.gtk.gtk4.theme == null
+              && !(h.dconf.settings."org/gnome/desktop/interface" ? gtk-theme)
+              && h.gtk.font.name == h.stylix.fonts.sansSerif.name
+              && h.gtk.font.size == h.stylix.fonts.sizes.applications
+              && h.gtk.iconTheme.name == "Papirus"
+              && h.gtk.cursorTheme.name == h.stylix.cursor.name
+              &&
+                builtins.all
+                  (
+                    version:
+                    h.xdg.configFile."gtk-${version}/gtk.css".text == ''@import url("noctalia.css");''
+                    && !(managedConfig h "gtk-${version}/noctalia.css")
+                  )
+                  [
+                    "3.0"
+                    "4.0"
+                  ]
+              && builtins.all (id: pkgs.lib.elem id h.programs.noctalia.settings.theme.templates.builtin_ids) [
+                "gtk3"
+                "gtk4"
+              ]
+            ) variants
+          );
+      qt =
+        mkCheck "qt" "Qt must select the native writable palettes without changing platform integration"
+          (
+            cfg.qt.enable
+            && cfg.qt.platformTheme == "qt5ct"
+            && builtins.all (
+              h:
+              !h.stylix.targets.qt.enable
+              && pkgs.lib.elem "qt" h.programs.noctalia.settings.theme.templates.builtin_ids
+              &&
+                builtins.all
+                  (
+                    version:
+                    let
+                      path = "qt${version}ct";
+                      text = h.xdg.configFile."${path}/${path}.conf".text;
+                    in
+                    pkgs.lib.hasInfix "custom_palette=true" text
+                    && pkgs.lib.hasInfix "color_scheme_path=${h.xdg.configHome}/${path}/colors/noctalia.conf" text
+                    && pkgs.lib.hasInfix "style=Fusion" text
+                    && !(managedConfig h "${path}/colors/noctalia.conf")
+                  )
+                  [
+                    "5"
+                    "6"
+                  ]
+            ) variants
+          );
+      vicinae =
+        mkCheck "vicinae"
+          "Vicinae must reload a native runtime theme without mode-specific config or unit changes"
+          (
+            same (map (h: builtins.toJSON h.programs.vicinae.settings) variants)
+            && same (map (h: builtins.toJSON h.systemd.user.services.vicinae) variants)
+            && builtins.all (
+              h:
+              h.programs.vicinae.settings.theme.dark.name == "noctalia"
+              && h.programs.vicinae.settings.theme.light.name == "noctalia"
+              && h.programs.vicinae.settings.theme.dark.icon_theme == "Papirus"
+              && h.programs.vicinae.settings.theme.light.icon_theme == "Papirus"
+              && h.programs.noctalia.settings.theme.templates.user ? vicinae
+              && !(h.programs.vicinae.themes ? stylix)
+              && !(h.xdg.dataFile ? "vicinae/themes/noctalia.toml")
+            ) variants
+          );
+      zed =
+        mkCheck "zed" "Zed must keep constant settings/fonts and select the writable native theme family"
+          (
+            same (map (h: builtins.toJSON h.programs.zed-editor.userSettings) variants)
+            && builtins.all (
+              h:
+              !h.stylix.targets.zed.enable
+              && h.programs.zed-editor.mutableUserSettings
+              &&
+                h.programs.zed-editor.userSettings.theme == {
+                  mode = "system";
+                  dark = "Noctalia Dark";
+                  light = "Noctalia Light";
+                }
+              && h.programs.zed-editor.userSettings.buffer_font_family == h.stylix.fonts.monospace.name
+              && h.programs.zed-editor.userSettings.ui_font_family == h.stylix.fonts.sansSerif.name
+              && h.programs.noctalia.settings.theme.templates.user ? zed
+              && !(h.programs.zed-editor.themes ? stylix)
+              && !(managedConfig h "zed/themes/noctalia.json")
+            ) variants
+          );
+      zen =
+        mkCheck "zen"
+          "Zen must keep declarative profile imports/policies and never run profile-mutating hooks"
+          (
+            same (map (h: builtins.toJSON h.programs.zen-browser.policies) variants)
+            && builtins.all (
+              h:
+              !h.stylix.targets.zen-browser.enable
+              &&
+                h.programs.zen-browser.policies.Preferences."toolkit.legacyUserProfileCustomizations.stylesheets"
+                == {
+                  Value = true;
+                  Status = "locked";
+                }
+              && h.xdg.desktopEntries.zen-browser.exec == "zen-launch %U"
+              &&
+                builtins.all
+                  (
+                    part:
+                    let
+                      entry = h.programs.noctalia.settings.theme.templates.user."zen_browser_${part}";
+                    in
+                    !(entry ? post_hook) && !(entry ? pre_hook) && !(entry ? post_action)
+                  )
+                  [
+                    "chrome"
+                    "content"
+                  ]
+              &&
+                pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/zen-browser/zen-userChrome.css"
+                  h.home.file.".zen/default/chrome/userChrome.css".text
+              &&
+                pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/zen-browser/zen-userContent.css"
+                  h.home.file.".zen/default/chrome/userContent.css".text
+            ) variants
+          );
+      vscode =
+        mkCheck "vscode"
+          "VS Code must keep declarative settings/extension metadata and writable native palette data"
+          (
+            same (map (h: builtins.toJSON h.programs.vscode.profiles.default.userSettings) variants)
+            && builtins.all (
+              h:
+              h.programs.vscode.enable
+              && !h.stylix.targets.vscode.enable
+              && h.programs.vscode.profiles.default.userSettings."workbench.colorTheme" == "NoctaliaTheme"
+              && !h.programs.vscode.profiles.default.userSettings."window.autoDetectColorScheme"
+              && !h.programs.vscode.profiles.default.userSettings."extensions.autoUpdate"
+              && h.programs.noctalia.settings.theme.templates.user ? vscode
+              && !(h.programs.noctalia.settings.theme.templates.user.vscode ? post_hook)
+              && builtins.all (
+                ext: (ext.vscodeExtUniqueId or "") != "stylix.stylix"
+              ) h.programs.vscode.profiles.default.extensions
+            ) variants
+          );
+      lazygit =
+        mkCheck "lazygit"
+          "lazygit must overlay native runtime colors without rewriting its managed base or shell integration"
+          (
+            same (map (h: toString h.programs.lazygit.package) variants)
+            && builtins.all (
+              h:
+              h.programs.lazygit.enable
+              && h.programs.lazygit.enableNushellIntegration
+              && !h.stylix.targets.lazygit.enable
+              && !(h.programs.lazygit.settings.gui ? theme)
+              && h.programs.noctalia.settings.theme.templates.user ? lazygit
+              && !(h.programs.noctalia.settings.theme.templates.user.lazygit ? post_hook)
+              && !(managedConfig h "lazygit/themes/noctalia.yml")
+            ) variants
+          );
+      fzf =
+        mkCheck "fzf"
+          "fzf must consume native community colors per process without shell integration or global env changes"
+          (
+            same (map (h: toString h.programs.fzf.package) variants)
+            && builtins.all (
+              h:
+              !h.programs.fzf.enable
+              && !h.stylix.targets.fzf.enable
+              && h.programs.fzf.colors == { }
+              && !(h.home.sessionVariables ? FZF_DEFAULT_OPTS)
+              && h.programs.noctalia.settings.theme.templates.user ? fzf
+              && !(h.programs.noctalia.settings.theme.templates.user.fzf ? post_hook)
+              && !(managedConfig h "fzf/themes/noctalia.sh")
+              && pkgs.lib.elem h.programs.fzf.package h.home.packages
+            ) variants
+          );
+      niri =
+        mkCheck "niri"
+          "Niri must keep its layout/overview unchanged while only native colors vary at runtime"
+          (
+            same (map (h: h.programs.niri.finalConfig) variants)
+            && builtins.all (
+              h:
+              h.programs.niri.settings.layout.border.enable
+              && h.programs.niri.settings.layout.border.width == 4
+              && h.programs.niri.settings.layout.border.active == null
+              && h.programs.niri.settings.layout.border.inactive == null
+              && !h.programs.niri.settings.layout.focus-ring.enable
+              && !h.programs.niri.settings.layout.shadow.enable
+              && h.programs.niri.settings.layout.background-color == "transparent"
+              && h.programs.niri.settings.layout.gaps == 12
+              && h.programs.niri.settings.overview.zoom == 0.5
+              && !h.programs.niri.settings.overview.workspace-shadow.enable
+              && pkgs.lib.elem "niri" h.programs.noctalia.settings.theme.templates.builtin_ids
+              && !(managedConfig h "niri/noctalia.kdl")
+            ) variants
+          );
+      nushell =
+        mkCheck "nushell"
+          "Nushell must read Noctalia's runtime data without prebuilt color files or prompt integration changes"
+          (
+            same (map (h: h.programs.nushell.extraConfig) variants)
+            && builtins.all (
+              h:
+              !h.stylix.targets.nushell.enable
+              && h.programs.noctalia.settings.theme.templates.user ? nushell
+              && !(h.programs.noctalia.settings.theme.templates.user.nushell ? post_hook)
+              && !(managedConfig h "nushell/theme-dark.nuon")
+              && !(managedConfig h "nushell/theme-light.nuon")
+              && pkgs.lib.hasInfix "refresh-nushell-theme" h.programs.nushell.extraConfig
+            ) variants
+          );
+      wallpaper =
+        mkCheck "wallpaper"
+          "Noctalia must render a single backdrop wallpaper and select its pair through native hooks, not the theme worker"
+          (
+            builtins.all (
+              h:
+              h.programs.noctalia.settings.wallpaper.enabled
+              && !h.programs.noctalia.settings.backdrop.enabled
+              && h.programs.noctalia.settings.backdrop.blur_intensity == 0.0
+              && h.programs.noctalia.settings.backdrop.tint_intensity == 0.0
+              && h.programs.noctalia.settings.wallpaper.transition == [ "fade" ]
+              && h.programs.noctalia.settings.wallpaper.transition_duration == 1000
+              && !h.programs.noctalia.settings.wallpaper.automation.enabled
+              && builtins.length h.programs.noctalia.settings.hooks.theme_mode_changed == 2
+              && builtins.elem (builtins.head h.programs.noctalia.settings.hooks.theme_mode_changed) h.programs.noctalia.settings.hooks.started
+              && !(builtins.any (pkgs.lib.hasPrefix "NOCTALIA_WALLPAPER_") h.systemd.user.services.noctalia-theme.Service.Environment)
+              && !(h.systemd.user.services ? noctalia-wallpaper)
+              && builtins.all (
+                favorite: builtins.attrNames favorite == [ "path" ]
+              ) h.programs.noctalia.settings.wallpaper.favorite
+              && !(builtins.any (package: pkgs.lib.hasPrefix "awww-" package.name) h.home.packages)
+              && !(h.systemd.user.services ? monitor-hotplug)
+              && !(pkgs.lib.hasInfix "awww-daemon" h.programs.niri.finalConfig)
+              && builtins.any (
+                rule:
+                (rule.place-within-backdrop or false) == true
+                && builtins.any (match: (match.namespace or "") == "^noctalia-wallpaper$") rule.matches
+              ) h.programs.niri.settings.layer-rules
+            ) variants
+          );
+      starship =
+        mkCheck "starship"
+          "Starship must render native palette data without rewriting its declarative base or prompt integrations"
+          (
+            same (map (h: builtins.toJSON h.programs.starship.settings) variants)
+            && builtins.all (
+              h:
+              h.programs.starship.enable
+              && h.programs.starship.enableNushellIntegration
+              && !h.stylix.targets.starship.enable
+              && h.programs.starship.settings.palette == "noctalia"
+              && !((h.programs.starship.settings.palettes or { }) ? base16)
+              && h.home.sessionVariables.STARSHIP_CONFIG == "${h.xdg.stateHome}/noctalia/starship.toml"
+              &&
+                h.programs.nushell.environmentVariables.STARSHIP_CONFIG == h.home.sessionVariables.STARSHIP_CONFIG
+              && !(h.programs.noctalia.settings.theme.templates.user.starship ? post_hook)
+            ) variants
+          );
+      osd =
+        mkCheck "osd"
+          "Native Noctalia must own output/brightness OSD while preserving Framework audio initialization"
+          (
+            builtins.all (
+              h:
+              !h.services.swayosd.enable
+              && !(h.systemd.user.services ? swayosd)
+              && h.programs.noctalia.settings.osd.enabled
+              && h.programs.noctalia.settings.osd.position == "bottom_center"
+              && h.programs.noctalia.settings.osd.position_vertical == "bottom_center"
+              && builtins.all (n: !(builtins.hasAttr "F${toString n}" h.programs.niri.settings.binds)) (
+                pkgs.lib.range 1 12
+              )
+              && h.programs.noctalia.settings.osd.kinds.volume
+              && h.programs.noctalia.settings.osd.kinds.volume_output
+              && !h.programs.noctalia.settings.osd.kinds.volume_input
+              && h.programs.noctalia.settings.osd.kinds.brightness
+              && !h.programs.noctalia.settings.audio.enable_overdrive
+              && !(pkgs.lib.hasInfix "swayosd-client" h.programs.niri.finalConfig)
+              && !(pkgs.lib.hasInfix "volume-ctl" h.programs.niri.finalConfig)
+              && pkgs.lib.hasInfix "pw-loopback" h.programs.niri.finalConfig
+            ) variants
+          );
+      btop =
+        mkCheck "btop" "btop must retain declarative settings/key behavior with only native runtime colors"
+          (
+            same (map (h: builtins.toJSON h.programs.btop.settings) variants)
+            && builtins.all (
+              h:
+              h.programs.btop.enable
+              && !h.stylix.targets.btop.enable
+              && h.programs.btop.settings.color_theme == "noctalia"
+              && h.programs.btop.settings.update_ms == 1000
+              && !h.programs.btop.settings.vim_keys
+              && !(h.programs.btop.themes ? stylix)
+              && pkgs.lib.elem "btop" h.programs.noctalia.settings.theme.templates.builtin_ids
+              && !(managedConfig h "btop/themes/noctalia.theme")
+            ) variants
+          );
+      emacs =
+        mkCheck "emacs"
+          "Managed plain Emacs must load native theme data without changing personal profiles or requiring a daemon"
+          (
+            same (map (h: toString h.programs.emacs.finalPackage) variants)
+            && same (map (h: h.programs.emacs.extraConfig) variants)
+            && builtins.all (
+              h:
+              h.programs.emacs.enable
+              && !h.stylix.targets.emacs.enable
+              && h.programs.noctalia.settings.theme.templates.user ? emacs
+              && !(h.programs.noctalia.settings.theme.templates.user.emacs ? post_hook)
+              && pkgs.lib.hasInfix "(load-theme 'noctalia t)" h.programs.emacs.extraConfig
+              && !(pkgs.lib.hasInfix "base16-stylix" h.programs.emacs.extraConfig)
+              && !h.services.emacs.enable
+            ) variants
+          );
+      dormant-targets =
+        mkCheck "dormant-targets"
+          "Dormant theme generators/KDE overlay must be retired without dropping xterm, shared editor styles or the lock screen"
+          (
+            builtins.all (
+              h:
+              builtins.all (target: !h.stylix.targets.${target}.enable) [
+                "blender"
+                "forge"
+                "gdu"
+                "gedit"
+                "kde"
+                "vencord"
+              ]
+              && !(builtins.any (
+                name:
+                pkgs.lib.hasPrefix "blender/" name
+                || pkgs.lib.hasPrefix "forge/" name
+                || pkgs.lib.hasPrefix "gdu/" name
+                || pkgs.lib.hasPrefix "Vencord/" name
+              ) (builtins.attrNames h.xdg.configFile))
+              && !(h.xdg.dataFile ? "gedit/styles/stylix.xml")
+              && !(pkgs.lib.hasInfix "stylix-kde-config" (h.home.sessionVariables.XDG_CONFIG_DIRS or ""))
+              && h.programs.noctalia.settings.theme.templates.user ? xresources
+              && h.programs.noctalia.settings.theme.templates.user ? gtksourceview
+              && h.programs.swaylock.enable
+            ) variants
+          );
+      xresources =
+        mkCheck "xresources"
+          "Xresources must keep fonts/cursor declarative and load only native runtime color data"
+          (
+            same (map (h: builtins.toJSON h.xresources.properties) variants)
+            && builtins.all (
+              h:
+              !h.stylix.targets.xresources.enable
+              && !h.stylix.targets.sxiv.enable
+              && h.xresources.properties."*.faceName" == h.stylix.fonts.monospace.name
+              && h.xresources.properties."*.faceSize" == toString h.stylix.fonts.sizes.terminal
+              && h.xresources.properties."Xcursor.theme" == h.stylix.cursor.name
+              && h.xresources.properties."Xcursor.size" == h.stylix.cursor.size
+              && !(h.xresources.properties ? "*background")
+              && !(h.xresources.properties ? "*foreground")
+              && pkgs.lib.hasInfix "${h.xdg.stateHome}/noctalia/Xresources" h.xresources.extraConfig
+            ) variants
+          );
+      gtksourceview =
+        mkCheck "gtksourceview"
+          "GTKSourceView must preserve legacy scheme lookup with native runtime colors, not app preference rewrites"
+          (
+            builtins.all (
+              h:
+              !h.stylix.targets.gtksourceview.enable
+              && h.programs.noctalia.settings.theme.templates.user ? gtksourceview
+              && !(h.programs.noctalia.settings.theme.templates.user.gtksourceview ? post_hook)
+              && builtins.all (version: h.xdg.dataFile ? "gtksourceview-${version}/styles/stylix.xml") [
+                "2.0"
+                "3.0"
+                "4"
+                "5"
+              ]
+            ) variants
+          );
+    };
+  in
+  lib.mapAttrs' (name: value: lib.nameValuePair "noctalia-theme-${name}" value) checks
+  // {
+    noctalia-theme-invariants = pkgs.symlinkJoin {
+      name = "noctalia-theme-invariants";
+      paths = builtins.attrValues checks;
+    };
+  }
+)

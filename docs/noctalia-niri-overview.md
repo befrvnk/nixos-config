@@ -327,7 +327,10 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 8 native lock/idle policy and native-parser probes (no authentication/session actions),
 19 safe-suspend tests (all system commands mocked) and
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
-shell/bridge service definitions across theme generations to prevent restart loops.
+shell/bridge service definitions across theme generations to prevent restart loops;
+it is also exposed as `checks.x86_64-linux.noctalia-theme-<name>` so a failure names
+the affected app (config, ghostty, gtk, qt, vicinae, zed, zen, vscode, niri, nushell,
+wallpaper, and so on).
 The deployed handover is accepted: Darkman is inactive/not found, the preference
 matches Noctalia's resolved mode, and the user confirmed dark/light switching works.
 Noctalia kept PID 243684 across the manual toggle trial; the worker completed
