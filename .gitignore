@@ -21,3 +21,6 @@ result
 
 # Claude Code - project .lsp.json doesn't work (use local marketplace instead)
 .claude/.lsp.json
+
+# Python bytecode produced when running the overview unit tests
+__pycache__/
