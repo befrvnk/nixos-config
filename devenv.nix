@@ -189,6 +189,7 @@ in
       jq # JSON parsing for update scripts
       nh # NixOS helper
       nixfmt
+      nix-init # Scaffold package expressions for sources not in nixpkgs
       nurl # Generate repo fetchers and hashes for package updates
       nvd # Nix version diff (for changelog lookup)
       shellcheck # Shell script linter

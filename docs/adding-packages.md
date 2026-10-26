@@ -126,6 +126,57 @@ nix run nixpkgs#firefox
 nix shell nixpkgs#firefox nixpkgs#chromium
 ```
 
+## Packaging Software Not in nixpkgs
+
+Packages this repo maintains live in `pkgs/<name>/`, with a matching overlay in
+`overlays/<name>.nix`.
+
+### Scaffold with nix-init
+
+`nix-init` (available in the devenv shell) generates a package expression with
+hashes, dependencies, and license filled in:
+
+```bash
+nix-init https://github.com/owner/repo v1.2.3
+```
+
+It detects the right builder (`buildGoModule`, `buildRustPackage`,
+`buildPythonApplication`, `stdenv.mkDerivation`, …) and prompts for the rest.
+Review the generated `meta` block before committing — description, license, and
+`mainProgram` are guesses.
+
+For the hash on its own, `nurl` prints a ready-to-use fetcher:
+
+```bash
+nurl https://github.com/owner/repo v1.2.3
+```
+
+### Wire the package up
+
+1. Put the expression in `pkgs/<name>/package.nix`.
+2. Create `overlays/<name>.nix`:
+   ```nix
+   final: prev: {
+     name = final.callPackage ../pkgs/name/package.nix { };
+   }
+   ```
+3. Import the overlay in the matching list in `lib/overlays.nix`:
+   - `sharedOverlays` for both platforms
+   - `nixosOverlays` or `darwinOverlays` for one platform only
+
+Add the package to `modules/system/packages.nix` or a Home Manager module — see
+the ownership rule above.
+
+### Add an update script
+
+For packages that track GitHub releases, follow the existing scripts:
+
+1. Create `scripts/update-<name>.sh` sourcing `update-common.sh` (see
+   `scripts/update-gh-enhance.sh`). It uses `nurl` for the source hash and falls
+   back to `nix-prefetch-url` when nurl is unavailable.
+2. Call it from the `flake-update` command in `devenv.nix`, next to the other
+   `./scripts/update-*.sh` lines.
+
 ## Rebuild Commands
 
 ### NixOS
