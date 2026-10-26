@@ -1,37 +1,31 @@
 {
   # SCX sched_ext BPF scheduler
-  # Uses scx_flash (EDF scheduler with dynamic latency weighting) for interactive workloads
-  # See: https://github.com/sched-ext/scx/blob/main/scheds/rust/scx_flash/README.md
+  # Uses scx_lavd (Latency-criticality Aware Virtual Deadline): every task gets a virtual
+  # deadline derived from how latency-critical it has proven to be, so interactive tasks
+  # (terminal, topbar, typing) are served quickly while parallel builds saturate the cores.
+  # See: https://github.com/sched-ext/scx/blob/main/scheds/rust/scx_lavd/README.md
   #
-  # flash assigns each task a latency weight that rises when it releases the CPU early,
-  # so latency-sensitive tasks (editor, terminal, audio) stay responsive even when all
-  # cores are saturated by CPU-bound workloads such as parallel builds.
+  # --autopilot: pick the power mode from *system load* instead of from the tuned power
+  #   profile. While a build runs lavd shifts toward performance (responsive UI without
+  #   having to switch profiles); at idle it drops to powersave with core compaction,
+  #   which consolidates work and parks the unused cores - the battery behaviour we want.
+  #   (`--autopower` would follow tuned-ppd instead, keeping powersave while loaded on
+  #   framework-battery, i.e. exactly the lag this switch is meant to remove.)
   #
-  # --primary-domain auto: Gate the initial dispatch domain based on the active platform
-  #   power profile (read via tuned-ppd). On battery this favors the efficient cores and
-  #   parks unused ones, giving the aggressive core-disabling we want for low idle power.
+  # NOTE: lavd has no cpufreq control; frequency scaling stays with amd_pstate=active EPP
+  #   as set by the tuned profile, so scheduler and power profile remain independent.
   #
-  # --throttle-us: Periodically inject idle cycles to extend battery life on portable
-  #   devices and reduce heat/fan noise. 0 = disabled; tuned value here is conservative.
-  #
-  # NOTE: We deliberately do NOT pass --cpufreq. flash's built-in frequency control needs
-  # the schedutil governor, but this host uses amd_pstate=active where the CPU hardware
-  # handles frequency autonomously via EPP. Leaving frequency control to EPP is the
-  # better fit (also avoids needing a governor change).
+  # Replaces scx_flash (EDF + latency weighting with profile-gated core domains), which
+  # was swapped out after UI lag under sustained build load.
   services.scx = {
     enable = true;
-    scheduler = "scx_flash";
+    scheduler = "scx_lavd";
     extraArgs = [
-      # `auto` is also flash's default, but being explicit documents the intent.
-      "--primary-domain"
-      "auto"
-      # Match the low-wattage-on-battery goal that scx_lavd --autopower provided.
-      "--throttle-us"
-      "200"
+      "--autopilot"
     ];
   };
 
   # Reduce stop timeout to avoid long shutdown delays
-  # Kernel falls back to CFS automatically if forcibly killed
+  # Kernel falls back to the built-in scheduler (EEVDF) automatically if forcibly killed
   systemd.services.scx.serviceConfig.TimeoutStopSec = 10;
 }

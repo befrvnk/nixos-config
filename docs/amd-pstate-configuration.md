@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document explains the AMD P-State configuration used in this NixOS setup, including what Energy Performance Preference (EPP) is, how Active mode works with the scx_flash scheduler, and the power management architecture.
+This document explains the AMD P-State configuration used in this NixOS setup, including what Energy Performance Preference (EPP) is, how Active mode works with the scx_lavd scheduler, and the power management architecture.
 
 ## What is AMD P-State?
 
@@ -80,13 +80,13 @@ On the Framework AMD Ryzen AI 300 series with current BIOS (03.04):
 - This is likely a BIOS/firmware limitation or early hardware support issue
 - Without `balance_performance` or `power` EPP options, Active mode couldn't dynamically adjust behavior
 
-## Current Configuration: Active Mode + scx_flash
+## Current Configuration: Active Mode + scx_lavd
 
-After initially switching to Passive mode to work around BIOS EPP limitations, we returned to **Active mode** so the CPU hardware handles frequency autonomously via EPP, while the `scx_flash` sched_ext scheduler handles task placement and core gating on top of it.
+After initially switching to Passive mode to work around BIOS EPP limitations, we returned to **Active mode** so the CPU hardware handles frequency autonomously via EPP, while the `scx_lavd` sched_ext scheduler handles task placement and core gating on top of it.
 
 ### Why Active Mode Now?
 
-Active mode (`amd_pstate=active`) exposes EPP via sysfs and lets the CPU hardware make low-latency autonomous frequency decisions. This pairs well with the `scx_flash` scheduler, which focuses on task placement and responsiveness rather than frequency control.
+Active mode (`amd_pstate=active`) exposes EPP via sysfs and lets the CPU hardware make low-latency autonomous frequency decisions. This pairs well with the `scx_lavd` scheduler, which focuses on task placement and responsiveness rather than frequency control.
 
 ### Kernel Parameter
 Configured in `modules/hardware/power-management.nix`:
@@ -141,7 +141,7 @@ balance_performance  # or performance, power, etc.
 $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferences
 ```
 
-## How Active Mode + scx_flash Work Together
+## How Active Mode + scx_lavd Work Together
 
 ### The Power Management Stack
 
@@ -154,9 +154,9 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│              scx_flash scheduler                            │
-│    EDF + latency weighting, core gating                     │
-│    Primary domain follows the power profile                 │
+│              scx_lavd scheduler                             │
+│    Latency virtual deadlines, core compaction               │
+│    Power mode follows system load (--autopilot)             │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
@@ -168,18 +168,18 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 
 ### Benefits of This Architecture
 
-1. **Responsiveness under load**: flash's EDF + dynamic latency weighting keeps latency-sensitive tasks responsive even when all cores are saturated by parallel builds
-2. **Core gating by power profile**: `--primary-domain auto` prioritizes the efficient cores and parks unused ones when on battery
+1. **Responsiveness under load**: lavd's latency-criticality virtual deadlines keep latency-sensitive tasks responsive even when all cores are saturated by parallel builds
+2. **Core compaction by load**: `--autopilot` consolidates work onto fewer cores and parks the rest when the machine is idle, releasing them again as load rises
 3. **Hardware Efficiency**: Active mode lets the CPU make autonomous frequency decisions with lower latency
-4. **Layered Control**: Platform profile controls system-wide behavior, while scx_flash optimizes task scheduling
+4. **Layered Control**: Platform profile controls system-wide behavior, while scx_lavd optimizes task scheduling
 
 ### Trade-offs
 
-| Aspect | Active Mode + scx_flash | Previous Passive Mode |
+| Aspect | Active Mode + scx_lavd | Previous Passive Mode |
 |--------|------------------------|----------------------|
 | Frequency control | Hardware autonomous | Kernel controlled |
-| Scheduling | scx_flash (userspace BPF) | CFS (kernel) |
-| Power optimization | Core gating + throttle | schedutil governor |
+| Scheduling | scx_lavd (userspace BPF) | CFS (kernel) |
+| Power optimization | Core compaction (load-based) | schedutil governor |
 | EPP support required | No (frequency via hardware) | No |
 | Latency | Lower (hardware decisions) | Slightly higher |
 
@@ -207,19 +207,18 @@ You should see frequencies scale down to ~400-800 MHz during idle and scale up t
 
 ## Future Considerations
 
-### Tuning scx_flash
+### Tuning scx_lavd
 If the default behavior doesn't suit your workload, adjust the options in `modules/services/scx.nix`:
 ```nix
-# More battery life (inject more idle cycles; 0 = off)
-extraArgs = [ "--throttle-us" "400" ];
+# Follow the tuned power profile instead of the system load
+# (battery-first, but stays in powersave while a build runs)
+extraArgs = [ "--autopower" ];
 
-# Use all cores / fastest cores for heavy parallel builds
-# instead of gating to the efficient cores
-# "performance" or "all" are options; default is "auto"
-extraArgs = [ "--primary-domain" "all" ];
+# Pin a mode instead of adapting: "--performance" | "--balanced" | "--powersave"
+extraArgs = [ "--performance" ];
 
-# More responsive interactive tasks (bursty UI/audio)
-extraArgs = [ "--slice-us-lag" "30000" ];
+# Longer scheduling slices for throughput-oriented workloads (default 5000us)
+extraArgs = [ "--slice-max-us" "10000" ];
 ```
 
 ### Switching Back to Passive Mode
@@ -227,11 +226,13 @@ If EPP-based scheduling causes issues, you can return to kernel-controlled frequ
 ```nix
 boot.kernelParams = [ "amd_pstate=passive" ];
 ```
-This enables full governor support (`schedutil`, `ondemand`, etc.) and lets scx_flash optionally drive frequency via `--cpufreq`.
+This enables full governor support (`schedutil`, `ondemand`, etc.). lavd has no frequency
+driver control either way, so frequency stays with the governor/EPP.
 
 ### Alternative Schedulers
-If scx_flash doesn't work well for your use case:
-- `scx_bpfland` - vruntime scheduler that explicitly prioritizes interactive tasks (lavd/rustland lineage)
+If scx_lavd doesn't work well for your use case:
+- `scx_flash` - EDF with dynamic latency weighting and profile-gated core domains (the scheduler used here before lavd)
+- `scx_bpfland` - vruntime scheduler that explicitly prioritizes interactive tasks
 - `scx_rusty` - Better for throughput-focused workloads
 - `scx_simple` - Minimal reference scheduler
 
@@ -313,7 +314,7 @@ No sudo required for profile switching - tuned-ppd uses D-Bus for authorization.
 
 ## SCX sched_ext Scheduler
 
-This system uses the **SCX (sched_ext)** BPF scheduler framework with **scx_flash** for responsive, latency-aware scheduling.
+This system uses the **SCX (sched_ext)** BPF scheduler framework with **scx_lavd** for responsive, latency-aware scheduling.
 
 ### What is sched_ext?
 
@@ -330,21 +331,22 @@ Configured in `modules/services/scx.nix`:
 {
   services.scx = {
     enable = true;
-    scheduler = "scx_flash";
-    extraArgs = [ "--primary-domain" "auto" "--throttle-us" "200" ];
+    scheduler = "scx_lavd";
+    extraArgs = [ "--autopilot" ];
   };
 }
 ```
 
-### Why scx_flash?
+### Why scx_lavd?
 
-**scx_flash** (Intel's live scheduler) uses an **earliest deadline first (EDF)** policy with dynamic latency weighting:
+**scx_lavd** (Latency-criticality Aware Virtual Deadline) derives each task's virtual
+deadline from how latency-critical it has already proven to be:
 
-- **Dynamic latency weight**: Tasks that release the CPU early (frequent short bursts, e.g. UI, input, audio) get a higher latency weight and are prioritized over tasks that fully consume their time slice (e.g. compilers)
+- **Latency-criticality aware**: Tasks that release the CPU early (frequent short bursts, e.g. UI, input, audio) get tighter deadlines and are prioritized over tasks that fully consume their time slice (e.g. compilers)
 - **Responsive under overcommit**: Designed to stay responsive and consistent even when all cores are saturated by CPU-bound builds
-- **`--primary-domain auto`**: Gates the initial dispatch domain based on the active power profile, preferring efficient cores on battery and parking unused ones
-- **`--throttle-us`**: Periodically injects idle cycles to extend battery life and reduce heat/fan noise
-- **No `--cpufreq`**: On this host frequency is handled by `amd_pstate=active` EPP (hardware autonomous), not schedutil
+- **`--autopilot`**: Picks the power mode from *system load* - performance while a build runs (interactive work stays responsive without switching the tuned profile), powersave at idle
+- **Core compaction**: In powersave/balanced modes work consolidates onto fewer cores so the others can sleep, which is the "park unused cores" battery behaviour
+- **No cpufreq control**: On this host frequency is handled by `amd_pstate=active` EPP (hardware autonomous), not schedutil
 
 ### Alternative Schedulers
 
@@ -352,14 +354,14 @@ Configured in `modules/services/scx.nix`:
 - `scx_rusty` - Work-conserving scheduler (good for throughput)
 - `scx_simple` - Minimal reference scheduler
 
-### How scx_flash + AMD P-State Work Together
+### How scx_lavd + AMD P-State Work Together
 
 ```
 AMD P-State (Active)     →  Controls CPU frequency (hardware autonomous)
          ↓
-scx_flash                →  Task placement + core gating by power profile
+scx_lavd                 →  Task placement + core compaction under light load
          ↓
-Latency weighting        →  Interactive tasks stay responsive under load
+Virtual deadlines        →  Interactive tasks stay responsive under load
 ```
 
 Together they provide:
@@ -371,12 +373,12 @@ Together they provide:
 ### Verification
 
 ```bash
-# Check if scx_flash is running
+# Check if scx_lavd is running
 systemctl status scx
 
 # Check scheduler via sysfs
 cat /sys/kernel/sched_ext/root/type
-# Should show: flash
+# Should show: lavd
 
 # View scheduler statistics
 cat /sys/kernel/sched_ext/root/stats/*
