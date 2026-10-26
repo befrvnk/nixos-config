@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ pkgs, ... }:
 {
   home.packages = [
     # Pi compiled ahead of time to a native executable (separate install from

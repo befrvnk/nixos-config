@@ -74,7 +74,7 @@ in
     policies =
       let
         mkExtensionSettings = builtins.mapAttrs (
-          guid: slug: {
+          _guid: slug: {
             install_url = "https://addons.mozilla.org/firefox/downloads/latest/${slug}/latest.xpi";
             installation_mode = "force_installed";
           }

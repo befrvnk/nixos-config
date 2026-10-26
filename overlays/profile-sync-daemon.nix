@@ -3,7 +3,7 @@
 # Includes fix from PR #392: https://github.com/graysky2/profile-sync-daemon/pull/392
 # (Use ^[Pp]ath= to avoid matching ZenAvatarPath in profiles.ini)
 # NixOS-specific: PSNAME matches the wrapped binary name (truncated to 15 chars)
-final: prev: {
+_final: prev: {
   profile-sync-daemon = prev.profile-sync-daemon.overrideAttrs (oldAttrs: {
     installPhase = oldAttrs.installPhase + ''
       # Add Zen Browser definition (Firefox fork with profile at ~/.zen)

@@ -1,7 +1,6 @@
 {
   inputs,
   hostConfig,
-  pkgs,
   ...
 }:
 

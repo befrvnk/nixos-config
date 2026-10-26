@@ -203,6 +203,11 @@ in
 
   # Git hooks configuration - runs automatically on commit
   git-hooks.hooks = {
+    # git-hooks.nix already passes --fail, so unused code blocks the commit.
+    deadnix = {
+      enable = true;
+      package = pkgs.deadnix;
+    };
     nixfmt = {
       enable = true;
       package = pkgs.nixfmt;
