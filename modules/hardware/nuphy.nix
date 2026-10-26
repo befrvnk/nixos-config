@@ -20,12 +20,14 @@ lib.mkIf (hostConfig.enableNuphy or false) {
   # - Modify keyboard settings without sudo
 
   # udev rules for NuPhy keyboards (vendor ID: 19f5)
-  # These rules grant the plugdev group access to NuPhy USB and HID devices
+  # These rules grant the plugdev group access to NuPhy USB and HID devices.
+  # Keep the nodes group-writable instead of world-writable: hidraw exposes raw
+  # keyboard input, so 0666 would let any local user read keystrokes.
   services.udev.extraRules = ''
     # NuPhy keyboards - USB subsystem
-    SUBSYSTEM=="usb", ATTR{idVendor}=="19f5", MODE="0666", GROUP="plugdev"
+    SUBSYSTEM=="usb", ATTR{idVendor}=="19f5", MODE="0660", GROUP="plugdev"
     # NuPhy keyboards - HID raw interface (used by WebHID)
-    SUBSYSTEM=="hidraw", ATTRS{idVendor}=="19f5", MODE="0666", GROUP="plugdev"
+    SUBSYSTEM=="hidraw", ATTRS{idVendor}=="19f5", MODE="0660", GROUP="plugdev", TAG+="uaccess"
   '';
 
   # Create the plugdev group
