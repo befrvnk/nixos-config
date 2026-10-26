@@ -9,11 +9,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792880191,
-        "narHash": "sha256-71SYzw8EiZSKK8dyEHJNLkxWCkjZMs7SI1bBgAJlTK8=",
+        "lastModified": 1792966781,
+        "narHash": "sha256-dkA42bsW6h5LYTa6G0rxgo03QvtNwagxdABcT/9lce0=",
         "owner": "tadfisher",
         "repo": "android-nixpkgs",
-        "rev": "277e58089f67bac9844c05d5d9c4bca12932caeb",
+        "rev": "4cdd6e00edd910fb835943a7f695fd107426807d",
         "type": "github"
       },
       "original": {
@@ -1626,11 +1626,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792595242,
-        "narHash": "sha256-kH/E0uJDslOgYcnmU+c0cm6HrUjsEtvZQKZtuQ1+uvo=",
+        "lastModified": 1792963762,
+        "narHash": "sha256-ThRNX0+T2Gb3ZD0Xf+/R3wJdL93/mW80ubMnLjZelTY=",
         "owner": "0xc000022070",
         "repo": "zen-browser-flake",
-        "rev": "f19490ac889eabb05bdb7e8dcb85225ee75bd87b",
+        "rev": "ed68d814d6cf2e221ba43d84f1e32429f5e2786f",
         "type": "github"
       },
       "original": {

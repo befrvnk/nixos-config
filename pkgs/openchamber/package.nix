@@ -11,11 +11,11 @@
 
 let
   pname = "openchamber";
-  version = "2.5.1";
+  version = "2.5.2";
   appName = "OpenChamber.app";
   executable = "OpenChamber";
-  darwinHash = "sha256-AMO+Hg0kDMJ4YKNu9y/2OmZVlgumX+fJrnu389gqMNc=";
-  linuxHash = "sha256-+3urWx26a58ZET0CV9akjVVPsL3m2SSlsMEW7a87pNo=";
+  darwinHash = "sha256-p/BnHE3RIsv7Q32hsmVGr2tEoyMUtlO3NiQDHha/V9U=";
+  linuxHash = "sha256-6VgPKo5ctn5ppCRtFjuwnH8vKFhQS9cIbU+iBlVKWHg=";
 
   meta = {
     description = "Desktop and web interface for the OpenCode AI agent";
