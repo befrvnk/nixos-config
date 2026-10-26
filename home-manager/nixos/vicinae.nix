@@ -27,6 +27,11 @@ in
           enabled = false; # Disabled for niri compatibility
         };
       };
+
+      # Background file indexing off: a full $HOME scan cost 2.6 GiB read + 2.2 GiB
+      # write per boot and indexed its own 2 GB cache DB. Set through the GUI; pinned
+      # here so a regenerated settings.json cannot silently turn it back on.
+      providers.files.preferences.autoIndexing = false;
     };
 
     extensions = with inputs.vicinae-extensions.packages.${pkgs.stdenv.hostPlatform.system}; [
