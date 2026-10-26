@@ -52,10 +52,10 @@ in
       '';
 
       format = ''
-        Format all Nix files with nixfmt
+        Format all Nix files with nixfmt-tree
 
         ```bash
-        nixfmt **/*.nix
+        nix fmt
         ```
       '';
 
@@ -114,12 +114,12 @@ in
 
         Commit message format:
         ```
-        <type>(<scope>): <short summary>
+        <type>: <short summary>
 
         <optional detailed explanation>
         ```
 
-        Types: feat, fix, refactor, docs, style, chore
+        Types: Add, Update, Fix, Refactor, Remove, Document
       '';
     };
 
@@ -488,13 +488,13 @@ in
     # Usage: hermi-update [user@host]  (default target: frank@hermi)
     hermi-update.exec = ''
       target="''${1:-frank@hermi}"
-      flake="$HOME/nixos-config#hermi"
-      echo "+ nixos-rebuild switch --flake $flake --target-host $target --sudo --accept-flake-config"
-      ${pkgs.nixos-rebuild}/bin/nixos-rebuild switch \
-        --flake "$flake" \
+      echo "+ ${pkgs.nh}/bin/nh os switch --hostname hermi --target-host $target --elevation-strategy passwordless --accept-flake-config $HOME/nixos-config"
+      ${pkgs.nh}/bin/nh os switch \
+        --hostname hermi \
         --target-host "$target" \
-        --sudo \
-        --accept-flake-config
+        --elevation-strategy passwordless \
+        --accept-flake-config \
+        "$HOME/nixos-config"
     '';
 
     # Build the hermi Raspberry Pi SD image on this machine.
