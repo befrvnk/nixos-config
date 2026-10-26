@@ -6,7 +6,7 @@
 }:
 
 let
-  openchamberVersion = "2.5.2";
+  openchamber = pkgs.callPackage ../../pkgs/openchamber/package.nix { };
 in
 {
   imports = [
@@ -89,24 +89,6 @@ in
   # after one has been configured on the Pi.
   security.sudo.wheelNeedsPassword = false;
 
-  system.activationScripts."openchamber-setup" = lib.stringAfter [ "users" "groups" ] ''
-    mkdir -p /var/lib/openchamber/app
-    chown openchamber:openchamber /var/lib/openchamber /var/lib/openchamber/app
-    chmod 0750 /var/lib/openchamber
-
-    installed_version="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' /var/lib/openchamber/app/node_modules/@openchamber/web/package.json 2>/dev/null | head -n1)"
-    if [ "$installed_version" != "${openchamberVersion}" ]; then
-      echo "Installing OpenChamber ${openchamberVersion} (downloads from npm)..."
-      rm -rf /var/lib/openchamber/app/node_modules
-      # npm lifecycle scripts (node-pty etc.) need 'node', 'sh' and common
-      # utils, which are absent from the activation environment's minimal PATH.
-      export PATH="${pkgs.nodejs_22}/bin:${pkgs.bash}/bin:${pkgs.coreutils}/bin:${pkgs.gnused}/bin:${pkgs.gnugrep}/bin:${pkgs.findutils}/bin":$PATH
-      ${pkgs.nodejs_22}/bin/npm install --omit=dev --no-audit --no-fund \
-        --prefix /var/lib/openchamber/app "@openchamber/web@${openchamberVersion}"
-      chown -R openchamber:openchamber /var/lib/openchamber/app
-    fi
-  '';
-
   systemd.services.openchamber = {
     description = "OpenChamber headless server";
     wantedBy = [ "multi-user.target" ];
@@ -117,8 +99,11 @@ in
       PATH = lib.mkForce (
         lib.makeBinPath [
           pkgs.bash
+          pkgs.coreutils
           pkgs.curl
           pkgs.git
+          pkgs.gnugrep
+          pkgs.gnused
           pkgs.neovim
           pkgs.opencode
         ]
@@ -128,23 +113,42 @@ in
       User = "openchamber";
       Group = "openchamber";
       WorkingDirectory = "/var/lib/openchamber";
+      StateDirectory = "openchamber";
+      StateDirectoryMode = "0750";
       EnvironmentFile = "-/var/lib/openchamber/env";
       ExecStartPre = "${pkgs.gnugrep}/bin/grep -q '^OPENCHAMBER_UI_PASSWORD=.' /var/lib/openchamber/env";
-      ExecStart = "${pkgs.nodejs_22}/bin/node /var/lib/openchamber/app/node_modules/@openchamber/web/bin/cli.js serve --lan --port 3000 --foreground";
+      ExecStart = "${openchamber}/bin/openchamber-web serve --lan --port 3000 --foreground";
       Restart = "on-failure";
       RestartSec = 5;
       UMask = "0077";
+
+      # The server is reachable from the LAN and runs agent sessions; keep its
+      # system view read-only except for its own state directory.
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ReadWritePaths = [ "/var/lib/openchamber" ];
+      RestrictAddressFamilies = [
+        "AF_UNIX"
+        "AF_INET"
+        "AF_INET6"
+      ];
+      RestrictSUIDSGID = true;
+      LockPersonality = true;
     };
   };
 
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = [
+    openchamber
+  ]
+  ++ (with pkgs; [
     bash
     curl
     git
     neovim
     nodejs_22
     opencode
-  ];
+  ]);
 
   system.stateVersion = "25.05";
 }

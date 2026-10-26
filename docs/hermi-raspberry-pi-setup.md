@@ -25,14 +25,19 @@ Relay while away from home, and use the direct LAN connection while home.
 ## Configuration and Updates
 
 `hosts/hermi/default.nix` declares the service user, OpenCode runtime,
-firewall, and OpenChamber service. The service installs the version pinned by
-`openchamberVersion` from npm on activation. Its mutable state and installed
-node modules remain under `/var/lib/openchamber`.
+firewall, and OpenChamber service. The service runs the packaged
+`openchamber-web` binary from `pkgs/openchamber/package.nix`; the same
+derivation provides the desktop AppImage and the headless server, so a NixOS
+rebuild installs the pinned version without npm or network access. Mutable
+state remains under `/var/lib/openchamber`.
 
-Run `flake-update` from this repository to update flake inputs, desktop
-OpenChamber artifacts, and hermi's pinned `@openchamber/web` version to the
-latest GitHub release. A rebuild deploys that version; OpenChamber does not
-self-update outside NixOS activation.
+Run `flake-update` from this repository to update flake inputs, the shared
+OpenChamber desktop/server version and hashes, and the corresponding hermi
+deployment in one step. OpenChamber does not self-update outside a NixOS
+rebuild.
+
+The previous npm tree at `/var/lib/openchamber/app` is no longer used. Remove it
+after the packaged server has started successfully.
 
 Build the SD image from the Framework:
 
@@ -94,7 +99,7 @@ On hermi, generate a one-time QR code that works both on the LAN and remotely:
 ```bash
 sudo -u openchamber \
   HOME=/var/lib/openchamber \
-  /var/lib/openchamber/app/node_modules/.bin/openchamber connect-url --relay --port 3000 --qr
+  openchamber-web connect-url --relay --port 3000 --qr
 ```
 
 In the Android app, select **Scan QR code** and scan it. The QR code expires
