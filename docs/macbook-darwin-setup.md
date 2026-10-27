@@ -255,6 +255,8 @@ To use vault items from the CLI, enable the desktop app integration in 1Password
 
 If `op signin` says "No accounts configured", the app integration is not enabled or the account has not been added to the 1Password app. Do not add an account manually unless you intentionally want the older terminal-password/session-token flow.
 
+To avoid unlocking 1Password for every signed commit or push, turn off the idle auto-lock and enable **Lock when device locks or sleeps**; see [1Password SSH session](1password-ssh-session.md) for the full model.
+
 ### macOS System Defaults
 
 Configured via nix-darwin:

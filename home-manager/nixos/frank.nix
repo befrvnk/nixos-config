@@ -7,6 +7,7 @@
 
     # NixOS-specific modules
     inputs.zen-browser.homeModules.beta
+    ./1password-session
     ./android
     ./audio-idle-inhibit
     ./audio-keep-alive

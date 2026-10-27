@@ -669,6 +669,7 @@ Detailed guides for specific topics:
 ### Security & Authentication
 - [Secure Boot with TPM](./docs/secure-boot.md) - Secure boot setup
 - [Fingerprint Setup](./docs/fingerprint-setup.md) - Fingerprint authentication
+- [1Password SSH Session](./docs/1password-ssh-session.md) - Unlock once per session, lock the SSH keys on suspend
 
 ### Theming & Desktop
 - [Noctalia V5 with Niri](./docs/noctalia-niri-overview.md) - Shell setup, plugins, overview-only behavior and rollback
