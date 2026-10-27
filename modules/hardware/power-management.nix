@@ -292,25 +292,22 @@ in
       # Disable NMI watchdog (saves ~1W)
       # NMI watchdog is used for detecting hard lockups, but not needed for normal use
       "nmi_watchdog=0"
-      # PCIe ASPM: Use "performance" instead of "powersupersave".
-      #
-      # powersupersave caused two MT7925 WiFi problems coordinated here:
-      #   1. Boot-time "driver own failed" (documented in mt7925-wifi-boot-failure.md)
-      #   2. Runtime throughput throttling after suspend/resume: the radio wakes,
-      #      negotiates a full MCS rate (~780 Mbit/s) but actual throughput drops to
-      #      ~2.7 Mbit/s because aggressive ASPM L1 leaves frame aggregation broken.
-      #
-      # "performance" keeps ASPM enabled (less power impact than pcie_aspm=off)
-      # but avoids the aggressive low-power state that throttles the card.
-      # See: docs/mt7925-wifi-boot-failure.md, docs/wifi-wakeup-log.md
-      "pcie_aspm.policy=performance"
+      # PCIe ASPM: powersave is the compromise after the 2026-10-27 A/B:
+      # performance 10.32 W, powersave 7.17 W, powersupersave 5.90 W. powersave
+      # enables L1 on the NVMe/Wi-Fi/GPU links without the most aggressive
+      # substates. powersupersave is still the policy linked to the MT7925
+      # boot/resume issues (docs/mt7925-wifi-boot-failure.md), so it is not the
+      # first step: keep "performance" as the fallback if the card regresses,
+      # and trial powersupersave separately for another ~1.3 W once powersave
+      # survives boot + suspend/resume.
+      "pcie_aspm.policy=powersave"
       # RCU Lazy: batch RCU callbacks during idle for 5-10% power savings
       # Allows deeper CPU sleep states at idle; no performance downside
       "rcutree.enable_rcu_lazy=1"
     ]
     # AMD-specific: Use P-State active (EPP) mode for hardware-controlled frequency scaling
     # Active mode: hardware autonomously controls frequency based on Energy Performance Preference (EPP)
-    # EPP handles frequency; scx_flash scheduler handles task placement/gating on top of it
+    # EPP handles frequency; scx_lavd scheduler handles task placement/gating on top of it
     # Better idle efficiency and works well with sched_ext schedulers
     ++ lib.optionals isAmd [ "amd_pstate=active" ];
 

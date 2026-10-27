@@ -189,8 +189,9 @@ echo 3 > /sys/class/drm/card1-eDP-1/amdgpu/panel_power_savings
 
 ### SCX Scheduler (`modules/services/scx.nix`)
 - Uses `scx_lavd` BPF scheduler (Latency-criticality Aware Virtual Deadline)
-- `--autopilot` picks the power mode from *system load*: performance while a build runs,
-  powersave with core compaction at idle (parking unused cores)
+- `--autopower` takes the power mode from the tuned/PPD profile: powersave with core
+  compaction on battery profiles, balanced on AC. The bar's profile switch controls it;
+  system load does not override it.
 - No cpufreq control: frequency is left to `amd_pstate=active` EPP (hardware autonomous)
 - `flash`'s flags (`--primary-domain`, `--throttle-us`) are *not* valid for lavd - the
   service fails to start with `unexpected argument`

@@ -5,12 +5,12 @@
   # (terminal, topbar, typing) are served quickly while parallel builds saturate the cores.
   # See: https://github.com/sched-ext/scx/blob/main/scheds/rust/scx_lavd/README.md
   #
-  # --autopilot: pick the power mode from *system load* instead of from the tuned power
-  #   profile. While a build runs lavd shifts toward performance (responsive UI without
-  #   having to switch profiles); at idle it drops to powersave with core compaction,
-  #   which consolidates work and parks the unused cores - the battery behaviour we want.
-  #   (`--autopower` would follow tuned-ppd instead, keeping powersave while loaded on
-  #   framework-battery, i.e. exactly the lag this switch is meant to remove.)
+  # --autopower: take the power mode from the tuned/PPD profile. On battery,
+  #   framework-battery/framework-powersave keep lavd in powersave with core
+  #   compaction (unused cores park); on AC, framework-ac lets it use balanced.
+  #   This keeps the mode under the bar's profile switch instead of letting system
+  #   load override it (--autopilot would shift toward performance during a build
+  #   even on battery).
   #
   # NOTE: lavd has no cpufreq control; frequency scaling stays with amd_pstate=active EPP
   #   as set by the tuned profile, so scheduler and power profile remain independent.
@@ -21,7 +21,7 @@
     enable = true;
     scheduler = "scx_lavd";
     extraArgs = [
-      "--autopilot"
+      "--autopower"
     ];
   };
 

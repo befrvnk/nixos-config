@@ -620,7 +620,7 @@ Atuin duplicate-binding warning), check [pre-session Home Manager activation](do
 - **ABM (Adaptive Backlight Management)** on battery for display power savings (disabled on AC for accurate colors)
 - **Auto-brightness** via ambient light sensor with hysteresis (toggle with `Mod+Shift+B` for photo editing)
 - **Bluetooth power savings** - Off on boot (~0.5W savings), automatically turns on when AC is connected, manual control via blueman
-- **SCX scheduler (scx_lavd)** keeps interactive work responsive under heavy builds; `--autopilot` picks the power mode from system load and compacts idle cores for battery life
+- **SCX scheduler (scx_lavd)** keeps interactive work responsive under heavy builds; `--autopower` follows the tuned/PPD profile, keeping powersave with core compaction on battery
 - **Battery and power controls** in Noctalia for manual profile switching
 - **wayland-pipewire-idle-inhibit** - Screen stays on during audio/video playback
 - Auto-suspend after 5 minutes idle (when no media playing)

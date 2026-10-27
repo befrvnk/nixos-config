@@ -156,7 +156,7 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 ┌─────────────────────────────────────────────────────────────┐
 │              scx_lavd scheduler                             │
 │    Latency virtual deadlines, core compaction               │
-│    Power mode follows system load (--autopilot)             │
+│    Power mode follows tuned/PPD (--autopower)               │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
@@ -169,7 +169,7 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 ### Benefits of This Architecture
 
 1. **Responsiveness under load**: lavd's latency-criticality virtual deadlines keep latency-sensitive tasks responsive even when all cores are saturated by parallel builds
-2. **Core compaction by load**: `--autopilot` consolidates work onto fewer cores and parks the rest when the machine is idle, releasing them again as load rises
+2. **Core compaction by profile**: `--autopower` consolidates work onto fewer cores and parks the rest in the battery profiles; on AC balanced it releases them as load rises
 3. **Hardware Efficiency**: Active mode lets the CPU make autonomous frequency decisions with lower latency
 4. **Layered Control**: Platform profile controls system-wide behavior, while scx_lavd optimizes task scheduling
 
@@ -179,7 +179,7 @@ $ cat /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_available_preferen
 |--------|------------------------|----------------------|
 | Frequency control | Hardware autonomous | Kernel controlled |
 | Scheduling | scx_lavd (userspace BPF) | CFS (kernel) |
-| Power optimization | Core compaction (load-based) | schedutil governor |
+| Power optimization | Core compaction (profile-based) | schedutil governor |
 | EPP support required | No (frequency via hardware) | No |
 | Latency | Lower (hardware decisions) | Slightly higher |
 
@@ -208,13 +208,10 @@ You should see frequencies scale down to ~400-800 MHz during idle and scale up t
 ## Future Considerations
 
 ### Tuning scx_lavd
-If the default behavior doesn't suit your workload, adjust the options in `modules/services/scx.nix`:
+The default is `--autopower`: lavd follows the tuned/PPD profile (powersave on battery,
+balanced on AC). To pin a mode instead, adjust the options in `modules/services/scx.nix`:
 ```nix
-# Follow the tuned power profile instead of the system load
-# (battery-first, but stays in powersave while a build runs)
-extraArgs = [ "--autopower" ];
-
-# Pin a mode instead of adapting: "--performance" | "--balanced" | "--powersave"
+# Pin a mode instead of following tuned: "--performance" | "--balanced" | "--powersave"
 extraArgs = [ "--performance" ];
 
 # Longer scheduling slices for throughput-oriented workloads (default 5000us)
@@ -331,7 +328,7 @@ Configured in `modules/services/scx.nix`:
   services.scx = {
     enable = true;
     scheduler = "scx_lavd";
-    extraArgs = [ "--autopilot" ];
+    extraArgs = [ "--autopower" ];
   };
 }
 ```
@@ -343,7 +340,7 @@ deadline from how latency-critical it has already proven to be:
 
 - **Latency-criticality aware**: Tasks that release the CPU early (frequent short bursts, e.g. UI, input, audio) get tighter deadlines and are prioritized over tasks that fully consume their time slice (e.g. compilers)
 - **Responsive under overcommit**: Designed to stay responsive and consistent even when all cores are saturated by CPU-bound builds
-- **`--autopilot`**: Picks the power mode from *system load* - performance while a build runs (interactive work stays responsive without switching the tuned profile), powersave at idle
+- **`--autopower`**: Takes the power mode from the tuned/PPD profile - powersave with core compaction on battery, balanced on AC. The bar's profile switch is the control; system load does not override it.
 - **Core compaction**: In powersave/balanced modes work consolidates onto fewer cores so the others can sleep, which is the "park unused cores" battery behaviour
 - **No cpufreq control**: On this host frequency is handled by `amd_pstate=active` EPP (hardware autonomous), not schedutil
 

@@ -8,7 +8,12 @@
 
 The MediaTek MT7925 (WiFi 7) card on Framework Laptop 13 (AMD Ryzen AI 300 Series) intermittently fails to initialize during boot with "driver own failed" errors. This is caused by PCIe ASPM (Active State Power Management) putting the device in a low-power state before the driver can probe it.
 
-**Status:** Fixed with `pcie_aspm.policy=performance` kernel parameter.
+**Status (2026-10-27):** `performance` is the conservative fallback. The current
+default is `powersave` (L1 enabled, less aggressive than `powersupersave`).
+A/B on 6.18.55: performance 10.32 W, powersave 7.17 W, powersupersave 5.90 W,
+with L1 on the NVMe/Wi-Fi/GPU links and no short-run throughput loss. The
+powersave boot/suspend-resume soak is pending; powersupersave is the next trial.
+Fall back to `performance` if the old symptoms return.
 
 ## Runtime Throughput Throttling (slow internet after resume)
 
@@ -41,11 +46,12 @@ Change the ASPM policy away from `powersupersave` in
 `modules/hardware/power-management.nix`:
 
 ```nix
-"pcie_aspm.policy=performance"   # was powersupersave
+"pcie_aspm.policy=powersave"   # current compromise; "performance" is the fallback
 ```
 
-`performance` keeps ASPM enabled (better battery than `pcie_aspm=off`) while
-avoiding the aggressive low-power state. Requires a reboot to take effect.
+`powersave` enables L1 (better battery than `pcie_aspm=off`) while avoiding the
+most aggressive substates. `performance` remains the conservative fallback if
+the card regresses. Requires a reboot to take effect.
 
 ### Immediate diagnostic (no reboot)
 
@@ -58,7 +64,7 @@ curl -o /dev/null -s -w '%{speed_download}\n' --max-time 15 \
 ```
 
 If throughput jumps back to normal after the reload, the card was in a degraded
-driver/ASPM state — the `performance` policy prevents it from recurring.
+driver/ASPM state — the conservative ASPM policy prevents it from recurring.
 
 ## 7.1.x Kernel mt76 Regression (WiFi dies while "connected")
 
@@ -339,9 +345,13 @@ boot.kernelParams = [ "pcie_aspm.policy=performance" ];
 
 **Advantage over `pcie_aspm=off`:** Lower power impact while still preventing the boot failure.
 
-## Final Solution
+## Conservative Fallback
 
-**Location:** `hosts/framework/default.nix`
+> **2026-10-27:** this is the conservative fallback. The current default is
+> `powersave`; see the status note at the top. `performance` remains the
+> rollback if the card regresses.
+
+**Location:** `modules/hardware/power-management.nix`
 
 ```nix
 # MediaTek MT7925 WiFi: Set conservative ASPM policy to prevent "driver own failed"
@@ -358,7 +368,11 @@ boot.kernelParams = [ "pcie_aspm.policy=performance" ];
 |--------|-------|--------------|--------------|-------------|
 | `mt7925e.disable_aspm=1` | WiFi only | Driver probe | Minimal | ❌ Too late |
 | `pcie_aspm=off` | All PCIe | Early boot | Higher (~1-2W) | ✅ Works |
-| `pcie_aspm.policy=performance` | All PCIe | Early boot | Lower | ✅ Works |
+| `pcie_aspm.policy=performance` | All PCIe | Early boot | 10.32 W (2026-10-27 A/B) | ✅ Conservative fallback |
+| `pcie_aspm.policy=powersave` | All PCIe | Early boot | 7.17 W; L1 enabled | ✅ Current default, boot/resume soak pending |
+| `pcie_aspm.policy=powersupersave` | All PCIe | Early boot | 5.90 W; L1 enabled | ⚠️ Old MT7925 bug; next trial |
+
+The watt figures are from one A/B run on 6.18.55, not a general guarantee.
 
 ## Debugging Tools
 
