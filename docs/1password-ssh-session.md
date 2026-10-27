@@ -13,14 +13,33 @@ that approval until 1Password locks or quits
 While the app is locked the agent still runs, but the private keys are not in
 memory, so the next request prompts for an unlock.
 
-Each application still needs one approval per key after an unlock. Choose
-**Approve for all applications** on that prompt to let every process use the
-key for the rest of the session; otherwise the approval is repeated per
-application, not per commit.
-
 The current 60-minute idle auto-lock is therefore what forces an unlock for
 most commits and pushes. Turning it off makes the app stay unlocked for the
 whole session; a suspend hook restores the lock at the sleep boundary.
+
+## Approval prompts
+
+Unlocking and approving are separate. Auto-lock off leaves only the approval
+prompt, controlled in **Settings → Developer → SSH agent → Advanced**:
+
+- **Ask approval for each new**: keep the default **For each new application**.
+  **For each new request** asks on every signature.
+- **Remember key approval**: **Until 1Password locks** (default) wipes
+  approvals at the suspend lock, so the first signing after resume asks once.
+  **Until 1Password quits** keeps approvals across the suspend lock, since the
+  app only quits at logout/shutdown; approve once per boot instead. A set
+  duration (4/12/24 hours) is a middle ground. In every case the app still has
+  to be unlocked before the key can be used.
+- On the approval prompt, check **Approve for all applications** to let every
+  process use that key until the approvals are wiped. Otherwise Git,
+  `op-ssh-sign`, `ssh`, IDEs and GUI clients each ask once.
+
+Commit signing therefore prompts at most once per key per session, not once
+per commit. With **Until 1Password quits** and **Approve for all
+applications**, that becomes once per key per boot. 1Password has no "never
+ask" mode; removing the last prompt means moving signing to a key outside
+1Password, which stores the private key on disk instead of keeping it
+non-exportable.
 
 ## Manual 1Password settings
 
