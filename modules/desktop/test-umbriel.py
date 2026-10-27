@@ -129,23 +129,36 @@ class UmbrielTrialChecks(unittest.TestCase):
 
     def make_launcher_fixture(self, profile=True, real=False):
         profiles = self.root / "profiles"
+        events = self.root / "events"
         user = subprocess.check_output([self.policy["coreutils"] + "/bin/id", "-un"], text=True).strip()
         if profile:
             file = profiles / user / "etc/profile.d/hm-session-vars.sh"
             file.parent.mkdir(parents=True)
             contents = Path(self.policy["homeVars"]).read_text() if real else ""
             file.write_text(contents + "\nexport FIXTURE_HM_VALUE=loaded\n")
+        systemd = self.root / "systemd/bin"
+        systemd.mkdir(parents=True)
+        fake_systemctl = systemd / "systemctl"
+        fake_systemctl.write_text(f"#!{sys.executable}\n" + '''
+import os, sys
+with open(os.environ["FIXTURE_EVENTS"], "a") as log:
+    log.write("systemctl " + " ".join(sys.argv[1:]) + "\\n")
+''')
+        fake_systemctl.chmod(0o755)
         native = self.root / "native"
         (native / "bin").mkdir(parents=True)
         fake = native / "bin/start-umbriel"
         fake.write_text(f"#!{sys.executable}\n" + '''
 import json, os, sys
+with open(os.environ["FIXTURE_EVENTS"], "a") as log:
+    log.write("native " + " ".join(sys.argv[1:]) + "\\n")
 print(json.dumps({"hm": os.environ.get("FIXTURE_HM_VALUE"),
                   "niri": os.environ.get("NIRI_SOCKET"), "args": sys.argv[1:],
                   "xkb": os.environ.get("XKB_CONFIG_ROOT")}))
 ''')
         fake.chmod(0o755)
         source = Path(self.policy["launcher"]).read_text().replace("/etc/profiles/per-user", str(profiles))
+        source = source.replace(self.policy["systemd"], str(fake_systemctl))
         # The wrapper intentionally execs the unmodified distribution launcher's package.
         original = re.search(r"exec (\S+)/bin/start-umbriel", source).group(1)
         source = source.replace(original, str(native))
@@ -153,6 +166,7 @@ print(json.dumps({"hm": os.environ.get("FIXTURE_HM_VALUE"),
         script.write_text(source)
         return subprocess.run([shutil.which("bash"), str(script), "argument with spaces"],
             env=dict(self.environment, SHELL="/fixture/nu", NIRI_SOCKET="/stale/niri",
+                     FIXTURE_EVENTS=str(events),
                      XKB_CONFIG_ROOT="/fixture/unpatched"),
             capture_output=True, text=True, timeout=10)
 
@@ -162,6 +176,13 @@ print(json.dumps({"hm": os.environ.get("FIXTURE_HM_VALUE"),
         data = json.loads(result.stdout)
         self.assertEqual(data, {"hm": "loaded", "niri": None, "args": ["argument with spaces"],
                                 "xkb": self.policy["settings"]["environment"]["XKB_CONFIG_ROOT"]})
+
+    def test_launcher_clears_stale_graphical_session_before_native_launcher(self):
+        result = self.make_launcher_fixture()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        events = (self.root / "events").read_text().splitlines()
+        self.assertEqual(events[0], "systemctl --user stop graphical-session.target")
+        self.assertEqual(events[1], "native argument with spaces")
 
     def test_real_generated_hm_profile_supports_unset_optional_environment(self):
         result = self.make_launcher_fixture(real=True)

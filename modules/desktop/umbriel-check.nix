@@ -43,6 +43,7 @@ let
       portal = "${cfg.programs.umbriel.portalPackage}";
       portalRouting = home.xdg.portal.config.umbriel;
       coreutils = "${pkgs.coreutils}";
+      systemd = "${pkgs.systemd}/bin/systemctl";
       homeVars = "${home.home.sessionVariablesPackage}/etc/profile.d/hm-session-vars.sh";
     }
   );

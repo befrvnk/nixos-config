@@ -83,7 +83,9 @@ See: `modules/hardware/fprintd/default.nix`
   Never set `inputs.umbriel.inputs.nixpkgs.follows` or the cache paths miss.
 - Niri stays installed/default. Only the entry launcher is wrapped: load the
   declarative per-user HM environment for Nushell, set patched XKB before config
-  validation, then exec native start-umbriel. Keep the native session/unit lifecycle.
+  validation, stop a stale graphical-session.target left by a previous logout
+  (logind only removes the session scope; user units survive), then exec native
+  start-umbriel. Keep the native session/unit lifecycle.
 - Standard HM profile exports tolerate unset optional variables; don't source them
   under set -u. The fixture check exercises the actual generated profile too.
 - Candidate config/bar/PAM/idle/logind/Niri invariance and offline CLI/render/launcher

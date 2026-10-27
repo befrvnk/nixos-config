@@ -51,6 +51,14 @@ putting it only in [environment] is too late for initial keymap validation. The
 config also publishes it and clears NIRI_SOCKET for session services. Model/layout/
 options match the configured pc104/us-umlauts/lv3:ralt_switch setup.
 
+Before the compositor starts, the wrapper stops a `graphical-session.target` left
+active by a previous session. Logging out removes only the logind session; units
+such as Niri, Noctalia and the overview watcher live in the persistent user manager
+and otherwise survive with a dead Wayland socket, so the new session would not
+start fresh copies. Clearing the target also stops a previous compositor that is
+still running. A reboot is still required after an activation that changed the
+session entry itself, because greetd caches its session list from boot.
+
 The upstream unit is **Type=notify**, and the same package's binary provides the
 readiness notification, so keep that pairing. start-umbriel imports the loaded
 session environment into the user systemd manager before
@@ -147,12 +155,13 @@ Full Framework build and all **19 x86_64-linux checks** pass after the flake
 switch, including `cache-trust` and the Umbriel trial. These include:
 
 - 177 Noctalia tests, including five new compositor-selection/Umbriel overview probes.
-- Eleven Umbriel probes: actual flake-binary config validation, native renderer in
+- Twelve Umbriel probes: actual flake-binary config validation, native renderer in
   both modes, immutable main preservation, malformed optional data rejection,
   binding/policy checks, dual session entries, private fake-launcher
   HM/Nushell/XKB environment tests (including the real generated HM profile with
-  unset optional variables), provider/routing inspection and the native
-  held-switcher binding. No Wayland,
+  unset optional variables), stale graphical-session cleanup before the native
+  launcher, provider/routing inspection and the native held-switcher binding. No
+  Wayland,
   D-Bus, real switcher/focus operation or device connection.
 - Existing eight Greeter and 19 mocked suspend probes; no authentication performed.
 - Niri/default/PAM/bar/idle/lock/logind invariance and constant Umbriel main config

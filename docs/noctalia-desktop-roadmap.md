@@ -135,7 +135,7 @@ NixOS module. Greeter keeps Niri as default and offers Umbriel as an additional
 session. Niri's actual config and all six deployed PAM files remain unchanged. No
 compositor or hardware action was performed by the agent.
 
-Full Framework build and all 19 Linux checks pass: 177 Noctalia, 11 Umbriel, 8 Greeter
+Full Framework build and all 19 Linux checks pass: 177 Noctalia, 12 Umbriel, 8 Greeter
 and 19 mocked suspend tests. User entry/basic smoke passed and passive checks found
 healthy Umbriel/native/overview services, but detailed visual/input/lock/portal/power/
 session-return coverage remains unverified. Missing Alt+Tab was a binding omission;

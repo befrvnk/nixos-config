@@ -8,10 +8,11 @@ let
   base = pkgs.umbriel;
   launcher = pkgs.writeShellScript "umbriel-trial-session" (
     lib.replaceStrings
-      [ "@coreutils@" "@profiles@" "@umbriel@" "@xkb_root@" ]
+      [ "@coreutils@" "@profiles@" "@systemd@" "@umbriel@" "@xkb_root@" ]
       [
         "${pkgs.coreutils}"
         "/etc/profiles/per-user"
+        "${pkgs.systemd}"
         "${base}"
         (lib.escapeShellArg config.services.xserver.xkb.dir)
       ]
