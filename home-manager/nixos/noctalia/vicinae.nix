@@ -32,12 +32,11 @@ in
     post_hook = "${pkgs.bash}/bin/bash ${source}/vicinae/apply.sh ${inputs.noctalia}/assets/noctalia.svg";
   };
 
-  home.activation.prepareVicinaeNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg theme} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/vicinae.pre-template.toml"} \
-          --placeholder ${lib.escapeShellArg placeholder}
-      '';
+  noctalia.prepareOutputs = [
+    {
+      inherit theme;
+      backup = "${config.xdg.stateHome}/noctalia/vicinae.pre-template.toml";
+      inherit placeholder;
+    }
+  ];
 }

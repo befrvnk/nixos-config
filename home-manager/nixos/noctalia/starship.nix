@@ -36,12 +36,11 @@ in
     }
   ];
 
-  home.activation.prepareStarshipNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg runtime} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/starship.pre-template.toml"} \
-          --placeholder '# Awaiting Noctalia Starship palette.'
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = runtime;
+      backup = "${config.xdg.stateHome}/noctalia/starship.pre-template.toml";
+      placeholder = "# Awaiting Noctalia Starship palette.";
+    }
+  ];
 }

@@ -38,12 +38,11 @@ in
     post_hook = "${apply}";
   };
 
-  home.activation.prepareXresourcesNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg colors} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/xresources.pre-template"} \
-          --placeholder '! Awaiting Noctalia X11 colors.'
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = colors;
+      backup = "${config.xdg.stateHome}/noctalia/xresources.pre-template";
+      placeholder = "! Awaiting Noctalia X11 colors.";
+    }
+  ];
 }

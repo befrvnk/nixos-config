@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -34,14 +33,9 @@ in
 
   # Old Noctalia color files may be read-only. As with Ghostty/GTK, back up
   # and privatize only the outputs; keep the main configs declarative.
-  home.activation.prepareQtNoctaliaThemes =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      (
-        lib.concatMapStringsSep "\n" (version: ''
-          $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-            ${lib.escapeShellArg "${config.xdg.configHome}/${qtct version}/colors/noctalia.conf"} \
-            ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/${qtct version}.pre-template.conf"} \
-            --placeholder '[ColorScheme]'
-        '') versions
-      );
+  noctalia.prepareOutputs = map (version: {
+    theme = "${config.xdg.configHome}/${qtct version}/colors/noctalia.conf";
+    backup = "${config.xdg.stateHome}/noctalia/${qtct version}.pre-template.conf";
+    placeholder = "[ColorScheme]";
+  }) versions;
 }

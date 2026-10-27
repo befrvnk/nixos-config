@@ -37,6 +37,7 @@ in
     ./nushell.nix
     ./osd.nix
     ./plugins.nix
+    ./prepare.nix
     ./qt.nix
     ./starship.nix
     ./storage.nix

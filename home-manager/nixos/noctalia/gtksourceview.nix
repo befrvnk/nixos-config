@@ -53,12 +53,11 @@ in
     input_path = "${template}";
     output_path = "$XDG_STATE_HOME/noctalia/gtksourceview/stylix.xml";
   };
-  home.activation.prepareGtksourceviewNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg runtime} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/gtksourceview.pre-template.xml"} \
-          --placeholder '<style-scheme id="stylix" _name="Noctalia" version="1.0"></style-scheme>'
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = runtime;
+      backup = "${config.xdg.stateHome}/noctalia/gtksourceview.pre-template.xml";
+      placeholder = ''<style-scheme id="stylix" _name="Noctalia" version="1.0"></style-scheme>'';
+    }
+  ];
 }

@@ -19,6 +19,21 @@ NixOS-specific user configuration including Wayland, systemd services, and Styli
 3. **Compatibility adapter** (`noctalia/theme_bridge.py`): One-way, serialized application of those generations.
 4. **System Stylix** (`modules/theming/stylix.nix`): Static system defaults; not the runtime controller.
 
+### Writable output preparation
+- Apps declare their writable runtime outputs through `noctalia.prepareOutputs`
+  (`noctalia/prepare.nix`). One `prepareNoctaliaThemeOutputs` activation entry runs
+  `prepare_theme_output.py --manifest` once, between `linkGeneration` and
+  `writeBoundary`.
+- Never add a per-app `home.activation.prepare*` entry: each spawn cost ~150 ms of
+  the boot-critical `home-manager-<user>.service` (17 entries ≈ 3.3 s of the 4.3 s
+  unit, which gates `systemd-user-sessions` and greetd).
+  `checks.x86_64-linux.noctalia-theme-prepare` enforces the single batched entry.
+- `placeholder = null` keeps the preparer's own default seed (Ghostty's). The
+  manifest is JSON, so paths and placeholders are never shell-interpolated.
+- `test_prepare_manifest.py` is picked up by the `test_*.py` discovery in
+  `checks/noctalia.nix`; it covers placeholder defaults, skipping prepared outputs
+  and the still-supported positional form.
+
 ### Stylix Color Injection
 ```nix
 { config, ... }:

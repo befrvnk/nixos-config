@@ -35,12 +35,11 @@ in
     output_path = "$XDG_CONFIG_HOME/lazygit/themes/noctalia.yml";
   };
 
-  home.activation.prepareLazygitNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg theme} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/lazygit.pre-template.yml"} \
-          --placeholder '{}'
-      '';
+  noctalia.prepareOutputs = [
+    {
+      inherit theme;
+      backup = "${config.xdg.stateHome}/noctalia/lazygit.pre-template.yml";
+      placeholder = "{}";
+    }
+  ];
 }

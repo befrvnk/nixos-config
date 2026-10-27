@@ -67,12 +67,11 @@ in
     output_path = "$XDG_STATE_HOME/noctalia/vscode/NoctaliaTheme-color-theme.json";
   };
 
-  home.activation.prepareVscodeNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg themeFile} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/vscode.pre-template.json"} \
-          --placeholder ${lib.escapeShellArg placeholder}
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = themeFile;
+      backup = "${config.xdg.stateHome}/noctalia/vscode.pre-template.json";
+      inherit placeholder;
+    }
+  ];
 }

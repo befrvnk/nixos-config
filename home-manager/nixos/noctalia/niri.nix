@@ -1,9 +1,7 @@
 {
   config,
   inputs,
-  lib,
   options,
-  pkgs,
   ...
 }:
 {
@@ -19,12 +17,11 @@
     ])
   ];
 
-  home.activation.prepareNiriNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg "${config.xdg.configHome}/niri/noctalia.kdl"} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/niri.pre-template.kdl"} \
-          --placeholder '// Awaiting Noctalia native colors.'
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = "${config.xdg.configHome}/niri/noctalia.kdl";
+      backup = "${config.xdg.stateHome}/noctalia/niri.pre-template.kdl";
+      placeholder = "// Awaiting Noctalia native colors.";
+    }
+  ];
 }

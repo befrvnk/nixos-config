@@ -407,6 +407,19 @@
       darkman = mkCheck "darkman" "The legacy Darkman controller must be disabled" (
         !(cfg.systemd.user.services ? darkman) && !(home.home.activation ? restartDarkman)
       );
+      prepare =
+        mkCheck "prepare"
+          "Theme outputs must be seeded by one batched activation entry, not a python process per app"
+          (
+            # One entry keeps the preparer's cost off the boot-critical
+            # activation path; per-app entries made it grow per app.
+            pkgs.lib.filter (name: pkgs.lib.hasPrefix "prepare" name) (builtins.attrNames home.home.activation)
+            == [ "prepareNoctaliaThemeOutputs" ]
+            && pkgs.lib.hasInfix "--manifest" home.home.activation.prepareNoctaliaThemeOutputs.data
+            # Floor over the currently wired outputs: 14 single-app entries plus
+            # gtk x2, qt x2 and zen x2. Raise it when another app is wired in.
+            && builtins.length home.noctalia.prepareOutputs >= 20
+          );
       dconf =
         mkCheck "dconf" "Home Manager must not overwrite Noctalia's runtime color-scheme preference"
           (builtins.all (h: !(h.dconf.settings."org/gnome/desktop/interface" ? color-scheme)) variants);

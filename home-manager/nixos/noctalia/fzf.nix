@@ -1,7 +1,6 @@
 {
   config,
   inputs,
-  lib,
   pkgs,
   ...
 }:
@@ -20,12 +19,11 @@
     output_path = "$XDG_CONFIG_HOME/fzf/themes/noctalia.sh";
   };
 
-  home.activation.prepareFzfNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg "${config.xdg.configHome}/fzf/themes/noctalia.sh"} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/fzf.pre-template.sh"} \
-          --placeholder '# Awaiting Noctalia fzf colors.'
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = "${config.xdg.configHome}/fzf/themes/noctalia.sh";
+      backup = "${config.xdg.stateHome}/noctalia/fzf.pre-template.sh";
+      placeholder = "# Awaiting Noctalia fzf colors.";
+    }
+  ];
 }

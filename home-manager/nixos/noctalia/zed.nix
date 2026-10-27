@@ -1,8 +1,6 @@
 {
   config,
   inputs,
-  lib,
-  pkgs,
   ...
 }:
 let
@@ -46,12 +44,11 @@ in
     output_path = "$XDG_CONFIG_HOME/zed/themes/noctalia.json";
   };
 
-  home.activation.prepareZedNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg "${config.xdg.configHome}/zed/themes/noctalia.json"} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/zed.pre-template.json"} \
-          --placeholder ${lib.escapeShellArg placeholder}
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = "${config.xdg.configHome}/zed/themes/noctalia.json";
+      backup = "${config.xdg.stateHome}/noctalia/zed.pre-template.json";
+      inherit placeholder;
+    }
+  ];
 }

@@ -157,14 +157,13 @@ in
         output_path = output;
       };
     };
-    home.activation.prepareUmbrielNoctaliaTheme =
-      lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-        ''
-          $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${../noctalia/prepare_theme_output.py} \
-            ${lib.escapeShellArg output} \
-            ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/umbriel.pre-template.toml"} \
-            --placeholder '# Awaiting Noctalia native colors.'
-        '';
+    noctalia.prepareOutputs = [
+      {
+        theme = output;
+        backup = "${config.xdg.stateHome}/noctalia/umbriel.pre-template.toml";
+        placeholder = "# Awaiting Noctalia native colors.";
+      }
+    ];
 
     xdg.portal.config.umbriel = {
       default = [ "gtk" ];

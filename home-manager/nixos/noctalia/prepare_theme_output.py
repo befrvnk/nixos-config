@@ -1,6 +1,7 @@
 """Prepare Noctalia's writable theme outputs without modifying any link target."""
 
 import argparse
+import json
 import os
 from pathlib import Path
 import stat
@@ -53,9 +54,32 @@ def prepare(theme, backup, placeholder=PLACEHOLDER):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("theme", type=Path)
-    parser.add_argument("backup", type=Path)
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        help="JSON list of {theme, backup, placeholder?} entries prepared in one process",
+    )
+    parser.add_argument("theme", type=Path, nargs="?")
+    parser.add_argument("backup", type=Path, nargs="?")
     parser.add_argument("--placeholder", default=PLACEHOLDER)
     args = parser.parse_args()
-    if prepare(args.theme, args.backup, args.placeholder):
-        print(f"Prepared writable Noctalia theme output: {args.theme}")
+
+    if args.manifest is not None:
+        entries = []
+        for entry in json.loads(args.manifest.read_text()):
+            # A missing placeholder key and a null one both mean "use the default".
+            placeholder = entry.get("placeholder")
+            entries.append(
+                (Path(entry["theme"]), Path(entry["backup"]),
+                 PLACEHOLDER if placeholder is None else placeholder)
+            )
+    elif args.theme is not None and args.backup is not None:
+        entries = [(args.theme, args.backup, args.placeholder)]
+    else:
+        parser.error("provide --manifest, or both theme and backup")
+
+    # One interpreter serves every entry: per-app activation entries made the
+    # boot-time cost of this preparer grow with the number of apps.
+    for theme, backup, placeholder in entries:
+        if prepare(theme, backup, placeholder):
+            print(f"Prepared writable Noctalia theme output: {theme}")

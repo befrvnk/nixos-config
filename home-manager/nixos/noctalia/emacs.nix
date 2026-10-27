@@ -1,8 +1,6 @@
 {
   config,
   inputs,
-  lib,
-  pkgs,
   ...
 }:
 let
@@ -33,12 +31,11 @@ in
     output_path = "$XDG_STATE_HOME/noctalia/emacs/noctalia-theme.el";
   };
 
-  home.activation.prepareEmacsNoctaliaTheme =
-    lib.hm.dag.entryBetween [ "linkGeneration" ] [ "writeBoundary" ]
-      ''
-        $DRY_RUN_CMD ${pkgs.python3}/bin/python3 ${./prepare_theme_output.py} \
-          ${lib.escapeShellArg "${directory}/noctalia-theme.el"} \
-          ${lib.escapeShellArg "${config.xdg.stateHome}/noctalia/emacs.pre-template.el"} \
-          --placeholder '(deftheme noctalia "Awaiting native colors.") (provide-theme (quote noctalia))'
-      '';
+  noctalia.prepareOutputs = [
+    {
+      theme = "${directory}/noctalia-theme.el";
+      backup = "${config.xdg.stateHome}/noctalia/emacs.pre-template.el";
+      placeholder = ''(deftheme noctalia "Awaiting native colors.") (provide-theme (quote noctalia))'';
+    }
+  ];
 }
