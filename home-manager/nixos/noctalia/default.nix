@@ -193,7 +193,14 @@ in
   systemd.user.services.noctalia-overview = {
     Unit = {
       Description = "Show Noctalia only in the active Niri/Umbriel overview";
-      After = [ "noctalia.service" ];
+      # systemd orders a target after units that are WantedBy it but lack
+      # explicit ordering. Without this, the target waits for the watcher while
+      # the watcher waits for Noctalia, which waits for the target: a cycle that
+      # can drop noctalia.service instead of only the watcher at boot.
+      After = [
+        "graphical-session.target"
+        "noctalia.service"
+      ];
       PartOf = [ "noctalia.service" ];
       ConditionEnvironment = [
         "WAYLAND_DISPLAY"

@@ -389,12 +389,17 @@
             ) variants
           );
       overview =
-        mkCheck "overview" "Overview watcher must recover after rebuilds without restarting the shell"
+        mkCheck "overview"
+          "Overview watcher must be ordered after the session and recover after rebuilds without restarting the shell"
           (
             same (map (h: builtins.toJSON h.systemd.user.services.noctalia-overview) variants)
             && builtins.all (
               h:
               pkgs.lib.elem "graphical-session.target" h.systemd.user.services.noctalia-overview.Install.WantedBy
+              # An explicit After= on the wanted-by target stops systemd from
+              # adding its implicit target-after-unit edge (ordering cycle).
+              && pkgs.lib.elem "graphical-session.target" h.systemd.user.services.noctalia-overview.Unit.After
+              && pkgs.lib.elem "noctalia.service" h.systemd.user.services.noctalia-overview.Unit.After
               && pkgs.lib.elem "reloadSystemd" h.home.activation.noctaliaOverviewEnsure.after
               && pkgs.lib.hasInfix "--no-block start noctalia-overview.service" h.home.activation.noctaliaOverviewEnsure.data
             ) variants

@@ -40,8 +40,14 @@ Do not enable competing owners in Settings without disabling their existing serv
 ## Overview watcher lifecycle
 
 `noctalia-overview.service` is wanted by the graphical session, ordered after
-Noctalia, and stopped with it. The native `started` hook restarts the watcher once
-IPC is ready. Home Manager also idempotently starts the watcher after reloadSystemd.
+both `graphical-session.target` and Noctalia, and stopped with Noctalia. The
+explicit target ordering is required: systemd implicitly orders a target after
+units that are `WantedBy=` it but lack explicit ordering relative to it. Relying
+only on `After=noctalia.service` therefore built a cycle (target → Noctalia →
+watcher → target) that systemd resolved by dropping `noctalia.service` on some
+boots, leaving a wallpaper-less grey session without bar or shell keybind
+helpers. The native `started` hook restarts the watcher once IPC is ready. Home
+Manager also idempotently starts the watcher after reloadSystemd.
 This second path is necessary: unit reconciliation can stop a PartOf dependent
 while a concurrent job cancels the shell's own restart. The shell stays alive,
 its started hook never runs, and an otherwise healthy overview-only bar stays hidden.
