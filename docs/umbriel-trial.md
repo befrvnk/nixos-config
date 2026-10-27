@@ -11,8 +11,10 @@ portal, hardware control, lock or authentication action was performed by the age
 Umbriel comes from its upstream flake, overlaid in `lib/overlays.nix`:
 
 - `umbriel` input: `github:noctalia-dev/umbriel/cachix` at the revision pinned in
-  `flake.lock` (currently `814d761`, version 0.1.0). The `cachix` ref is
-  force-pushed to the latest commit whose x86_64/aarch64 builds upstream CI
+  `flake.lock` (currently `814d761`). Upstream has no tags or GitHub releases yet:
+  the `0.1.0` package version comes from the repo's `VERSION` file, and the exact
+  code is the commit (`umbriel --version` prints `0.1.0 (814d761)`). The `cachix`
+  ref is force-pushed to the latest commit whose x86_64/aarch64 builds upstream CI
   pushed, so routine bumps substitute from `umbriel.cachix.org` instead of
   compiling. Older revisions are not retained; pinning one compiles locally
   (measured ~100 s here).
