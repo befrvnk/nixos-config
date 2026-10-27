@@ -63,16 +63,6 @@
       configurationLimit = 10;
     };
 
-    # amdgpu.dcdebugmask=0x10: Fix kworker stuck in amdgpu display code causing high I/O
-    # pressure. The amdgpu driver has a timeout issue in dmub_srv_wait_for_idle that causes
-    # workqueue threads to block, triggering rescue threads and ~80-90% PSI I/O pressure.
-    # See: docs/amdgpu-kworker-io-pressure.md
-    #
-    # Note: PCIe ASPM policy is configured in modules/hardware/power-management.nix
-    kernelParams = [
-      "amdgpu.dcdebugmask=0x10"
-    ];
-
     # Blacklist UCSI modules to fix high I/O pressure and blocked kworker processes
     # Bug: Linux 6.9+ queries GET_CABLE_PROPERTY which Framework's EC doesn't support
     # Causes: ucsi_acpi USBC000:00: unknown error 0, blocked kworker/u97:*+events_unbound
@@ -107,6 +97,13 @@
 
   hardware = {
     deviceTree.enable = false;
+
+    # PSR enabled (2026-10-27): nixos-hardware disables PSR by default for the
+    # Framework 13 AMD AI 300 because it caused hangs/sluggishness (amdgpu
+    # issue #3647). Initial 6.18.55 validation was clean; roll back this
+    # override and restore the dcdebugmask=0x10 workaround if the kworker
+    # deadlock or high I/O pressure returns.
+    amdgpu.dcDebugMask.disablePsr = lib.mkForce false;
 
     framework = {
       # Disable kmod to avoid infinite recursion with kernel packages

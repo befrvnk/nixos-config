@@ -2,8 +2,16 @@
 
 This document describes two distinct issues with the AMD GPU driver that cause elevated I/O pressure readings:
 
-1. **Stuck kworker issue** - A deadlock in `dmub_srv_wait_for_idle()` causing workers to block indefinitely (fixable with `dcdebugmask=0x10`)
+1. **Stuck kworker issue** - A deadlock in `dmub_srv_wait_for_idle()` causing workers to block indefinitely (historically worked around with `dcdebugmask=0x10`)
 2. **VRR workqueue overhead** - Normal, expected behavior when Variable Refresh Rate is enabled (not a bug, just elevated PSI metrics)
+
+> **2026-10-27: PSR enabled.** The Framework 13 AI 300 now force-enables PSR via
+> `hardware.amdgpu.dcDebugMask.disablePsr = lib.mkForce false` (nixos-hardware
+> defaults it off because of hangs). `amdgpu.dcdebugmask=0x10` is no longer
+> passed. Boot + normal use on 6.18.55 was clean: eDP-1 PSR support active, no
+> `dmub_srv_wait_for_idle`/rescue messages, no persistent D-state amdgpu
+> workers, `/proc/pressure/io` at 0. The old `0x10` workaround below remains
+> the rollback if hangs or high I/O pressure return. Longer soak is optional.
 
 ## Symptoms
 
@@ -186,7 +194,25 @@ variable-refresh-rate = false;
 | **Kernels** | Multiple versions (6.x series) |
 | **Scenario** | External displays, clamshell mode, high refresh rate monitors |
 
-## Solution
+## Current State: PSR Enabled (2026-10-27)
+
+The host now sets:
+
+```nix
+hardware.amdgpu.dcDebugMask.disablePsr = lib.mkForce false;
+```
+
+and no longer passes `amdgpu.dcdebugmask=0x10`. Check it with:
+
+```bash
+tr ' ' '\n' < /proc/cmdline | grep dcdebug || echo "no dcdebugmask"
+cat /sys/module/amdgpu/parameters/dcdebugmask   # 0
+journalctl -b -k | grep -iE 'PSR|dmub_srv_wait|rescue'
+```
+
+## Fallback: Disable PSR
+
+Use this if the deadlock, high I/O pressure, or display hangs return.
 
 ### Kernel Parameter
 
@@ -339,9 +365,9 @@ This issue often co-occurs with:
 ### Why dcdebugmask=0x10 Helps
 
 The `dcdebugmask` parameter controls debug/behavior flags in the Display Core (DC) component:
-- Bit 4 (0x10) adjusts timing or retry behavior in display updates
-- This prevents the deadlock condition in `dmub_srv_wait_for_idle()`
-- The exact mechanism isn't publicly documented but empirically works
+- Bit 4 (0x10) is `DC_DISABLE_PSR`; it turns Panel Self Refresh off
+- Disabling PSR avoids the `dmub_srv_wait_for_idle()` deadlock on affected panels
+- PSR is now enabled again on 6.18.55; this flag is the rollback if the hang returns
 
 ## References
 
@@ -369,3 +395,4 @@ The `dcdebugmask` parameter controls debug/behavior flags in the Display Core (D
 | December 2025 | Documented for Framework 13 AMD AI 300 series |
 | December 2025 | VRR workqueue overhead identified as expected behavior |
 | December 2025 | Tested `amdgpu.gfxoff=0` - confirmed no effect on VRR overhead |
+| October 2026 | PSR re-enabled on 6.18.55 (`disablePsr = lib.mkForce false`); boot + normal-use validation clean; `0x10` workaround retained as rollback |

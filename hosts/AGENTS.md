@@ -118,6 +118,10 @@ See `docs/new-host.md` for detailed guide.
 - `hardware-configuration.nix` regenerates on hardware changes
 - Host overrides should use `lib.mkForce` if needed
 - Secure boot keys in host-specific location
+- PSR is force-enabled on Framework via `hardware.amdgpu.dcDebugMask.disablePsr =
+  lib.mkForce false` (nixos-hardware defaults it off due to hangs). Rollback:
+  restore the default and `amdgpu.dcdebugmask=0x10`; see
+  `docs/amdgpu-kworker-io-pressure.md`.
 - Framework's additive Umbriel trial uses the already-pinned native module/package;
   Greeter keeps Niri as default. home.nix supplies the pinned upstream Home Manager
   module through extraSpecialArgs: deriving imports from HM config/pkgs directly
