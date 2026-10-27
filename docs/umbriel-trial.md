@@ -36,6 +36,26 @@ The native Home Manager module is imported from the same flake revision, supplie
 as an external argument by Framework's integration (using HM pkgs in imports
 directly causes recursion). Configuration stays immutable and declarative.
 
+## Updating Umbriel
+
+The input tracks the `cachix` ref, and CI moves that ref only after it has pushed
+the builds to `umbriel.cachix.org`. A normal bump therefore downloads instead of
+compiling:
+
+1. `nix flake update umbriel` (or the `devenv` shell's `flake-update` task when
+   updating every input). A full `nix flake update` keeps Umbriel's nested
+   nixpkgs at the revision from its own lock, so cache paths stay valid.
+2. `nix build .#checks.x86_64-linux.umbriel-trial` to validate the generated
+   configuration with the new binary. This fails if upstream renamed or removed
+   a setting, before you switch.
+3. `rebuild switch`, then reboot. greetd caches its session list from boot and
+   the running compositor is not restarted by a switch
+   (`restartIfChanged=false`), so a reboot is the reliable way to pick up both
+   the new launcher and binary.
+4. Roll back with git (`git revert`, or restore the previous `flake.lock`) and
+   rebuild. An older revision may no longer be retained on
+   `umbriel.cachix.org`, in which case it compiles locally (~100 s).
+
 ## Session environment and startup
 
 The upstream launcher does not enter a Nushell login profile. The small
