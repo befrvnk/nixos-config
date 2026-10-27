@@ -8,24 +8,35 @@ portal, hardware control, lock or authentication action was performed by the age
 
 ## Pins and scope
 
-Use the existing pinned nixpkgs packages/module, not current upstream main:
+Umbriel comes from its upstream flake, overlaid in `lib/overlays.nix`:
 
-- Umbriel 0-unstable-2026-10-16, source `5cea311e7e7d6eba3ea41f5c4ca826971340f7cc`.
-- xdg-desktop-portal-umbriel 0-unstable-2026-10-14 from the same nixpkgs.
+- `umbriel` input: `github:noctalia-dev/umbriel/cachix` at the revision pinned in
+  `flake.lock` (currently `814d761`, version 0.1.0). The `cachix` ref is
+  force-pushed to the latest commit whose x86_64/aarch64 builds upstream CI
+  pushed, so routine bumps substitute from `umbriel.cachix.org` instead of
+  compiling. Older revisions are not retained; pinning one compiles locally
+  (measured ~100 s here).
+- Compositor and `xdg-desktop-portal-umbriel` come from that same input, so the
+  portal protocol surface (including InputCapture) matches the compositor.
+- nixpkgs still supplies the native NixOS module and `programs.umbriel` options;
+  only the package and portal are overlaid. Do not set
+  `inputs.umbriel.inputs.nixpkgs.follows`: matching the flake's own nixpkgs pin is
+  what makes the cache paths hit.
+- `umbriel.cachix.org` and its public key are trusted in `shared/caches.nix` and
+  the flake's `nixConfig` (kept in sync by `checks.cache-trust`).
 - Noctalia remains the reviewed/patched V5.3.0 pin with its native Umbriel backend.
-- No new flake input, lock-node update, binary-cache endpoint/key, kernel selection
-  or compositor default change. No topbar redesign.
+- No compositor default change. No topbar redesign.
 
 `modules/desktop/umbriel.nix` enables the native NixOS module only on Framework.
 A symlink-joined package changes the desktop/start launcher environment, not the
 compositor binaries, native service, session targets or portal implementation.
-The native Home Manager module is imported from the same fixed-output source,
-supplied as an external argument by Framework's integration (using HM pkgs in
-imports directly causes recursion). Configuration stays immutable and declarative.
+The native Home Manager module is imported from the same flake revision, supplied
+as an external argument by Framework's integration (using HM pkgs in imports
+directly causes recursion). Configuration stays immutable and declarative.
 
 ## Session environment and startup
 
-The pinned launcher does not enter a Nushell login profile. The small
+The upstream launcher does not enter a Nushell login profile. The small
 umbriel-session.sh wrapper loads the root-owned declarative Home Manager session
 variables from the current account's per-user profile, exports its bin path and
 the patched XKB root, removes a stale local NIRI_SOCKET, then execs the unmodified
@@ -38,11 +49,14 @@ putting it only in [environment] is too late for initial keymap validation. The
 config also publishes it and clears NIRI_SOCKET for session services. Model/layout/
 options match the configured pc104/us-umlauts/lv3:ralt_switch setup.
 
-The pinned service is **Type=simple**, not the newer Type=notify advertised by
-current docs. Do not copy the newer type without matching executable support.
-Reviewed pinned startup publishes display/IPC/configured environment, then starts
-umbriel-session.target/graphical targets. Keep that native lifecycle and verify it
-live; offline checks do not prove portal readiness or session cleanup.
+The upstream unit is **Type=notify**, and the same package's binary provides the
+readiness notification, so keep that pairing. start-umbriel imports the loaded
+session environment into the user systemd manager before
+`systemctl --user --wait start umbriel.service`, then tears the session down via
+umbriel-shutdown.target. Reviewed startup publishes display/IPC/configured
+environment, then starts umbriel-session.target/graphical targets. Keep that
+native lifecycle and verify it live; offline checks do not prove portal readiness
+or session cleanup.
 
 Noctalia and existing user services start through graphical-session.target, not
 another `noctalia` autostart. Umbriel owns Xwayland through its packaged integration;
@@ -127,14 +141,16 @@ normal lock behavior has been user-checked.
 
 ## Validation completed
 
-Full Framework build and all **19 x86_64-linux checks** pass. These include:
+Full Framework build and all **19 x86_64-linux checks** pass after the flake
+switch, including `cache-trust` and the Umbriel trial. These include:
 
 - 177 Noctalia tests, including five new compositor-selection/Umbriel overview probes.
-- Eleven Umbriel probes: actual pinned config validation, native renderer in both modes,
-  immutable main preservation, malformed optional data rejection, binding/policy
-  checks, dual session entries, private fake-launcher HM/Nushell/XKB environment
-  tests (including the real generated HM profile with unset optional variables)
-  provider/routing inspection and the native held-switcher binding. No Wayland,
+- Eleven Umbriel probes: actual flake-binary config validation, native renderer in
+  both modes, immutable main preservation, malformed optional data rejection,
+  binding/policy checks, dual session entries, private fake-launcher
+  HM/Nushell/XKB environment tests (including the real generated HM profile with
+  unset optional variables), provider/routing inspection and the native
+  held-switcher binding. No Wayland,
   D-Bus, real switcher/focus operation or device connection.
 - Existing eight Greeter and 19 mocked suspend probes; no authentication performed.
 - Niri/default/PAM/bar/idle/lock/logind invariance and constant Umbriel main config
@@ -225,22 +241,22 @@ load. It does not establish whether active rendering is efficient under Umbriel 
 rule out fractional-scale/frame-pacing costs. A matched Niri comparison has not
 been done; do not tune clocks, fan policy, acceleration or refresh rate blindly.
 
-### Pending upstream idle-redraw fix
+### Upstream idle-redraw and explicit-sync fixes now included
 
-The pinned Umbriel `0-unstable-2026-10-16` (`5cea311`) predates upstream fixes
-`5b66788` (avoid redraws for unchanged surface commits) and `e65cc65` (suspend
-hidden windows and stop their frame callbacks). Upstream issue #473 documents idle
-CPU/GPU work scaling with output refresh rate; the fix reduced one reported idle
-case to roughly 1%. With the current pin, Umbriel can keep redrawing the
-2880×1920/120 Hz internal panel while static, keeping the AMD GPU active and
-raising battery draw versus Niri.
+The previous nixpkgs pin (`0-unstable-2026-10-16`, `5cea311`) predated upstream
+fixes `5b66788` (avoid redraws for unchanged surface commits), `e65cc65` (suspend
+hidden windows and stop their frame callbacks) and `a2462e71` (latch explicit-sync
+commits until the acquire point signals; frame pacing with VRR and direct
+scanout). The flake pin (`814d761`) includes all three. Upstream issue #473
+documents idle CPU/GPU work scaling with output refresh rate; the fix reduced one
+reported idle case to roughly 1%.
 
 This is a compositor issue, not a tuned or power-profile failure. The panel itself
 supports VRR from 30–120 Hz, and Umbriel already reports adaptive sync enabled.
-Do not disable VRR or tune clocks to compensate. Re-evaluate after the next nixpkgs
-Umbriel bump includes `5b66788`; then update this pin record, rebuild, and verify
-idle GPU/battery behavior before treating the trial's power behavior as resolved.
-Until then Niri remains the lower-power session option.
+Do not disable VRR or tune clocks to compensate. Verify idle GPU/battery behavior
+in a user session before treating the trial's power behavior as resolved; offline
+checks and the local build say nothing about runtime frame pacing. Until measured
+otherwise Niri remains the lower-power session option.
 
 ## Owner disposition: keep both
 

@@ -832,6 +832,19 @@
     },
     "nixpkgs_7": {
       "locked": {
+        "lastModified": 1792773339,
+        "narHash": "sha256-17eNBI5Khe4JZaRkL5hRGPWf8MZ6qv+bWAr4V8YeKBw=",
+        "rev": "3ec636362e1816bc2f0888fa0fa2c69f1bc9e504",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/unstable/nixos-26.11pre1100280.3ec636362e18/nixexprs.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://channels.nixos.org/nixos-unstable/nixexprs.tar.xz"
+      }
+    },
+    "nixpkgs_8": {
+      "locked": {
         "lastModified": 1792094642,
         "narHash": "sha256-zp8ToDMnqZcu4o4IH9pdwXFXGp7yLm/M0dEnNWnyd7I=",
         "owner": "NixOS",
@@ -846,7 +859,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_8": {
+    "nixpkgs_9": {
       "locked": {
         "lastModified": 1779560665,
         "narHash": "sha256-tpyBcxPpcQb8ukyNF7DoCwfSY3VPsxHoYwj00Cayv5o=",
@@ -1321,25 +1334,28 @@
       }
     },
     "umbriel": {
-      "flake": false,
+      "inputs": {
+        "nixpkgs": "nixpkgs_7",
+        "xdg-desktop-portal-umbriel": "xdg-desktop-portal-umbriel"
+      },
       "locked": {
-        "lastModified": 1792154935,
-        "narHash": "sha256-gzJplsRdXQLosa6joO3jFHN18GivNcYHc1zsw/z2bCo=",
+        "lastModified": 1793112935,
+        "narHash": "sha256-wj+nJiRg+qicwCAK9YzqZKme0VU9+HGtckFBe9JrqfI=",
         "owner": "noctalia-dev",
         "repo": "umbriel",
-        "rev": "5cea311e7e7d6eba3ea41f5c4ca826971340f7cc",
+        "rev": "814d761e4a753cc6a8b214749dc49349daa445f4",
         "type": "github"
       },
       "original": {
         "owner": "noctalia-dev",
+        "ref": "cachix",
         "repo": "umbriel",
-        "rev": "5cea311e7e7d6eba3ea41f5c4ca826971340f7cc",
         "type": "github"
       }
     },
     "vicinae": {
       "inputs": {
-        "nixpkgs": "nixpkgs_7",
+        "nixpkgs": "nixpkgs_8",
         "numen": "numen",
         "soulver-cpp": "soulver-cpp",
         "systems": "systems_5"
@@ -1362,7 +1378,7 @@
     "vicinae-extensions": {
       "inputs": {
         "flake-compat": "flake-compat_3",
-        "nixpkgs": "nixpkgs_8",
+        "nixpkgs": "nixpkgs_9",
         "systems": "systems_6",
         "vicinae": [
           "vicinae"
@@ -1404,6 +1420,27 @@
         "owner": "max-sixty",
         "ref": "v0.36.0",
         "repo": "worktrunk",
+        "type": "github"
+      }
+    },
+    "xdg-desktop-portal-umbriel": {
+      "inputs": {
+        "nixpkgs": [
+          "umbriel",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793112889,
+        "narHash": "sha256-tgUPyqAXDz3vjN3DuUgEbyhj3URNcYNijB2b9kUb4G4=",
+        "owner": "noctalia-dev",
+        "repo": "xdg-desktop-portal-umbriel",
+        "rev": "e24762d9c75e294f89dbe7a0e3fd55c5cdc3ff0a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "noctalia-dev",
+        "repo": "xdg-desktop-portal-umbriel",
         "type": "github"
       }
     },

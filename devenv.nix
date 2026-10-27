@@ -342,10 +342,6 @@ in
       fi
 
       echo ""
-      echo "Syncing umbriel flake input with nixpkgs..."
-      ./scripts/update-umbriel.sh || echo "⚠️  umbriel input sync failed (the umbriel-trial check will flag a mismatch)"
-
-      echo ""
       echo "Updating cliamp package..."
       ./scripts/update-cliamp.sh || echo "⚠️  cliamp update failed (may already be up to date)"
 

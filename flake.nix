@@ -51,15 +51,13 @@
       url = "github:noctalia-dev/community-templates/7aae018927ae35d007734868388c34c901870f45";
       flake = false;
     };
-    # Upstream sources for the Umbriel Home Manager module. Importing the module from
-    # pkgs.umbriel.src would read a derivation output during evaluation, which
-    # `nix flake check --no-build` rejects (read-only mode, IFD disabled).
-    # The revision must match nixpkgs' umbriel source: scripts/update-umbriel.sh re-pins it
-    # during `devenv flake-update`, and the umbriel-trial check asserts the two agree.
-    umbriel = {
-      url = "github:noctalia-dev/umbriel/5cea311e7e7d6eba3ea41f5c4ca826971340f7cc";
-      flake = false;
-    };
+    # Umbriel compositor, portal and Home Manager module from upstream. Track the
+    # `cachix` ref: CI force-pushes it to the latest commit for which it has pushed
+    # x86_64/aarch64 builds to umbriel.cachix.org, so bumps substitute instead of
+    # compiling. flake.lock still pins the exact revision.
+    # Do not add an inputs.nixpkgs.follows: the cache paths are built against the
+    # flake's own nixpkgs pin and would otherwise miss.
+    umbriel.url = "github:noctalia-dev/umbriel/cachix";
     claude-code = {
       url = "github:sadjow/claude-code-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -110,6 +108,9 @@
       "https://nix-community.cachix.org"
       "https://noctalia.cachix.org"
       "https://nixos-raspberrypi.cachix.org"
+      # Upstream Umbriel compositor/portal builds; only the current `cachix` tip is
+      # retained, so older pinned revisions fall back to a local compile.
+      "https://umbriel.cachix.org"
       "https://vicinae.cachix.org"
       "https://nyx-cache.chaotic.cx/?priority=45"
     ];
@@ -119,6 +120,7 @@
       "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
+      "umbriel.cachix.org-1:JfNq/2yg2S6D6z4Z2dVSZrZlDPQTKtexB6GAVLD98nw="
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
       "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
       "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="

@@ -27,9 +27,10 @@
     ];
     extraSpecialArgs = {
       inherit inputs hostConfig;
-      # Upstream module fetched as a flake input; taking it from pkgs.umbriel.src
-      # would import from a derivation output, which `nix flake check --no-build` forbids.
-      umbrielHomeModule = inputs.umbriel + "/nix/home-module.nix";
+      # Upstream module stays in lockstep with the flake-provided compositor and
+      # portal; importing from pkgs.umbriel.src would read a derivation output
+      # during evaluation, which `nix flake check --no-build` forbids.
+      umbrielHomeModule = inputs.umbriel.homeModules.default;
     };
   };
 }

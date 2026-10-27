@@ -120,7 +120,7 @@ class UmbrielTrialChecks(unittest.TestCase):
 
     def test_portal_interfaces_match_desktop_routing_without_bus_calls(self):
         text = (Path(self.policy["portal"]) / "share/xdg-desktop-portal/portals/umbriel.portal").read_text()
-        for interface in ("ScreenCast", "Screenshot"):
+        for interface in ("InputCapture", "ScreenCast", "Screenshot"):
             name = "org.freedesktop.impl.portal." + interface
             self.assertIn(name, text)
             self.assertEqual(self.policy["portalRouting"][name], "umbriel")

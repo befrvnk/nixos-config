@@ -76,8 +76,11 @@ See: `modules/hardware/fprintd/default.nix`
   See docs/noctalia-desktop-roadmap.md; Umbriel/topbar are separate later steps.
 
 ### Umbriel trial
-- Framework explicitly imports desktop/umbriel.nix; pinned nixpkgs supplies the
-  native NixOS module, compositor and matching portal. No extra input/cache trust.
+- Framework explicitly imports desktop/umbriel.nix; nixpkgs supplies the native
+  NixOS module, while `lib/overlays.nix` overlays the compositor and its portal
+  from the `umbriel` flake input (`github:noctalia-dev/umbriel/cachix`). Both move
+  together; umbriel.cachix.org is trusted in `shared/caches.nix`/`flake.nix`.
+  Never set `inputs.umbriel.inputs.nixpkgs.follows` or the cache paths miss.
 - Niri stays installed/default. Only the entry launcher is wrapped: load the
   declarative per-user HM environment for Nushell, set patched XKB before config
   validation, then exec native start-umbriel. Keep the native session/unit lifecycle.
@@ -86,8 +89,9 @@ See: `modules/hardware/fprintd/default.nix`
 - Candidate config/bar/PAM/idle/logind/Niri invariance and offline CLI/render/launcher
   checks live in checks.x86_64-linux.umbriel-trial. Never launch a compositor,
   display, portal, hardware, lock, suspend or authentication probe as an agent.
-- Native pinned unit is Type=simple, not the newer docs' Type=notify. Do not change
-  that without matching readiness support. Live portal/session behavior is pending.
+- The upstream unit is Type=notify and its binary provides matching readiness;
+  nixpkgs' module keeps restartIfChanged=false/enableDefaultPath=false. Live
+  portal/session behavior is still pending.
 - Owner chose to retain both Niri and Umbriel (2026-10-23), with Niri default.
   Performance comparisons are user-led backlog NOC-04, not mandatory next tests.
   Do not uninstall either or change the default without a new request. Native

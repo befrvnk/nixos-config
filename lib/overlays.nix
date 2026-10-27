@@ -28,6 +28,15 @@ let
     inputs.niri.overlays.niri
     (import ../overlays/niri.nix)
     (import ../overlays/profile-sync-daemon.nix)
+    # Umbriel and its portal move together: the compositor's portal protocol
+    # surface must match the backend. Both come from the same upstream pin
+    # (and cache) rather than nixpkgs' older copy; keep nixpkgs' NixOS module
+    # and the trial launcher, which only consume pkgs.umbriel.
+    (final: _prev: {
+      umbriel = inputs.umbriel.packages.${final.stdenv.hostPlatform.system}.default;
+      xdg-desktop-portal-umbriel =
+        inputs.umbriel.packages.${final.stdenv.hostPlatform.system}.xdg-desktop-portal-umbriel;
+    })
   ];
 
   darwinOverlays = sharedOverlays ++ [

@@ -19,6 +19,9 @@
     "https://nix-community.cachix.org"
     "https://noctalia.cachix.org"
     "https://nixos-raspberrypi.cachix.org"
+    # Upstream Umbriel compositor/portal builds; only the current `cachix` tip is
+    # retained, so older pinned revisions fall back to a local compile.
+    "https://umbriel.cachix.org"
     "https://vicinae.cachix.org"
     # Chaotic-Nyx CachyOS kernel builds. Priority 45 keeps cache.nixos.org (40)
     # ahead of it: this cache only fills gaps the official caches cannot.
@@ -31,6 +34,7 @@
     "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
     "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
+    "umbriel.cachix.org-1:JfNq/2yg2S6D6z4Z2dVSZrZlDPQTKtexB6GAVLD98nw="
     "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
     "nyx-cache.chaotic.cx:dJxTrgMC3V3cFfyIiBQDQorG6k1LsqurH/srpMSq7qk="
     "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="

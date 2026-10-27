@@ -128,11 +128,12 @@ sync is not enabled by this change. Topbar UI remains a later separate step.
 ## 2. Niri and Umbriel — both retained for user experiments
 
 The [Umbriel trial guide](umbriel-trial.md) records the pins, preserved behavior,
-explicit mapping differences, checks and user-only entry/recovery. It uses the
-already-pinned nixpkgs module/package and matching portal; no new input, lock update,
-cache trust or kernel change. Greeter keeps Niri as default and offers Umbriel as
-an additional session. Niri's actual config and all six deployed PAM files remain
-unchanged. No compositor or hardware action was performed by the agent.
+explicit mapping differences, checks and user-only entry/recovery. The compositor
+and matching portal now come from the `umbriel` flake input (`cachix` ref, overlaid
+in `lib/overlays.nix`, backed by `umbriel.cachix.org`); nixpkgs still supplies the
+NixOS module. Greeter keeps Niri as default and offers Umbriel as an additional
+session. Niri's actual config and all six deployed PAM files remain unchanged. No
+compositor or hardware action was performed by the agent.
 
 Full Framework build and all 19 Linux checks pass: 177 Noctalia, 11 Umbriel, 8 Greeter
 and 19 mocked suspend tests. User entry/basic smoke passed and passive checks found

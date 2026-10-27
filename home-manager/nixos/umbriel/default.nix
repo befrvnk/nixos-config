@@ -168,6 +168,7 @@ in
 
     xdg.portal.config.umbriel = {
       default = [ "gtk" ];
+      "org.freedesktop.impl.portal.InputCapture" = [ "umbriel" ];
       "org.freedesktop.impl.portal.ScreenCast" = [ "umbriel" ];
       "org.freedesktop.impl.portal.Screenshot" = [ "umbriel" ];
       "org.freedesktop.impl.portal.Settings" = [ "gtk" ];
