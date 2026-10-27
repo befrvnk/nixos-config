@@ -8,12 +8,12 @@
 
 The MediaTek MT7925 (WiFi 7) card on Framework Laptop 13 (AMD Ryzen AI 300 Series) intermittently fails to initialize during boot with "driver own failed" errors. This is caused by PCIe ASPM (Active State Power Management) putting the device in a low-power state before the driver can probe it.
 
-**Status (2026-10-27):** `performance` is the conservative fallback. The current
-default is `powersave` (L1 enabled, less aggressive than `powersupersave`).
-A/B on 6.18.55: performance 10.32 W, powersave 7.17 W, powersupersave 5.90 W,
-with L1 on the NVMe/Wi-Fi/GPU links and no short-run throughput loss. The
-powersave boot/suspend-resume soak is pending; powersupersave is the next trial.
-Fall back to `performance` if the old symptoms return.
+**Status (2026-10-27):** `powersupersave` is validated: boot + two suspends +
+10-minute soak (290/290 pings per target, 0 loss, 7.51 MB/s avg, no mt7925
+errors; one 125 ms internet latency outlier). A/B on 6.18.55: performance
+10.32 W, powersave 7.17 W, powersupersave 5.90 W. `powersave` remains the
+fallback if the occasional latency spike matters; `performance` is the
+conservative fallback.
 
 ## Runtime Throughput Throttling (slow internet after resume)
 
@@ -42,16 +42,17 @@ radio data path.
 
 ### Fix
 
-Change the ASPM policy away from `powersupersave` in
-`modules/hardware/power-management.nix`:
+The original fix moved the policy away from `powersupersave`. On 6.18.55 the
+2026-10-27 trial validated it again; `powersave` is the fallback:
 
 ```nix
-"pcie_aspm.policy=powersave"   # current compromise; "performance" is the fallback
+"pcie_aspm.policy=powersupersave"   # selected; "powersave" is the fallback
 ```
 
-`powersave` enables L1 (better battery than `pcie_aspm=off`) while avoiding the
-most aggressive substates. `performance` remains the conservative fallback if
-the card regresses. Requires a reboot to take effect.
+`powersupersave` enables the deeper L1 substates (lowest power) and passed boot,
+two suspends, and a 10-minute soak. `powersave` keeps L1 without the deepest
+substates; `performance` remains the conservative fallback. Requires a reboot
+to take effect.
 
 ### Immediate diagnostic (no reboot)
 
@@ -332,7 +333,7 @@ boot.kernelParams = [ "pcie_aspm=off" ];
 
 **Downside:** Disables ASPM for ALL PCIe devices, increasing power consumption by ~1-2W.
 
-### 3. Kernel Parameter: `pcie_aspm.policy=performance` (Final Solution)
+### 3. Kernel Parameter: `pcie_aspm.policy=performance` (Conservative Fallback)
 
 **Configuration:**
 ```nix
@@ -347,9 +348,9 @@ boot.kernelParams = [ "pcie_aspm.policy=performance" ];
 
 ## Conservative Fallback
 
-> **2026-10-27:** this is the conservative fallback. The current default is
-> `powersave`; see the status note at the top. `performance` remains the
-> rollback if the card regresses.
+> **2026-10-27:** `powersupersave` is selected; `powersave` is the proven
+> fallback if latency matters, and `performance` is the conservative fallback.
+> See the status note at the top.
 
 **Location:** `modules/hardware/power-management.nix`
 
@@ -369,8 +370,8 @@ boot.kernelParams = [ "pcie_aspm.policy=performance" ];
 | `mt7925e.disable_aspm=1` | WiFi only | Driver probe | Minimal | ❌ Too late |
 | `pcie_aspm=off` | All PCIe | Early boot | Higher (~1-2W) | ✅ Works |
 | `pcie_aspm.policy=performance` | All PCIe | Early boot | 10.32 W (2026-10-27 A/B) | ✅ Conservative fallback |
-| `pcie_aspm.policy=powersave` | All PCIe | Early boot | 7.17 W; L1 enabled | ✅ Current default, boot/resume soak pending |
-| `pcie_aspm.policy=powersupersave` | All PCIe | Early boot | 5.90 W; L1 enabled | ⚠️ Old MT7925 bug; next trial |
+| `pcie_aspm.policy=powersave` | All PCIe | Early boot | 7.17 W; L1 enabled | ✅ Proven fallback: boot + 2 suspends + 10-min soak |
+| `pcie_aspm.policy=powersupersave` | All PCIe | Early boot | 5.90 W; deeper L1 | ✅ Selected: boot + 2 suspends + 10-min soak |
 
 The watt figures are from one A/B run on 6.18.55, not a general guarantee.
 

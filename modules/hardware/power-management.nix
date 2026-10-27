@@ -292,15 +292,14 @@ in
       # Disable NMI watchdog (saves ~1W)
       # NMI watchdog is used for detecting hard lockups, but not needed for normal use
       "nmi_watchdog=0"
-      # PCIe ASPM: powersave is the compromise after the 2026-10-27 A/B:
-      # performance 10.32 W, powersave 7.17 W, powersupersave 5.90 W. powersave
-      # enables L1 on the NVMe/Wi-Fi/GPU links without the most aggressive
-      # substates. powersupersave is still the policy linked to the MT7925
-      # boot/resume issues (docs/mt7925-wifi-boot-failure.md), so it is not the
-      # first step: keep "performance" as the fallback if the card regresses,
-      # and trial powersupersave separately for another ~1.3 W once powersave
-      # survives boot + suspend/resume.
-      "pcie_aspm.policy=powersave"
+      # PCIe ASPM: powersupersave selected after the 2026-10-27 A/B and the
+      # 10-minute soak (boot + two suspends, 0 ping loss, 7.51 MB/s avg, no
+      # mt7925 errors). A/B: performance 10.32 W, powersave 7.17 W,
+      # powersupersave 5.90 W. It enables the deeper L1 substates, but is still
+      # the policy linked to the old MT7925 boot/resume issues
+      # (docs/mt7925-wifi-boot-failure.md); keep "powersave" or "performance"
+      # as the fallback if the card regresses.
+      "pcie_aspm.policy=powersupersave"
       # RCU Lazy: batch RCU callbacks during idle for 5-10% power savings
       # Allows deeper CPU sleep states at idle; no performance downside
       "rcutree.enable_rcu_lazy=1"
