@@ -33,6 +33,13 @@ prompt, controlled in **Settings → Developer → SSH agent → Advanced**:
 - On the approval prompt, check **Approve for all applications** to let every
   process use that key until the approvals are wiped. Otherwise Git,
   `op-ssh-sign`, `ssh`, IDEs and GUI clients each ask once.
+- **Use rich approval prompt** only changes the prompt UI, not its frequency.
+  Enabled, approvals use 1Password's own window with the **Approve for all
+  applications** checkbox. Disabled, they use the system/polkit authentication
+  dialog; that is the more reliable path on Wayland, where the rich window has
+  had focus and visibility failures. With rich prompts off, approvals stay
+  per application (once per boot with **Until 1Password quits**), not per
+  commit.
 
 Commit signing therefore prompts at most once per key per session, not once
 per commit. With **Until 1Password quits** and **Approve for all
