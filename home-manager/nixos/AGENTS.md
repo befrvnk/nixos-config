@@ -475,6 +475,7 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 | `stylix.nix` | Theming with specializations |
 | `android/` | Emulator environment variables |
 | `1password-session/` | Lock 1Password's SSH keys on suspend (auto-lock stays off) |
+| `1password-app.nix` | Launch the 1Password app in the initial user namespace (CLI integration requirement) |
 | `audio-keep-alive/` | Amplifier pop prevention |
 | `battery-notifications/` | Legacy warning monitor (inactive; Noctalia owns alerts) |
 | `profile-sync-daemon.nix` | Browser profile sync |
