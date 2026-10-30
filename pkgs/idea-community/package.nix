@@ -56,15 +56,15 @@
 }:
 
 let
-  buildNumber = "262.10968.63";
+  buildNumber = "262.11879.100";
 in
 stdenv.mkDerivation rec {
   pname = "idea-community";
-  version = "2026.2.3";
+  version = "2026.2.4";
 
   src = fetchzip {
-    url = "https://download.jetbrains.com/idea/idea-2026.2.3.tar.gz";
-    hash = "sha256-vZjL5fEomjmsOJr8tLMjTcNO/CCRnmDwd4DYoQzvppc=";
+    url = "https://download.jetbrains.com/idea/idea-2026.2.4.tar.gz";
+    hash = "sha256-3MuSPe1LbxmlXUlVhwRYPdmrbbAZkyAE531So0x/57k=";
   };
 
   nativeBuildInputs = [
