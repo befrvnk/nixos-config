@@ -177,6 +177,7 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
   "- Build systems: \(if ($build_systems | length) == 0 then "-" else ($build_systems | join(", ")) end)",
   "- First session: \($sessions[0].started_at | if length >= 16 then .[0:16] | gsub("T"; " ") else text end)",
   "- Last session: \($sessions[-1].started_at | if length >= 16 then .[0:16] | gsub("T"; " ") else text end)",
+  "- Timestamps use the observer's local timezone.",
   "",
   "## Totals",
   "",
@@ -210,13 +211,14 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
   "",
   "## Per session",
   "",
-  "| Started (UTC) | Project | Build | Minutes | Falcon CPU % base->build | CPU x | Falcon CPU s | Falcon read MiB base->build | PM p95 % | Flags |",
-  "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+  "| Started (local) | Project | Build | Build min | Base min | Falcon CPU % base->build | CPU x | Falcon CPU s | Falcon read MiB base->build | PM p95 % | Flags |",
+  "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
   ( $sessions[]
     | "| \(.started_at | if length >= 16 then .[0:16] | gsub("T"; " ") else . end)"
       + " | \(.project | text)"
       + " | \(.build_system | text)"
       + " | \(.build_s / 60 | f1)"
+      + " | \(.baseline_s / 60 | f1)"
       + " | \(.cpu_base | num) -> \(.cpu_build | num)"
       + " | \(.cpu_mult | if . == null then "-" else "\(f2)x" end)"
       + " | \(.cpu_s | f2)"
