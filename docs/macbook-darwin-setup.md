@@ -169,6 +169,21 @@ sudo find /var/log/falcon-observer -maxdepth 2 -type f -print
 sudo bash scripts/falcon-report.sh
 ```
 
+If the report finds no sessions, check the job state first. `job state = spawn
+failed` with `last exit code = 78: EX_CONFIG` means launchd never executed the
+program, usually because the job still references a store path from before a
+rebuild; the observer log stays untouched. Re-register the job:
+
+```bash
+sudo launchctl bootout system/dev.befrvnk.falcon-observer
+sudo launchctl bootstrap system /Library/LaunchDaemons/dev.befrvnk.falcon-observer.plist
+sudo launchctl print system/dev.befrvnk.falcon-observer | grep -E 'state|runs|pid'
+```
+
+A successful run shows `state = running` and a `pid` (a `spawn scheduled` state
+with no PID is not running). Because summaries expire after 14 days, a watcher
+that stays down silently ages out its history and the report returns nothing.
+
 Sessions stop after 90 seconds without build activity or after 45 minutes.
 Summaries are retained for 14 days, standard collector files are capped at 128
 MiB, and active plus completed session storage is capped at 2 GiB. The daemon
