@@ -44,6 +44,14 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+cores=0
+if command -v sysctl >/dev/null 2>&1; then
+  cores=$(sysctl -n hw.ncpu 2>/dev/null || echo 0)
+fi
+case $cores in
+  '' | *[!0-9]*) cores=0 ;;
+esac
+
 if [[ ! -d "$source_dir" || ! -r "$source_dir" || ! -x "$source_dir" ]]; then
   echo "error: cannot read $source_dir (run with sudo)" >&2
   exit 1
@@ -64,7 +72,7 @@ if ((${#summaries[@]} == 0)); then
 fi
 
 write_report() {
-  jq -s -r -f /dev/stdin "${summaries[@]}" <<'JQ'
+  jq -s -r --argjson cores "$cores" -f /dev/stdin "${summaries[@]}" <<'JQ'
 def f1: ((. * 10 | round) / 10) | tostring;
 def f2: ((. * 100 | round) / 100) | tostring;
 def gib: . / 1073741824 | f2;
@@ -96,6 +104,11 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
       duration_s: duration,
       baseline_s: (.baseline.duration_seconds // 0),
       build_s: (.build.duration_seconds // 0),
+      build_cpu: .build.build_cpu_percent.mean,
+      build_cpu_p95: .build.build_cpu_percent.p95,
+      system_cpu: .build.system_cpu_percent.mean,
+      system_cpu_p95: .build.system_cpu_percent.p95,
+      falcon_build_cpu_s: .build.falcon_delta.cpu_seconds,
       cpu_base: .baseline.falcon_cpu_percent.mean,
       cpu_build: .build.falcon_cpu_percent.mean,
       cpu_base_samples: .baseline.falcon_cpu_percent.samples,
@@ -178,6 +191,7 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
   "- First session: \($sessions[0].started_at | if length >= 16 then .[0:16] | gsub("T"; " ") else text end)",
   "- Last session: \($sessions[-1].started_at | if length >= 16 then .[0:16] | gsub("T"; " ") else text end)",
   "- Timestamps use the observer's local timezone.",
+  "- Machine cores: \(if $cores > 0 then $cores else "unknown" end)",
   "",
   "## Totals",
   "",
@@ -208,6 +222,24 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
   "| Falcon stack samples | \($sampled_sessions) |",
   "| Powermetrics truncated | \($pm_truncated_sessions) |",
   "| fs_usage truncated | \($fs_truncated_sessions) |",
+  "",
+  "## Build capacity",
+  "",
+  "| Started | Build min | Build CPU (cores, mean / p95) | System CPU (%, mean / p95) | Falcon CPU s (build) | Falcon share of busy CPU (%) | CPU-bound upper bound |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+  ( $sessions[]
+    | "| \(.started_at | if length >= 16 then .[0:16] | gsub("T"; " ") else text end)"
+      + " | \(.build_s / 60 | f1)"
+      + " | \(if .build_cpu == null then "-" else "\(.build_cpu / 100 | f2) / \(if .build_cpu_p95 == null then "-" else (.build_cpu_p95 / 100 | f2) end)" end)"
+      + " | \(.system_cpu | num) / \(.system_cpu_p95 | num)"
+      + " | \(if .falcon_build_cpu_s == null then "-" else (.falcon_build_cpu_s | f1) end)"
+      + " | \(if $cores > 0 and .system_cpu != null and .system_cpu > 0 and .falcon_build_cpu_s != null and .build_s > 0 then (.falcon_build_cpu_s / (.system_cpu / 100 * $cores * .build_s) * 100 | f1) else "-" end)"
+      + " | \(if $cores > 0 and .falcon_build_cpu_s != null then (.falcon_build_cpu_s / $cores | f1) else "-" end) s"
+      + " (\(if $cores > 0 and .falcon_build_cpu_s != null and .build_s > 0 then (.falcon_build_cpu_s / $cores / .build_s * 100 | f1) else "-" end)%) |"
+  ),
+  "",
+  "Build CPU and system CPU are phase means; system CPU is a share of all cores.",
+  "The upper bound assumes a fully CPU-bound build and spreads Falcon's CPU time over every core.",
   "",
   "## Per session",
   "",
