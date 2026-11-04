@@ -166,6 +166,7 @@ Sensitive output is root-only under `/var/log/falcon-observer`:
 sudo launchctl print system/dev.befrvnk.falcon-observer
 sudo tail -f /var/log/falcon-observer/daemon.log
 sudo find /var/log/falcon-observer -maxdepth 2 -type f -print
+sudo bash scripts/falcon-report.sh
 ```
 
 Sessions stop after 90 seconds without build activity or after 45 minutes.

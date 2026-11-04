@@ -90,3 +90,17 @@ once.
 Raw traces can contain usernames, repository paths, process names, and Falcon
 identifiers. Keep retained traces local and share them only with the appropriate
 IT or CrowdStrike support personnel.
+
+## Reporting
+
+Completed sessions are aggregated by `scripts/falcon-report.sh` from the repo
+root. The summaries are root-only, so run it with sudo:
+
+```bash
+sudo bash scripts/falcon-report.sh
+sudo bash scripts/falcon-report.sh --output /tmp/falcon-report.md
+```
+
+The report lists per-session baseline/build Falcon CPU, CPU and read
+multipliers, physical I/O, powermetrics output, sensor counter deltas, and
+collector diagnostics.

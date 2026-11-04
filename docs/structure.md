@@ -168,6 +168,7 @@ scripts/
 ├── update-*.sh                # Package update scripts used by `flake-update`
 ├── show-changelogs.*          # Show changelogs after a switch
 ├── smoke-test-pi-package.sh   # Pi package smoke test
+├── falcon-report.sh           # Falcon observer session report
 └── test-pi-extensions.sh      # Pi extension test runner
 ```
 
