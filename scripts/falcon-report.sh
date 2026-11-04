@@ -128,6 +128,7 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
       max_compressed: ([.baseline.maximum_compressed_bytes, .build.maximum_compressed_bytes] | map(select(. != null)) | max // 0),
       max_swap: ([.baseline.maximum_swap_bytes, .build.maximum_swap_bytes] | map(select(. != null)) | max // 0),
       queue: (.falcon_stats_delta.queue_processed // 0),
+      queue_depth: (.falcon_stats_delta.queue_maximum_depth_increase // 0),
       cache_hits: (.falcon_stats_delta.cache_read_hits // 0),
       cache_misses: (.falcon_stats_delta.cache_read_misses // 0),
       auth_exec: (.falcon_stats_delta.endpoint_security_auth_exec // 0),
@@ -169,6 +170,7 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
 | ([ $sessions[].cpu_s ] | add // 0) as $total_cpu_s
 | ([ $sessions[].build_cpu_s ] | add // 0) as $total_build_cpu_s
 | ([ $sessions[].queue ] | add // 0) as $queue
+| ([ $sessions[].queue_depth ] | max // 0) as $queue_depth
 | ([ $sessions[].auth_exec ] | add // 0) as $auth_exec
 | ([ $sessions[].static_requests ] | add // 0) as $static_requests
 | ([ $sessions[].static_too_large ] | add // 0) as $static_too_large
@@ -205,7 +207,7 @@ def duration: ((.baseline.duration_seconds // 0) + (.build.duration_seconds // 0
   "| Powermetrics Falcon CPU | weighted mean \(if $pm_samples == 0 then "-" else ($pm_weighted / $pm_samples) | f2 end)%, mean p95 \(([ $sessions[].pm_cpu_p95 | select(. != null) ] | mean) | num)%, peak \(([ $sessions[].pm_cpu_max | select(. != null) ] | max) | num)% |",
   "| Powermetrics Falcon read rate | mean \(([ $sessions[].pm_read | select(. != null) ] | mean) / 1048576 | f2) MiB/s |",
   "| Powermetrics Falcon energy impact | mean \(([ $sessions[].pm_energy | select(. != null) ] | mean) | f2) |",
-  "| Falcon queue | \($queue) entries processed |",
+  "| Falcon queue | \($queue) entries processed, max depth +\($queue_depth) |",
   "| Falcon sensor cache | \($cache_hits) hits / \($cache_misses) misses (\(if ($cache_hits + $cache_misses) == 0 then "-" else (($cache_hits * 100) / ($cache_hits + $cache_misses) | f1) end)% hit rate) |",
   "| Endpoint Security exec authorizations | \($auth_exec) |",
   "| Static analysis requests | \($static_requests) (\($static_too_large) too large) |",
