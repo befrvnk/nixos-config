@@ -436,6 +436,13 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - `niri/safe-suspend.sh` queries structured logind inhibitors, blocks on high-level
   sleep/block locks, and fails closed on query/parse errors. It never uses a bypass flag.
   `checks.x86_64-linux.safe-suspend` tests this with fake commands, not real suspend.
+- Stale `wifi-off` topbar glyphs come from Noctalia's once-per-shell-start backend
+  selection: a shell racing NetworkManager onto the system bus locks onto the fragile
+  standalone wpa_supplicant fallback (see docs/noctalia-niri-overview.md, "Network
+  widget backend fallback"). Compare `noctalia msg wifi-status` with NM's
+  `WirelessEnabled`; fix at runtime with `systemctl --user restart noctalia` while
+  unlocked. Upstream commit `a893668` (>v5.4.1) makes the backend wait for NM; do not
+  add a declarative ExecStartPre bus-wait — bump past that commit instead.
 - See `docs/noctalia-niri-overview.md` for troubleshooting and rollback.
 
 ### Profile-sync-daemon (`profile-sync-daemon.nix`)

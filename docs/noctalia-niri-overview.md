@@ -58,10 +58,45 @@ Niri EventStream behavior remains; Umbriel subscribes to overview with an initia
 snapshot. Wayland plus either compositor socket gates the unit. This is not a bar
 redesign or live Umbriel acceptance; Niri remains the default/recovery session.
 
-The GTK-stage rebuild exposed this on 2026-10-20. Starting only the watcher restored
+GTK-stage rebuild exposed this on 2026-10-20. Starting only the watcher restored
 its event subscription without restarting Noctalia or changing bar appearance.
 Flake invariants now enforce session enablement, post-reconciliation recovery and
 identical watcher units across app-theme variants. The permanent fix awaits rebuild.
+
+## Network widget backend fallback
+
+The topbar network widget shows the `wifi-off` glyph because Noctalia's network
+backend is stuck, not because wifi is off. Noctalia picks its backend once at
+shell startup: NetworkManager when it is already on the bus, otherwise a
+standalone wpa_supplicant or iwd if one is available, else it waits for NM. The
+Framework runs `networking.networkmanager` together with a standalone
+wpa_supplicant, so a shell started before NM claims its system-bus name locks
+onto the wpa backend. When that backend cannot enumerate
+(`org.freedesktop.DBus.Error.AccessDenied` on `fi.w1.wpa_supplicant1`), it never
+produces a state snapshot and keeps the struct default
+`wirelessEnabled = false` forever. The backend-follows-NM logic lives inside
+`NetworkManagerService`, which the fallback already replaced; nothing upgrades
+back when NM appears. Check with `noctalia msg wifi-status` against
+`busctl --system get-property org.freedesktop.NetworkManager
+/org/freedesktop/NetworkManager org.freedesktop.NetworkManager WirelessEnabled`.
+
+Observed on the 2026-11-02 boot (`journalctl --user -u noctalia`: shell started
+in the same second NM started, "NetworkManager not on the bus", then
+"network service active (wpa_supplicant)"). Upstream fixed this after #4551 in
+commit `a893668ac69986b4566417095de7233a8e07eabd` ("fix(network): keep
+NetworkManager backend when it is enabled but not yet running"): when NM's unit
+is enabled but not running, the backend now waits for it and treats a
+simultaneously running wpa_supplicant as NM's own. That fix is on master as of
+2026-11-06 and is not in any release yet (it is not present in v5.4.1).
+
+Workaround without a config change: once NM is on the bus,
+`systemctl --user restart noctalia` re-runs the backend selection and attaches
+the NM backend (`networking/network`, no separate restart of NM needed). The
+overview watcher and wallpaper policy recover through the normal `started` hook
+and `PartOf` ordering — never apply such a restart while the session is locked.
+Declarative mitigation was deliberately skipped: the bus-wait ExecStartPre idea
+is unnecessary once the flake input is bumped past `a893668`, so this section
+becomes historical.
 
 ## Native battery warnings
 
