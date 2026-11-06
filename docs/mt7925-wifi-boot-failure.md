@@ -93,6 +93,32 @@ of them contain the fix. Upgrade guidance below therefore stands: stay on 6.18 L
 until a fixed build is packaged, then re-check `mt7925_mcu_sta_mld_tlv()` for the
 pending-link argument and run your own MLO soak before promoting.
 
+**Updated 2026-11-06 — `linuxPackages_cachyos-rc` promoted to 7.4-rc1 on that
+basis.** Linux 7.4-rc1 (tagged 2026-11-01) contains the fix, verified at three
+levels on 2026-11-06:
+
+1. Upstream `v7.4-rc1`: `mt7925_mcu_sta_mld_tlv()` carries the pending-link
+   argument (release tag source, lines 2064–2126).
+2. CachyOS
+   [`7.4-rc1-1`](https://github.com/CachyOS/linux/releases/tag/cachyos-7.4-rc1-1)
+   (target branch `7.0/cachy`, released 2026-11-05): same pending-link logic
+   present in `mt7925/mcu.c`; the release pulls only DRM topic branches
+   (`vesa-dsc-bpp`), nothing touching mt76.
+3. Chaotic-Nyx `manifest-rc.json` on `nyxpkgs-unstable` builds `linux_cachyos-rc`
+   from exactly that source (`version "7.4-rc1"`, `tagrel: 1`).
+
+`nix flake update chaotic` moved the lock to `e47c2b41686d87d20700a70c3042bf0289e84cdb`
+(`linux_cachyos-rc` = 7.4-rc1, `linux_cachyos-lts` = 6.18.60), `hosts/framework/default.nix`
+switched to `linuxPackages_cachyos-rc`, and the full Framework build passed
+(instead of building locally, all kernel outputs resolve from the Nyx cache).
+The switch remains a **trial until this machine's own MLO soak passes** on
+5+6 GHz: keep the previous LTS boot entry for rollback, watch for the silent
+stall signature (`modprobe -r mt7925e` reload restores throughput) and
+check `systemd-modules-load`/`dmesg` after suspend/resume. Revisit the
+non-rc default (`linuxPackages_cachyos` 7.4.x, with LTS-class maintenance)
+once 7.4 final is packaged; Bugzilla 221884 status remains stale and is not
+a signal either way.
+
 [Bugzilla 221884](https://bugzilla.kernel.org/show_bug.cgi?id=221884) still shows NEW
 with its last update on August 18. The later investigation and patch testing moved
 to the mailing list, so the stale Bugzilla status alone is not the basis for this
@@ -218,14 +244,16 @@ this one — it is NOT the freeze tracked in this repo.
 - [Upstream release inventory](https://www.kernel.org/)
 - [Chaotic-Nyx CachyOS kernel packaging](https://github.com/chaotic-cx/nyx)
 
-### Fix applied in this repo
+### Kernel selection in this repo
 
-`hosts/framework/default.nix` retains this selection rather than automatically
-selecting `cachyos-latest`:
+When the fix was still absent from every released source, `hosts/framework/default.nix`
+retained `linuxPackages_cachyos-lts` rather than automatically selecting
+`cachyos-latest`. Since the 2026-11-06 verification above it selects
+`linuxPackages_cachyos-rc` (7.4-rc1) as a reversible trial:
 
 ```nix
 boot.kernelPackages =
-  inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}."linuxPackages_cachyos-lts";
+  inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}."linuxPackages_cachyos-rc";
 ```
 
 The kernel is packaged by Chaotic-Nyx and instantiated from *their* nixpkgs pin, so it
@@ -234,12 +262,14 @@ replaces the `nix-cachyos-kernel` overlay, whose only binary cache was the Lanti
 endpoint revoked in `docs/security-hardening.md`.
 
 The origin rebase advanced the configured LTS to 6.18.52 and its full system build
-passed; the running kernel was still 6.18.42 during this check.
+passed; the running kernel was still 6.18.42 during that check.
 
-The October research changed neither kernel selection nor lock files. Revisit a
-7.x default only after verifying the relevant fix in the exact selected source and
-passing user-operated WiFi tests. The available `cachyos-rc` package is not by itself
-evidence of a fix; a custom candidate must remain a separate reversible trial.
+Future promotions follow the same rule: verify the relevant fix in the exact
+selected source and pass user-operated WiFi tests before a change becomes the
+settled default. Switching from the `-rc` variant to the plain `cachyos`/`-lto`
+variants for 7.4 final (expected ~2026-12-20, likely this year's LTS) counts as
+a fresh promotion and gets its own verification against the exact Nyx manifest
+and source, plus the same MLO soak.
 
 ## The Problem
 

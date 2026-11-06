@@ -41,19 +41,21 @@
     )
   ];
 
-  # Keep LTS for the MT7925 MLO traffic-stall regression (Bugzilla 221884).
-  # As of 2026-10-22, Linux 7.3/7.2.12 and CachyOS 7.3.0-2 lack the candidate
-  # fix. The October 4 v2 was tested on a manually patched 7.3-rc5, not shipped
-  # in the official RC. Promote a newer series only after source verification
-  # and user-operated MLO testing, not a release-number threshold.
-  # See: docs/mt7925-wifi-boot-failure.md
+  # Switched to 7.4-rc1 (CachyOS 7.4-rc1-1, `linuxPackages_cachyos-rc`) because
+  # the MT7925 MLO traffic-stall fix (`dd3f17ef69ed`, Bugzilla 221884) landed in
+  # mainline after 7.3 without `Cc: stable`, making 7.4-rc1 the first released
+  # kernel with it. Verified 2026-11-06 in the exact source built by the Nyx
+  # `-rc` manifest (`cachyos-7.4-rc1-1`): `mt7925_mcu_sta_mld_tlv()` carries the
+  # pending-link argument. Trial basis: keep the LTS boot entry for rollback
+  # and require the user-operated MLO soak from docs/mt7925-wifi-boot-failure.md
+  # before treating the default as settled.
   boot = {
     binfmt.emulatedSystems = [ "aarch64-linux" ];
     # Instantiated from Chaotic-Nyx's own nixpkgs pin, so the kernel resolves to the
     # paths their binary cache actually holds (the `pinned`-overlay rule from the old
     # provider, kept here by referencing legacyPackages instead of our overlay pkgs).
     kernelPackages =
-      inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}."linuxPackages_cachyos-lts";
+      inputs.chaotic.legacyPackages.${pkgs.stdenv.hostPlatform.system}."linuxPackages_cachyos-rc";
     loader.systemd-boot.enable = lib.mkForce false;
     lanzaboote = {
       enable = true;
