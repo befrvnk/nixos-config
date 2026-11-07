@@ -53,11 +53,25 @@ let
     ${wifiPowerSave "on"}
     ${setAbm 4}
   '';
+
+  powerProfileAutoSwitchScript = pkgs.writeShellScript "power-profile-auto-switch" ''
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.gnugrep
+        pkgs.systemd
+        pkgs.upower
+      ]
+    }"
+
+    ${builtins.readFile ./power-profile-auto-switch.sh}
+  '';
 in
 {
   # Power management using tuned (Red Hat's power management daemon)
-  # tuned provides event-based AC/battery switching via upower, eliminating
+  # tuned maps Balanced to the battery profile via upower events, eliminating
   # the CPU overhead of udev rules that fire on every battery status update.
+  # Plugging in/out changes the selected mode in power-profile-auto-switch.
 
   services = {
     # Explicitly disable conflicting power management tools
@@ -234,6 +248,27 @@ in
     tuned-ppd.restartTriggers = lib.mkIf config.services.tuned.ppdSupport [
       config.environment.etc."tuned/ppd.conf".source
     ];
+
+    # Plugging in selects Performance, unplugging selects Balanced. Power Saver
+    # is never chosen automatically, so it stays a deliberate choice.
+    power-profile-auto-switch = {
+      description = "Switch power profile when AC power is connected or removed";
+      wantedBy = [ "multi-user.target" ];
+      wants = [
+        "tuned-ppd.service"
+        "upower.service"
+      ];
+      after = [
+        "tuned-ppd.service"
+        "upower.service"
+      ];
+      serviceConfig = {
+        Type = "simple";
+        Restart = "always";
+        RestartSec = "5s";
+        ExecStart = "${powerProfileAutoSwitchScript}";
+      };
+    };
 
     # Make ABM sysfs writable by users (for toggle-abm and the bar brightness popup)
     abm-permissions = lib.mkIf (abmPath != null) {
