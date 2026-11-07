@@ -137,7 +137,7 @@ In `modules/system/security.nix`:
 In `modules/hardware/power-management.nix`:
 - **tuned** manages power profiles with **tuned-ppd** providing PPD API compatibility
 - PPD clients use the tuned-ppd D-Bus API; `powerprofilesctl` is not installed by default
-- **Auto-switching:** `power-profile-auto-switch` (`hardware/power-profile-auto-switch.sh`) watches the AC adapter via upower and sets the PPD profile: plug in → performance, unplug → balanced. Power Saver is never automatic. tuned's `battery_detection` still maps balanced to `framework-battery` on battery (not udev)
+- **Auto-switching:** `power-profile-auto-switch` (`hardware/power-profile-auto-switch.sh`) polls the AC adapter's sysfs `online` file (UPower missed plug-in events) and sets the PPD profile: plug in → performance, unplug → balanced. Power Saver is never automatic. tuned's `battery_detection` still maps balanced to `framework-battery` on battery (not udev)
 - Custom profiles: `framework-battery`, `framework-ac`, `framework-powersave`, `framework-performance`
 
 **Power Saver:** low-power profile, EPP=power, boost OFF, WiFi power save ON, ABM level 4

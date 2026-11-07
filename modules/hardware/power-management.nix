@@ -58,9 +58,7 @@ let
     export PATH="${
       lib.makeBinPath [
         pkgs.coreutils
-        pkgs.gnugrep
         pkgs.systemd
-        pkgs.upower
       ]
     }"
 
@@ -254,14 +252,8 @@ in
     power-profile-auto-switch = {
       description = "Switch power profile when AC power is connected or removed";
       wantedBy = [ "multi-user.target" ];
-      wants = [
-        "tuned-ppd.service"
-        "upower.service"
-      ];
-      after = [
-        "tuned-ppd.service"
-        "upower.service"
-      ];
+      wants = [ "tuned-ppd.service" ];
+      after = [ "tuned-ppd.service" ];
       serviceConfig = {
         Type = "simple";
         Restart = "always";
