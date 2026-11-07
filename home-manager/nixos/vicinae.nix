@@ -24,7 +24,7 @@ in
           enabled = true;
         };
         layer_shell = {
-          enabled = false; # Disabled for niri compatibility
+          enabled = false; # Kept disabled; Umbriel owns layer surfaces natively
         };
       };
 

@@ -122,10 +122,10 @@ See `docs/new-host.md` for detailed guide.
   lib.mkForce false` (nixos-hardware defaults it off due to hangs). Rollback:
   restore the default and `amdgpu.dcdebugmask=0x10`; see
   `docs/amdgpu-kworker-io-pressure.md`.
-- Framework's additive Umbriel trial uses the already-pinned native module/package;
-  Greeter keeps Niri as default. home.nix supplies the pinned upstream Home Manager
+- Framework's Umbriel session is the sole/default greeter session (Niri removed
+  2026-11-07). home.nix supplies the pinned upstream Home Manager
   module through extraSpecialArgs: deriving imports from HM config/pkgs directly
-  recurses. Keep the existing Niri config, PAM and hardware policy invariant; see
+  recurses. Keep the existing session config, PAM and hardware policy invariant; see
   docs/umbriel-trial.md. Never launch compositors/lock/auth/power tests as agent.
 - Framework's pinned CachyOS builder and main nixpkgs can use different module
   certificate formats. Its host overlay selects the provider's aggregateModules

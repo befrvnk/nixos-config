@@ -14,6 +14,9 @@
     let
       cfg = inputs.self.nixosConfigurations.framework.config;
       home = cfg.home-manager.users.frank;
+      # The guarded-suspend backend is derived from the panel's own settings so
+      # the manual shortcut and native power actions must use the same helper.
+      manualSuspend = pkgs.lib.removeSuffix " --require-lock" home.programs.noctalia.settings.shell.session.power.suspend;
       lines = builtins.filter (line: line != "") (
         pkgs.lib.splitString "\n" cfg.security.pam.services.noctalia.text
       );
@@ -66,22 +69,15 @@
       && builtins.any (patch: pkgs.lib.hasSuffix "suspend-lock-policy.patch" (toString patch)) (
         home.programs.noctalia.package.patches or [ ]
       )
-      && pkgs.lib.hasPrefix "/nix/store/" (
-        builtins.head home.programs.niri.settings.binds."Mod+Shift+S".action.spawn
-      )
-      &&
-        home.programs.noctalia.settings.shell.session.power.suspend
-        == "${builtins.head home.programs.niri.settings.binds."Mod+Shift+S".action.spawn} --require-lock"
+      && pkgs.lib.hasPrefix "/nix/store/" manualSuspend
+      && home.programs.noctalia.settings.shell.session.power.suspend == "${manualSuspend} --require-lock"
       && builtins.all (
         action: action.action != "suspend"
       ) home.programs.noctalia.settings.shell.session.actions
+      && home.programs.umbriel.settings.keybinds."Mod+Shift+S".action == "spawn ${manualSuspend}"
       &&
-        home.programs.niri.settings.binds."Mod+Shift+X".action.spawn == [
-          "${home.programs.noctalia.package}/bin/noctalia"
-          "msg"
-          "session"
-          "lock"
-        ]
+        home.programs.umbriel.settings.keybinds."Mod+Shift+X".action
+        == "spawn ${home.programs.noctalia.package}/bin/noctalia msg session lock"
       && pkgs.lib.elem "timeout=10" cfg.security.pam.services.login.rules.auth.fprintd.args
       && pkgs.lib.elem "max-tries=3" cfg.security.pam.services.login.rules.auth.fprintd.args
     ) "Native automatic locking must retain secure defaults, timing and one pre-sleep/logind owner";
@@ -196,11 +192,18 @@
             configSource = "${home.xdg.configFile."noctalia/config.toml".source}";
             screen = home.programs.noctalia.settings.lockscreen;
             session = home.programs.noctalia.settings.shell.session;
-            manualSuspend = home.programs.niri.settings.binds."Mod+Shift+S".action.spawn;
+            manualSuspend = [
+              (pkgs.lib.removeSuffix " --require-lock" home.programs.noctalia.settings.shell.session.power.suspend)
+            ];
             swayidleEnabled = home.services.swayidle.enable;
             userUnits = builtins.attrNames home.systemd.user.services;
             idle = home.programs.noctalia.settings.idle;
-            manual = home.programs.niri.settings.binds."Mod+Shift+X".action.spawn;
+            manual = [
+              "${home.programs.noctalia.package}/bin/noctalia"
+              "msg"
+              "session"
+              "lock"
+            ];
             fallback = home.programs.swaylock.enable;
             passwordPam = inputs.self.nixosConfigurations.framework.config.security.pam.services.noctalia.text;
           }
@@ -248,7 +251,7 @@
         );
         BTOP_CLI = "${pkgs.btop}/bin/btop";
         BTOP_CONFIG = home.xdg.configFile."btop/btop.conf".source;
-        BRIGHTNESS_CONTROL_SCRIPT = ../home-manager/nixos/niri/brightness-ctl.sh;
+        BRIGHTNESS_CONTROL_SCRIPT = ../home-manager/nixos/desktop-tools/brightness-ctl.sh;
         OSD_INTEGRATION = pkgs.writeText "native-osd-integration.json" (
           builtins.toJSON {
             osd = home.programs.noctalia.settings.osd;
@@ -259,13 +262,10 @@
               XF86AudioMute = null;
               XF86MonBrightnessUp = null;
               XF86MonBrightnessDown = null;
-            } home.programs.niri.settings.binds;
-            startup = home.programs.niri.settings.spawn-at-startup;
+            } home.programs.umbriel.settings.keybinds;
+            startup = home.programs.umbriel.settings.general.autostart;
           }
         );
-        NIRI_VALIDATOR = "${pkgs.niri}/bin/niri";
-        NIRI_CONFIG = pkgs.writeText "niri-test-config.kdl" home.programs.niri.finalConfig;
-        NIRI_NODES = pkgs.writeText "niri-test-nodes.json" (builtins.toJSON home.programs.niri.config);
         FZF_WRAPPER = "${
           pkgs.callPackage ../home-manager/nixos/noctalia/fzf-package.nix {
             configHome = home.xdg.configHome;
@@ -416,9 +416,9 @@
             pkgs.lib.filter (name: pkgs.lib.hasPrefix "prepare" name) (builtins.attrNames home.home.activation)
             == [ "prepareNoctaliaThemeOutputs" ]
             && pkgs.lib.hasInfix "--manifest" home.home.activation.prepareNoctaliaThemeOutputs.data
-            # Floor over the currently wired outputs: 14 single-app entries plus
+            # Floor over the currently wired outputs: 13 single-app entries plus
             # gtk x2, qt x2 and zen x2. Raise it when another app is wired in.
-            && builtins.length home.noctalia.prepareOutputs >= 20
+            && builtins.length home.noctalia.prepareOutputs >= 19
           );
       dconf =
         mkCheck "dconf" "Home Manager must not overwrite Noctalia's runtime color-scheme preference"
@@ -619,27 +619,6 @@
               && pkgs.lib.elem h.programs.fzf.package h.home.packages
             ) variants
           );
-      niri =
-        mkCheck "niri"
-          "Niri must keep its layout/overview unchanged while only native colors vary at runtime"
-          (
-            same (map (h: h.programs.niri.finalConfig) variants)
-            && builtins.all (
-              h:
-              h.programs.niri.settings.layout.border.enable
-              && h.programs.niri.settings.layout.border.width == 4
-              && h.programs.niri.settings.layout.border.active == null
-              && h.programs.niri.settings.layout.border.inactive == null
-              && !h.programs.niri.settings.layout.focus-ring.enable
-              && !h.programs.niri.settings.layout.shadow.enable
-              && h.programs.niri.settings.layout.background-color == "transparent"
-              && h.programs.niri.settings.layout.gaps == 12
-              && h.programs.niri.settings.overview.zoom == 0.5
-              && !h.programs.niri.settings.overview.workspace-shadow.enable
-              && pkgs.lib.elem "niri" h.programs.noctalia.settings.theme.templates.builtin_ids
-              && !(managedConfig h "niri/noctalia.kdl")
-            ) variants
-          );
       nushell =
         mkCheck "nushell"
           "Nushell must read Noctalia's runtime data without prebuilt color files or prompt integration changes"
@@ -677,12 +656,6 @@
               ) h.programs.noctalia.settings.wallpaper.favorite
               && !(builtins.any (package: pkgs.lib.hasPrefix "awww-" package.name) h.home.packages)
               && !(h.systemd.user.services ? monitor-hotplug)
-              && !(pkgs.lib.hasInfix "awww-daemon" h.programs.niri.finalConfig)
-              && builtins.any (
-                rule:
-                (rule.place-within-backdrop or false) == true
-                && builtins.any (match: (match.namespace or "") == "^noctalia-wallpaper$") rule.matches
-              ) h.programs.niri.settings.layer-rules
             ) variants
           );
       starship =
@@ -714,17 +687,11 @@
               && h.programs.noctalia.settings.osd.enabled
               && h.programs.noctalia.settings.osd.position == "bottom_center"
               && h.programs.noctalia.settings.osd.position_vertical == "bottom_center"
-              && builtins.all (n: !(builtins.hasAttr "F${toString n}" h.programs.niri.settings.binds)) (
-                pkgs.lib.range 1 12
-              )
               && h.programs.noctalia.settings.osd.kinds.volume
               && h.programs.noctalia.settings.osd.kinds.volume_output
               && !h.programs.noctalia.settings.osd.kinds.volume_input
               && h.programs.noctalia.settings.osd.kinds.brightness
               && !h.programs.noctalia.settings.audio.enable_overdrive
-              && !(pkgs.lib.hasInfix "swayosd-client" h.programs.niri.finalConfig)
-              && !(pkgs.lib.hasInfix "volume-ctl" h.programs.niri.finalConfig)
-              && pkgs.lib.hasInfix "pw-loopback" h.programs.niri.finalConfig
             ) variants
           );
       btop =

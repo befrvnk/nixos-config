@@ -1,7 +1,9 @@
-# Noctalia V5 on Niri
+# Noctalia V5 on Umbriel
 
 The Framework uses the native C++ **Noctalia 5.3.0** release, pinned by tag and
-`flake.lock`. This is not Noctalia V4 or a Quickshell configuration.
+`flake.lock`. This is not Noctalia V4 or a Quickshell configuration. Umbriel,
+Noctalia's own scrollable-tiling compositor, is the only Wayland session; Niri was
+removed on 2026-11-07 after the dual-session trial.
 
 ## Ownership and layout
 
@@ -52,11 +54,10 @@ This second path is necessary: unit reconciliation can stop a PartOf dependent
 while a concurrent job cancels the shell's own restart. The shell stays alive,
 its started hook never runs, and an otherwise healthy overview-only bar stays hidden.
 
-The prepared [Umbriel trial](umbriel-trial.md) extends this same watcher to the
-active compositor's event protocol, selected by desktop identity and its own socket.
-Niri EventStream behavior remains; Umbriel subscribes to overview with an initial
-snapshot. Wayland plus either compositor socket gates the unit. This is not a bar
-redesign or live Umbriel acceptance; Niri remains the default/recovery session.
+The watcher consumes the active Umbriel session's overview events, selected by
+desktop identity and its own socket. Umbriel subscribes to overview and delivers an
+initial snapshot; Wayland plus the Umbriel socket gates the unit. This is not a bar
+redesign; strict overview-only behavior is unchanged.
 
 GTK-stage rebuild exposed this on 2026-10-20. Starting only the watcher restored
 its event subscription without restarting Noctalia or changing bar appearance.
@@ -138,13 +139,13 @@ Rollback requires both restoring the old import and disabling native warnings
 ## Overview-only behavior
 
 Noctalia V5 smart auto-hide also shows on empty workspaces; that is not strict
-overview-only. `overview.py` subscribes directly to Niri's event socket and calls:
+overview-only. `overview.py` subscribes directly to the Umbriel overview socket and calls:
 
 - `noctalia msg bar-show` when overview opens.
 - `noctalia msg panel-close`, then `bar-hide`, when overview closes.
 
 The shell startup hook restarts `noctalia-overview.service` after IPC is ready.
-The watcher initially hides the bar, then consumes Niri's initial overview state.
+The watcher initially hides the bar, then consumes Umbriel's initial overview state.
 Duplicate events are ignored; stream/IPC failure exits so systemd reconnects.
 The bar reserves no space. There may be a brief startup reveal before the hook
 hides it. Reopening shell Settings outside overview is still possible via IPC.
@@ -326,7 +327,7 @@ not imported at either system or HM level; its old files are rollback material.
 The normal HM activation hook also stops a remaining legacy Darkman user daemon.
 
 After rebuilding, test dark then light **one at a time**, allowing the compatibility
-job to finish between changes. Verify GTK apps, Niri colors, Vicinae, SwayOSD,
+job to finish between changes. Verify GTK apps, Umbriel colors, Vicinae,
 Nushell, Ghostty's system appearance and wallpaper. The Noctalia PID should stay
 unchanged during these toggles. Return to auto mode if scheduled switching is wanted.
 
@@ -360,7 +361,7 @@ integration/migration tests, 6 GTK tests, 4 Qt tests (with real offscreen Qt5/Qt
 Home Manager settings merger), 7 Zen tests (including actual packaged policy checks),
 6 VS Code tests (including isolated CLI extension discovery), 6 lazygit tests
 (including real isolated PTY/color checks), 7 fzf tests (real Nu/selectors/PTYs),
-7 Niri template tests (full KDL validation, colors and backdrop-only placement), 6 Nushell tests
+6 Nushell tests
 (real Nu rendering/reader/hook checks), 6 Starship tests (real CLI/prompt RGB),
 8 native OSD/control tests (all hardware mocked), 6 btop tests (including isolated native reload),
 6 plain-Emacs tests (real batch theme/init loading), 6 Xresources tests (real isolated Xvfb/xrdb),
@@ -370,7 +371,7 @@ Home Manager settings merger), 7 Zen tests (including actual packaged policy che
 `checks.x86_64-linux.noctalia-theme-invariants`. The latter verifies identical
 shell/bridge service definitions across theme generations to prevent restart loops;
 it is also exposed as `checks.x86_64-linux.noctalia-theme-<name>` so a failure names
-the affected app (config, ghostty, gtk, qt, vicinae, zed, zen, vscode, niri, nushell,
+the affected app (config, ghostty, gtk, qt, vicinae, zed, zen, vscode, nushell,
 wallpaper, and so on).
 The deployed handover is accepted: Darkman is inactive/not found, the preference
 matches Noctalia's resolved mode, and the user confirmed dark/light switching works.
@@ -734,41 +735,19 @@ and shell/overview services remain active. Detailed keybindings were not indepen
 instrumented. All requested community integrations are accepted, but this does not
 finish all app migration or retire the compatibility bridge.
 
-## Niri built-in colors (accepted)
+## Umbriel colors (accepted)
 
-`noctalia/niri.nix` enables the unmodified stock `niri` template and appends a
-managed absolute `include ... optional=true` to niri-flake's rendered configuration.
-Only `~/.config/niri/noctalia.kdl` is runtime-writable. Upstream's output hook resolves
-that path; its apply hook recognizes the include and never appends through the
-Home Manager config symlink. No custom color template/reload script is introduced.
+Umbriel does not use a managed include fragment. `umbriel/default.nix` registers the
+upstream community `umbriel` TOML template (`inputs.noctalia` assets) as a user
+template to render `~/.config/umbriel/noctalia.toml`; the compositor merges that
+optional include into the managed immutable `config.toml`. Activation seeds a valid
+placeholder/private output before linking, and the rendered colors can be re-applied
+at runtime without changing the managed file. Native Noctalia identity/backdrop colors
+remain the source; `test_wallpaper_mode.py` and the theme prepare checks cover it.
 
-Niri 26.04 merges color properties from included layout blocks without resetting
-other declared settings, and watches included files for live config reload. The
-main config retains 4px borders, focus ring off, 12px gaps, transparent backgrounds,
-shadow/overview settings, rules, bindings, inputs/outputs and startup behavior. Only
-the two fixed active/inactive Base16 colors are removed from layout.nix. The shipped
-fragment also themes tab/insert/recent-window highlights without changing layout flags.
-
-The optional include is necessary for niri-flake's build-time validator, which has
-no user-home file. Activation seeds a valid comment/private output before linking.
-Runtime files normally exist, so missing-file warnings aren't expected there. Invalid
-included content still fails validation even with optional=true. Protected old output
-is safely backed up; existing writable colors remain untouched by HM activation.
-
-Six tests validate the complete generated config with real rendered fragments for
-two palettes/both modes, exercise the pinned hook against a protected symlink, check
-structure/bootstrap and reject invalid data. They do not start/reload the compositor.
-Main config is identical across theme specialisations. Native config/cache/invariant/
-lint/full Framework build checks pass. The user rebuilt and confirmed it works.
-Live inspection verified the managed main config, writable include and active
-shell/overview services; `niri validate` accepted the complete live configuration.
-GUI behavior is user-confirmed rather than independently instrumented by tests.
-
-After rebuilding, select a different Noctalia palette and check focused/inactive window
-borders. Test light/dark separately; ensure border width, gaps, background transparency,
-focus-ring state, bindings/window behavior and overview-only bar are unchanged. Niri
-should pick up the file change without a compositor restart. See
-[Niri include merging](https://niri-wm.github.io/niri/Configuration%3A-Include.html).
+The main config keeps the 4px border, 16px corner radius, 12px gap, transparent
+overview colors, window rules, keybinds, outputs, layout and autostart. Colors vary
+at runtime only via the rendered include.
 
 ## Nushell native-rendered NUON (accepted)
 
@@ -808,8 +787,9 @@ state path can consume the new data, but lack the new partial-read protection.
 
 ## Native wallpaper migration (accepted)
 
-`noctalia/wallpaper.nix` enables the native wallpaper renderer, placed by Niri within
-its backdrop only. Noctalia's extra backdrop renderer is disabled. Crop and one-second
+`noctalia/wallpaper.nix` enables the native wallpaper renderer; Umbriel keeps the
+overview's workspace wallpaper transparent so the wallpaper stays behind the workspace
+surfaces. Noctalia's extra backdrop renderer is disabled. Crop and one-second
 fade preserve the basic appearance; wallpaper must not be inside workspace previews. The two mountain images are path-only favorites, without theme/palette
 presets. Palette source remains independent. Native automation is disabled.
 
@@ -818,24 +798,24 @@ image pair on mode change without rotation or an extra command. Initially the te
 bridge chose the resolved light/dark image through `wallpaper-set` instead of awww.
 The accepted follow-up below moves that selection to native hooks. That IPC persists
 the default/current-output paths; Noctalia owns rendering, transitions and output
-handling. Niri determines the backdrop-only placement.
+handling. Umbriel's transparent overview workspace previews keep the wallpaper
+out of workspace previews.
 
-Niri startup no longer spawns awww; its package and active backdrop rule are removed.
-The new rule places `^noctalia-wallpaper$` within Niri's backdrop. The custom udev
+The awww package, startup and any active backdrop rule are removed. The custom udev
 monitor-hotplug service/script are removed. No replacement daemon or restart helper
 is added. The Darkman rollback code and the awww flake input were also removed.
 
 ### Existing-session handover
 
 The initial two-renderer trial duplicated wallpaper inside workspace previews.
-The corrected configuration uses a single `noctalia-wallpaper` surface within Niri's
-backdrop, with no `noctalia-backdrop` surface. The user rebuilt and confirmed transparent
+The corrected configuration uses a single `noctalia-wallpaper` surface behind the
+workspace areas, with no `noctalia-backdrop` surface. The user rebuilt and confirmed transparent
 workspace previews and working fades between light/dark wallpapers.
 
-A rebuild did not kill the loose awww daemon launched earlier by Niri. Native
+A rebuild did not kill the loose awww daemon launched earlier in the session. Native
 wallpaper/backdrop surfaces, the selected mountain image and successful texture
 changes were verified first. The pinned official `awww kill` IPC then retired that
-old backend; process/layer inspection confirmed its exit. Niri was not restarted.
+old backend; process/layer inspection confirmed its exit. No compositor was restarted.
 No automatic migration/process-kill hook is installed. After the corrected rebuild,
 expect only `noctalia-wallpaper` behind overview (plus the normal bar/panels), no
 awww or extra backdrop, and no wallpaper inside workspace previews.
@@ -850,11 +830,11 @@ rewriting the whole settings.toml. Tests mock IPC, never alter live wallpaper st
 At the initial migration, two bridge tests covered image choices/no reverse palette
 writes and native-error retries. The independent-policy tests below replace them;
 the bridge now tests that it never selects wallpaper. Invariants enforce no active awww package/startup or custom
-hotplug service, a disabled extra backdrop and path-only favorites. An additional
-Niri regression checks the ordinary wallpaper's backdrop placement. Full config/Niri validation,
+hotplug service and a disabled extra backdrop. Umbriel's transparent workspace-wallpaper
+setting and Umbriel config validation are checked in the session checks. Full config,
 lint and Framework build pass. Live inspection verified the single native wallpaper
 layer, disabled extra backdrop, absent awww process/hotplug service, correct dark image,
-valid full Niri config and active shell/overview services. Appearance/fades are accepted;
+valid compositor config and active shell/overview services. Appearance/fades are accepted;
 monitor reconnect and shell-restart behavior remain untested.
 
 ### Independent native wallpaper-pair policy (startup/mode accepted)
@@ -956,7 +936,7 @@ instrumented beyond automated tests.
 
 `noctalia/osd.nix` enables native output-volume and brightness OSD, with overdrive
 and input-volume OSD disabled. SwayOSD is disabled and removed from active controls.
-The Niri volume keys call Noctalia's native 5% up/down and mute commands; the same
+The Umbriel volume keys call Noctalia's native 5% up/down and mute commands; the same
 audio service supplies bar and OSD state. The cap is 100%. Horizontal/vertical OSD positions are bottom_center, as requested,
 so popups don't cover the topbar. Noctalia availability is
 now required for these keyboard volume commands; no second backend is added.
@@ -982,7 +962,7 @@ Do not remove it solely because its explicit client restart list is now empty.
 
 Use hardware Fn Lock (Fn+Esc) for normal F1–F12 with media actions behind Fn.
 On this Framework 13 Ryzen AI 300, Fn+F3 then sends volume-up while F3 reaches apps.
-Niri continues binding XF86 media events, not bare function keys; the external
+Umbriel continues binding XF86 media events, not bare function keys; the external
 NuPhy udev/WebHID rules remain separate. No firmware command or simulated
 key press is run by the agent. [Framework guidance](https://community.frame.work/t/setting-f-keys-as-default-instead-of-fn-keys/69667/2)
 reports persistence across reboots; firmware resets/updates may require retoggling.
@@ -991,12 +971,12 @@ not independently tested by the agent.
 
 Eight tests use fake brightnessctl/DDC/Noctalia programs, validate native volume key
 wiring without executing it, check limits/audio initialization, catch-up, lock/error
-paths and invalid actions. Existing Niri/config validation still covers all binds.
+paths and invalid actions. Existing umbriel config validation still covers all binds.
 Full build/cache/invariants/statix/shellcheck pass. The user rebuilt and confirmed
 the native controls, bottom-center position and Fn preference work. Live inspection
 verified the retired SwayOSD service, native 5%/mute binds, output/brightness flags,
 100% limit, display-only brightness call and preserved pw-loopback initialization.
-Niri validation and shell/overview services are healthy. No hardware settings were
+Umbriel config validation and shell/overview services are healthy. No hardware settings were
 changed by the agent; external-monitor behavior was not separately instrumented.
 
 After rebuilding, test volume down/up/mute, then internal brightness down/up and
@@ -1351,7 +1331,8 @@ controller handover and Ghostty's native palette propagation have passed their l
 tests. The GTK checkpoint is approved with Files/GTK3 checks deferred; Qt is the next
 isolated migration with runtime palette propagation verified; Vicinae is now
 accepted by the user, as are Zed, Zen Browser, VS Code, lazygit and fzf's reviewed
-Nushell-compatible wrapper. Cache trust revocation is verified and Niri is accepted.
+Nushell-compatible wrapper. Cache trust revocation is verified and each staged app
+is accepted.
 Nushell is accepted; the remaining-consumer audit, deferred GTK checks, bridge
 cleanup and artifact-integrity review remain separate.
 
@@ -1406,5 +1387,5 @@ shells/notification daemons together.
 
 - https://github.com/noctalia-dev/noctalia/tree/v5.3.0
 - https://docs.noctalia.dev/noctalia/getting-started/nixos/
-- https://docs.noctalia.dev/noctalia/compositor-settings/niri/
+- https://docs.noctalia.dev/noctalia/compositor-settings/umbriel/
 - https://docs.noctalia.dev/noctalia/plugins/

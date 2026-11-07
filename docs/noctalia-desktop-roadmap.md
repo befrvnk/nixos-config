@@ -1,5 +1,8 @@
 # Next Noctalia desktop changes
 
+> Note (2026-11-07): the Niri/Umbriel dual-session phase below is historical —
+> the owner requested Niri's removal and Umbriel is now the sole/default session.
+
 Owner priorities (2026-10-23), in this order:
 
 1. **Noctalia Greeter** replaces the current tuigreet frontend.

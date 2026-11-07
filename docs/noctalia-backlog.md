@@ -45,19 +45,21 @@ active security problem as routine backlog.
   authentication, change wake/firmware/kernel policy, or bypass inhibitors on the
   strength of the old wake IRQ alone.
 
-## NOC-04: Niri/Umbriel rendering and thermal comparison (user-led)
+## NOC-04: Umbriel rendering and thermal comparison (user-led)
 
-- **Status:** The owner chose to keep both installed/selectable and experiment when
-  convenient. Niri remains the default. No mandatory benchmark or immediate winner.
+- **Status:** Resolved only as the trial's decision: Niri was removed on 2026-11-07
+  and Umbriel is the sole/default session. The old Niri-side comparison advice no
+  longer applies, but Umbriel-only rendering/thermal follow-ups remain open if the
+  user reopens the topic.
 - **Evidence limit:** Foreground Pi/tool UI drove its Ghostty client to about 6.25%
   gfx-engine busy time; a quiet background sample reduced that client to 0.59% and
   total GPU busy to 2%. A website animation added Zen load, but Gmail was effectively
   idle. This does not establish normal rendering efficiency or exonerate compositor
   frame pacing. See [recorded observations](umbriel-trial.md#fangpu-observation--diagnosis-not-a-tuning-change).
 - **Revisit when:** The owner reports differences or requests diagnosis/optimization.
-  A useful comparison keeps workload, window sizes, refresh/scale and power state
+  A useful sample keeps workload, window sizes, refresh/scale and power state
   comparable, without the agent's foreground UI contaminating the quiet sample.
-- **Scope:** Read-only telemetry first. No agent session switch or implicit clock,
+- **Scope:** Read-only telemetry first. No agent implicit clock,
   fan, refresh, acceleration, power or application/playback change. This is not a
   blocker for ordinary use or separately requested shared topbar UI work.
 
@@ -68,7 +70,7 @@ manual suspend veto with audio held, and both inhibitor releases passed on the
 updated stack. See [inhibition evidence and recovery boundaries](noctalia-lockscreen-migration.md#updated-stack-extended-inhibition-validation-2026-10-23).
 
 The independent native wallpaper startup/mode policy is accepted in
-[the wallpaper guide](noctalia-niri-overview.md#independent-native-wallpaper-pair-policy-startupmode-accepted).
+[the wallpaper guide](noctalia-overview.md#independent-native-wallpaper-pair-policy-startupmode-accepted).
 
 Implementation history and ordinary cleanup planning remain in the
 [consolidation plan](noctalia-consolidation-plan.md). This backlog does not downgrade

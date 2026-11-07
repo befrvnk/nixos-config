@@ -38,9 +38,6 @@
       url = "github:vicinaehq/extensions/ee117bc64f341ed71b4a27e311f343b12a75f43d";
       inputs.vicinae.follows = "vicinae";
     };
-    # Don't use inputs.nixpkgs.follows here - niri cachix has builds
-    # for the flake's own nixpkgs version, using follows causes cache misses
-    niri.url = "github:sodiboo/niri-flake";
     # Native C++ Noctalia V5; keep its nixpkgs pin for upstream cache hits.
     noctalia.url = "github:noctalia-dev/noctalia/v5.3.0";
     noctalia-community-plugins = {
@@ -104,7 +101,6 @@
       "https://nixos.snix.store"
       "https://claude-code.cachix.org"
       "https://devenv.cachix.org"
-      "https://niri.cachix.org"
       "https://nix-community.cachix.org"
       "https://noctalia.cachix.org"
       "https://nixos-raspberrypi.cachix.org"
@@ -117,7 +113,6 @@
     extra-trusted-public-keys = [
       "claude-code.cachix.org-1:YeXf2aNu7UTX8Vwrze0za1WEDS+4DuI2kVeWEE4fsRk="
       "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
-      "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "nixos-raspberrypi.cachix.org-1:4iMO9LXa8BqhU+Rpg6LQKiGa2lsNh/j2oiYLNOQ5sPI="
       "umbriel.cachix.org-1:JfNq/2yg2S6D6z4Z2dVSZrZlDPQTKtexB6GAVLD98nw="

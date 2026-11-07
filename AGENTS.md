@@ -64,7 +64,7 @@ nixos-config/
 ├── modules/               # NixOS system modules only
 │   ├── desktop/hardware/services/system/theming/
 ├── home-manager/
-│   ├── nixos/             # NixOS-specific (niri/, noctalia/, stylix.nix)
+│   ├── nixos/             # NixOS-specific (umbriel/, noctalia/, stylix.nix)
 │   ├── darwin/            # Darwin-specific (ghostty, packages)
 │   ├── shared/            # Cross-platform (git, starship, atuin, ssh)
 │   └── mcp/               # MCP server configurations
@@ -124,7 +124,7 @@ Update docs when making changes:
 Detailed guides in docs/:
 - structure.md, adding-packages.md, new-host.md
 - secure-boot.md, fingerprint-setup.md (NixOS)
-- noctalia-niri-overview.md, screen-lock-and-suspend.md (NixOS)
+- noctalia-overview.md, screen-lock-and-suspend.md (NixOS)
 - macbook-darwin-setup.md (Darwin)
 
 ## Common Gotchas (All Platforms)

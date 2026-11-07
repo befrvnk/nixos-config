@@ -10,7 +10,7 @@
       }
       ''
         ${pkgs.python3}/bin/python3 -B -m unittest discover \
-          -s ${../home-manager/nixos/niri} -p 'test_safe_suspend.py'
+          -s ${../home-manager/nixos/desktop-tools} -p 'test_safe_suspend.py'
         touch $out
       '';
 

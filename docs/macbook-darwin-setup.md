@@ -282,7 +282,7 @@ nixos-config/
     │   └── packages.nix               # Darwin packages
     ├── nixos/                         # NixOS-specific configs
     │   ├── frank.nix                  # Entry point (imports shared + nixos)
-    │   ├── niri/                      # Wayland compositor
+    │   ├── umbriel/                   # Wayland compositor
     │   ├── noctalia/                  # Native V5 shell (NixOS only)
     │   └── ...                        # Linux-only modules
     └── shared/                        # Cross-platform modules
@@ -298,7 +298,7 @@ nixos-config/
 | Feature | NixOS (Framework) | Darwin (MacBook) |
 |---------|-------------------|------------------|
 | Theme switching | Noctalia V5 (dark/light) | System appearance |
-| Window manager | Niri (Wayland) | Native macOS |
+| Window manager | Umbriel (Wayland) | Native macOS |
 | Status bar | Noctalia V5 | Native macOS |
 | Notifications | Noctalia V5 | Native macOS |
 | Package manager | Nix only | Nix + Homebrew |

@@ -239,7 +239,7 @@ then isolate one variable at a time with user-operated trials.
 
 The user clarified that power-button presses (also touching the fingerprint sensor)
 preceded the first attempts, followed by lid-close tests with the screen still on.
-Logind confirms the first two suspend requests came from Niri's power-key handler;
+Logind confirms the first two suspend requests came from the compositor power-button handler;
 the third came from systemctl. This does not establish which device caused wake.
 
 The two lid closes occurred 5s and 12s after the second resume and were reopened
@@ -283,7 +283,7 @@ never requested sleep. The complete journal revealed `safe-suspend: command not 
 at 12:49:56. Swayidle's service PATH contained only Bash, unlike the working keyboard
 session. This was a launcher failure, not another immediate kernel wake.
 
-The shared `niri/safe-suspend-package.nix` now provides one explicit-PATH executable.
+The shared `home-manager/nixos/desktop-tools/safe-suspend-package.nix` now provides one explicit-PATH executable.
 The keyboard shortcut and native power backend use its absolute store path; the
 manual `safe-suspend` profile command remains available. Authentication, inhibitor
 parsing, positive-lock-hint guard and systemctl invocation are unchanged.
@@ -360,7 +360,7 @@ remain untested; no actual suspend request was issued to challenge the blocker.
 
 The user then paused playback. At 13:29:43 native logs reported systemd idle inhibit
 released. Read-only inspection at 13:30 found neither Audio Playback nor Caffeine
-holding idle/sleep blocks; aggregate BlockInhibited contained only Niri's expected
+holding idle/sleep blocks; aggregate BlockInhibited contained only the session's expected
 handle-power-key block. Native shell, overview and audio watcher remained active;
 swayidle remained absent. Accept audio release and the basic Caffeine/audio
 acquisition-recognition-release integration cycle. Do not convert those observations
@@ -467,7 +467,7 @@ it is no longer unused stage-one scaffolding. Do not remove them during recovery
 while native locking is active. Installed swaylock is a rollback option, not a way
 to unlock an existing native lock.
 
-Niri's session-lock protocol can keep an abandoned lock secure: killing/restarting
+The compositor session-lock protocol can keep an abandoned lock secure: killing/restarting
 a locked Noctalia is not a safe unlock procedure. Use the prevalidated TTY/password
 recovery route to inspect the correct graphical session. Last-resort termination
 or reboot can lose unsaved work and is the user's decision, never an agent action.

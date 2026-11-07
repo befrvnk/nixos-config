@@ -30,7 +30,6 @@ in
           xwayland = true;
         };
         environment = {
-          NIRI_SOCKET = "";
           XKB_CONFIG_ROOT = osConfig.services.xserver.xkb.dir;
         };
         appearance = {

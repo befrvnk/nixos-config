@@ -42,7 +42,7 @@ printf '%s\\n' "$XDG_DATA_DIRS" "$XKB_CONFIG_ROOT" "$XKB_DEFAULT_MODEL" "$PATH"
     def test_password_entry_is_required_to_start_authentication(self):
         config = tomllib.loads(Path(self.policy["settingsFile"]).read_text())
         self.assertIs(config["auth"]["allow_empty_password"], False)
-        self.assertEqual(config["session"]["default"], "niri")
+        self.assertEqual(config["session"]["default"], "umbriel")
         self.assertEqual(config["keyboard"]["layout"], "us-umlauts")
         self.assertEqual(config["keyboard"]["options"], "lv3:ralt_switch")
         self.assertNotIn("user", config)  # Keep normal account selection, not auto-login.
@@ -88,7 +88,7 @@ printf '%s\\n' "$XDG_DATA_DIRS" "$XKB_CONFIG_ROOT" "$XKB_DEFAULT_MODEL" "$PATH"
         self.assertEqual(model, self.policy["model"])
         self.assertEqual(path, self.policy["sessionBinPath"] + ":" + self.environment["PATH"])
         self.assertTrue((Path(xkb) / "symbols/us-umlauts").is_file())
-        self.assertTrue(any(Path(directory, "niri-session").is_file()
+        self.assertTrue(any(Path(directory, "start-umbriel").is_file()
                             for directory in self.policy["sessionBinPath"].split(":")))
 
     def test_wrapper_preserves_existing_data_dirs_and_overrides_wrong_xkb_root(self):
@@ -97,16 +97,16 @@ printf '%s\\n' "$XDG_DATA_DIRS" "$XKB_CONFIG_ROOT" "$XKB_DEFAULT_MODEL" "$PATH"
         self.assertEqual(data, self.policy["desktops"] + "/share:/fixture/data:/fixture/share")
         self.assertEqual(xkb, self.policy["xkbRoot"])
 
-    def test_installed_binary_discovers_niri_without_display_or_authentication(self):
+    def test_installed_binary_discovers_umbriel_without_display_or_authentication(self):
         # Source-reviewed early CLI dispatch: sessions exits before logging/Wayland/auth.
         data, _, _, path = self.run_environment()
         result = subprocess.run([self.policy["binary"], "sessions"],
                                 env=dict(self.environment, XDG_DATA_DIRS=data, PATH=path),
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Niri", result.stdout.splitlines())
-        desktop = Path(self.policy["desktops"]) / "share/wayland-sessions/niri.desktop"
-        self.assertIn("Exec=niri-session", desktop.read_text())
+        self.assertIn("Umbriel", result.stdout.splitlines())
+        desktop = Path(self.policy["desktops"]) / "share/wayland-sessions/umbriel.desktop"
+        self.assertIn("Name=Umbriel", desktop.read_text())
 
     def test_real_custom_keymap_compiles_without_any_device(self):
         _, xkb, model, _ = self.run_environment()

@@ -4,7 +4,7 @@
   pkgs,
 }:
 let
-  original = (import ../niri/binds.nix { inherit config pkgs; }).binds;
+  original = (import ./bindings.nix { inherit config pkgs; }).binds;
   actions = {
     center-column = "column-center";
     center-visible-columns = "column-center";

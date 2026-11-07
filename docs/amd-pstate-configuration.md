@@ -67,7 +67,7 @@ The system was using AMD P-State Active mode with the following behavior:
 
 ### Issue
 With the CPU locked to `performance` EPP and no ability to use `schedutil` or other advanced governors:
-- Niri compositor showed high idle CPU usage
+- The compositor showed high idle CPU usage
 - **Baseline measurements**:
   - Average CPU: 4.63%
   - Peak CPU: up to 16.8%

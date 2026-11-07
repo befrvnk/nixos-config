@@ -83,44 +83,26 @@ class OverviewTests(unittest.TestCase):
     def test_socket_discovery_without_runtime_dir_is_empty(self):
         self.assertEqual(overview.noctalia_sockets(), [])
 
-    @patch("overview.socket.socket")
-    @patch("overview.apply_visibility")
-    def test_stream_initial_state_duplicates_and_eof(self, apply, socket_factory):
-        connection = MagicMock()
-        socket_factory.return_value.__enter__.return_value = connection
-        events = (
-            '{"Ok":"Handled"}\n'
-            '{"OverviewOpenedOrClosed":{"is_open":true}}\n'
-            '{"OverviewOpenedOrClosed":{"is_open":true}}\n'
-            '{"WindowsChanged":{"windows":[]}}\n'
-            '{"OverviewOpenedOrClosed":{"is_open":false}}\n'
-        )
-        connection.makefile.return_value = io.StringIO(events)
-        with self.assertRaises(ConnectionError):
-            overview.watch("/bin/noctalia", "/tmp/niri.sock")
+    def test_backend_selection_uses_the_active_desktop_socket(self):
         self.assertEqual(
-            apply.call_args_list,
-            [call("/bin/noctalia", False), call("/bin/noctalia", True), call("/bin/noctalia", False)],
+            overview.select_backend(
+                {"UMBRIEL_SOCKET": "/active", "XDG_CURRENT_DESKTOP": "Umbriel"}
+            ),
+            "/active",
         )
-        connection.connect.assert_called_once_with("/tmp/niri.sock")
-        connection.sendall.assert_called_once_with(b'"EventStream"\n')
 
-    def test_backend_selection_uses_active_desktop_not_stale_other_socket(self):
-        environment = {"NIRI_SOCKET": "/old-niri", "UMBRIEL_SOCKET": "/new-umbriel",
-                       "XDG_CURRENT_DESKTOP": "Umbriel"}
-        self.assertEqual(overview.select_backend(environment), ("/new-umbriel", "umbriel"))
-        environment["XDG_CURRENT_DESKTOP"] = "niri"
-        self.assertEqual(overview.select_backend(environment), ("/old-niri", "niri"))
-
-    def test_missing_active_or_unknown_desktop_never_falls_back_to_another_socket(self):
-        for environment in ({"XDG_CURRENT_DESKTOP": "umbriel", "NIRI_SOCKET": "/old"},
-                            {"NIRI_SOCKET": "/old"}, {"XDG_CURRENT_DESKTOP": "unknown"}):
+    def test_missing_active_or_unknown_desktop_never_falls_back_to_a_stale_socket(self):
+        for environment in (
+            {"XDG_CURRENT_DESKTOP": "umbriel", "UMBRIEL_SOCKET": ""},
+            {"UMBRIEL_SOCKET": "/stale"},
+            {"XDG_CURRENT_DESKTOP": "unknown", "UMBRIEL_SOCKET": "/stale"},
+        ):
             with self.subTest(environment=environment), self.assertRaises(ValueError):
                 overview.select_backend(environment)
 
     @patch("overview.socket.socket")
     @patch("overview.apply_visibility")
-    def test_umbriel_subscription_initial_state_duplicates_and_close(self, apply, factory):
+    def test_subscription_initial_state_duplicates_and_close(self, apply, factory):
         connection = factory.return_value.__enter__.return_value
         connection.makefile.return_value = io.StringIO(
             '{"ok":true}\n'
@@ -130,7 +112,8 @@ class OverviewTests(unittest.TestCase):
             '{"event":"windows","data":{}}\n'
             '{"event":"overview","data":{"open":false}}\n')
         with self.assertRaises(ConnectionError):
-            overview.watch("/bin/noctalia", "/private/umbriel", "umbriel")
+            overview.watch("/bin/noctalia", "/private/umbriel")
+        connection.connect.assert_called_once_with("/private/umbriel")
         connection.sendall.assert_called_once_with(b'{"cmd":"subscribe","events":["overview"]}\n')
         connection.shutdown.assert_not_called()  # Umbriel subscriptions stay bidirectional.
         self.assertEqual(apply.call_args_list, [call("/bin/noctalia", False),
@@ -138,10 +121,10 @@ class OverviewTests(unittest.TestCase):
 
     @patch("overview.socket.socket")
     @patch("overview.apply_visibility")
-    def test_umbriel_rejection_never_shows_bar(self, apply, factory):
+    def test_rejection_never_shows_bar(self, apply, factory):
         factory.return_value.__enter__.return_value.makefile.return_value = io.StringIO('{"err":"rejected"}\n')
         with self.assertRaises(ConnectionError):
-            overview.watch("/bin/noctalia", "/private/umbriel", "umbriel")
+            overview.watch("/bin/noctalia", "/private/umbriel")
         apply.assert_called_once_with("/bin/noctalia", False)
 
     @patch("overview.socket.socket")
@@ -150,7 +133,7 @@ class OverviewTests(unittest.TestCase):
         factory.return_value.__enter__.return_value.makefile.return_value = io.StringIO(
             '{"event":"overview","data":{"open":"false"}}\n')
         with self.assertRaises(ValueError):
-            overview.watch("/bin/noctalia", "/private/umbriel", "umbriel")
+            overview.watch("/bin/noctalia", "/private/umbriel")
         apply.assert_called_once_with("/bin/noctalia", False)
 
     @patch("overview.noctalia_sockets", return_value=[])

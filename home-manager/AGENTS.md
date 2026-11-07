@@ -8,7 +8,8 @@ User-level configurations organized by platform.
 home-manager/
 ├── nixos/             # NixOS-specific modules
 │   ├── frank.nix      # Main config (imports all NixOS modules)
-│   ├── niri/          # Window manager (Wayland)
+│   ├── umbriel/       # Compositor session (Wayland)
+│   ├── desktop-tools  # brightness/DDC, ABM, guarded-suspend helpers
 │   ├── noctalia/      # Native Noctalia V5 shell (overview-only)
 │   ├── stylix.nix     # Theming with specializations
 │   └── */             # Other NixOS-specific configs
@@ -76,7 +77,7 @@ For complex configs, split by concern:
   programs.app.settings = lib.mkMerge [ /* merged from imports */ ];
 }
 ```
-Examples: `nixos/niri/`, `nixos/noctalia/`
+Examples: `nixos/umbriel/`, `nixos/noctalia/`
 
 ## Configuration Patterns
 
@@ -167,7 +168,7 @@ Single source of truth for both platforms:
 ```
 
 **Imported by (NixOS):** stylix.nix for remaining prebuilt consumers.
-Ghostty/GTK/Qt/Niri use built-in templates; Vicinae/Zed/Zen/VS Code/lazygit/fzf use
+Ghostty/GTK/Qt/Umbriel use built-in or community templates; Vicinae/Zed/Zen/VS Code/lazygit/fzf use
 pinned community inputs. Nushell uses a data-only NUON template in Noctalia's native
 renderer, since neither pinned catalog supplies one.
 

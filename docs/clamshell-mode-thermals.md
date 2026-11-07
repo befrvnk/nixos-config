@@ -74,7 +74,7 @@ The diagnostics confirm:
 
 The hinge cover blocks the exhaust at 180° (fully closed). Opening even slightly allows hot air to escape without requiring the 90° turn through the restricted gap.
 
-**Note:** In our testing, the benefit of opening the lid was offset by enabling the internal display. For best thermal performance with an external monitor, keep the lid open but disable the internal display via `niri msg output eDP-1 off`.
+**Note:** In our testing, the benefit of opening the lid was offset by enabling the internal display. For best thermal performance with an external monitor, keep the lid open but disable the internal display via `Mod+Shift+D` (Umbriel's `output-toggle eDP-1`).
 
 ## Configuration Verification
 

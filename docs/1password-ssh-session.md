@@ -116,5 +116,5 @@ busctl --user call com.onepassword.OnePassword \
   through manual screen locks.
 - If a 1Password update removes the D-Bus method, the hook logs an error and
   leaves the app unlocked. The fallback is to enable **Lock when computer
-  locks** (Niri locks the screen before suspend here) or to set a long idle
+  locks** (the compositor locks the screen before suspend here) or to set a long idle
   timeout instead of turning auto-lock off.

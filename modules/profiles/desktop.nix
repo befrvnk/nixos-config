@@ -1,7 +1,7 @@
 {
   imports = [
     ../desktop/greetd.nix
-    ../desktop/niri.nix
+    ../desktop/umbriel.nix
     ../services/bluetooth.nix
     ../services/nextdns.nix
     ../services/noctalia-auth.nix

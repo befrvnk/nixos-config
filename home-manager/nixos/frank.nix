@@ -17,8 +17,8 @@
     ./antigravity-cli.nix
     ./ghostty.nix
 
+    ./desktop-tools
     ./intellij
-    ./niri
     ./noctalia
     ./nushell.nix
     ./obsidian.nix

@@ -182,7 +182,7 @@ boot.kernelParams = [
 
 To disable VRR (if needed):
 ```nix
-# In your niri/outputs.nix or equivalent:
+# In your umbriel/default.nix output settings, or equivalent:
 variable-refresh-rate = false;
 ```
 

@@ -6,7 +6,7 @@
 }:
 let
   base = pkgs.umbriel;
-  launcher = pkgs.writeShellScript "umbriel-trial-session" (
+  launcher = pkgs.writeShellScript "umbriel-session" (
     lib.replaceStrings
       [ "@coreutils@" "@profiles@" "@systemd@" "@umbriel@" "@xkb_root@" ]
       [
@@ -19,7 +19,7 @@ let
       (builtins.readFile ./umbriel-session.sh)
   );
   package = pkgs.symlinkJoin {
-    name = "umbriel-trial-${base.version}";
+    name = "umbriel-${base.version}";
     paths = [ base ];
     # Only launcher environment changes. Keep native compositor/unit/portal lifecycle.
     postBuild = ''
@@ -44,5 +44,34 @@ in
     enable = true;
     inherit package;
   };
-  # Retained dual-session setup: Greeter keeps Niri default until a new request.
+
+  environment.systemPackages = [
+    pkgs.xdg-utils
+  ];
+  xdg = {
+    autostart.enable = true;
+    menus.enable = true;
+    mime.enable = true;
+    icons.enable = true;
+  };
+
+  hardware.graphics.enable = true;
+
+  services.displayManager.sessionPackages = [ package ];
+
+  xdg.portal = {
+    enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
+    configPackages = [ package ];
+  };
+
+  security.polkit.enable = true;
+
+  # Enable gnome-keyring at system level for proper dbus integration
+  # PAM configuration in greetd.nix ensures it's unlocked on login
+  services.gnome.gnome-keyring.enable = true;
+
+  security.pam.services.swaylock = { };
+  programs.dconf.enable = true;
+  fonts.enableDefaultPackages = true;
 }

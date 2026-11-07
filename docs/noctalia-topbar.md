@@ -16,7 +16,7 @@ an animation originating at the display edge, while keeping one floating gap.
 - Widget order, neutral text, fonts/font scale and clock format remain. Notifications
   stay after clock in center. Widget spacing is now 12px (previously 16px).
   No widget, keybinding, wallpaper or OSD functionality is removed.
-- Strict overview-only watcher remains active for Niri and Umbriel; pointer/smart
+- Strict overview-only watcher remains active for Umbriel; pointer/smart
   auto-hide, workspace peek and reserved space remain disabled.
 - No blur/shadow, extra effect, timer or continuous animation cadence change is
   added. Only the explicit bar-exit duration/curve is refined as described below.
@@ -135,7 +135,7 @@ still true. Native/overview were active with zero restarts from 21:06:06/07;
 Umbriel retained its original 17:02:37 start time. No tray/popup errors appeared in
 the focused recent native log window. The agent never opened a menu or moved focus.
 Accept the user-observed bell/menu placement in this session, not all apps, drawer/
-submenu/output cases or Niri-specific runtime coverage. Application-owned menus and
+submenu/output cases or all other runtime coverage. Application-owned menus and
 other unperformed cases are not certified by this success.
 
 For future placement changes, rebuild switch only while unlocked (package changed)
@@ -193,5 +193,4 @@ Open/close overview and check:
 
 Report appearance/behavior only. The agent never shows/hides the live bar to test,
 changes focus, restarts services, activates a generation, locks or authenticates.
-Niri remains the configured default; the user may inspect both sessions when useful,
-not as a forced switch. Existing backlogged security/performance work stays deferred.
+Existing backlogged security/performance work stays deferred.

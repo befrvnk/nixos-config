@@ -13,7 +13,7 @@ let
     final.callPackage (import "${nixpkgsSrc}/pkgs/applications/editors/android-studio/linux.nix" opts) {
       fontsConf = final.makeFontsConf { fontDirectories = [ ]; };
       inherit (final) buildFHSEnv;
-      tiling_wm = true; # Enable for niri compatibility
+      tiling_wm = true; # Enable for tiling-WM compatibility
     };
 in
 {

@@ -1,6 +1,6 @@
 { pkgs, ... }:
 let
-  safeSuspend = import ../niri/safe-suspend-package.nix { inherit pkgs; };
+  safeSuspend = import ../desktop-tools/safe-suspend-package.nix { inherit pkgs; };
 in
 {
   # Native logind/session-lock owns pre-sleep protection; native idle owns timings.

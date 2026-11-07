@@ -10,7 +10,7 @@ External monitor brightness control is fully integrated with the standard bright
 
 ### How It Works
 
-The `brightness-ctl` script (`home-manager/niri/default.nix`) provides unified control:
+The `brightness-ctl` script (`home-manager/nixos/desktop-tools/default.nix`) provides unified control:
 
 1. **Internal display**: Adjusted via `brightnessctl` (synchronous) with swayosd OSD feedback
 2. **External monitors**: Synced to internal brightness via `ddcutil` in background
@@ -38,8 +38,8 @@ Keypress → brightnessctl (sync) → Read % → Write target file → Show OSD
 | I2C access (`hardware.i2c.enable`) | `modules/system/core.nix` |
 | User in `i2c` group | `modules/users.nix` |
 | ddcutil package | `home-manager/nixos/packages.nix` |
-| `brightness-ctl` script | `home-manager/niri/default.nix` |
-| Keyboard bindings | `home-manager/niri/binds.nix` |
+| `brightness-ctl` script | `home-manager/nixos/desktop-tools/default.nix` |
+| Keyboard bindings | `home-manager/nixos/umbriel/bindings.nix` |
 
 ### Manual Control
 

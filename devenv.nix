@@ -1,7 +1,7 @@
 { pkgs, lib, ... }:
 let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
-  takeReadmeScreenshots = import ./scripts/take-readme-screenshots.nix { inherit pkgs; };
+
   inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
   # nh resolves its inner `sudo` through PATH (there is no hardcoded path in the
   # nh binary), and /run/current-system/sw/bin holds an unwrapped sudo that fails
@@ -205,7 +205,7 @@ in
       unzip # Unpack zip release archives for update scripts
     ]
     ++ lib.optionals isLinux [
-      grim # Screenshot tool (for take-readme-screenshots) - Linux only
+      # Screenshot tool - Linux only
       imagemagick # Image processing (for thumbnails) - Linux only
     ];
 
@@ -248,7 +248,6 @@ in
       echo "  generations               - List NixOS generations"
       echo "  tpm-rekey                 - Re-enroll TPM key for LUKS auto-unlock"
       echo "  wifi-debug                - Capture WiFi debug logs (run if WiFi fails)"
-      echo "  take-readme-screenshots   - Capture screenshots for README"
       echo "  hermi-update             - Deploy updated hermi (Raspberry Pi) config"
       echo "  hermi-image              - Build hermi SD image"
     ''}
@@ -486,12 +485,6 @@ in
       echo ""
       echo "+ sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+2+7+12 --wipe-slot=tpm2 /dev/nvme0n1p2"
       sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0+2+7+12 --wipe-slot=tpm2 /dev/nvme0n1p2
-    '';
-
-    # Take README screenshots in light/dark and normal/overview modes
-    # Opens Ghostty with fastfetch and captures all combinations
-    take-readme-screenshots.exec = ''
-      ${lib.getExe takeReadmeScreenshots}
     '';
 
     # Deploy the hermi Raspberry Pi configuration from this machine.

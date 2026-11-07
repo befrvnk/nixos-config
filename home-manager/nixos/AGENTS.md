@@ -4,7 +4,7 @@ NixOS-specific user configuration including Wayland, systemd services, and Styli
 
 ## What Goes Here
 
-- Window manager config (niri/)
+- Window manager config (umbriel/, with shared helpers in desktop-tools/)
 - Desktop shell (noctalia/, native C++ V5)
 - Noctalia runtime theme control (noctalia/theme.nix) + temporary Stylix app specialisations
 - User systemd services
@@ -46,8 +46,8 @@ in {
   '';
 }
 ```
-Use this only for remaining static targets during migration. Niri now uses Noctalia's
-built-in runtime color include; don't reintroduce fixed border colors into layout.nix.
+Use this only for remaining static targets during migration. Umbriel consumes the community
+Noctalia color include; don't reintroduce fixed declarative colors into the compositor settings.
 The compatibility adapter still selects prebuilt generations for remaining consumers.
 
 ### Specialization Pattern
@@ -169,15 +169,13 @@ Theme switching without full rebuilds:
   precedence. New pickers read new colors; already-running pickers are not mutated.
   No Fish universal variables, shell eval hooks or custom color generators.
 
-- `noctalia/niri.nix` appends an absolute optional include to niri-flake's default
-  rendered document. Preserve the settings renderer; never replace the whole config
-  with a color template. Niri 26.04 optional includes allow build validation without
-  home files; the activation preparer normally ensures runtime output exists.
-- Keep only layout/flags/bindings/rules in the managed Niri config, with colors in
-  writable noctalia.kdl. Stock apply.sh recognizes the include and skips main writes.
-  Validate full KDL plus generated output; optional=true doesn't ignore invalid data.
-- Native include watching reloads colors. Never restart Niri or change focus-ring,
-  border width, gaps, transparency or overview behavior as a theming side effect.
+- `umbriel/default.nix` registers the upstream community Umbriel TOML template as a
+  native user template rendering a writable `noctalia.toml` include. Never replace
+  the whole managed compositor config with a color template; run its apply.sh only
+  against isolated fixtures, never the managed output.
+- Keep only layout/flags/bindings/rules in the managed Umbriel config, with colors in
+  the runtime include. Never restart Umbriel or change border width, gaps,
+  transparency or overview behavior as a theming side effect.
 
 - Nushell has no entry in the pinned catalogs: `noctalia/nushell.nuon` is a small
   data-only input to Noctalia's native renderer, not a custom generator/service.
@@ -215,7 +213,7 @@ Theme switching without full rebuilds:
 
 - Dormant Blender/Forge/gdu/gedit/Vencord/KDE generators are disabled in stylix.nix
   after package/config audit. Don't re-enable a global KDE palette/env overlay in
-  this Niri/qtct setup by default. Keep native fonts/cursor/icons/Qt settings.
+  this Umbriel/qtct setup by default. Keep native fonts/cursor/icons/Qt settings.
 - Xresources is retained for installed xterm; `noctalia/xresources.nix` renders
   native color data, with static fonts/cursor and an include in the managed main.
   The xrdb merge hook is display-guarded; tests use only their own headless X server.
@@ -251,7 +249,7 @@ Theme switching without full rebuilds:
   IdleManager also respects screensaver/Wayland inhibition and Caffeine. Preserve
   audio watcher, root fingerprint/lid management, tuned and lid holdoff. Source
   review does not replace live audio/Caffeine tests.
-- Share niri/safe-suspend-package.nix across keyboard/native power callers and use
+- Share desktop-tools/safe-suspend-package.nix across keyboard/native power callers and use
   its absolute store executable, not a bare profile command: restricted service
   PATH caused a real 310s command-not-found failure. Native lock-and-suspend uses
   the absolute --require-lock backend, which fails closed without a positive lock
@@ -265,15 +263,20 @@ Theme switching without full rebuilds:
   TTY/login/sudo/polkit stacks and review account/fingerprint semantics before cutover.
   Never run real authentication, lock, fingerprint or suspend tests as the agent.
 
-### Retained Niri/Umbriel sessions
-- Owner chose to keep both installed/selectable for experimentation (2026-10-23).
-  Niri stays the Greeter default; no automatic winner, uninstall or mandatory
-  performance comparison. See docs/umbriel-trial.md and backlog NOC-04.
-- Initial Umbriel session/basic smoke passed, not full lock/input/portal/power or
-  return-session coverage. Native Alt+Tab is installed/user-confirmed working;
-  passive checks found valid config reload with original service start times.
-- Shared topbar UI can be discussed next; keep both overview protocols and existing
-  behavior unless the owner requests a change. No UI redesign follows implicitly.
+### Umbriel session
+- Owner request (2026-11-07) superseded the 2026-10-23 keep-both decision: Niri was
+  removed and Umbriel is the sole/default Greeter session. Bindings live directly in
+  `umbriel/bindings.nix` (converted in `binds.nix`); do not re-add Niri or an
+  alternative source of truth without an explicit request. See docs/umbriel-trial.md.
+- Session/basic smoke and native Alt+Tab were user-confirmed during the trial, not
+  full lock/input/portal/power coverage. Passive checks found valid config reload
+  with original service start times.
+- Shared topbar UI can be discussed next; existing behavior stays unless the owner
+  requests a change. No UI redesign follows implicitly.
+- Keybinding-referencing checks read `programs.umbriel.settings.keybinds` (Umbriel
+  actions are plain strings, e.g. `"spawn /nix/store/…/bin/safe-suspend"`). Session
+  helper binaries (safe-suspend, brightness-ctl, toggle-abm) live in
+  `desktop-tools/`.
 
 ### Continuous floating bar
 - Owner requested one shared background instead of individual widget islands while
@@ -299,7 +302,7 @@ Theme switching without full rebuilds:
   leave can otherwise force a zero anchor. Legacy app-owned ContextMenu/grab/parent
   behavior stays unchanged. User confirmed bell/menu placement in Umbriel on
   2026-10-23, corroborated by config/healthy services; don't infer every app, drawer,
-  submenu, output or Niri case from that. Native repro/probes alone aren't live proof.
+  submenu, output or compositor case from that. Native repro/probes alone aren't live proof.
 - Both overview adapters and no-reserved-space policy stay. Strict patch application,
   432-case actual native before/after geometry and style probes cover configuration,
   not visual acceptance. Native package rebuild may restart Noctalia during user
@@ -307,7 +310,7 @@ Theme switching without full rebuilds:
 
 ### Native wallpaper/backdrop
 - `noctalia/wallpaper.nix` enables native wallpaper with crop/1s fade, but disables
-  Noctalia's separate backdrop. Niri places `^noctalia-wallpaper$` within its backdrop:
+  Noctalia's separate backdrop. Umbriel keeps overview workspace wallpaper transparent:
   exactly one surface behind overview, never inside workspace previews. Enabling
   ordinary wallpaper plus a separate backdrop duplicates the image in workspaces.
 - Native `started` and `theme_mode_changed` hooks call wallpaper-mode.sh, not the
@@ -333,7 +336,7 @@ Theme switching without full rebuilds:
 - Noctalia V5 uses its native audio service for the widget/control center.
 - OSD belongs at bottom_center (horizontal and vertical) to avoid the topbar.
   Plain F1–F12 must reach apps; Framework Fn+Esc hardware Fn Lock selects media
-  actions behind Fn. Don't emulate Fn in Niri or apply hid_apple fnmode to
+  actions behind Fn. Don't emulate Fn in Umbriel or apply hid_apple fnmode to
   this AT keyboard. Existing external NuPhy mappings remain separate.
 - Volume keys call native Noctalia IPC with 5% steps/mute. SwayOSD and the old
   volume cache producer/startup are removed; keep Framework pw-loopback init intact.
@@ -348,7 +351,7 @@ Theme switching without full rebuilds:
 ### Framework pw-loopback
 - **Must start at session startup** for volume controls to work
 - Without it, `wpctl set-volume` appears to work but doesn't change volume
-- Configured in `niri/startup.nix` as spawn-at-startup
+- Configured in `umbriel/default.nix` autostart as the sole general.autostart entry
 
 ### Audio Keep-Alive (`audio-keep-alive/`)
 - Prevents speaker amplifier pops (hardware limitation)
@@ -404,11 +407,11 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - `programs.noctalia.checkConfig` validates TOML during builds. That does not guarantee
   custom palette JSON is runtime-valid: V5.3.0 also requires terminal color data.
   Prefer the shipped Catppuccin palette instead of an incomplete UI-only mapping.
-- `noctalia-overview.service` bridges active Niri/Umbriel overview events to
+- `noctalia-overview.service` bridges active Umbriel overview events to
   `bar-show`/`bar-hide`. Select by XDG_CURRENT_DESKTOP and its socket; never use a
-  stale other-compositor socket. Umbriel subscribe keeps its write side open;
-  Niri's EventStream/half-close behavior is unchanged. Unit conditions use OR
-  socket checks plus Wayland. Keep strict overview-only behavior, not smart-hide.
+  stale other-compositor socket. Umbriel subscribe keeps its write side open. Unit
+  conditions use the OR socket check plus Wayland. Keep strict overview-only
+  behavior, not smart-hide.
 - The Noctalia `started` hook restarts that watcher after IPC is ready. It is also
   wanted by graphical-session.target and idempotently started after reloadSystemd:
   reconciliation can stop PartOf dependents while the shell's restart is cancelled,
@@ -433,17 +436,17 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - Caffeine blocks idle; Lid Guard blocks only lid events and must be toggled on manually.
   Its transient `noctalia-lid-guard.service` can survive a shell/plugin restart; stop it
   explicitly to restore normal lid handling. Never assume Caffeine alone covers lids.
-- `niri/safe-suspend.sh` queries structured logind inhibitors, blocks on high-level
+- `desktop-tools/safe-suspend.sh` queries structured logind inhibitors, blocks on high-level
   sleep/block locks, and fails closed on query/parse errors. It never uses a bypass flag.
   `checks.x86_64-linux.safe-suspend` tests this with fake commands, not real suspend.
 - Stale `wifi-off` topbar glyphs come from Noctalia's once-per-shell-start backend
   selection: a shell racing NetworkManager onto the system bus locks onto the fragile
-  standalone wpa_supplicant fallback (see docs/noctalia-niri-overview.md, "Network
+  standalone wpa_supplicant fallback (see docs/noctalia-overview.md, "Network
   widget backend fallback"). Compare `noctalia msg wifi-status` with NM's
   `WirelessEnabled`; fix at runtime with `systemctl --user restart noctalia` while
   unlocked. Upstream commit `a893668` (>v5.4.1) makes the backend wait for NM; do not
   add a declarative ExecStartPre bus-wait — bump past that commit instead.
-- See `docs/noctalia-niri-overview.md` for troubleshooting and rollback.
+- See `docs/noctalia-overview.md` for troubleshooting and rollback.
 
 ### Profile-sync-daemon (`profile-sync-daemon.nix`)
 - Syncs browser profiles to tmpfs (faster I/O, less SSD writes)
@@ -456,7 +459,7 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 - App and build helpers pinned by the `vicinae` flake input (v0.29.2).
 - Framework imports `inputs.vicinae.homeManagerModules.default`; use `programs.vicinae`
   and its systemd integration. `Mod+Space` runs `vicinae toggle`.
-- Use `theme.light`/`theme.dark` and `launcher_window`; layer_shell stays disabled for Niri.
+- Use `theme.light`/`theme.dark` and `launcher_window`; layer_shell stays disabled.
 - `noctalia/vicinae.nix` consumes the pinned community TOML/apply.sh, not a fork.
 - Both mode selectors must remain "noctalia" so native theme-set rescans/reloads
   without taking the settings-write branch. Keep Papirus and the HM override wrapper.
@@ -476,7 +479,8 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 
 | Module | Purpose |
 |--------|---------|
-| `niri/` | Window manager (binds, layout, rules, startup, lid-switch) |
+| `umbriel/` | Compositor session (bindings, settings, session module) |
+| `desktop-tools/` | brightness/DDC, ABM and guarded-suspend helpers |
 | `noctalia/` | Native V5 shell, palettes and overview IPC bridge |
 | `noctalia/theme.nix` | Runtime mode hooks and temporary app-theme adapter |
 | `stylix.nix` | Theming with specializations |

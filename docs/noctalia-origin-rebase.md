@@ -111,7 +111,7 @@ Atuin 18.19.0 despite the system profile containing 18.23.0. This was a missed r
 activation context, not a failed build or evidence that the current Nu generator
 emits the same warning.
 
-A [pre-session activation fix](noctalia-niri-overview.md#pre-session-home-manager-activation-and-stale-nu-bindings)
+A [pre-session activation fix](noctalia-overview.md#pre-session-home-manager-activation-and-stale-nu-bindings)
 uses persistent shared locking, runtime/bus deferral and explicit cache
 invalidation. The first live retry linked files but exposed a second interaction:
 sd-switch awaited the oneshot bridge startup while that worker awaited system HM.

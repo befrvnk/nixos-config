@@ -56,11 +56,11 @@ fi
         bindings = self.integration["binds"]
         for key, command in (("XF86AudioRaiseVolume", "volume-up"),
                              ("XF86AudioLowerVolume", "volume-down")):
-            args = bindings[key]["action"]["spawn"]
-            self.assertTrue(args[0].endswith("/bin/noctalia"))
-            self.assertEqual(args[1:], ["msg", command, "5%"])
-        args = bindings["XF86AudioMute"]["action"]["spawn"]
-        self.assertEqual(args[1:], ["msg", "volume-mute"])
+            action = bindings[key]["action"]
+            self.assertIn("/bin/noctalia msg " + command, action)
+            self.assertTrue(action.endswith(" 5%"))
+        action = bindings["XF86AudioMute"]["action"]
+        self.assertIn("/bin/noctalia msg volume-mute", action)
         self.assertFalse(self.integration["audio"]["enable_overdrive"])
         self.assertEqual(self.integration["osd"]["position"], "bottom_center")
         self.assertEqual(self.integration["osd"]["position_vertical"], "bottom_center")
@@ -69,17 +69,19 @@ fi
         self.assertFalse(kinds["volume_input"])
         self.assertFalse(kinds["lock_keys"])
         for key, action in (("XF86MonBrightnessUp", "raise"), ("XF86MonBrightnessDown", "lower")):
-            self.assertEqual(bindings[key]["action"]["spawn"], ["brightness-ctl", action])
+            self.assertEqual(bindings[key]["action"], f"spawn brightness-ctl {action}")
         self.assertFalse(self.calls.exists())
 
     def test_framework_audio_initialization_is_preserved_and_cache_init_removed(self):
-        commands = [entry["command"] for entry in self.integration["startup"]]
-        loopbacks = [args for args in commands if any("pw-loopback" in arg for arg in args)]
-        self.assertEqual(len(loopbacks), 1)
-        self.assertIn("timeout 0.5", loopbacks[0][-1])
-        self.assertIn("media.class=Audio/Sink", loopbacks[0][-1])
-        self.assertIn("node.target=@DEFAULT_AUDIO_SINK@", loopbacks[0][-1])
-        self.assertFalse(any("volume-ctl" in arg for args in commands for arg in args))
+        commands = self.integration["startup"]
+        self.assertEqual(len(commands), 1)
+        script = Path(commands[0]).read_text()
+        self.assertIn("pw-loopback", script)
+        self.assertIn("timeout 0.5", script)
+        self.assertIn("media.class=Audio/Sink", script)
+        self.assertIn("node.target=@DEFAULT_AUDIO_SINK@", script)
+        self.assertNotIn("volume-ctl", script)
+        self.assertNotIn("xwayland-satellite", script)
 
     def test_brightness_still_changes_internal_and_syncs_ddc_with_display_only_osd(self):
         for action, step in (("raise", "5%+"), ("lower", "5%-")):

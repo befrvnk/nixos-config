@@ -25,8 +25,6 @@ let
     (import ../overlays/domain-check.nix)
     (import ../overlays/idea-community.nix)
     (import ../overlays/openchamber.nix)
-    inputs.niri.overlays.niri
-    (import ../overlays/niri.nix)
     (import ../overlays/profile-sync-daemon.nix)
     # Umbriel and its portal move together: the compositor's portal protocol
     # surface must match the backend. Both come from the same upstream pin

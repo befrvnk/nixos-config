@@ -29,7 +29,7 @@ inventory and builds each host with `lib/hosts.nix` or `lib/darwin.nix`.
 
 ```text
 hosts/
-├── framework/                # NixOS (Framework 13, Niri/Noctalia)
+├── framework/                # NixOS (Framework 13, Umbriel/Noctalia)
 │   ├── default.nix           # Host-specific configuration
 │   ├── hardware-configuration.nix  # Generated hardware settings
 │   └── home.nix              # Home Manager entry point
@@ -64,12 +64,11 @@ modules/
 ├── users.nix              # User account definitions
 ├── profiles/
 │   ├── base.nix           # users, core, packages, security, xkb
-│   ├── desktop.nix        # greetd, Niri, services, Stylix
+│   ├── desktop.nix        # greetd, Umbriel session, services, Stylix
 │   └── framework.nix      # Framework-only hardware extras
 ├── desktop/
 │   ├── greetd.nix         # Noctalia Greeter + greetd
-│   ├── niri.nix           # Niri portals and system integration
-│   ├── umbriel.nix        # Umbriel trial session
+│   ├── umbriel.nix        # Umbriel session + desktop system integration
 │   └── *-check.nix        # Greeter/Umbriel invariant checks
 ├── hardware/
 │   ├── android.nix        # Android KVM group
@@ -103,7 +102,8 @@ User-level modules organized by platform:
 home-manager/
 ├── nixos/                 # NixOS-specific modules
 │   ├── frank.nix          # Main config (imports shared + NixOS modules)
-│   ├── niri/              # Window manager binds, layout, rules, startup
+│   ├── umbriel/           # Compositor binds, settings, session module
+│   ├── desktop-tools/     # brightness/DDC, ABM and guarded-suspend helpers
 │   ├── noctalia/          # Native Noctalia V5 shell + theme bridge
 │   ├── stylix.nix         # Theming with dark/light specialisations
 │   ├── nushell.nix        # Shell integration
@@ -139,8 +139,7 @@ Darwin-only lists.
 
 ```text
 overlays/
-├── niri.nix                 # Niri package (flake version)
-├── claude-code.nix          # Claude Code customizations
+├── claude-code.nix            # Claude Code customizations
 ├── profile-sync-daemon.nix  # PSD with Zen Browser support
 ├── openchamber.nix          # OpenChamber desktop/web build
 ├── gh-enhance.nix           # GitHub enhance extension
@@ -168,7 +167,6 @@ shared/
 scripts/
 ├── update-*.sh                # Package update scripts used by `flake-update`
 ├── show-changelogs.*          # Show changelogs after a switch
-├── take-readme-screenshots.*  # Screenshot automation (Noctalia IPC)
 ├── smoke-test-pi-package.sh   # Pi package smoke test
 └── test-pi-extensions.sh      # Pi extension test runner
 ```

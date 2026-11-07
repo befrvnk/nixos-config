@@ -25,7 +25,7 @@ in
       keyboard = {
         inherit (keyboard) layout options variant;
       };
-      session.default = "niri";
+      session.default = "umbriel";
     };
   };
 

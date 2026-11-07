@@ -119,7 +119,7 @@ There is no active status-bar firewall widget in the current Noctalia V5 layout;
 the old Ironbar module was removed with the retired shell. Use the journal
 commands above, or the `/firewall` Claude Code command, to summarize refused
 connections and resolve source IPs. The firewall remains active independently of
-the shell. See `docs/noctalia-niri-overview.md`.
+the shell. See `docs/noctalia-overview.md`.
 
 ### Currently Open Ports
 

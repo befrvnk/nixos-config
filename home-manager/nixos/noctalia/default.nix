@@ -33,7 +33,6 @@ in
     ./idle.nix
     ./lazygit.nix
     ./lockscreen.nix
-    ./niri.nix
     ./nushell.nix
     ./osd.nix
     ./plugins.nix
@@ -64,7 +63,6 @@ in
         polkit_agent = false;
         clipboard_enabled = false;
         telemetry_enabled = false;
-        niri_overview_type_to_launch_enabled = false;
         panel = {
           control_center_placement = "floating";
           open_near_click_control_center = true;
@@ -193,7 +191,7 @@ in
   systemd.user.services.noctalia.Unit.ConditionEnvironment = "WAYLAND_DISPLAY";
   systemd.user.services.noctalia-overview = {
     Unit = {
-      Description = "Show Noctalia only in the active Niri/Umbriel overview";
+      Description = "Show Noctalia only in the active Umbriel overview";
       # systemd orders a target after units that are WantedBy it but lack
       # explicit ordering. Without this, the target waits for the watcher while
       # the watcher waits for Noctalia, which waits for the target: a cycle that
@@ -205,7 +203,6 @@ in
       PartOf = [ "noctalia.service" ];
       ConditionEnvironment = [
         "WAYLAND_DISPLAY"
-        "|NIRI_SOCKET"
         "|UMBRIEL_SOCKET"
       ];
     };
@@ -216,13 +213,4 @@ in
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
-
-  programs.niri.settings.window-rules = [
-    {
-      matches = [ { app-id = "^dev\\.noctalia\\.Noctalia$"; } ];
-      open-floating = true;
-      default-column-width.fixed = 1080;
-      default-window-height.fixed = 920;
-    }
-  ];
 }

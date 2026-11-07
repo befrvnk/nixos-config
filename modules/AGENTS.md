@@ -50,7 +50,7 @@ See: `modules/hardware/fprintd/default.nix`
 
 ### Noctalia Greeter
 - `desktop/greetd.nix` enables the pinned nixpkgs Noctalia Greeter module, replacing
-  tuigreet only; greetd remains the daemon and Niri remains the selected session.
+  tuigreet only; greetd remains the daemon and Umbriel is the default session.
 - Password-entry default is explicit (allow_empty_password=false). Frontend gating
   alone didn't consume the password: the initial inherited fingerprint login left
   the keyring locked. While Noctalia Greeter is enabled, only greetd auth is forced
@@ -60,13 +60,13 @@ See: `modules/hardware/fprintd/default.nix`
   credentials in files or disable keyring encryption to avoid a prompt.
 - Its short environment wrapper scopes NixOS session-data/PATH and patched custom
   XKB root/model to the greeter. Do not set a global greeter-only environment or
-  assume /run/current-system/sw/share/wayland-sessions contains Niri.
+  assume /run/current-system/sw/share/wayland-sessions contains Umbriel.
 - Greeter.toml is store-backed; sync.toml remains mutable. Passwordless sync users
   stay empty; do not add a broad Polkit bypass or run the privileged helper as agent.
 - `checks.x86_64-linux.noctalia-greeter` tests private wrapper fixtures, real session
   listing, device-free XKB probe, exact greetd password/keyring auth and all other
   PAM invariance (8 probes). Never run the real greeter/compositor or authenticate.
-  UI/Niri and corrected single-password/keyring startup passed after user reboot
+  UI/Umbriel and corrected single-password/keyring startup passed after user reboot
   on 2026-10-23: required password auth, cached token, keyring unlocked in session.
   Don't mistake the earlier missing-control-file/stash log for a failure when
   followed by successful session unlock. Appearance sync/negative-password UI and
@@ -75,32 +75,35 @@ See: `modules/hardware/fprintd/default.nix`
   restartIfChanged=false remains. Keep previous generation and TTY/password recovery.
   See docs/noctalia-desktop-roadmap.md; Umbriel/topbar are separate later steps.
 
-### Umbriel trial
+### Umbriel session
 - Framework explicitly imports desktop/umbriel.nix; nixpkgs supplies the native
   NixOS module, while `lib/overlays.nix` overlays the compositor and its portal
-  from the `umbriel` flake input (`github:noctalia-dev/umbriel/cachix`). Both move
+  from the `umbriel` flake input (`github:noctalia-dev/umbriel/cachix`). Umbriel.nix
+  also carries the shared desktop bits (portals, XDG integration, polkit and
+  gnome-keyring enablement) previously owned by the removed niri.nix. Both move
   together; umbriel.cachix.org is trusted in `shared/caches.nix`/`flake.nix`.
   Never set `inputs.umbriel.inputs.nixpkgs.follows` or the cache paths miss.
-- Niri stays installed/default. Only the entry launcher is wrapped: load the
-  declarative per-user HM environment for Nushell, set patched XKB before config
-  validation, stop a stale graphical-session.target left by a previous logout
-  (logind only removes the session scope; user units survive), then exec native
-  start-umbriel. Keep the native session/unit lifecycle.
+- Umbriel is the sole/default greeter session (Niri removed 2026-11-07). Only the
+  entry launcher is wrapped: load the declarative per-user HM environment for
+  Nushell, set patched XKB before config validation, stop a stale
+  graphical-session.target left by a previous logout (logind only removes the
+  session scope; user units survive), then exec native start-umbriel. Keep the
+  native session/unit lifecycle.
 - Standard HM profile exports tolerate unset optional variables; don't source them
   under set -u. The fixture check exercises the actual generated profile too.
-- Candidate config/bar/PAM/idle/logind/Niri invariance and offline CLI/render/launcher
-  checks live in checks.x86_64-linux.umbriel-trial. Never launch a compositor,
+- Candidate config/bar/PAM/idle/logind invariance and offline CLI/render/launcher
+  checks live in checks.x86_64-linux.umbriel. Never launch a compositor,
   display, portal, hardware, lock, suspend or authentication probe as an agent.
 - The upstream unit is Type=notify and its binary provides matching readiness;
   nixpkgs' module keeps restartIfChanged=false/enableDefaultPath=false. Live
   portal/session behavior is still pending.
-- Owner chose to retain both Niri and Umbriel (2026-10-23), with Niri default.
-  Performance comparisons are user-led backlog NOC-04, not mandatory next tests.
-  Do not uninstall either or change the default without a new request. Native
-  Alt+Tab is installed/user-confirmed with valid reload and no compositor restart;
-  don't turn that into full runtime/performance or unreported-case acceptance.
-- See docs/umbriel-trial.md for differences and user-only trial/recovery. No Niri,
-  fallback/auth removal or topbar redesign is authorized by installing a second WM.
+- Owner request (2026-11-07) superseded the 2026-10-23 keep-both decision: Niri
+  was uninstalled and Umbriel became the default. Do not re-add Niri without an
+  explicit new request. Native Alt+Tab is installed/user-confirmed with valid
+  reload and no compositor restart; don't turn that into full runtime/performance
+  or unreported-case acceptance.
+- See docs/umbriel-trial.md for differences and user-only recovery. Session removal,
+  fallback/auth retirement or topbar redesign still requires an explicit request.
 
 ### Firewall
 Configured in `modules/system/security.nix`:

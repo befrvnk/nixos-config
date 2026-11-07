@@ -1,12 +1,14 @@
 # Noctalia V5 consolidation: research and implementation plan
 
-> Historical implementation plan. The Ironbar/Quickshell/dunst/darkman code and
-> the awww flake input have since been removed. See
-> [Noctalia V5 with Niri](./noctalia-niri-overview.md) for the current architecture.
+> Historical implementation plan. The Ironbar/Quickshell/dunst/darkman code, the
+> awww flake input and, like later, the Niri session itself have since been
+> removed; Umbriel is the sole/default session. See
+> [Noctalia V5 with Umbriel](./noctalia-overview.md) for the current architecture.
 
 Status: **Phases A–D and E0–E2 accepted; E3 Ghostty accepted, GTK checkpoint committed with Files/GTK3 follow-up deferred, Qt palette propagation verified; Requested app templates accepted, including fzf/Nushell; cache-trust revocation activated and verified; Niri and Nushell accepted; native wallpaper accepted; remaining-consumer audit completed initially, Starship accepted; native bottom-center OSD/control migration accepted; btop committed without live testing; plain Emacs committed without live testing; dormant-target/KDE-overlay cleanup committed without activation verification; Xresources committed without live testing; GTKSourceView committed without live testing; native lock-screen migration requested, password-PAM preflight accepted; manual native-lock password/fingerprint trial accepted; keyboard/lid sleep verified; native-idle replacement activated after automatic suspend launcher failure; automatic sleep/key-wake and Caffeine/audio acquisition-recognition-release verified; updated-stack independent full-duration Caffeine/audio suppression, guarded manual suspend veto and release verified; reader/output/power-button and deferred GTK/bridge cleanup pending.**
 
-Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`).
+Baseline: `cd2c817` (`Update: replace Ironbar with native Noctalia V5 on Niri`;
+Niri has since been removed).
 Research targets the pinned **Noctalia 5.3.0**, source commit
 `a33122c4208a385e19c9a252e65e2751b2c44fbb`, not the old QML/Quickshell release.
 Public documentation can change; validate against the pinned binary/source when implementing.

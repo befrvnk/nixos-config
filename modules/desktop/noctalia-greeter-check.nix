@@ -61,8 +61,8 @@ assert lib.assertMsg
     && cfg.services.greetd.enable
     && !cfg.services.greetd.useTextGreeter
     && !greeter.settings.auth.allow_empty_password
-    && greeter.settings.session.default == "niri"
-    && lib.elem "niri" cfg.services.displayManager.sessionData.sessionNames
+    && greeter.settings.session.default == "umbriel"
+    && lib.elem "umbriel" cfg.services.displayManager.sessionData.sessionNames
     && !cfg.systemd.services.greetd.restartIfChanged
     && (cfg.systemd.services.greetd.serviceConfig.StandardInput or "") != "tty"
     && (cfg.systemd.services.greetd.serviceConfig.StandardOutput or "") != "tty"
@@ -73,7 +73,7 @@ assert lib.assertMsg
       name: cfg.security.pam.services.${name}.text == reference.security.pam.services.${name}.text
     ) (builtins.filter (name: name != "greetd") pamServices)
   )
-  "Noctalia Greeter must retain password-entry/Niri/recovery defaults and all non-greetd PAM stacks without passwordless sync";
+  "Noctalia Greeter must retain password-entry/Umbriel/recovery defaults and all non-greetd PAM stacks without passwordless sync";
 pkgs.runCommand "noctalia-greeter-check"
   {
     GREETER_POLICY = policy;

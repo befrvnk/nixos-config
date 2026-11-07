@@ -1,7 +1,7 @@
 # Nix Configuration
 
 Personal Nix configuration for:
-- **NixOS** on a Framework 13 laptop with the Niri window manager
+- **NixOS** on a Framework 13 laptop with the Umbriel compositor
 - **nix-darwin** on a MacBook Pro M4
 
 ## Platform Overview
@@ -88,16 +88,20 @@ nix fmt
 
 This configuration uses a minimal, keyboard-driven Wayland desktop:
 
-### Niri (Window Manager)
+### Umbriel (Window Manager)
 
-[Niri](https://github.com/YaLTeR/niri) is a scrollable-tiling Wayland compositor. Windows are arranged in columns that scroll horizontally, similar to PaperWM. This configuration uses `niri-unstable` from the [niri-flake](https://github.com/sodiboo/niri-flake) for the latest features, with the niri binary cache configured for faster builds.
+[Umbriel](https://github.com/noctalia-dev/umbriel) is a scrollable-tiling Wayland
+compositor from the Noctalia project, styled after Niri's PaperWM-like columns.
+It is the only configured Wayland session and the greeter default. The compositor,
+its portal and the Home Manager module come from the pinned `umbriel` flake input
+with its binary cache configured for faster builds.
 
 Key features in this setup:
 - Workspaces numbered 1-9, accessible via `Mod+1` through `Mod+9`
 - Transparent workspace backgrounds (wallpaper shows through)
 - 12px gaps between windows
-- Rounded corners (12px radius)
-- Variable refresh rate on external monitors
+- Rounded corners (16px radius)
+- Variable refresh rate on internal and external monitors
 - Overview mode (`Mod+O`) shows all windows
 
 ### Vicinae (Application Launcher)
@@ -114,7 +118,7 @@ access and the former Asyar theme-toggle extension are not included. See the
 ### Noctalia V5 (Desktop Shell)
 
 [Noctalia 5.3.0](https://github.com/noctalia-dev/noctalia/tree/v5.3.0) is the native
-C++ shell, not the older Quickshell-based release. Its bar appears only during Niri/
+C++ shell, not the older Quickshell-based release. Its bar appears only during the
 Umbriel overview. A continuous floating background with neutral text replaces
 widget islands, keeping one gap and animating from the display edge.
 The continuous bar and faster exit are [user-accepted](./docs/noctalia-topbar.md);
@@ -131,18 +135,18 @@ native minimum widths for steadier numeric labels.
 
 Noctalia replaces dunst for notifications. The previous custom shell and its
 domain-specific widgets (OpenRouter, aurora and firewall) were retired. See
-[setup notes](./docs/noctalia-niri-overview.md).
+[setup notes](./docs/noctalia-overview.md).
 
-Desktop sequence: **Noctalia Greeter → Umbriel trial → topbar UI**. Greeter 1.7.0 now
-replaces tuigreet while retaining greetd and Niri. Password-only greetd authentication
-reuses the login password to unlock GNOME Keyring; that boot/login flow is user-verified.
-Other authentication routes remain unchanged. See the [desktop roadmap and safe cutover](./docs/noctalia-desktop-roadmap.md).
+Desktop sequence: **Noctalia Greeter → Umbriel session**. Greeter 1.7.0 replaces
+tuigreet while retaining greetd and the Umbriel session. Password-only greetd
+authentication reuses the login password to unlock GNOME Keyring; that boot/login
+flow is user-verified. Other authentication routes remain unchanged. See the
+[desktop roadmap and safe cutover](./docs/noctalia-desktop-roadmap.md).
 
-**Niri and Umbriel are both retained** as selectable sessions for ongoing experiments;
-Niri remains the default and recovery option. Umbriel's initial user-session smoke
-passed, and native Noctalia Alt+Tab switching is user-confirmed. Performance comparison
-is user-led, not a required migration gate.
-Read the [trial guide and explicit binding differences](./docs/umbriel-trial.md) before entry.
+**Umbriel is the only session** and the greeter default (2026-11-07). Niri was
+removed after the dual-session trial; the [trial guide](./docs/umbriel-trial.md)
+documents the entry launcher wrapper that loads the declarative Home Manager
+session environment before the native launcher.
 
 ## Keyboard Shortcuts
 
@@ -154,7 +158,7 @@ Read the [trial guide and explicit binding differences](./docs/umbriel-trial.md)
 | `Mod+G` | Open terminal (Ghostty) |
 | `Mod+Q` | Close focused window |
 | `Mod+O` | Toggle overview mode |
-| `Mod+Shift+E` | Exit Niri |
+| `Mod+Shift+E` | Exit the session |
 | `Mod+Shift+S` | Suspend system |
 | `Mod+Shift+Slash` | Show hotkey overlay |
 | `Mod+A` | Open audio control (pavucontrol) |
@@ -214,7 +218,7 @@ brightnessctl plus asynchronous external-monitor DDC synchronization, with nativ
 Noctalia bottom-center OSD for the actual value, clear of the topbar. Framework
 audio initialization is preserved. On the Framework keyboard, press **Fn+Esc** to
 toggle Fn Lock for normal F1–F12 and media actions with Fn (e.g. **Fn+F3** volume-up).
-This is a hardware setting; Niri does not remap plain F-keys.
+This is a hardware setting; the compositor does not remap plain F-keys.
 
 ### Screenshots
 
@@ -451,7 +455,7 @@ Installed via Home Manager in the platform-specific package sets:
 - **imagemagick** - Image manipulation
 
 #### Desktop Environment
-- **niri** - Scrollable-tiling Wayland compositor
+- **umbriel** - Scrollable-tiling Wayland compositor (sole/default session)
 - **Noctalia V5** - Native overview-only shell and control center
 - **vicinae** - Application launcher
 - **Noctalia notifications** - Notification toasts and history
@@ -548,8 +552,8 @@ This configuration separates concerns between system-level and user-level settin
   config loading, preserving its declarative base and Nushell integration
 - **fzf (NixOS)** reads community-generated colors per picker through a child wrapper,
   compatible with Nushell without altering keybindings or accumulating shell options
-- **Niri** imports Noctalia's built-in runtime colors while keeping layout, bindings
-  and overview behavior declarative; native file watching reloads the color fragment
+- **Umbriel** imports Noctalia's community runtime colors while keeping layout,
+  bindings and overview behavior declarative
 - **Nushell (NixOS)** reads native Noctalia-rendered NUON at prompt time, preserving
   shell integrations and retaining previous colors if a theme write is incomplete
 - **Starship (NixOS)** renders the shipped Noctalia palette alongside its declarative
@@ -559,7 +563,7 @@ This configuration separates concerns between system-level and user-level settin
 - **Plain Emacs (NixOS)** loads Noctalia's shipped theme from generated runtime data
   at startup; personal Doom/Spacemacs theme configurations remain separate
 - **Unused theme generators** and the global KDE palette overlay are disabled in
-  the Niri setup; native fonts, cursor, icons and configured app styling remain separate
+  the Umbriel setup; native fonts, cursor, icons and configured app styling remain separate
 - **Xresources/xterm (NixOS)** uses native Noctalia-rendered color data and xrdb,
   retaining Nix-managed fonts/cursor; new X11 app instances pick up the current palette
 - **GTKSourceView (NixOS)** preserves legacy style selections and maintained syntax
@@ -570,7 +574,7 @@ This configuration separates concerns between system-level and user-level settin
 
 ### Wallpaper Management
 
-- **Native Noctalia wallpaper** replaces awww, placed within Niri's backdrop only
+- **Native Noctalia wallpaper** placed within the compositor backdrop only
 - One-second fade with no overview blur/tint; native output handling for reconnects
 - Light mode: `mountain.jpg`, Dark mode: `mountain_dark.jpg`
 - The temporary mode bridge selects the pair via Noctalia IPC; palette choice stays independent
@@ -578,18 +582,18 @@ This configuration separates concerns between system-level and user-level settin
 
 **Key configuration:**
 - Renderer settings in `home-manager/nixos/noctalia/wallpaper.nix`
-- Niri places `^noctalia-wallpaper$` within its backdrop; the extra Noctalia backdrop
-  renderer is disabled so workspace previews stay transparent
+- Umbriel keeps its overview workspace wallpaper transparent; the extra Noctalia
+  backdrop renderer is disabled so workspace previews stay transparent
 - Mode adapter in `home-manager/nixos/noctalia/theme_bridge.py`
 - Image paths in `home-manager/nixos/wallpapers/default.nix`
 
 The old awww daemon was retired after verifying native rendering. Corrected
 backdrop-only placement and light/dark fades are user-tested; monitor reconnect
-and shell-restart checks remain separate. See [handover/testing](docs/noctalia-niri-overview.md#existing-session-handover).
+and shell-restart checks remain separate. See [handover/testing](docs/noctalia-overview.md#existing-session-handover).
 Noctalia restarts may briefly remove its wallpaper; it is no longer independently rendered.
 
 If a new boot supplies updated packages but leaves old home files (for example an
-Atuin duplicate-binding warning), check [pre-session Home Manager activation](docs/noctalia-niri-overview.md#pre-session-home-manager-activation-and-stale-nu-bindings).
+Atuin duplicate-binding warning), check [pre-session Home Manager activation](docs/noctalia-overview.md#pre-session-home-manager-activation-and-stale-nu-bindings).
 
 ### Security
 
@@ -673,7 +677,7 @@ Detailed guides for specific topics:
 - [1Password CLI Initial Namespace](./docs/1password-cli-initial-namespace.md) - Why the app must launch outside a restricted user namespace
 
 ### Theming & Desktop
-- [Noctalia V5 with Niri](./docs/noctalia-niri-overview.md) - Shell setup, plugins, overview-only behavior and rollback
+- [Noctalia V5 with Umbriel](./docs/noctalia-overview.md) - Shell setup, plugins, overview-only behavior and rollback
 - [Screen Lock & Suspend](./docs/screen-lock-and-suspend.md) - Lock screen behavior with wayland-pipewire-idle-inhibit
 - [External Monitor Brightness](./docs/external-monitor-brightness.md) - DDC/CI brightness control
 
@@ -692,14 +696,14 @@ New to Nix? Here are the key concepts:
 ### Flakes
 
 This configuration uses Nix flakes for reproducible builds. The `flake.nix` file defines:
-- **inputs** - External dependencies (nixpkgs, home-manager, stylix, niri, noctalia, zen-browser, etc.)
+- **inputs** - External dependencies (nixpkgs, home-manager, stylix, umbriel, noctalia, zen-browser, etc.)
 - **outputs** - What this flake produces (NixOS/Darwin configurations and checks)
 
 **Key flake inputs:**
 - `nixpkgs` - Package repository (unstable channel)
 - `home-manager` - User environment management
 - `stylix` - System-wide theming
-- `niri` - Window manager
+- `umbriel` - Window manager
 - `noctalia` - Native C++ desktop shell
 - `vicinae` - Application launcher
 

@@ -21,7 +21,7 @@ let
     "sudo"
     "swaylock"
   ];
-  policy = pkgs.writeText "umbriel-trial-policy.json" (
+  policy = pkgs.writeText "umbriel-session-policy.json" (
     builtins.toJSON {
       config = "${home.xdg.configFile."umbriel/config.toml".source}";
       configHome = home.xdg.configHome;
@@ -31,14 +31,14 @@ let
       source = "${pkgs.umbriel.src}";
       originalBindings =
         builtins.attrNames
-          (import ../../home-manager/nixos/niri/binds.nix {
+          (import ../../home-manager/nixos/umbriel/bindings.nix {
             config = home;
             inherit pkgs;
           }).binds;
       noctorTemplate = home.programs.noctalia.settings.theme.templates.user.umbriel;
       native = "${home.programs.noctalia.package}/bin/noctalia";
       sessions = "${cfg.services.displayManager.sessionData.desktops}";
-      safeSuspend = builtins.head home.programs.niri.settings.binds."Mod+Shift+S".action.spawn;
+      safeSuspend = lib.removeSuffix " --require-lock" home.programs.noctalia.settings.shell.session.power.suspend;
       overviewConditions = home.systemd.user.services.noctalia-overview.Unit.ConditionEnvironment;
       portal = "${cfg.programs.umbriel.portalPackage}";
       portalRouting = home.xdg.portal.config.umbriel;
@@ -51,14 +51,11 @@ in
 assert lib.assertMsg
   (
     cfg.programs.umbriel.enable
-    && cfg.services.displayManager.noctalia-greeter.settings.session.default == "niri"
-    && lib.elem "niri" cfg.services.displayManager.sessionData.sessionNames
+    && cfg.services.displayManager.noctalia-greeter.settings.session.default == "umbriel"
     && lib.elem "umbriel" cfg.services.displayManager.sessionData.sessionNames
     && builtins.all (
       name: cfg.security.pam.services.${name}.text == reference.security.pam.services.${name}.text
     ) pamNames
-    && home.programs.niri.finalConfig == reference.home-manager.users.frank.programs.niri.finalConfig
-    && home.xdg.portal.config.niri == reference.home-manager.users.frank.xdg.portal.config.niri
     &&
       home.programs.noctalia.settings.bar
       == reference.home-manager.users.frank.programs.noctalia.settings.bar
@@ -73,8 +70,8 @@ assert lib.assertMsg
     && same (map (h: toString h.xdg.configFile."umbriel/config.toml".source) variants)
     && !(home.programs.noctalia.settings.theme.templates.user.umbriel ? post_hook)
   )
-  "Umbriel trial must preserve Niri/default/PAM/idle/lock/lid/bar policy and keep immutable config constant across theme variants";
-pkgs.runCommand "umbriel-trial-check"
+  "The Umbriel session must preserve default/PAM/idle/lock/lid/bar policy and keep immutable config constant across theme variants";
+pkgs.runCommand "umbriel-session-check"
   {
     UMBRIEL_POLICY = policy;
     nativeBuildInputs = [ pkgs.bash ];

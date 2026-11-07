@@ -6,7 +6,7 @@ Ghostty experiences a 5-second startup delay due to `xdg-desktop-portal-gtk` ser
 
 **Status:** Historical investigation. The active shell is now Noctalia V5; the
 portal-delay issue and proposals below have not been revalidated after that switch.
-See [the current shell setup](./noctalia-niri-overview.md).
+See [the current shell setup](./noctalia-overview.md).
 
 ## The Problem
 
@@ -45,7 +45,7 @@ The delay is caused by the interaction between three components:
 
 ### Why This Happens
 
-1. At system boot, `xdg-desktop-portal-gtk` tries to start before the display server (Niri) is fully ready
+1. At system boot, `xdg-desktop-portal-gtk` tries to start before the display server (Umbriel) is fully ready
 2. The portal fails with "cannot open display" error
 3. When Ghostty launches, it tries to query the portal via D-Bus
 4. D-Bus attempts to auto-activate the failed portal service
@@ -92,7 +92,7 @@ This configuration requires:
 - D-Bus access to the portal
 - Portal to read from dconf's `org.gnome.desktop.interface/color-scheme`
 
-See: [Noctalia V5 with Niri](./noctalia-niri-overview.md) for the current theme
+See: [Noctalia V5 with Umbriel](./noctalia-overview.md) for the current theme
 switching setup.
 
 ## Planned Solution
@@ -171,9 +171,9 @@ Darkman scripts
 1. systemd starts user services
 2. xdg-desktop-portal-gtk.service starts
 3. Portal tries to connect to display
-4. Display server (Niri) not ready yet → FAIL
+4. Display server (Umbriel) not ready yet → FAIL
 5. Portal marked as failed, systemd won't auto-restart
-6. User session fully starts, Niri running
+6. User session fully starts, Umbriel running
 7. User launches Ghostty
 8. Ghostty queries portal via D-Bus
 9. D-Bus tries to activate portal (retry)
@@ -191,7 +191,7 @@ We could fix the portal startup order with systemd dependencies, but:
 
 ## Related Documentation
 
-- [Noctalia V5 with Niri](./noctalia-niri-overview.md) - Current shell and theme setup
+- [Noctalia V5 with Umbriel](./noctalia-overview.md) - Current shell and theme setup
 
 ## Investigation Log
 

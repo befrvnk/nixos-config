@@ -70,21 +70,23 @@ user/import paths:
     sharedModules = [
       inputs.stylix.homeModules.stylix
       inputs.vicinae.homeManagerModules.default
-      inputs.niri.homeModules.niri
       # Keep Stylix from defining Home Manager-local overlays that are ignored
       # with useGlobalPkgs.
       { stylix.overlays.enable = false; }
     ];
     extraSpecialArgs = {
       inherit inputs hostConfig;
+      # Upstream Umbriel module, imported from the flake (see hosts/framework/home.nix).
+      umbrielHomeModule = inputs.umbriel.homeModules.default;
     };
   };
 }
 ```
 
-Desktop-specific modules (Noctalia, Niri, Zen Browser, Umbriel) live in
-`home-manager/nixos/frank.nix` or the host's own `home.nix`; a headless host
-should import only what it needs.
+Desktop-specific modules (Noctalia, Umbriel, Zen Browser) live in
+`home-manager/nixos/frank.nix` or the host's own `home.nix`; the Framework setup
+additionally imports `../../home-manager/nixos/umbriel` for the compositor session.
+A headless host should import only what it needs.
 
 ### 5. Register the host in `lib/host-inventory.nix`
 

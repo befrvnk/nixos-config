@@ -15,7 +15,7 @@ macOS-specific user configuration. No systemd, no Wayland, no Stylix.
 |---------|-------|--------|
 | Theming | Stylix + Darkman | Native macOS appearance |
 | Services | systemd | launchd (rarely needed) |
-| Window manager | niri (Wayland) | Native macOS |
+| Window manager | umbriel (Wayland) | Native macOS |
 | Shell colors | Base16 injection | System defaults |
 | Ghostty package | nixpkgs | Homebrew cask |
 

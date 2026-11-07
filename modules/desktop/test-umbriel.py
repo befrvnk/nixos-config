@@ -72,7 +72,7 @@ class UmbrielTrialChecks(unittest.TestCase):
         binds = self.policy["settings"]["keybinds"]
         def converted(name):
             return name.replace("WheelScroll", "Wheel")
-        self.assertEqual(set(binds), {converted(name) for name in self.policy["originalBindings"]} | {"Alt+Tab"})
+        self.assertEqual(set(binds), {converted(name) for name in self.policy["originalBindings"]} | {"Alt+Tab", "Mod+Shift+D"})
         self.assertIn(self.policy["safeSuspend"], binds["Mod+Shift+S"]["action"])
         self.assertIn("session", binds["Mod+Shift+X"]["action"])
         self.assertIn("volume-up", binds["XF86AudioRaiseVolume"]["action"])
@@ -109,14 +109,13 @@ class UmbrielTrialChecks(unittest.TestCase):
         self.assertNotIn("xwayland-satellite", " ".join(startup))
         self.assertNotIn("noctalia", " ".join(startup))  # Native shell starts once through systemd.
 
-    def test_both_desktop_sessions_exist_and_trial_uses_profile_wrapper(self):
+    def test_umbriel_session_exists_and_uses_profile_wrapper(self):
         directory = Path(self.policy["sessions"]) / "share/wayland-sessions"
-        self.assertTrue((directory / "niri.desktop").is_file())
         umbrella = (directory / "umbriel.desktop").read_text()
         self.assertIn("Name=Umbriel", umbrella)
         self.assertIn("Exec=" + self.policy["launcher"], umbrella)
         self.assertEqual(set(self.policy["overviewConditions"]),
-                         {"WAYLAND_DISPLAY", "|NIRI_SOCKET", "|UMBRIEL_SOCKET"})
+                         {"WAYLAND_DISPLAY", "|UMBRIEL_SOCKET"})
 
     def test_portal_interfaces_match_desktop_routing_without_bus_calls(self):
         text = (Path(self.policy["portal"]) / "share/xdg-desktop-portal/portals/umbriel.portal").read_text()
@@ -153,7 +152,7 @@ import json, os, sys
 with open(os.environ["FIXTURE_EVENTS"], "a") as log:
     log.write("native " + " ".join(sys.argv[1:]) + "\\n")
 print(json.dumps({"hm": os.environ.get("FIXTURE_HM_VALUE"),
-                  "niri": os.environ.get("NIRI_SOCKET"), "args": sys.argv[1:],
+                  "args": sys.argv[1:],
                   "xkb": os.environ.get("XKB_CONFIG_ROOT")}))
 ''')
         fake.chmod(0o755)
@@ -165,7 +164,7 @@ print(json.dumps({"hm": os.environ.get("FIXTURE_HM_VALUE"),
         script = self.root / "launcher.sh"
         script.write_text(source)
         return subprocess.run([shutil.which("bash"), str(script), "argument with spaces"],
-            env=dict(self.environment, SHELL="/fixture/nu", NIRI_SOCKET="/stale/niri",
+            env=dict(self.environment, SHELL="/fixture/nu",
                      FIXTURE_EVENTS=str(events),
                      XKB_CONFIG_ROOT="/fixture/unpatched"),
             capture_output=True, text=True, timeout=10)
@@ -174,7 +173,7 @@ print(json.dumps({"hm": os.environ.get("FIXTURE_HM_VALUE"),
         result = self.make_launcher_fixture()
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
-        self.assertEqual(data, {"hm": "loaded", "niri": None, "args": ["argument with spaces"],
+        self.assertEqual(data, {"hm": "loaded", "args": ["argument with spaces"],
                                 "xkb": self.policy["settings"]["environment"]["XKB_CONFIG_ROOT"]})
 
     def test_launcher_clears_stale_graphical_session_before_native_launcher(self):
