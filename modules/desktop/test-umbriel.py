@@ -78,14 +78,14 @@ class UmbrielTrialChecks(unittest.TestCase):
         self.assertIn("volume-up", binds["XF86AudioRaiseVolume"]["action"])
         self.assertIn("5%", binds["XF86AudioRaiseVolume"]["action"])
         self.assertIn("brightness-ctl", binds["XF86MonBrightnessUp"]["action"])
-        self.assertEqual(binds["Mod+Shift+D"]["action"], "output-toggle:eDP-1")
+        self.assertEqual(binds["Mod+Shift+D"]["action"], "output-toggle eDP-1")
         self.assertFalse(any(re.fullmatch("F[0-9]+", key) for key in binds))
         for index in range(1, 10):
-            self.assertEqual(binds[f"Mod+{index}"]["action"], f"workspace-switch:{index}")
+            self.assertEqual(binds[f"Mod+{index}"]["action"], f"workspace-switch {index}")
 
     def test_alt_tab_uses_native_held_switcher_without_repeat_or_locked_permission(self):
         bind = self.policy["settings"]["keybinds"]["Alt+Tab"]
-        self.assertEqual(bind["action"], "spawn:" + self.policy["native"] + " msg window-switcher hold")
+        self.assertEqual(bind["action"], "spawn " + self.policy["native"] + " msg window-switcher hold")
         self.assertIs(bind["repeat"], False)
         self.assertFalse(bind.get("allow_when_locked", False))
         self.assertNotIn("Alt+Shift+Tab", self.policy["settings"]["keybinds"])

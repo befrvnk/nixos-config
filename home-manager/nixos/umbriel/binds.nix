@@ -44,7 +44,7 @@ let
     move-workspace-down = "workspace-move-down";
     move-workspace-up = "workspace-move-up";
     power-off-monitors = "dpms-off";
-    reset-window-height = "window-set-secondary-extent:0.5";
+    reset-window-height = "window-set-secondary-extent 0.5";
     show-hotkey-overlay = "cheatsheet-toggle";
     switch-focus-between-floating-and-tiling = "window-focus-switch-floating";
     switch-preset-column-width = "window-cycle-primary-extent";
@@ -54,6 +54,9 @@ let
     toggle-window-floating = "window-toggle-floating";
   };
   noctalia = lib.getExe config.programs.noctalia.package;
+  # Umbriel action arguments must follow the action name as separate words
+  # ("workspace-switch 1"); the ":arg" shorthand from earlier Umbriel builds is
+  # rejected as an unknown action, dropping every bind that used it.
   convert =
     bind:
     let
@@ -61,23 +64,23 @@ let
       argument = bind.action.${name};
       action =
         if name == "spawn" then
-          "spawn:${lib.escapeShellArgs argument}"
+          "spawn ${lib.escapeShellArgs argument}"
         else if name == "focus-workspace" then
-          "workspace-switch:${toString argument}"
+          "workspace-switch ${toString argument}"
         else if name == "move-column-to-workspace" then
-          "column-move-to-workspace:${toString argument}"
+          "column-move-to-workspace ${toString argument}"
         else if name == "set-column-width" then
-          "window-modify-primary-extent:${if lib.hasPrefix "-" argument then "-0.1" else "0.1"}"
+          "window-modify-primary-extent ${if lib.hasPrefix "-" argument then "-0.1" else "0.1"}"
         else if name == "set-window-height" then
-          "window-modify-secondary-extent:${if lib.hasPrefix "-" argument then "-0.1" else "0.1"}"
+          "window-modify-secondary-extent ${if lib.hasPrefix "-" argument then "-0.1" else "0.1"}"
         else if name == "quit" then
-          "session-quit${if argument.skip-confirmation or false then ":skip-confirmation" else ""}"
+          "session-quit${if argument.skip-confirmation or false then " skip-confirmation" else ""}"
         else if name == "screenshot" then
-          "spawn:${noctalia} msg screenshot-region"
+          "spawn ${noctalia} msg screenshot-region"
         else if name == "screenshot-screen" then
-          "spawn:${noctalia} msg screenshot-fullscreen"
+          "spawn ${noctalia} msg screenshot-fullscreen"
         else if name == "screenshot-window" then
-          "spawn:${noctalia} msg screenshot-region"
+          "spawn ${noctalia} msg screenshot-region"
         else
           actions.${name} or (throw "Unmapped Umbriel trial binding: ${name}");
     in
@@ -100,11 +103,11 @@ builtins.listToAttrs (
 )
 // {
   "Alt+Tab" = {
-    action = "spawn:${noctalia} msg window-switcher hold";
+    action = "spawn ${noctalia} msg window-switcher hold";
     repeat = false;
   };
   "Mod+Shift+D" = {
-    action = "output-toggle:eDP-1";
+    action = "output-toggle eDP-1";
     repeat = false;
   };
 }
