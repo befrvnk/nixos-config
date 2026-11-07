@@ -3,6 +3,14 @@ let
   showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
   takeReadmeScreenshots = import ./scripts/take-readme-screenshots.nix { inherit pkgs; };
   inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
+  # nh resolves its inner `sudo` through PATH (there is no hardcoded path in the
+  # nh binary), and /run/current-system/sw/bin holds an unwrapped sudo that fails
+  # with "must be owned by uid 0 and have the setuid bit set". Environments that
+  # rebuild PATH (devenv replaces the whole list on the Nu side via _DEVENV_PATH)
+  # can order it ahead of /run/wrappers/bin, which breaks elevation only through
+  # the spawned sudo path. Pinning the wrapper dir first in the scripts keeps
+  # elevation working regardless of the inherited shell state.
+  wrapperFirst = "export PATH=/run/wrappers/bin:$PATH";
 in
 {
   # Enable Claude Code integration
@@ -277,7 +285,6 @@ in
   '';
 
   # Scripts - Additional helper scripts available in PATH
-  # Cross-platform scripts
   scripts = {
     # Rebuild system configuration using nh (Nix Helper)
     # Usage: rebuild [switch] [nh-options]
@@ -286,11 +293,13 @@ in
     rebuild.exec =
       if isDarwin then
         ''
+          ${wrapperFirst}
           echo "+ ${pkgs.nh}/bin/nh darwin switch --accept-flake-config $HOME/nixos-config $@"
           ${pkgs.nh}/bin/nh darwin switch --accept-flake-config "$HOME/nixos-config" "$@"
         ''
       else
         ''
+          ${wrapperFirst}
           action="boot"
 
           # If first arg is 'switch', change action
