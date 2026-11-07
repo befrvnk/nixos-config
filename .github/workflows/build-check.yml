@@ -71,7 +71,7 @@ jobs:
           nix build --no-link --accept-flake-config \
             .#checks.x86_64-linux.cache-trust \
             .#checks.x86_64-linux.kernel-provider-compat \
-            .#checks.x86_64-linux.umbriel-trial \
+            .#checks.x86_64-linux.umbriel \
             .#checks.x86_64-linux.noctalia-greeter \
             .#checks.x86_64-linux.noctalia-lock-auth \
             .#checks.x86_64-linux.noctalia-tray-anchor \
