@@ -19,7 +19,7 @@ in
 {
   # The GNOME target otherwise writes color-scheme during every HM activation,
   # overwriting Noctalia's runtime preference (light maps to "default"). Keep
-  # its app font defaults explicitly; GNOME Shell assets are unused on Niri.
+  # its app font defaults explicitly; GNOME Shell assets are unused.
   stylix.targets.gnome.enable = false;
   dconf.settings."org/gnome/desktop/interface" = {
     font-name = "${fonts.sansSerif.name} ${toString fonts.sizes.applications}";
