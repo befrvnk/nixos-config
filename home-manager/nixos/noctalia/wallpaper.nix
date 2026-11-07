@@ -39,8 +39,8 @@ in
         { path = "${wallpapers.light}"; }
       ];
     };
-    # Niri places the ordinary wallpaper surface within its backdrop. A second
-    # Noctalia backdrop would duplicate the image; keep this renderer disabled.
+    # The compositor keeps workspace previews transparent; a second Noctalia
+    # backdrop would duplicate the image. Keep this renderer disabled.
     backdrop = {
       enabled = false;
       blur_intensity = 0.0;

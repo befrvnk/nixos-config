@@ -7,7 +7,8 @@
 # and the keyring backend is tied to the desktop environment.
 #
 # Issue:
-# When switching from GNOME to a different desktop environment (like Niri), Signal
+# When switching from GNOME to a different desktop environment (like the current
+# Umbriel session), Signal
 # attempts to use a different keyring backend (e.g., basic_text instead of gnome_libsecret).
 # Since the encryption key was stored in the GNOME keyring, Signal cannot access it
 # and fails to open the database.
@@ -15,7 +16,7 @@
 # Solution:
 # By passing the --password-store=gnome-libsecret flag, we force Signal to always use
 # the GNOME keyring backend, regardless of the current desktop environment. This allows
-# Signal to access the encryption key even when running under Niri or other non-GNOME
+# Signal to access the encryption key even when running under Umbriel or other non-GNOME
 # environments.
 #
 # Security benefit:

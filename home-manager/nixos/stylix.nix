@@ -49,7 +49,7 @@ in
     targets = {
       anki.enable = false;
       # No configured consumers: don't create dormant mode-specific assets or
-      # inject a KDE look-and-feel directory into this Niri/qtct session.
+      # inject a KDE look-and-feel directory into this qtct session.
       blender.enable = false;
       forge.enable = false;
       gdu.enable = false;
