@@ -11,11 +11,11 @@ let
 in
 stdenvNoCC.mkDerivation rec {
   pname = "supacode";
-  version = "0.11.6";
+  version = "0.11.8";
 
   src = fetchzip {
     url = "https://github.com/supabitapp/supacode/releases/download/v${version}/supacode.app.zip";
-    hash = "sha256-6BGFsMaSRpLdFtBwIdS98mEySnrZY/TWHwol8OK6FVw=";
+    hash = "sha256-yPhXghY+NASfr5cdwLAUY7/e4J4tL5tsaJqspDrLzs0=";
     stripRoot = false;
   };
 
