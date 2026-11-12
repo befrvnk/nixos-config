@@ -361,6 +361,12 @@ Theme switching without full rebuilds:
 - Check: `systemctl --user status audio-keep-alive`
 - See: https://docs.kernel.org/sound/soc/pops-clicks.html
 
+### PipeWire Socket Activation
+- `services.pipewire.socketActivation` (default on) enables `pipewire.socket` in the system generation. Don't enable it by hand with `systemctl --user enable pipewire.socket`.
+- A unit or enablement link in `~/.config/systemd/user/` shadows the system unit. If it points into `/nix/store` and that path is later garbage-collected (e.g. after a PipeWire update), the unit dangles and PipeWire never starts.
+- Symptoms: `wpctl status` reports "Could not connect to PipeWire", and `systemctl --user status pipewire.socket` shows `bad`.
+- Check for dangling user units: `find ~/.config/systemd/user -xtype l`
+
 ### QEMU Audio (Android Emulator)
 - QEMU requests ~2.7ms latency causing buffer underruns
 - Affects **all audio** when emulator runs
