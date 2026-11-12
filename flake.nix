@@ -83,6 +83,11 @@
       url = "github:max-sixty/worktrunk/v0.36.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Live systemd boot dependency tree on the boot console
+    bootvine = {
+      url = "git+https://codeberg.org/wvhulle/bootvine";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # macOS system configuration
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";

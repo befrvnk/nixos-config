@@ -15,6 +15,7 @@
     ../../modules/profiles/framework.nix
     inputs.nixos-hardware.nixosModules.framework-amd-ai-300-series
     inputs.lanzaboote.nixosModules.lanzaboote
+    inputs.bootvine.nixosModules.default
   ];
 
   # Keep module aggregation coherent with the kernel provider: the CachyOS kernel is
@@ -90,8 +91,11 @@
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
-  services.fwupd.enable = true;
-  services.hardware.bolt.enable = false;
+  services = {
+    bootvine.enable = true;
+    fwupd.enable = true;
+    hardware.bolt.enable = false;
+  };
 
   # CachyOS' kernel derivation does not expose NixOS' kernel.target/buildDTBs attrs yet.
   # The Framework is x86_64, so use the standard bzImage target and disable DTBs.
