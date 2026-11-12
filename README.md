@@ -399,7 +399,6 @@ Installed via Home Manager in the platform-specific package sets:
 - `home-manager/darwin/packages.nix`
 
 #### Productivity
-- **anytype** - Note-taking and knowledge management
 - **ticktick** - Task management
 - **signal-desktop** - Encrypted messaging
 - **zapzap** - WhatsApp client

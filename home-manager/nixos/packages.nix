@@ -8,7 +8,6 @@
   home.packages =
     (with pkgs; [
       adw-bluetooth
-      anytype
       celluloid
       chromium
       ddcutil

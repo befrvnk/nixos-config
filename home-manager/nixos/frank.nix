@@ -40,7 +40,7 @@
     inherit (hostConfig) homeDirectory;
     stateVersion = "25.05";
 
-    # Enable Wayland support for Electron apps (Discord, Slack, Anytype, etc.)
+    # Enable Wayland support for Electron apps (Discord, Slack, etc.)
     # This tells Electron to use the Ozone platform layer with Wayland flags:
     # --ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true
     # Without this, Electron apps may fall back to X11 mode causing rendering issues
