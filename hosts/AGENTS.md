@@ -129,9 +129,11 @@ See `docs/new-host.md` for detailed guide.
   docs/umbriel-trial.md. Never launch compositors/lock/auth/power tests as agent.
 - Framework's pinned CachyOS builder and main nixpkgs can use different module
   certificate formats. Its host overlay selects the provider's aggregateModules
-  helper only for CachyOS/provider-stdenv builds; standard kernels retain main's
-  helper. Review this when changing the kernel provider. Do not fabricate modules.cer,
-  disable signature checks or drop external modules to silence a packaging failure.
+  helper only for the Chaotic-Nyx CachyOS kernel, matched by outPath. Do not match
+  on stdenv: the `-rc` kernel is clang-built and never equals the provider's gcc
+  stdenv. Standard kernels retain main's helper. Review this when changing the
+  kernel provider. Do not fabricate modules.cer, disable signature checks or drop
+  external modules to silence a packaging failure.
 
 ### Darwin
 - Must set `nix.enable = false` (Determinate Systems manages)

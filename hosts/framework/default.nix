@@ -26,7 +26,9 @@
     (
       final: prev:
       let
-        provider = inputs.chaotic.inputs.nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system};
+        system = final.stdenv.hostPlatform.system;
+        provider = inputs.chaotic.inputs.nixpkgs.legacyPackages.${system};
+        cachyos = inputs.chaotic.legacyPackages.${system}."linuxPackages_cachyos-rc";
       in
       {
         aggregateModules =
@@ -34,7 +36,7 @@
           let
             kernel = config.boot.kernelPackages.kernel;
           in
-          if (kernel.stdenv or prev.stdenv).outPath == provider.stdenv.outPath then
+          if kernel.outPath == cachyos.kernel.outPath then
             provider.aggregateModules modules
           else
             prev.aggregateModules modules;
