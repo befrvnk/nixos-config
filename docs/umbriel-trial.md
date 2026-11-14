@@ -126,8 +126,11 @@ power-button backlog remains deferred.
 
 All declared key positions are mapped from `umbriel/bindings.nix` into Umbriel
 actions (wheel names translated). Alt+Tab is additionally registered for the
-native Noctalia window-switcher hold command. Hold Alt, press Tab to cycle and
-release Alt to select. Once open, Noctalia handles Shift+Tab/backward navigation
+native Noctalia window-switcher. Originally this was the `hold` command: hold
+Alt, press Tab to cycle and release Alt to select. On 2026-11-14 the overlay
+opened and cycled, but neither releasing Alt nor Enter switched windows, so the
+binding now runs without `hold`. See [Alt+Tab switcher notes](umbriel-alt-tab-switcher.md)
+(backlog NOC-05). Once open, Noctalia handles Shift+Tab/backward navigation
 and Escape/cancel. Pinned IPC accepts hold, not a fabricated reverse argument, so
 no separate initial Alt+Shift+Tab command is promised. Repeat is false and no
 locked-session exemption is granted. Terminal/launcher, close, overview,

@@ -63,6 +63,18 @@ active security problem as routine backlog.
   fan, refresh, acceleration, power or application/playback change. This is not a
   blocker for ordinary use or separately requested shared topbar UI work.
 
+## NOC-05: Alt+Tab switcher does not focus the selected window (Umbriel)
+
+- **Status:** Open. Overlay opens and Tab cycles, but Enter and releasing Alt do not
+  switch windows. Escape closes it. Not yet reported upstream.
+- **Evidence limit:** Umbriel's `window-focus-warp` works from the CLI, including
+  while the overlay is open. Noctalia logs nothing when the request fails, so the
+  failing step is not confirmed. See
+  [Alt+Tab switcher notes](umbriel-alt-tab-switcher.md).
+- **Revisit when:** An upstream fix or issue appears, or the owner asks to resume.
+  Workarounds (`window-focus-last`, `window-focus-next`) are documented there but not
+  applied.
+
 ## Already verified — not backlog work
 
 Independent full-duration Caffeine and Audio Playback idle suppression, the guarded
