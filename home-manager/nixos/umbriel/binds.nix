@@ -103,7 +103,7 @@ builtins.listToAttrs (
 )
 // {
   "Alt+Tab" = {
-    action = "spawn ${noctalia} msg window-switcher hold";
+    action = "spawn ${noctalia} msg window-switcher";
     repeat = false;
   };
   "Mod+Shift+D" = {
