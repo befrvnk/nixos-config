@@ -206,6 +206,11 @@ shows the bar only in overview, this defines the whole visible bar:
 - Fixed light text `#cdd6f4` (Catppuccin text) for the bar color, sysmon highlights
   and battery warning: the black bar is theme-mode independent, so theme-following
   `on_surface` would be unreadable in light mode.
+- Designer polish (same day): the sysmon trio's base label drops to muted `#a6adc8`
+  (per-widget `color`; `highlight_color` `#cdd6f4` still brightens values as load or
+  temperature rises), battery warnings use Catppuccin red `#f38ba8` so a low state
+  breaks the neutral scheme on black, and network/Bluetooth go icons-only to slim
+  the ten-widget right cluster.
 
 Verification: patched package builds, the 432-case native before/after geometry
 probe and the declarative style probes pass (`test_bar_style.py` now guards

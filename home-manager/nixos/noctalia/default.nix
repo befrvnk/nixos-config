@@ -24,6 +24,11 @@ let
   cornerRadius = osConfig.programs.umbriel.settings.appearance.corner_radius or 16;
   # The always-black bar needs text that stays readable in both theme modes.
   barColor = "#cdd6f4";
+  # Muted base for the ambient sysmon widgets; they brighten toward barColor
+  # through highlight_color as load/temperature rises.
+  barMutedColor = "#a6adc8";
+  # Warning states must break the neutral scheme to be visible on black.
+  barWarningColor = "#f38ba8";
   overviewWatcher = pkgs.writeShellScript "noctalia-overview" ''
     exec ${pkgs.python3}/bin/python3 ${./overview.py} ${lib.getExe noctalia}
   '';
@@ -142,6 +147,7 @@ in
           stat = "cpu_usage";
           label_min_width = 48;
           visualization = "none";
+          color = barMutedColor;
           highlight_color = barColor;
         };
         ram = {
@@ -149,6 +155,7 @@ in
           stat = "ram_pct";
           label_min_width = 48;
           visualization = "none";
+          color = barMutedColor;
           highlight_color = barColor;
         };
         temperature = {
@@ -156,6 +163,7 @@ in
           stat = "cpu_temp";
           label_min_width = 56;
           visualization = "none";
+          color = barMutedColor;
           highlight_color = barColor;
         };
         clock = {
@@ -164,12 +172,13 @@ in
         };
         # Lid Guard is manual-only; loading the plugin does not acquire a lock.
         lid-guard.type = "8bury/lid-guard:lid-guard";
-        network.show_label = true;
+        # Icons only: the ten-widget right cluster stays slim without labels.
+        network.show_label = false;
         bluetooth = {
-          show_label = true;
+          show_label = false;
           hide_when_adapter_off = false;
         };
-        battery.warning_color = barColor;
+        battery.warning_color = barWarningColor;
       };
       location = {
         latitude = 48.1521;

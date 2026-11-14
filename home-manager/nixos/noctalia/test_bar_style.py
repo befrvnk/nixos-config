@@ -51,9 +51,11 @@ class BarStyleTests(unittest.TestCase):
         self.assertEqual(self.policy["widget"]["clock"]["format"], "{:%a %d %b  %H:%M}")
         self.assertTrue(self.policy["widget"]["clock"]["anchor"])
         for name in ("cpu", "ram", "temperature"):
+            # Muted base; highlight_color keeps brightening toward barColor under load.
+            self.assertEqual(self.policy["widget"][name]["color"], "#a6adc8")
             self.assertEqual(self.policy["widget"][name]["highlight_color"], "#cdd6f4")
             self.assertEqual(self.policy["widget"][name]["visualization"], "none")
-        self.assertEqual(self.policy["widget"]["battery"]["warning_color"], "#cdd6f4")
+        self.assertEqual(self.policy["widget"]["battery"]["warning_color"], "#f38ba8")
 
     def test_native_numeric_min_widths_reduce_jitter_without_removing_values(self):
         for name, width in (("cpu", 48), ("ram", 48), ("temperature", 56)):
@@ -61,8 +63,9 @@ class BarStyleTests(unittest.TestCase):
             self.assertEqual(widget["label_min_width"], width)
             self.assertTrue(widget.get("show_value", True))
             self.assertTrue(widget.get("label_show_units", True))
-        self.assertTrue(self.policy["widget"]["network"]["show_label"])
-        self.assertTrue(self.policy["widget"]["bluetooth"]["show_label"])
+        # Icons only at the right edge; the ten-widget cluster stays slim.
+        self.assertFalse(self.policy["widget"]["network"]["show_label"])
+        self.assertFalse(self.policy["widget"]["bluetooth"]["show_label"])
 
 
 if __name__ == "__main__":

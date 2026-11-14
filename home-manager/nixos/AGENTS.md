@@ -288,7 +288,10 @@ Theme switching without full rebuilds:
   fillets mirroring the screen's rounded top corners, no plain rounding and no
   S-curve notch mode confusion (flush bar + full length selects it automatically), no outline border
   (`border_width` 0) and fixed light text `#cdd6f4` for widgets, highlights and battery
-  warnings so both theme modes stay readable on black. Thickness 34, 16px inner
+  warnings so both theme modes stay readable on black. Designer polish: the sysmon
+  trio uses a muted `#a6adc8` base that brightens to `#cdd6f4` via `highlight_color`
+  under load, battery warnings use Catppuccin red `#f38ba8` so the state breaks the
+  scheme, and network/Bluetooth are icons-only. Thickness 34, 16px inner
   padding (matching the corner radius) and 12px widget spacing stay.
 - bar-background-color.patch adds an optional declarative `background_fill` ColorSpec:
   upstream hardcodes the bar background to the theme Surface role. Keep the paint
