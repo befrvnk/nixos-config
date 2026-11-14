@@ -278,18 +278,25 @@ Theme switching without full rebuilds:
   helper binaries (safe-suspend, brightness-ctl, toggle-abm) live in
   `desktop-tools/`.
 
-### Continuous floating bar
-- Owner requested one shared background instead of individual widget islands while
-  keeping one floating gap. Current config has capsule=false, opacity=1, top/side
-  margins=16 and main-axis padding=12. Preserve widgets/fonts/clock/neutral text.
+### Overview bar (revealed behind the workspace)
+- Owner request (2026-11-14) superseded the 2026-10-23 floating-bar look. The bar only
+  shows in the Umbriel overview and is styled as revealed behind the workspace: opaque
+  black `background_fill`, `margin_edge`/`margin_ends` 0 (flush with the top and side
+  screen edges), `radius` 0 with bottom-only per-corner radii taken from Umbriel's
+  `appearance.corner_radius` and `concave_edge_corners` false (upstream's default would
+  carve S-curve notches into the flush bottom corners), no outline border
+  (`border_width` 0) and fixed light text `#cdd6f4` for widgets, highlights and battery
+  warnings so both theme modes stay readable on black. Thickness 34 and 12px
+  padding/spacing stay.
+- bar-background-color.patch adds an optional declarative `background_fill` ColorSpec:
+  upstream hardcodes the bar background to the theme Surface role. Keep the paint
+  helper over both fill sites and strict `--fuzz=0` application on input bumps.
 - bar-ipc-edge-slide.patch folds positive edge gaps into the native layer surface
   for IPC slides too. Keep reservation/panel math and visual/input geometry coherent;
   do not enable pointer/smart auto-hide to obtain this geometry or add a hot strip.
-- User-accepted visual polish uses native border=outline, border_width=1, radius=16 and
-  widget_spacing=12. Sysmon label_min_width is 48 for CPU/RAM and 56 for temperature:
-  minima only, no clipping/hidden units/polling change. Widgets/font/clock/gaps and
-  blur/shadow off stay. No additional patch; appearance accepted in the reported
-  Umbriel session on 2026-10-23, not exhaustive values/fonts/scales/output coverage.
+- Sysmon label_min_width is 48 for CPU/RAM and 56 for temperature: minima only, no
+  clipping/hidden units/polling change. Preserve widgets/fonts/clock, widget_spacing 12,
+  blur/shadow off and no additional effects.
 - Motion-first follow-up changes only explicit manual IPC exit to 100ms ease-out;
   entrance stays 200ms. User accepted the bar/motion on 2026-10-23; tray context-menu
   anchoring remains a distinct reported issue. Native call/easing expressions are

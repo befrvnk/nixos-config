@@ -1,13 +1,14 @@
-# Noctalia continuous floating topbar
+# Noctalia overview topbar
 
-Status: **continuous bar/motion and placement accepted** (783f890, 5665d8d).
-The configuration-only visual polish below is also user-accepted (2026-10-23),
-corroborated by installed settings and healthy services; scope limits remain below.
+Status: **overview bar restyled behind the workspace (owner request, 2026-11-14)**.
+Earlier history: continuous bar/motion and placement accepted (783f890, 5665d8d);
+the configuration-only floating polish below was user-accepted on 2026-10-23 and is
+superseded by the owner-requested restyle at the end of this document.
 
 The owner requested one continuous bar rather than individual widget islands and
 an animation originating at the display edge, while keeping one floating gap.
 
-## Declarative style
+## Declarative style (superseded 2026-11-14, kept for history)
 
 - One opaque native Surface-role background; widget capsule backgrounds disabled.
 - Keep top and side margins at **16 logical pixels** and bar thickness at 34.
@@ -177,6 +178,40 @@ For future changes, rebuild switch only while unlocked and inspect appearance/
 popup behavior. Further refinements need separate owner direction; do not trade
 off visibility/recovery/performance policy.
 
+## Overview restyle — bar revealed behind the workspace (2026-11-14)
+
+The owner restyled the bar so it reads as if it always sits behind the workspace,
+which the overview transition moves down to reveal it. Since the overview watcher
+shows the bar only in overview, this defines the whole visible bar:
+
+- Opaque **completely black** background. Upstream hardcodes the bar fill to the
+  theme Surface role with no TOML override, so `bar-background-color.patch` adds an
+  optional declarative `background_fill` ColorSpec applied at both paint sites via
+  one `barBackgroundFillColor` helper (still scaled by `background_opacity`). It
+  applies strictly with `--fuzz=0`; keep it in sync on input bumps.
+- Flush with the screen: `margin_edge = 0` (no top gap) and `margin_ends = 0`
+  (full width). The edge-slide entrance is unchanged, so the bar still slides in
+  from the physical top edge behind the moving overview.
+- Rounded **only at the outer bottom corners**, mirroring the compositor window
+  radius: `radius = 0` seeds all corners, then `radius_bottom_left`/`right` come
+  from Umbriel's `appearance.corner_radius` (16) so they cannot drift apart.
+  `concave_edge_corners` is explicitly false — with a flush bar upstream's default
+  would carve S-curve notches into those bottom corners instead of plain rounding.
+- No outline border (`border_width = 0`): on a flush bar a border would trace the
+  screen's top edge. Thickness 34, 12px padding/spacing, widget order, fonts and
+  clock stay; no blur/shadow or animation changes.
+- Fixed light text `#cdd6f4` (Catppuccin text) for the bar color, sysmon highlights
+  and battery warning: the black bar is theme-mode independent, so theme-following
+  `on_surface` would be unreadable in light mode.
+
+Verification: patched package builds, the 432-case native before/after geometry
+probe and the declarative style probes pass (`test_bar_style.py` now guards
+background_fill, zero margins, bottom-only corner radius, disabled concavity, no
+border and the fixed text color; the policy JSON carries Umbriel's corner radius).
+The remaining pre-existing flake is the real-btop SIGUSR2 sandbox timeout, which
+fails identically on the unmodified baseline. Not yet visually accepted by the
+owner in a live Umbriel session.
+
 ## User-only trial
 
 While **unlocked**, run rebuild switch. The package changed, so Noctalia may restart
@@ -185,11 +220,12 @@ itself is not being replaced or restarted by this change. Save work as usual.
 
 Open/close overview and check:
 
-1. One connected background, not individual widget islands.
-2. Entry still slides from the physical top edge into one floating gap. Exit
-   retracts promptly and no longer visibly lingers over returning overview windows.
-3. Side insets, widgets/text/clock, transparent previews and overview-only visibility
-   remain usable. Try an ordinary widget popup to check its anchor, then close it.
+1. The bar is completely black, spans the full width and touches the top screen
+   edge, with only its bottom corners rounded like the compositor's windows.
+2. Entry still slides from the physical top edge; exit retracts promptly.
+3. Widgets/text/clock are readable in the current theme mode, transparent previews
+   and overview-only visibility remain usable. Try an ordinary widget popup to
+   check its anchor, then close it.
 
 Report appearance/behavior only. The agent never shows/hides the live bar to test,
 changes focus, restarts services, activates a generation, locks or authenticates.

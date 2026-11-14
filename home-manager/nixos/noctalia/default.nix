@@ -1,14 +1,16 @@
 {
   inputs,
   lib,
+  osConfig,
   pkgs,
   ...
 }:
 let
   noctalia = inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default.overrideAttrs (old: {
-    # Keep PAM/sleep policy patches, floating-bar IPC edge geometry and battery-warning
-    # deduplication exact.
+    # Keep PAM/sleep policy patches, floating-bar IPC edge geometry, the overview
+    # bar's fixed background fill and battery-warning deduplication exact.
     patches = (old.patches or [ ]) ++ [
+      ./bar-background-color.patch
       ./bar-ipc-edge-slide.patch
       ./battery-warning-no-spam.patch
       ./lockscreen-pam-service.patch
@@ -17,6 +19,11 @@ let
     ];
     patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
   });
+  # The overview bar is revealed behind the workspace, so its bottom corners
+  # follow the compositor's window corner radius.
+  cornerRadius = osConfig.programs.umbriel.settings.appearance.corner_radius or 16;
+  # The always-black bar needs text that stays readable in both theme modes.
+  barColor = "#cdd6f4";
   overviewWatcher = pkgs.writeShellScript "noctalia-overview" ''
     exec ${pkgs.python3}/bin/python3 ${./overview.py} ${lib.getExe noctalia}
   '';
@@ -76,13 +83,21 @@ in
         position = "top";
         thickness = 34;
         background_opacity = 1.0;
-        border = "outline";
-        border_width = 1.0;
-        radius = 16;
+        # The bar only shows in the Umbriel overview and is revealed behind the
+        # workspace: opaque black, flush with the top and side screen edges and
+        # rounded only at the bottom corners with the compositor corner radius.
+        # Upstream's default concave edge corners would carve S-curve notches
+        # into those bottom corners on a flush bar, so disable them.
+        background_fill = "#000000";
+        border_width = 0.0;
+        radius = 0;
+        radius_bottom_left = cornerRadius;
+        radius_bottom_right = cornerRadius;
+        concave_edge_corners = false;
         compositor_blur = false;
         shadow = false;
-        margin_ends = 16;
-        margin_edge = 16;
+        margin_ends = 0;
+        margin_edge = 0;
         padding = 12;
         widget_spacing = 12;
         font_scale = 1.14;
@@ -95,7 +110,7 @@ in
         capsule_fill = "surface";
         capsule_border = "outline";
         capsule_border_width = 1.0;
-        color = "on_surface";
+        color = barColor;
         start = [
           "cpu"
           "ram"
@@ -125,21 +140,21 @@ in
           stat = "cpu_usage";
           label_min_width = 48;
           visualization = "none";
-          highlight_color = "on_surface";
+          highlight_color = barColor;
         };
         ram = {
           type = "sysmon";
           stat = "ram_pct";
           label_min_width = 48;
           visualization = "none";
-          highlight_color = "on_surface";
+          highlight_color = barColor;
         };
         temperature = {
           type = "sysmon";
           stat = "cpu_temp";
           label_min_width = 56;
           visualization = "none";
-          highlight_color = "on_surface";
+          highlight_color = barColor;
         };
         clock = {
           format = "{:%a %d %b  %H:%M}";
@@ -152,7 +167,7 @@ in
           show_label = true;
           hide_when_adapter_off = false;
         };
-        battery.warning_color = "on_surface";
+        battery.warning_color = barColor;
       };
       location = {
         latitude = 48.1521;

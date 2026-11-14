@@ -159,6 +159,8 @@
             bar = home.programs.noctalia.settings.bar.main;
             widget = home.programs.noctalia.settings.widget;
             font = home.programs.noctalia.settings.shell.font_family;
+            # The bar's bottom corners follow the compositor window corner radius.
+            cornerRadius = home.programs.umbriel.settings.appearance.corner_radius or 16;
             patches = map builtins.baseNameOf home.programs.noctalia.package.patches;
           }
         );

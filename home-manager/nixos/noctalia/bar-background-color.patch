@@ -1,0 +1,54 @@
+--- a/src/config/config_types.h
++++ b/src/config/config_types.h
+@@ -147,6 +147,8 @@
+   std::string layer = "top"; // top | overlay; attached panels use the same layer
+   std::int32_t thickness = Style::barThicknessDefault;
+   float backgroundOpacity = 1.0F;
++  // Fixed fill for the bar background; unset keeps the themed surface role.
++  std::optional<ColorSpec> backgroundFill;
+   bool compositorBlur = true;
+   // Inside outline for the bar background; attached panels inherit the resolved values.
+   ColorSpec border = colorSpecFromRole(ColorRole::Outline);
+--- a/src/config/schema/config_schema.cpp
++++ b/src/config/schema/config_schema.cpp
+@@ -2375,6 +2375,7 @@
+         barLayerField(),
+         field(&BarConfig::thickness, "thickness", kBarThicknessRange),
+         field(&BarConfig::backgroundOpacity, "background_opacity", kBarOpacityRange),
++        optionalColorField(&BarConfig::backgroundFill, "background_fill"),
+         field(&BarConfig::compositorBlur, "compositor_blur"),
+         colorField(&BarConfig::border, "border"),
+         field(&BarConfig::borderWidth, "border_width", kBarBorderWidthRange),
+--- a/src/shell/bar/bar.cpp
++++ b/src/shell/bar/bar.cpp
+@@ -3089,12 +3089,20 @@
+       || widgetsNeedFrameTick(instance.endWidgets);
+ }
+ 
++// Fixed background_fill when set, otherwise the themed surface role; both scaled by background_opacity.
++[[nodiscard]] Color barBackgroundFillColor(const BarConfig& cfg) noexcept {
++  Color fill = cfg.backgroundFill ? resolveColorSpec(*cfg.backgroundFill)
++                                  : colorForRole(ColorRole::Surface);
++  fill.a *= cfg.backgroundOpacity;
++  return fill;
++}
++
+ void Bar::applyBackgroundPalette(BarInstance& instance) {
+   if (instance.bg == nullptr) {
+     return;
+   }
+   auto style = instance.bg->style();
+-  style.fill = colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity);
++  style.fill = barBackgroundFillColor(instance.barConfig);
+   style.border = resolveColorSpec(instance.barConfig.border);
+   style.borderWidth = instance.barConfig.borderWidth;
+   instance.bg->setStyle(style);
+@@ -3413,7 +3421,7 @@
+   // draws only outside the rect, so any size mismatch is visible at corners.
+   if (instance.bg != nullptr) {
+     const RoundedRectStyle bgStyle{
+-        .fill = colorForRole(ColorRole::Surface, instance.barConfig.backgroundOpacity),
++        .fill = barBackgroundFillColor(instance.barConfig),
+         .border = resolveColorSpec(instance.barConfig.border),
+         .fillMode = FillMode::Solid,
+         .corners = concave.corners,
