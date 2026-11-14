@@ -200,8 +200,9 @@ shows the bar only in overview, this defines the whole visible bar:
   the imprint of the rounded-corner workspace sliding down off the bar — rather
   than plain convex rounding.
 - No outline border (`border_width = 0`): on a flush bar a border would trace the
-  screen's top edge. Thickness 34, 12px padding/spacing, widget order, fonts and
-  clock stay; no blur/shadow or animation changes.
+  screen's top edge. Thickness 34, 16px inner padding matching the corner radius,
+  12px widget spacing, widget order, fonts and clock stay; no blur/shadow or
+  animation changes.
 - Fixed light text `#cdd6f4` (Catppuccin text) for the bar color, sysmon highlights
   and battery warning: the black bar is theme-mode independent, so theme-following
   `on_surface` would be unreadable in light mode.

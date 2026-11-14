@@ -288,8 +288,8 @@ Theme switching without full rebuilds:
   fillets mirroring the screen's rounded top corners, no plain rounding and no
   S-curve notch mode confusion (flush bar + full length selects it automatically), no outline border
   (`border_width` 0) and fixed light text `#cdd6f4` for widgets, highlights and battery
-  warnings so both theme modes stay readable on black. Thickness 34 and 12px
-  padding/spacing stay.
+  warnings so both theme modes stay readable on black. Thickness 34, 16px inner
+  padding (matching the corner radius) and 12px widget spacing stay.
 - bar-background-color.patch adds an optional declarative `background_fill` ColorSpec:
   upstream hardcodes the bar background to the theme Surface role. Keep the paint
   helper over both fill sites and strict `--fuzz=0` application on input bumps.

@@ -41,7 +41,7 @@ class BarStyleTests(unittest.TestCase):
         self.assertEqual(self.policy["font"], "JetBrainsMono Nerd Font")
         self.assertEqual(self.bar["font_scale"], 1.14)
         self.assertEqual(self.bar["widget_spacing"], 12)
-        self.assertEqual(self.bar["padding"], 12)  # Main-axis inset replaces outer capsule padding.
+        self.assertEqual(self.bar["padding"], 16)  # Matches the 16px corner radius at the edges.
         # Fixed light text stays readable on the always-black bar in both modes.
         self.assertEqual(self.bar["color"], "#cdd6f4")
         self.assertEqual(self.bar["start"], ["cpu", "ram", "temperature"])

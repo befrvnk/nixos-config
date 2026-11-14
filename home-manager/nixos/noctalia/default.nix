@@ -99,7 +99,8 @@ in
         shadow = false;
         margin_ends = 0;
         margin_edge = 0;
-        padding = 12;
+        # 16px inner padding matches the corner radius; widget spacing stays 12.
+        padding = 16;
         widget_spacing = 12;
         font_scale = 1.14;
         auto_hide = false;
