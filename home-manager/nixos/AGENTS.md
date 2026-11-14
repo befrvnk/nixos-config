@@ -283,8 +283,10 @@ Theme switching without full rebuilds:
   shows in the Umbriel overview and is styled as revealed behind the workspace: opaque
   black `background_fill`, `margin_edge`/`margin_ends` 0 (flush with the top and side
   screen edges), `radius` 0 with bottom-only per-corner radii taken from Umbriel's
-  `appearance.corner_radius` and `concave_edge_corners` false (upstream's default would
-  carve S-curve notches into the flush bottom corners), no outline border
+  `appearance.corner_radius` and `concave_edge_corners` true: the native inner-edge
+  concavity mode makes those bottom corners concave with the same radius — inverse
+  fillets mirroring the screen's rounded top corners, no plain rounding and no
+  S-curve notch mode confusion (flush bar + full length selects it automatically), no outline border
   (`border_width` 0) and fixed light text `#cdd6f4` for widgets, highlights and battery
   warnings so both theme modes stay readable on black. Thickness 34 and 12px
   padding/spacing stay.

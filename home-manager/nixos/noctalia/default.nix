@@ -84,16 +84,17 @@ in
         thickness = 34;
         background_opacity = 1.0;
         # The bar only shows in the Umbriel overview and is revealed behind the
-        # workspace: opaque black, flush with the top and side screen edges and
-        # rounded only at the bottom corners with the compositor corner radius.
-        # Upstream's default concave edge corners would carve S-curve notches
-        # into those bottom corners on a flush bar, so disable them.
+        # workspace: opaque black, flush with the top and side screen edges. The
+        # bottom corners are concave with the compositor corner radius — the
+        # inverse fillet mirroring the screen's rounded top corners, as if the
+        # rounded-corner workspace slid down off the bar. Upstream's inner-edge
+        # concavity mode provides exactly this on a flush bar.
         background_fill = "#000000";
         border_width = 0.0;
         radius = 0;
         radius_bottom_left = cornerRadius;
         radius_bottom_right = cornerRadius;
-        concave_edge_corners = false;
+        concave_edge_corners = true;
         compositor_blur = false;
         shadow = false;
         margin_ends = 0;

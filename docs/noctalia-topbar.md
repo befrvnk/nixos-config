@@ -192,11 +192,13 @@ shows the bar only in overview, this defines the whole visible bar:
 - Flush with the screen: `margin_edge = 0` (no top gap) and `margin_ends = 0`
   (full width). The edge-slide entrance is unchanged, so the bar still slides in
   from the physical top edge behind the moving overview.
-- Rounded **only at the outer bottom corners**, mirroring the compositor window
-  radius: `radius = 0` seeds all corners, then `radius_bottom_left`/`right` come
-  from Umbriel's `appearance.corner_radius` (16) so they cannot drift apart.
-  `concave_edge_corners` is explicitly false — with a flush bar upstream's default
-  would carve S-curve notches into those bottom corners instead of plain rounding.
+- Rounded **only at the outer bottom corners**, and inverted: `radius = 0` seeds
+  all corners, `radius_bottom_left`/`right` come from Umbriel's
+  `appearance.corner_radius` (16), and `concave_edge_corners = true` engages
+  upstream's inner-edge concavity mode on the flush full-length bar, so those
+  corners draw as concave fillets mirroring the screen's rounded top corners —
+  the imprint of the rounded-corner workspace sliding down off the bar — rather
+  than plain convex rounding.
 - No outline border (`border_width = 0`): on a flush bar a border would trace the
   screen's top edge. Thickness 34, 12px padding/spacing, widget order, fonts and
   clock stay; no blur/shadow or animation changes.
@@ -221,7 +223,8 @@ itself is not being replaced or restarted by this change. Save work as usual.
 Open/close overview and check:
 
 1. The bar is completely black, spans the full width and touches the top screen
-   edge, with only its bottom corners rounded like the compositor's windows.
+   edge; its bottom corners curve the inverse way (concave fillets mirroring the
+   screen's rounded top corners), not like ordinary rounded windows.
 2. Entry still slides from the physical top edge; exit retracts promptly.
 3. Widgets/text/clock are readable in the current theme mode, transparent previews
    and overview-only visibility remain usable. Try an ordinary widget popup to

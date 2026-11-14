@@ -17,12 +17,13 @@ class BarStyleTests(unittest.TestCase):
         self.assertEqual(self.bar["background_fill"], "#000000")
         self.assertEqual(self.bar["margin_edge"], 0)
         self.assertEqual(self.bar["margin_ends"], 0)
-        # Bottom corners follow the compositor window corner radius; the top
-        # edge stays square and upstream concave notches are disabled.
+        # Bottom corners are concave with the compositor window corner radius —
+        # the inverse fillet mirroring the screen's rounded top corners; the top
+        # edge stays square.
         self.assertEqual(self.bar["radius"], 0)
         self.assertEqual(self.bar["radius_bottom_left"], self.policy["cornerRadius"])
         self.assertEqual(self.bar["radius_bottom_right"], self.policy["cornerRadius"])
-        self.assertFalse(self.bar["concave_edge_corners"])
+        self.assertTrue(self.bar["concave_edge_corners"])
         self.assertEqual(self.bar["border_width"], 0.0)
         self.assertEqual(self.bar["thickness"], 34)
         self.assertFalse(self.bar["shadow"])
