@@ -83,9 +83,9 @@ class UmbrielTrialChecks(unittest.TestCase):
         for index in range(1, 10):
             self.assertEqual(binds[f"Mod+{index}"]["action"], f"workspace-switch {index}")
 
-    def test_alt_tab_uses_native_held_switcher_without_repeat_or_locked_permission(self):
+    def test_alt_tab_uses_native_switcher_without_repeat_or_locked_permission(self):
         bind = self.policy["settings"]["keybinds"]["Alt+Tab"]
-        self.assertEqual(bind["action"], "spawn " + self.policy["native"] + " msg window-switcher hold")
+        self.assertEqual(bind["action"], "spawn " + self.policy["native"] + " msg window-switcher")
         self.assertIs(bind["repeat"], False)
         self.assertFalse(bind.get("allow_when_locked", False))
         self.assertNotIn("Alt+Shift+Tab", self.policy["settings"]["keybinds"])
