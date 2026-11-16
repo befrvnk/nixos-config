@@ -9,6 +9,7 @@
     inputs.zen-browser.homeModules.beta
     ./1password-app.nix
     ./1password-session
+    ./agent-signing.nix
     ./android
     ./audio-idle-inhibit
     ./audio-keep-alive

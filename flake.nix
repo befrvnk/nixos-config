@@ -88,6 +88,11 @@
       url = "git+https://codeberg.org/wvhulle/bootvine";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Decrypts repo-stored secrets to tmpfs at activation (Framework agent signing key)
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # macOS system configuration
     nix-darwin = {
       url = "github:nix-darwin/nix-darwin";

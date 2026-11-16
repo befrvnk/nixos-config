@@ -12,6 +12,7 @@ let
   # committer identity against these when verifying ssh signatures.
   allowedSigners = ''
     hermann.frank@gmail.com,frank.hermann@egym.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ+3hhn8MHxIuaTPFR6z+OPSL9YX5sBN80bct7GVspuz
+    hermann.frank@gmail.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlBfTg3wBgPe10KWu/tayOLCthoH+a8sXg2PqAX/fl/ framework-agent-signing
   '';
 in
 {
