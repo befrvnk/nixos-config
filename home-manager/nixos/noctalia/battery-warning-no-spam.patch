@@ -1,6 +1,6 @@
 --- a/src/system/battery_warning_monitor.h
 +++ b/src/system/battery_warning_monitor.h
-@@ -30,6 +30,9 @@
+@@ -31,6 +31,9 @@
  private:
    struct DeviceWarningState {
      int firedLevel = kNoLevel;
@@ -12,25 +12,25 @@
    std::unordered_map<std::string, DeviceWarningState> m_devices;
 --- a/src/system/battery_warning_monitor.cpp
 +++ b/src/system/battery_warning_monitor.cpp
-@@ -167,10 +167,14 @@
-     const bool isSystem = isSystemBattery(device, systemBattery);
-     const int threshold = batteryWarningThresholdForDevice(config, device, systemBattery);
+@@ -176,10 +176,14 @@
+     // subjects warn on the pack's own percent.
+     const UPowerState& warningState = isSystem ? combined : device.state;
      auto& state = m_devices[key];
 +    const bool firstEvaluate = state.firstEvaluate;
 +    state.firstEvaluate = false;
  
 -    // Re-arm when charging, absent, or warnings disabled. firedLevel is percentage-based, so a
 -    // threshold change across config reloads needs no special handling — the next level decides.
--    if (!device.state.isPresent || batteryStatePlugged(device.state.state).value_or(false) || threshold <= 0) {
+-    if (!warningState.isPresent || batteryStatePlugged(warningState.state).value_or(false) || threshold <= 0) {
 +    // Re-arm when absent or warnings disabled. firedLevel is percentage-based, so a threshold
 +    // change across config reloads needs no special handling — the next level decides. Charging
 +    // must not re-arm: resetting on every plugged observation made each charging/discharging flap
 +    // re-fire the same level while already plugged in.
-+    if (!device.state.isPresent || threshold <= 0) {
++    if (!warningState.isPresent || threshold <= 0) {
        state.firedLevel = kNoLevel;
        continue;
      }
-@@ -184,10 +188,24 @@
+@@ -193,10 +197,24 @@
        continue;
      }
  
@@ -42,7 +42,7 @@
 +    // requires the daemon's aggregate OnBattery because its own charge state can flap to
 +    // "discharging" while AC is connected. firedLevel stays untouched here so such a flap cannot
 +    // re-arm an already reported level; rising past every alert point above re-arms it.
-+    if (batteryStatePlugged(device.state.state).value_or(true) || (isSystem && !device.state.onBattery)) {
++    if (batteryStatePlugged(warningState.state).value_or(true) || (isSystem && !warningState.onBattery)) {
 +      continue;
 +    }
 +
@@ -55,6 +55,6 @@
 +        state.firedLevel = currentLevel;
 +        continue;
 +      }
-       fireLowBatteryNotification(notifications, device, currentLevel, isSystem);
+       fireLowBatteryNotification(notifications, device, warningState, currentLevel, isSystem);
        state.firedLevel = currentLevel;
      } else if (currentLevel > state.firedLevel) {

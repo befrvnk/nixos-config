@@ -13,11 +13,12 @@ let
       ./bar-background-color.patch
       ./bar-ipc-edge-slide.patch
       ./battery-warning-no-spam.patch
-      ./lockscreen-pam-service.patch
       ./suspend-lock-policy.patch
       ./tray-menu-click-anchor.patch
     ];
     patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
+    # Upstream reads the lock-screen PAM service from this option (default "login").
+    mesonFlags = (old.mesonFlags or [ ]) ++ [ "-Dpam_service=noctalia" ];
   });
   # The overview bar is revealed behind the workspace, so its bottom corners
   # follow the compositor's window corner radius.

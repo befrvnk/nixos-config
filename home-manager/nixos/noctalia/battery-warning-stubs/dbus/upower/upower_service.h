@@ -62,6 +62,7 @@ struct UPowerDeviceInfo {
 // The probe backs these with its own globals instead of a live D-Bus connection.
 class UPowerService {
 public:
+  [[nodiscard]] const UPowerState& state() const noexcept;
   [[nodiscard]] std::vector<UPowerDeviceInfo> batteryDevices() const;
   [[nodiscard]] const UPowerDeviceInfo* defaultSystemBattery() const noexcept;
   [[nodiscard]] const UPowerDeviceInfo* deviceForSelector(std::string_view selector) const;

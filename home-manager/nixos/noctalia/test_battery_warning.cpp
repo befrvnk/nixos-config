@@ -78,6 +78,13 @@ bool upowerDeviceMatchesSelector(const UPowerDeviceInfo& info, std::string_view 
       || selectorMatchesField(info.vendor, trimmed);
 }
 
+const UPowerState& UPowerService::state() const noexcept {
+  static UPowerState aggregate;
+  const auto* battery = defaultSystemBattery();
+  aggregate = battery != nullptr ? battery->state : UPowerState{};
+  return aggregate;
+}
+
 std::vector<UPowerDeviceInfo> UPowerService::batteryDevices() const {
   return g_devices;
 }

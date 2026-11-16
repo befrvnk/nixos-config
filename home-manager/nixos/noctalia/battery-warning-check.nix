@@ -14,7 +14,7 @@ let
     ];
   };
 in
-pkgs.runCommandCC "noctalia-battery-warning-check" { } ''
+pkgs.runCommandCC "noctalia-battery-warning-check" { buildInputs = [ pkgs.libsodium ]; } ''
   # applyPatches above proves every local Noctalia patch still applies with fuzz=0. Then compile
   # the patched battery warning monitor against Noctalia's real headers (the sdbus-backed UPower
   # header is mirrored in battery-warning-stubs/) and drive it through the discharge/charge flap
@@ -22,8 +22,11 @@ pkgs.runCommandCC "noctalia-battery-warning-check" { } ''
   $CXX -std=c++23 -O2 \
     -I${./battery-warning-stubs} \
     -I${patched}/src \
+    -I${patched}/lib \
     ${./test_battery_warning.cpp} \
     ${patched}/src/system/battery_warning_monitor.cpp \
+    ${patched}/src/security/secure_buffer.cpp \
+    -lsodium \
     -o battery-warning-probe
   ./battery-warning-probe
   touch $out

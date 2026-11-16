@@ -1,6 +1,6 @@
 --- a/src/config/config_types.h
 +++ b/src/config/config_types.h
-@@ -147,6 +147,8 @@
+@@ -193,6 +193,8 @@
    std::string layer = "top"; // top | overlay; attached panels use the same layer
    std::int32_t thickness = Style::barThicknessDefault;
    float backgroundOpacity = 1.0F;
@@ -8,10 +8,10 @@
 +  std::optional<ColorSpec> backgroundFill;
    bool compositorBlur = true;
    // Inside outline for the bar background; attached panels inherit the resolved values.
-   ColorSpec border = colorSpecFromRole(ColorRole::Outline);
---- a/src/config/schema/config_schema.cpp
-+++ b/src/config/schema/config_schema.cpp
-@@ -2375,6 +2375,7 @@
+   ColorSpec border = colorSpecFromRole(ColorRole::OutlineVariant);
+--- a/src/config/schema/config_schema_bar.cpp
++++ b/src/config/schema/config_schema_bar.cpp
+@@ -171,6 +171,7 @@
          barLayerField(),
          field(&BarConfig::thickness, "thickness", kBarThicknessRange),
          field(&BarConfig::backgroundOpacity, "background_opacity", kBarOpacityRange),
@@ -21,8 +21,8 @@
          field(&BarConfig::borderWidth, "border_width", kBarBorderWidthRange),
 --- a/src/shell/bar/bar.cpp
 +++ b/src/shell/bar/bar.cpp
-@@ -3089,12 +3089,20 @@
-       || widgetsNeedFrameTick(instance.endWidgets);
+@@ -3286,12 +3286,20 @@
+   });
  }
  
 +// Fixed background_fill when set, otherwise the themed surface role; both scaled by background_opacity.
@@ -43,7 +43,7 @@
    style.border = resolveColorSpec(instance.barConfig.border);
    style.borderWidth = instance.barConfig.borderWidth;
    instance.bg->setStyle(style);
-@@ -3413,7 +3421,7 @@
+@@ -3623,7 +3631,7 @@
    // draws only outside the rect, so any size mismatch is visible at corners.
    if (instance.bg != nullptr) {
      const RoundedRectStyle bgStyle{

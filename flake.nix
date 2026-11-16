@@ -39,13 +39,16 @@
       inputs.vicinae.follows = "vicinae";
     };
     # Native C++ Noctalia V5; keep its nixpkgs pin for upstream cache hits.
-    noctalia.url = "github:noctalia-dev/noctalia/v5.3.0";
+    # Pinned to a commit on upstream's `cachix` branch (VERSION 5.5.0 + 27 commits):
+    # the local patches in home-manager/nixos/noctalia are verified against it.
+    # Switch to a release tag once one contains them. Bump with scripts/update-noctalia.sh.
+    noctalia.url = "github:noctalia-dev/noctalia/c1a7283a50b6ce8d0459b8864d8713289597bae9";
     noctalia-community-plugins = {
       url = "github:noctalia-dev/community-plugins/bd834815ee5da2ed744a9cbf1425342a4eecba6f";
       flake = false;
     };
     noctalia-community-templates = {
-      url = "github:noctalia-dev/community-templates/7aae018927ae35d007734868388c34c901870f45";
+      url = "github:noctalia-dev/community-templates/7c4a2cce97479bf209198d5746714fe1b2c311b8";
       flake = false;
     };
     # Umbriel compositor, portal and Home Manager module from upstream. Track the
