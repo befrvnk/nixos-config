@@ -427,8 +427,9 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
   `scripts/update-noctalia.sh`, which reruns the patch checks and restores the pin on failure.
 - The lock-screen PAM service comes from upstream's `pam_service` meson option, set in
   `noctalia/default.nix` via `mesonFlags`. Do not reintroduce a PAM source patch.
-- `checks.noctalia-bar-geometry` is known broken: its probe extracts code that now depends on
-  types it does not define. It is not in the bump script's required list until it is reworked.
+- `checks.noctalia-bar-geometry` extracts whole definitions by matching braces from their
+  signatures, so it survives moves within `bar.cpp`. Do not go back to text markers. It
+  compares 432 before/after geometry cases with the IPC timing expressions.
 - `programs.noctalia.checkConfig` validates TOML during builds. That does not guarantee
   custom palette JSON is runtime-valid: V5.3.0 also requires terminal color data.
   Prefer the shipped Catppuccin palette instead of an incomplete UI-only mapping.

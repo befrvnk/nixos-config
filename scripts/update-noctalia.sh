@@ -7,8 +7,8 @@ source "$(dirname "$0")/update-common.sh"
 
 flake_file="flake.nix"
 lock_file="flake.lock"
-# noctalia-bar-geometry is not required here: its extraction needs rework for upstream's lib/ layout.
 checks=(
+  noctalia-bar-geometry
   noctalia-tray-anchor
   noctalia-battery-warning
   noctalia-lock-auth
