@@ -117,8 +117,9 @@ access and the former Asyar theme-toggle extension are not included. See the
 
 ### Noctalia V5 (Desktop Shell)
 
-[Noctalia 5.3.0](https://github.com/noctalia-dev/noctalia/tree/v5.3.0) is the native
-C++ shell, not the older Quickshell-based release. Its bar appears only during the
+[Noctalia 5.5.0](https://github.com/noctalia-dev/noctalia/tree/c1a7283a50b6ce8d0459b8864d8713289597bae9)
+(pinned commit on upstream's `cachix` branch) is the native C++ shell, not the older
+Quickshell-based release. Its bar appears only during the
 Umbriel overview. A continuous floating background with neutral text replaces
 widget islands, keeping one gap and animating from the display edge.
 The continuous bar and faster exit are [user-accepted](./docs/noctalia-topbar.md);

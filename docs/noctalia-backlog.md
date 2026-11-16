@@ -65,15 +65,15 @@ active security problem as routine backlog.
 
 ## NOC-05: Alt+Tab switcher does not focus the selected window (Umbriel)
 
-- **Status:** Open. Overlay opens and Tab cycles, but Enter and releasing Alt do not
-  switch windows. Escape closes it. Not yet reported upstream.
-- **Evidence limit:** Umbriel's `window-focus-warp` works from the CLI, including
-  while the overlay is open. Noctalia logs nothing when the request fails, so the
-  failing step is not confirmed. See
-  [Alt+Tab switcher notes](umbriel-alt-tab-switcher.md).
-- **Revisit when:** An upstream fix or issue appears, or the owner asks to resume.
-  Workarounds (`window-focus-last`, `window-focus-next`) are documented there but not
-  applied.
+- **Status:** Root cause found 2026-11-16; fixed in the pinned Noctalia commit
+  `c1a7283`, pending a live test. Noctalia 5.3.0 sent a legacy `msg` IPC request that
+  Umbriel rejects. Upstream's typed action IPC (`48137bd`) fixes it. Not yet reported
+  upstream, since the pin already contains the fix.
+- **Next:** Test Enter and releasing Alt on the live session after the rebuild. Reopen
+  if either still fails.
+- **Evidence:** See [Alt+Tab switcher notes](umbriel-alt-tab-switcher.md).
+- **Workarounds** (`window-focus-last`, `window-focus-next`) are documented there but
+  not applied.
 
 ## Already verified — not backlog work
 

@@ -1,7 +1,10 @@
 # Noctalia V5 on Umbriel
 
-The Framework uses the native C++ **Noctalia 5.3.0** release, pinned by tag and
-`flake.lock`. This is not Noctalia V4 or a Quickshell configuration. Umbriel,
+The Framework uses the native C++ **Noctalia 5.5.0** source, pinned to the commit
+`c1a7283` (27 commits after the `v5.5.0` tag, from upstream's `cachix` branch) in
+`flake.nix` and `flake.lock`. The local patches are verified against that commit.
+Bump with `scripts/update-noctalia.sh`; switch to a release tag once one contains
+the patches. This is not Noctalia V4 or a Quickshell configuration. Umbriel,
 Noctalia's own scrollable-tiling compositor, is the only Wayland session; Niri was
 removed on 2026-11-07 after the dual-session trial.
 
@@ -504,7 +507,7 @@ not the generic Qt palette; its integration is described below.
 ## Vicinae community template (accepted)
 
 There is no shipped Vicinae built-in template. The reviewed community integration
-is pinned at `noctalia-dev/community-templates@7aae018927ae35d007734868388c34c901870f45`.
+is pinned at `noctalia-dev/community-templates@7c4a2cce97479bf209198d5746714fe1b2c311b8`.
 `noctalia/vicinae.nix` registers its upstream TOML and Bash hook as a user template,
 not a mutable community catalog download or custom replacement. No theme file is forked.
 

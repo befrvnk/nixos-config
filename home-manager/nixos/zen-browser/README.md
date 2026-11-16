@@ -1,7 +1,7 @@
 # Zen Browser + Noctalia (NixOS)
 
 Zen uses the reviewed community styles from the pinned
-`noctalia-dev/community-templates@7aae018927ae35d007734868388c34c901870f45`.
+`noctalia-dev/community-templates@7c4a2cce97479bf209198d5746714fe1b2c311b8`.
 The source files are consumed verbatim, not copied into a custom color generator.
 The NixOS integration is in `../noctalia/zen-browser.nix`; Darwin is unaffected.
 

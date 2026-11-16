@@ -422,7 +422,13 @@ Existing tuned Framework profiles are retained; do not enable power-profiles-dae
 ## Desktop Gotchas
 
 ### Noctalia V5
-- Pinned native C++ 5.3.0 via `inputs.noctalia`; do not use V4 QML settings/plugins.
+- Native C++ Noctalia via `inputs.noctalia`, pinned to commit `c1a7283` (5.5.0 + 27 commits,
+  upstream `cachix` branch). Do not use V4 QML settings/plugins. Bump with
+  `scripts/update-noctalia.sh`, which reruns the patch checks and restores the pin on failure.
+- The lock-screen PAM service comes from upstream's `pam_service` meson option, set in
+  `noctalia/default.nix` via `mesonFlags`. Do not reintroduce a PAM source patch.
+- `checks.noctalia-bar-geometry` is known broken: its probe extracts code that now depends on
+  types it does not define. It is not in the bump script's required list until it is reworked.
 - `programs.noctalia.checkConfig` validates TOML during builds. That does not guarantee
   custom palette JSON is runtime-valid: V5.3.0 also requires terminal color data.
   Prefer the shipped Catppuccin palette instead of an incomplete UI-only mapping.
