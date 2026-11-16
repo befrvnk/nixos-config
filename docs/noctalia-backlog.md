@@ -65,12 +65,12 @@ active security problem as routine backlog.
 
 ## NOC-05: Alt+Tab switcher does not focus the selected window (Umbriel)
 
-- **Status:** Root cause found 2026-11-16; fixed in the pinned Noctalia commit
-  `c1a7283`, pending a live test. Noctalia 5.3.0 sent a legacy `msg` IPC request that
-  Umbriel rejects. Upstream's typed action IPC (`48137bd`) fixes it. Not yet reported
-  upstream, since the pin already contains the fix.
-- **Next:** Test Enter and releasing Alt on the live session after the rebuild. Reopen
-  if either still fails.
+- **Status:** Closed 2026-11-16. The pinned Noctalia commit `c1a7283` fixes it: Noctalia
+  5.3.0 sent a legacy `msg` IPC request that Umbriel rejects, and upstream's typed action
+  IPC (`48137bd`) replaces it. Live test passed. Not reported upstream, since the pin
+  already contains the fix.
+- **Reopen if:** Enter or releasing Alt stops focusing a window after a Noctalia or
+  Umbriel bump.
 - **Evidence:** See [Alt+Tab switcher notes](umbriel-alt-tab-switcher.md).
 - **Workarounds** (`window-focus-last`, `window-focus-next`) are documented there but
   not applied.

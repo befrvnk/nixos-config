@@ -1,8 +1,10 @@
 # Umbriel Alt+Tab window switcher
 
-**Status (2026-11-16): root cause found; fixed in the pinned Noctalia source, pending a
-live test.** Alt+Tab opens the Noctalia switcher and Tab cycles, but Enter and releasing
-Alt did not focus the selected window. Escape closes the overlay without switching.
+**Status (2026-11-16): fixed and closed.** Alt+Tab opens the Noctalia switcher and Tab
+cycles. Enter focuses the selected window and releasing Alt commits the selection.
+Before the fix, neither switched, and Escape closed the overlay without switching.
+The fix is the pinned Noctalia commit; the user confirmed it on the live session after
+`rebuild switch`.
 
 ## Root cause (2026-11-16)
 
@@ -17,8 +19,8 @@ Noctalia logs nothing when the request fails, so the symptom was silent. Upstrea
 the sender in commit `48137bd` ("send compositor actions as typed IPC requests"), which
 is included in `v5.5.0`. The pinned commit `c1a7283` includes it and the patch set is
 verified against it. Because the old 5.3.0 sender is gone, the fix only needs the pin.
-The live test is still pending: Enter should focus the selected window and releasing Alt
-should commit the selection.
+Live verification passed on 2026-11-16: Enter focuses the selected window and releasing
+Alt commits the selection.
 
 The trial notes said Alt+Tab was user-confirmed during the trial (see
 [umbriel-trial.md](umbriel-trial.md)). The regression was first reported on
