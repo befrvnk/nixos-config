@@ -4,8 +4,10 @@ _: {
     audio.enable_overdrive = false;
     osd = {
       enabled = true;
-      position = "bottom_center";
-      position_vertical = "bottom_center";
+      position = "top_center";
+      position_vertical = "top_center";
+      # Topbar thickness (34) + 16.
+      offset_y = 34 + 16;
       kinds = {
         volume = true;
         volume_output = true;

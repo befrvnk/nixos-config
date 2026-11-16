@@ -62,8 +62,9 @@ fi
         action = bindings["XF86AudioMute"]["action"]
         self.assertIn("/bin/noctalia msg volume-mute", action)
         self.assertFalse(self.integration["audio"]["enable_overdrive"])
-        self.assertEqual(self.integration["osd"]["position"], "bottom_center")
-        self.assertEqual(self.integration["osd"]["position_vertical"], "bottom_center")
+        self.assertEqual(self.integration["osd"]["position"], "top_center")
+        self.assertEqual(self.integration["osd"]["position_vertical"], "top_center")
+        self.assertEqual(self.integration["osd"]["offset_y"], 50)
         kinds = self.integration["osd"]["kinds"]
         self.assertTrue(kinds["volume"] and kinds["volume_output"] and kinds["brightness"])
         self.assertFalse(kinds["volume_input"])

@@ -687,8 +687,9 @@
               !h.services.swayosd.enable
               && !(h.systemd.user.services ? swayosd)
               && h.programs.noctalia.settings.osd.enabled
-              && h.programs.noctalia.settings.osd.position == "bottom_center"
-              && h.programs.noctalia.settings.osd.position_vertical == "bottom_center"
+              && h.programs.noctalia.settings.osd.position == "top_center"
+              && h.programs.noctalia.settings.osd.position_vertical == "top_center"
+              && h.programs.noctalia.settings.osd.offset_y == 50
               && h.programs.noctalia.settings.osd.kinds.volume
               && h.programs.noctalia.settings.osd.kinds.volume_output
               && !h.programs.noctalia.settings.osd.kinds.volume_input

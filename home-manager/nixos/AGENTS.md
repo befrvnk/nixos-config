@@ -346,7 +346,8 @@ Theme switching without full rebuilds:
 
 ### Shell Volume Module
 - Noctalia V5 uses its native audio service for the widget/control center.
-- OSD belongs at bottom_center (horizontal and vertical) to avoid the topbar.
+- OSD sits at top_center (horizontal and vertical) with offset_y 50 (topbar 34 + 16),
+  so it clears the topbar. Notifications use top_center with the same offset_y.
   Plain F1–F12 must reach apps; Framework Fn+Esc hardware Fn Lock selects media
   actions behind Fn. Don't emulate Fn in Umbriel or apply hid_apple fnmode to
   this AT keyboard. Existing external NuPhy mappings remain separate.
