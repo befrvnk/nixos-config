@@ -21,6 +21,8 @@ let
     # Keep last 3 crash recovery snapshots
     BACKUP_LIMIT=3
   '';
+  # psd calls mountpoint (util-linux); the user manager's PATH does not provide it.
+  psdPath = "${pkgs.util-linux}/bin:${pkgs.rsync}/bin:${pkgs.kmod}/bin:${pkgs.gawk}/bin:${pkgs.glib}/bin:/run/wrappers/bin";
 in
 {
   # profile-sync-daemon with Zen Browser support (added via overlay)
@@ -42,7 +44,7 @@ in
         Service = {
           Type = "oneshot";
           RemainAfterExit = "yes";
-          Environment = "PATH=${pkgs.rsync}/bin:${pkgs.kmod}/bin:${pkgs.gawk}/bin:${pkgs.glib}/bin:/run/wrappers/bin";
+          Environment = "PATH=${psdPath}";
           ExecStart = "${pkgs.profile-sync-daemon}/bin/psd sync";
           ExecStop = "${pkgs.profile-sync-daemon}/bin/psd unsync";
         };
@@ -60,6 +62,7 @@ in
         };
         Service = {
           Type = "oneshot";
+          Environment = "PATH=${psdPath}";
           ExecStart = "${pkgs.profile-sync-daemon}/bin/psd resync";
         };
       };
