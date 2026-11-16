@@ -132,7 +132,14 @@ class BtopThemeTests(unittest.TestCase):
             os.kill(process.pid, signal.SIGUSR2)
             wait_for_rgb("#f0e0d0")
             os.write(master, b"q")
-            self.assertEqual(process.wait(timeout=8), 0)
+            deadline = time.monotonic() + 8
+            while process.poll() is None and time.monotonic() < deadline:
+                if select.select([master], [], [], 0.1)[0]:
+                    try:
+                        os.read(master, 65536)
+                    except OSError:
+                        break
+            self.assertEqual(process.wait(timeout=1), 0)
         finally:
             if process is not None and process.poll() is None:
                 os.killpg(process.pid, signal.SIGTERM)
