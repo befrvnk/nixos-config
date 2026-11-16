@@ -91,6 +91,7 @@ in
         Description = "Profile-sync-daemon resync timer";
       };
       Timer = {
+        OnBootSec = "10m";
         OnUnitActiveSec = "10m";
       };
       Install = {
