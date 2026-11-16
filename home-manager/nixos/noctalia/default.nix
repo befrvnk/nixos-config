@@ -116,7 +116,7 @@ in
         capsule = false;
         capsule_padding = 12;
         capsule_fill = "surface";
-        capsule_border = "outline";
+        capsule_border = "outline_variant";
         capsule_border_width = 1.0;
         color = barColor;
         start = [
