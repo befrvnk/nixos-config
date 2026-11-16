@@ -1,7 +1,5 @@
 { pkgs, lib, ... }:
 let
-  showChangelogs = import ./scripts/show-changelogs.nix { inherit pkgs; };
-
   inherit (pkgs.stdenv.hostPlatform) isLinux isDarwin;
   # nh resolves its inner `sudo` through PATH (there is no hardcoded path in the
   # nh binary), and /run/current-system/sw/bin holds an unwrapped sudo that fails
@@ -199,7 +197,6 @@ in
       nixfmt
       nix-init # Scaffold package expressions for sources not in nixpkgs
       nurl # Generate repo fetchers and hashes for package updates
-      nvd # Nix version diff (for changelog lookup)
       shellcheck # Shell script linter
       statix # Nix linter
       unzip # Unpack zip release archives for update scripts
@@ -309,14 +306,6 @@ in
 
           echo "+ ${pkgs.nh}/bin/nh os $action --accept-flake-config $HOME/nixos-config $@"
           ${pkgs.nh}/bin/nh os "$action" --accept-flake-config "$HOME/nixos-config" "$@"
-          exit_code=$?
-
-          # Show changelog links after successful switch
-          if [ $exit_code -eq 0 ] && [ "$action" = "switch" ]; then
-            ${lib.getExe showChangelogs}
-          fi
-
-          exit $exit_code
         '';
 
     # Clean up old generations using nh
