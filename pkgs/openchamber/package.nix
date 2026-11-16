@@ -14,12 +14,12 @@
 
 let
   pname = "openchamber";
-  version = "2.7.0";
+  version = "2.7.2";
   appName = "OpenChamber.app";
   executable = "OpenChamber";
-  darwinHash = "sha256-nnnLwM/WbSfjjF5PLKT1kftBH1MlPor7V3alRsUeXwc=";
-  linuxX86Hash = "sha256-EaUrzL+9AKp7WmbvSBGd92uM/yWfruR0mWR6AsGbtAE=";
-  linuxArm64Hash = "sha256-rai+79jWnKvistNaAPv4U6zfhr6IwZ+XtqyD7amtCww=";
+  darwinHash = "sha256-4n5bYlpG49Y8DWXIBwlHGGMaYmZsZlPaJw1eFaSd3pY=";
+  linuxX86Hash = "sha256-agbPfTqMUo2+k9DM0+yU+qVLcDFYxzMpxuE8u+JS7zw=";
+  linuxArm64Hash = "sha256-QhhRgk/ZFv+cZunvvlxi0i6ifMyMaFTyf5rP2S2qgqQ=";
 
   meta = {
     description = "Desktop and web interface for the OpenCode AI agent";
