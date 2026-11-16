@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   ...
 }:
@@ -21,8 +22,24 @@ let
     # Keep last 3 crash recovery snapshots
     BACKUP_LIMIT=3
   '';
-  # psd calls mountpoint (util-linux); the user manager's PATH does not provide it.
-  psdPath = "${pkgs.util-linux}/bin:${pkgs.rsync}/bin:${pkgs.kmod}/bin:${pkgs.gawk}/bin:${pkgs.glib}/bin:/run/wrappers/bin";
+  # psd calls many coreutils-style tools (mountpoint, grep, find, stat, pgrep, ...) that the
+  # user manager's PATH does not provide, so give both units the full set explicitly.
+  psdPath =
+    lib.makeBinPath [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.gawk
+      pkgs.glib
+      pkgs.gnugrep
+      pkgs.gnused
+      pkgs.kmod
+      pkgs.ncurses
+      pkgs.procps
+      pkgs.rsync
+      pkgs.systemd
+      pkgs.util-linux
+    ]
+    + ":/run/wrappers/bin";
 in
 {
   # profile-sync-daemon with Zen Browser support (added via overlay)
