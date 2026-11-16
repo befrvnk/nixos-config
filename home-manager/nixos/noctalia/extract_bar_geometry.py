@@ -18,14 +18,14 @@ def emit(root, namespace):
     gutter = "barSurfaceEdgeGutter" if "barSurfaceEdgeGutter" in bar else "barAutoHideEdgeGutter"
     print(f"namespace {namespace} {{")
     print(reserved)
-    print(between(bar, "  [[nodiscard]] bool barConfigUsesSlideSurface", "  [[nodiscard]] bool barPointerHideAllowed"))
-    print(between(bar, f"  [[nodiscard]] int {gutter}", "  [[nodiscard]] std::vector<InputRect>"))
+    print(between(bar, "  bool barConfigUsesSlideSurface", "  bool barPointerHideAllowed"))
+    print(between(bar, f"  int {gutter}", "  std::vector<InputRect> barAutoHideSurfaceInputRegion"))
     constant = re.search(r"constexpr float kAutoHideSlideExtraPx = [^;]+;", bar)
     if constant is None:
         raise ValueError("Native hidden-slide constant changed")
     print(constant.group())
     print(between(bar, "  struct BarVisualGeometry {", "  // Returns true when two bar configs"))
-    print(between(bar, "  BarVisualGeometry computeBarVisualGeometry(", "  void applyBarShadowStyle("))
+    print(between(bar, "  BarVisualGeometry computeBarVisualGeometry(", "  void\n  applyBarShadowStyle("))
     ipc = between(bar, "void Bar::setInstanceIpcVisible(", "void Bar::applyIpcVisibility(")
     timing = re.findall(r"instance\.animations\.animate\(\s*current,\s*target,\s*([^,\n]+),\s*([^,\n]+),", ipc)
     if len(timing) != 1:
@@ -39,9 +39,9 @@ def emit(root, namespace):
 
 original, patched = map(Path, sys.argv[1:])
 # Use the actual native input-region value type, without its GUI surface class.
-surface = (original / "src/wayland/surface.h").read_text()
+surface = (original / "lib/wayland/surface.h").read_text()
 print(between(surface, "struct InputRect {", "struct SurfaceIdleProfileEntry"))
-palette = (original / "src/ui/palette.cpp").read_text()
+palette = (original / "lib/ui/palette.cpp").read_text()
 print(between(palette, "ColorSpec colorSpecFromRole(", "ColorSpec fixedColorSpec("))
 emit(original, "before")
 emit(patched, "after")

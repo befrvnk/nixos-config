@@ -2,7 +2,7 @@
 #include "render/animation/animation.h"
 #include "render/core/color.h"
 #include "shell/bar/bar_corner_shape.h"
-#include "shell/surface/shadow.h"
+#include "ui/surface_shadow.h"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -35,7 +35,7 @@ int main() {
               cfg.autoHide = mode == 1;
               cfg.smartAutoHide = mode == 2;
               cfg.concaveEdgeCorners = gap == 0;
-              ShellConfig::ShadowConfig shadow;
+              ShadowStyle shadow;
               shadow.direction = direction;
               const auto oldSpec = before::computeBarSurfaceSpec(cfg, shadow);
               const auto spec = after::computeBarSurfaceSpec(cfg, shadow);
@@ -88,7 +88,7 @@ int main() {
   cfg.reserveSpace = false;
   cfg.autoHide = false;
   cfg.smartAutoHide = false;
-  ShellConfig::ShadowConfig shadow;
+  ShadowStyle shadow;
   const auto spec = after::computeBarSurfaceSpec(cfg, shadow);
   const auto body = after::computeBarVisualGeometry(cfg, shadow, 1200, spec.surfaceHeight);
   const auto delta = after::computeAutoHideHiddenDelta(false, false, false, 1200, spec.surfaceHeight,

@@ -22,8 +22,8 @@ pkgs.runCommandCC "noctalia-bar-geometry-check"
     mkdir -p $out/bin
     python3 ${./extract_bar_geometry.py} ${source} ${patched} > native-bar-geometry.h
     $CXX -std=c++23 -ffunction-sections -fdata-sections -Wl,--gc-sections \
-      -I. -I${patched}/src ${./test_bar_geometry.cpp} \
-      ${patched}/src/shell/surface/shadow.cpp \
-      ${patched}/src/render/animation/animation.cpp -o $out/bin/probe
+      -I. -I${patched}/src -I${patched}/lib ${./test_bar_geometry.cpp} \
+      ${patched}/lib/ui/surface_shadow.cpp \
+      ${patched}/lib/render/animation/animation.cpp -o $out/bin/probe
     $out/bin/probe
   ''
