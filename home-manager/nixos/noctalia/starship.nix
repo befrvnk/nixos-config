@@ -12,7 +12,7 @@ let
   template = pkgs.runCommand "noctalia-starship-template.toml" { } ''
     cat ${base} > $out
     printf '\n' >> $out
-    cat ${inputs.noctalia}/assets/templates/starship/starship.toml >> $out
+    cat ${inputs.noctalia-community-templates}/starship/starship.toml >> $out
   '';
 in
 {

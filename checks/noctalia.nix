@@ -154,6 +154,7 @@
       {
         NOCTALIA_BIN = "${home.programs.noctalia.package}/bin/noctalia";
         NOCTALIA_SOURCE = inputs.noctalia.outPath;
+        NOCTALIA_COMMUNITY_TEMPLATES = inputs.noctalia-community-templates.outPath;
         NATIVE_BAR_STYLE = pkgs.writeText "noctalia-bar-style.json" (
           builtins.toJSON {
             bar = home.programs.noctalia.settings.bar.main;

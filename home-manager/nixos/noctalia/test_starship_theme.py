@@ -54,7 +54,7 @@ class StarshipThemeTests(unittest.TestCase):
         return result.stdout
 
     def test_native_palette_is_unmodified_and_managed_base_is_the_prefix(self):
-        shipped = Path(os.environ["NOCTALIA_SOURCE"]) / "assets/templates/starship/starship.toml"
+        shipped = Path(os.environ["NOCTALIA_COMMUNITY_TEMPLATES"]) / "starship/starship.toml"
         self.assertTrue(self.template.read_bytes().endswith(shipped.read_bytes()))
         self.assertTrue(self.template.read_bytes().startswith(self.base.read_bytes()))
         self.assertEqual(tomllib.loads(self.base.read_text())["palette"], "noctalia")
