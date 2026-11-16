@@ -28,7 +28,7 @@ int main() {
               cfg.position = position;
               cfg.thickness = 34;
               cfg.marginEdge = gap;
-              cfg.marginEnds = 16;
+              cfg.marginEnds = LengthSpec::fromPixels(16);
               cfg.marginOppositeEdge = 7;
               cfg.shadow = hasShadow;
               cfg.reserveSpace = reserve;
@@ -80,7 +80,7 @@ int main() {
   BarConfig cfg;
   cfg.position = "top";
   cfg.marginEdge = 16;
-  cfg.marginEnds = 16;
+  cfg.marginEnds = LengthSpec::fromPixels(16);
   cfg.radiusTopLeft = cfg.radiusTopRight = cfg.radiusBottomLeft = cfg.radiusBottomRight = 16;
   cfg.borderWidth = 1.0F;
   cfg.thickness = 34;
