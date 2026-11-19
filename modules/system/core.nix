@@ -16,6 +16,10 @@ in
     algorithm = "zstd";
   };
 
+  # The stock kernel enables zswap by default; layered in front of zram it
+  # double-compresses pages overflowing its pool. Keep the swap stack zram-only.
+  boot.kernelParams = [ "zswap.enabled=0" ];
+
   # CachyOS-style performance optimizations
   # Reference: https://github.com/CachyOS/CachyOS-Settings/blob/master/usr/lib/sysctl.d/70-cachyos-settings.conf
   boot.kernel.sysctl = {

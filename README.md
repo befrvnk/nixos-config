@@ -618,7 +618,7 @@ Atuin duplicate-binding warning), check [pre-session Home Manager activation](do
   - ⚡ **Balanced**: Battery + allows compilation boosts
   - 🚀 **Performance**: Full power on AC
 - **Automatic power switching** via tuned/upower events (Balanced on AC, Power Saver on battery)
-- **ZRAM** compressed swap with zstd for memory pressure without SSD wear
+- **ZRAM** compressed swap with zstd for memory pressure without SSD wear; zswap is disabled to avoid a double-compression layer over it
 - **systemd-oomd** proactively kills runaway processes before system freezes (works with ZRAM)
 - **CachyOS-style sysctl tuning** - Optimized VM settings (swappiness=180 for ZRAM, page-cluster=0), network buffers, THP defer+madvise, RCU Lazy (5-10% idle power savings)
 - **ABM (Adaptive Backlight Management)** on battery for display power savings (disabled on AC for accurate colors)

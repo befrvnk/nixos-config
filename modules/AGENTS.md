@@ -212,6 +212,7 @@ Based on [CachyOS Settings](https://github.com/CachyOS/CachyOS-Settings):
 - `vm.vfs_cache_pressure = 50` - Better file cache
 - `vm.dirty_bytes/dirty_background_bytes` - 256MB/64MB thresholds
 - `vm.page-cluster = 0` - Single-page swap for ZRAM/SSD
+- `zswap.enabled=0` (boot.kernelParams) - stock kernel enables zswap in front of zram; disabled to avoid double compression
 - `fs.file-max = 2097152` - High file handle limit
 - `kernel.kptr_restrict = 2` - Security hardening
 - `rcutree.enable_rcu_lazy=1` - 5-10% power savings at idle
