@@ -21,6 +21,10 @@ macOS-specific user configuration. No systemd, no Wayland, no Stylix.
 
 ## Darwin Gotchas
 
+### Git Signing
+- `agent-signing.nix` uses a local private key outside Nix; only the public key belongs in `shared/git.nix`.
+- Keep 1Password SSH authentication unchanged. See `docs/agent-signing.md` for provisioning and rotation.
+
 ### Ghostty Package
 - **NOT available in nixpkgs for Darwin**
 - Must install via Homebrew cask (in `hosts/macbook-darwin/default.nix`)

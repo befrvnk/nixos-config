@@ -18,6 +18,7 @@
 
     # Darwin-specific modules
     inputs.zen-browser.homeModules.beta
+    ./agent-signing.nix
     ./calibre.nix
     ./cliamp.nix
     ./ghostty.nix

@@ -8,11 +8,11 @@ let
     else
       "/run/current-system/sw/bin/op-ssh-sign";
 
-  # Principals that may sign with the SSH signing key. Git matches the
-  # committer identity against these when verifying ssh signatures.
+  # Principals trusted for each SSH signing key.
   allowedSigners = ''
     hermann.frank@gmail.com,frank.hermann@egym.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ+3hhn8MHxIuaTPFR6z+OPSL9YX5sBN80bct7GVspuz
     hermann.frank@gmail.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlBfTg3wBgPe10KWu/tayOLCthoH+a8sXg2PqAX/fl/ framework-agent-signing
+    hermann.frank@gmail.com,frank.hermann@egym.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAFPHbHwLaqjNSyH85aGwdcqHQt2BJc6P50TeyiObzbs darwin-agent-signing
   '';
 in
 {

@@ -674,7 +674,7 @@ Detailed guides for specific topics:
 - [Secure Boot with TPM](./docs/secure-boot.md) - Secure boot setup
 - [Fingerprint Setup](./docs/fingerprint-setup.md) - Fingerprint authentication
 - [1Password SSH Session](./docs/1password-ssh-session.md) - Unlock once per session, lock the SSH keys on suspend
-- [Agent Signing](./docs/agent-signing.md) - Framework signs commits with an agenix-managed key instead of 1Password
+- [Agent Signing](./docs/agent-signing.md) - Framework and Darwin sign commits with separate machine-local keys instead of 1Password
 - [1Password CLI Initial Namespace](./docs/1password-cli-initial-namespace.md) - Why the app must launch outside a restricted user namespace
 
 ### Theming & Desktop
