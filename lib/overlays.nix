@@ -23,6 +23,13 @@ let
     (import ../overlays/android-studio-canary.nix { nixpkgsSrc = inputs.nixpkgs; })
     (import ../overlays/claude-code.nix)
     (import ../overlays/domain-check.nix)
+    # The pulse plugin's libpulse.so.0 / libpulse-simple.so.0 deps are missing
+    # from nixpkgs' buildInputs; autoPatchelf fails the build without them.
+    (_final: prev: {
+      github-copilot-app = prev.github-copilot-app.overrideAttrs (old: {
+        buildInputs = (old.buildInputs or [ ]) ++ [ prev.libpulseaudio ];
+      });
+    })
     (import ../overlays/idea-community.nix)
     (import ../overlays/openchamber.nix)
     (import ../overlays/profile-sync-daemon.nix)
