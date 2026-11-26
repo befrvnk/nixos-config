@@ -184,6 +184,7 @@ in
               "muxy"
               "notion"
               "opencode-desktop"
+              "openscreen"
               "rectangle"
               "signal"
               "spotify"
